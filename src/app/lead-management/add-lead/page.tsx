@@ -536,13 +536,12 @@ export default function AddLeadPage() {
           {/* PAGE TITLE ROW */}
           <section className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => window.history.back()}
+              <Link
+                href="/lead-management"
                 className="w-9 h-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 cursor-pointer transition shrink-0"
               >
                 <ChevronLeft className="size-[18px] text-slate-500" />
-              </button>
+              </Link>
               <div>
                 <h1 className="text-2xl font-bold text-slate-800 tracking-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>
                   Add New Lead
@@ -554,13 +553,12 @@ export default function AddLeadPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => window.history.back()}
-                className="border border-slate-200 bg-white text-slate-600 text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-slate-50 transition min-h-[42px]"
+              <Link
+                href="/lead-management"
+                className="border border-slate-200 bg-white text-slate-600 text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-slate-50 transition min-h-[42px] flex items-center justify-center"
               >
                 Cancel
-              </button>
+              </Link>
               <Button
                 type="submit"
                 className="bg-[#1565D8] text-white text-sm font-semibold px-5 py-2.5 h-auto rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
@@ -1251,13 +1249,12 @@ export default function AddLeadPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => window.history.back()}
-                className="border border-slate-200 text-slate-600 bg-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-slate-50 transition min-h-[40px] cursor-pointer"
+              <Link
+                href="/lead-management"
+                className="border border-slate-200 text-slate-600 bg-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-slate-50 transition min-h-[40px] cursor-pointer flex items-center justify-center"
               >
                 Cancel
-              </button>
+              </Link>
               <Button
                 type="submit"
                 disabled={!isFormValidToSave}

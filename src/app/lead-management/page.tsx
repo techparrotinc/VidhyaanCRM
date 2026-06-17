@@ -655,10 +655,12 @@ export default function LeadManagementPage() {
                 Manage and track all your leads in one place.
               </p>
             </div>
-            <Button className="bg-[#1565D8] text-white text-sm font-semibold px-5 py-2.5 h-auto rounded-lg flex items-center gap-2 hover:bg-blue-700 transition">
-              <Plus className="size-4" strokeWidth={2.0} />
-              <span>Add Lead</span>
-            </Button>
+            <Link href="/lead-management/add-lead">
+              <Button className="bg-[#1565D8] text-white text-sm font-semibold px-5 py-2.5 h-auto rounded-lg flex items-center gap-2 hover:bg-blue-700 transition cursor-pointer">
+                <Plus className="size-4" strokeWidth={2.0} />
+                <span>Add Lead</span>
+              </Button>
+            </Link>
           </section>
 
           {/* SECTION 2 — LEAD CAP BANNER (Free Plan Only) */}
@@ -917,10 +919,12 @@ export default function LeadManagementPage() {
               <p className="text-sm text-slate-400 mt-2 max-w-xs mx-auto">
                 Try adjusting your filters or add a new lead to get started.
               </p>
-              <Button className="bg-[#1565D8] text-white text-sm font-semibold px-5 py-2.5 h-auto rounded-lg inline-flex items-center gap-2 mt-6 hover:bg-blue-700 transition">
-                <Plus className="size-4" />
-                <span>Add Lead</span>
-              </Button>
+              <Link href="/lead-management/add-lead">
+                <Button className="bg-[#1565D8] text-white text-sm font-semibold px-5 py-2.5 h-auto rounded-lg inline-flex items-center gap-2 mt-6 hover:bg-blue-700 transition cursor-pointer">
+                  <Plus className="size-4" />
+                  <span>Add Lead</span>
+                </Button>
+              </Link>
             </section>
           ) : activeView === 'list' ? (
             

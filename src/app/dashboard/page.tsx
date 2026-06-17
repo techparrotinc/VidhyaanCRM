@@ -470,7 +470,7 @@ export default function DashboardPage() {
           )}
 
           {/* KPI CARDS ROW */}
-          <section className="grid grid-cols-6 gap-4">
+          <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {kpis.map((kpi) => {
               const Icon = kpi.icon
               return (
@@ -572,7 +572,7 @@ export default function DashboardPage() {
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
                     Pipeline Stages
                   </p>
-                  <div className="flex items-end gap-1.5 w-full">
+                  <div className="flex items-end gap-1.5 w-full overflow-x-auto pb-2">
                     {[
                       { name: 'Enquiry',     count: 26, color: 'bg-slate-400'   },
                       { name: 'Contacted',   count: 8,  color: 'bg-blue-400'    },
@@ -583,7 +583,7 @@ export default function DashboardPage() {
                       { name: 'Enrolled',    count: 17, color: 'bg-green-500'   },
                     ].map((stage, idx, arr) => (
                       <React.Fragment key={stage.name}>
-                        <div className="flex flex-col items-center flex-1">
+                        <div className="flex flex-col items-center flex-1 min-w-[60px] shrink-0">
                           <span className="text-[11px] font-bold text-slate-700 mb-1">
                             {stage.count}
                           </span>
@@ -608,9 +608,9 @@ export default function DashboardPage() {
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2.5">
                     This Month vs Last Month
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {/* Chip 1 — Enquiries */}
-                    <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 flex-1">
+                    <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
                       <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Enquiries</span>
                       <div className="ml-auto text-right">
                         <div className="text-sm font-bold text-slate-800">26</div>
@@ -623,7 +623,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     {/* Chip 2 — Converted */}
-                    <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 flex-1">
+                    <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
                       <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Converted</span>
                       <div className="ml-auto text-right">
                         <div className="text-sm font-bold text-slate-800">17</div>
@@ -636,7 +636,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     {/* Chip 3 — Avg. Convert Time */}
-                    <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 flex-1">
+                    <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
                       <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Avg. Convert</span>
                       <div className="ml-auto text-right">
                         <div className="text-sm font-bold text-slate-800">12 days</div>

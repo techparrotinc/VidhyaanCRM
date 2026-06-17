@@ -775,207 +775,206 @@ export default function DashboardPage() {
           {/* SECTION A — 2-COLUMN ROW */}
           <section className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 items-stretch">
             {/* Column 1: Fee Overview */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 flex flex-col hover:shadow-md transition-shadow duration-300">
-              <div>
-                <div className="flex items-center justify-between mb-5">
-                  <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                    FEE OVERVIEW
-                  </h3>
-                  <div className="bg-amber-100 text-amber-700 text-[10px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 shrink-0">
-                    <Crown size={12} className="text-amber-500 fill-amber-500 mr-1" strokeWidth={1.5} />
-                    <span>Premium</span>
-                  </div>
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 flex flex-col hover:shadow-md transition-shadow duration-300 h-full">
+              {/* Header — full width */}
+              <div className="flex items-center justify-between mb-5">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  FEE OVERVIEW
+                </span>
+                <div className="bg-amber-100 text-amber-700 text-[10px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 shrink-0">
+                  <Crown size={12} className="text-amber-500 fill-amber-500 mr-1" strokeWidth={1.5} />
+                  <span>Premium</span>
                 </div>
+              </div>
 
-                <div className="flex gap-6 flex-1">
-                  {/* LEFT HALF (money stats) */}
-                  <div className="flex flex-col justify-between min-w-[160px]">
-                    <div className="space-y-4">
-                      {/* Stat 1 — COLLECTED */}
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">COLLECTED</span>
-                        <span className="text-[10px] text-slate-400 mb-1.5">This Month</span>
-                        <span className="text-2xl font-bold text-slate-800 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                          ₹{feeData.collected.toLocaleString('en-IN')}
-                        </span>
-                      </div>
-
-                      {/* Stat 2 — OVERDUE */}
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-red-400 mb-1">OVERDUE</span>
-                        <div className="flex items-center gap-1 mb-1.5">
-                          <TriangleAlert size={10} className="text-red-400" />
-                          <span className="text-[10px] text-red-400">Action Needed</span>
-                        </div>
-                        <span className="text-2xl font-bold text-red-600 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                          ₹{feeData.overdue.toLocaleString('en-IN')}
-                        </span>
-                      </div>
-
-                      {/* Stat 3 — UPCOMING */}
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">UPCOMING</span>
-                        <span className="text-[10px] text-slate-400 mb-1.5">Next 7 Days</span>
-                        <span className="text-2xl font-bold text-slate-800 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                          ₹{feeData.upcoming.toLocaleString('en-IN')}
-                        </span>
-                      </div>
+              {/* Two column content */}
+              <div className="flex gap-0 flex-1">
+                {/* Left: money stats */}
+                <div className="flex flex-col justify-between min-w-[160px]">
+                  <div className="space-y-3">
+                    {/* Stat 1 — COLLECTED */}
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">COLLECTED</span>
+                      <span className="text-[10px] font-medium text-slate-400 mb-2">This Month</span>
+                      <span className="text-2xl font-bold text-slate-800 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                        ₹{feeData.collected.toLocaleString('en-IN')}
+                      </span>
                     </div>
 
-                    <div className="mt-auto pt-4 border-t border-slate-100">
-                      <span className="text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer">
-                        Go to Fee Management →
+                    {/* Stat 2 — OVERDUE */}
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-red-400 mb-1">OVERDUE</span>
+                      <div className="flex items-center gap-1 mb-2 text-[10px] font-medium text-red-400">
+                        <TriangleAlert size={10} className="text-red-400" />
+                        <span>Action Needed</span>
+                      </div>
+                      <span className="text-2xl font-bold text-red-600 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                        ₹{feeData.overdue.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+
+                    {/* Stat 3 — UPCOMING */}
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">UPCOMING</span>
+                      <span className="text-[10px] font-medium text-slate-400 mb-2">Next 7 Days</span>
+                      <span className="text-2xl font-bold text-slate-800 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                        ₹{feeData.upcoming.toLocaleString('en-IN')}
                       </span>
                     </div>
                   </div>
+                </div>
 
-                  {/* VERTICAL DIVIDER */}
-                  <div className="w-px bg-slate-100 flex-shrink-0 self-stretch" />
+                {/* Divider */}
+                <div className="w-px bg-slate-100 self-stretch mx-5 flex-shrink-0" />
 
-                  {/* RIGHT HALF (student status) */}
-                  <div className="flex-1 flex flex-col justify-between pl-2">
-                    <div>
-                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">
-                        STUDENT FEE STATUS
-                      </h4>
+                {/* Right: student status */}
+                <div className="flex-1 flex flex-col justify-between pl-2">
+                  <div>
+                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">
+                      STUDENT FEE STATUS
+                    </h4>
 
-                      <div className="space-y-4">
-                        {/* ROW 1 — Paid on time */}
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full flex-shrink-0 bg-green-500" />
-                              <span className="text-sm font-medium text-slate-600">Paid on time</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-slate-800">{feeData.students.paidOnTime} students</span>
-                              <span className="text-[11px] text-slate-400 font-medium">(52%)</span>
-                            </div>
+                    <div className="space-y-4">
+                      {/* ROW 1 — Paid on time */}
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full flex-shrink-0 bg-green-500" />
+                            <span className="text-sm font-medium text-slate-600">Paid on time</span>
                           </div>
-                          <div className="w-full bg-slate-100 rounded-full h-2">
-                            <div className="bg-green-500 rounded-full h-2 transition-all duration-500" style={{ width: '52%', minWidth: '4px' }} />
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-slate-800">{feeData.students.paidOnTime} students</span>
+                            <span className="text-[11px] text-slate-400 font-medium">(52%)</span>
                           </div>
                         </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2">
+                          <div className="bg-green-500 rounded-full h-2 transition-all duration-500" style={{ width: '52%', minWidth: '4px' }} />
+                        </div>
+                      </div>
 
-                        {/* ROW 2 — Overdue */}
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full flex-shrink-0 bg-red-500" />
-                              <span className="text-sm font-medium text-slate-600">Overdue</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-slate-800">{feeData.students.overdue} students</span>
-                              <span className="text-[11px] text-slate-400 font-medium">(13%)</span>
-                            </div>
+                      {/* ROW 2 — Overdue */}
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full flex-shrink-0 bg-red-500" />
+                            <span className="text-sm font-medium text-slate-600">Overdue</span>
                           </div>
-                          <div className="w-full bg-slate-100 rounded-full h-2">
-                            <div className="bg-red-500 rounded-full h-2 transition-all duration-500" style={{ width: '13%', minWidth: '4px' }} />
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-slate-800">{feeData.students.overdue} students</span>
+                            <span className="text-[11px] text-slate-400 font-medium">(13%)</span>
                           </div>
                         </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2">
+                          <div className="bg-red-500 rounded-full h-2 transition-all duration-500" style={{ width: '13%', minWidth: '4px' }} />
+                        </div>
+                      </div>
 
-                        {/* ROW 3 — Due in 7 days */}
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full flex-shrink-0 bg-amber-400" />
-                              <span className="text-sm font-medium text-slate-600">Due in 7 days</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-slate-800">{feeData.students.upcomingDues} students</span>
-                              <span className="text-[11px] text-slate-400 font-medium">(35%)</span>
-                            </div>
+                      {/* ROW 3 — Due in 7 days */}
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full flex-shrink-0 bg-amber-400" />
+                            <span className="text-sm font-medium text-slate-600">Due in 7 days</span>
                           </div>
-                          <div className="w-full bg-slate-100 rounded-full h-2">
-                            <div className="bg-amber-400 rounded-full h-2 transition-all duration-500" style={{ width: '35%', minWidth: '4px' }} />
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-slate-800">{feeData.students.upcomingDues} students</span>
+                            <span className="text-[11px] text-slate-400 font-medium">(35%)</span>
                           </div>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2">
+                          <div className="bg-amber-400 rounded-full h-2 transition-all duration-500" style={{ width: '35%', minWidth: '4px' }} />
                         </div>
                       </div>
                     </div>
-
-                    {/* NUDGE CARD */}
-                    {feeData.students.overdue > 0 && (
-                      <div className="mt-auto bg-red-50 border border-red-100 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5">
-                          <TriangleAlert size={16} className="text-red-500 flex-shrink-0" />
-                          <div>
-                            <p className="text-sm font-semibold text-red-700">
-                              {feeData.students.overdue} students have overdue fees
-                            </p>
-                            <p className="text-xs text-red-400 font-medium mt-0.5">
-                              Total outstanding: ₹{feeData.overdue.toLocaleString('en-IN')}
-                            </p>
-                          </div>
-                        </div>
-                        <button className="text-xs font-bold text-red-600 bg-white border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition cursor-pointer flex-shrink-0">
-                          Send Reminder →
-                        </button>
-                      </div>
-                    )}
                   </div>
+
+                  {/* NUDGE CARD */}
+                  {feeData.students.overdue > 0 && (
+                    <div className="mt-auto bg-red-50 border border-red-100 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <TriangleAlert size={16} className="text-red-500 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-red-700">
+                            {feeData.students.overdue} students have overdue fees
+                          </p>
+                          <p className="text-xs text-red-400 font-medium mt-0.5">
+                            Total outstanding: ₹{feeData.overdue.toLocaleString('en-IN')}
+                          </p>
+                        </div>
+                      </div>
+                      <button className="bg-white border border-red-200 text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-50 transition cursor-pointer flex-shrink-0">
+                        Send Reminder →
+                      </button>
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              {/* Footer — full width */}
+              <div className="mt-auto pt-4 border-t border-slate-100">
+                <span className="text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer">
+                  Go to Fee Management →
+                </span>
               </div>
             </div>
 
             {/* Column 2: Upcoming Events */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 flex flex-col hover:shadow-md transition-shadow duration-300">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                    UPCOMING EVENTS
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-slate-100 text-slate-500 text-[10px] font-semibold px-2.5 py-1 rounded-full">
-                      Free
-                    </span>
-                    <Plus
-                      size={16}
-                      className="text-slate-400 hover:text-[#1565D8] cursor-pointer p-1 rounded-md hover:bg-slate-50"
-                    />
-                  </div>
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 flex flex-col hover:shadow-md transition-shadow duration-300 h-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                  UPCOMING EVENTS
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span className="bg-slate-100 text-slate-500 text-[10px] font-semibold px-2.5 py-1 rounded-full">
+                    Free
+                  </span>
+                  <Plus
+                    size={16}
+                    className="text-slate-400 hover:text-[#1565D8] cursor-pointer p-1 rounded-md hover:bg-slate-50"
+                  />
                 </div>
+              </div>
 
-                <div className="flex-1 space-y-0 divide-y divide-slate-50">
-                  {[
-                    { date: "MAY 20", title: "School Holiday", type: "Holiday", color: "bg-slate-100 text-slate-500", icon: CalendarOff },
-                    { date: "MAY 25", title: "Parent-Teacher Meeting", type: "Event", time: "9:00 AM", color: "bg-blue-50 text-blue-600", icon: Calendar },
-                    { date: "MAY 28", title: "Annual Sports Day", type: "Event", color: "bg-blue-50 text-blue-600", icon: Calendar },
-                    { date: "JUN 01", title: "Board Exam Results", type: "Results", color: "bg-purple-50 text-purple-600", icon: Calendar }
-                  ].map((ev, idx) => {
-                    return (
-                      <div key={idx} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                        <div className="bg-slate-800 rounded-xl w-12 h-12 flex flex-col items-center justify-center flex-shrink-0">
-                          <span className="text-[8px] font-bold uppercase tracking-widest text-slate-400">
-                            {ev.date.split(" ")[0]}
+              <div className="flex-1 space-y-0 divide-y divide-slate-50">
+                {[
+                  { date: "MAY 20", title: "School Holiday", type: "Holiday", color: "bg-slate-100 text-slate-500", icon: CalendarOff },
+                  { date: "MAY 25", title: "Parent-Teacher Meeting", type: "Event", time: "9:00 AM", color: "bg-blue-50 text-blue-600", icon: Calendar },
+                  { date: "MAY 28", title: "Annual Sports Day", type: "Event", color: "bg-blue-50 text-blue-600", icon: Calendar },
+                  { date: "JUN 01", title: "Board Exam Results", type: "Results", color: "bg-purple-50 text-purple-600", icon: Calendar }
+                ].map((ev, idx) => {
+                  return (
+                    <div key={idx} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                      <div className="bg-slate-800 rounded-xl w-12 h-12 flex flex-col items-center justify-center flex-shrink-0">
+                        <span className="text-[8px] font-bold uppercase tracking-widest text-slate-400">
+                          {ev.date.split(" ")[0]}
+                        </span>
+                        <span className="text-lg font-bold text-white leading-none mt-0.5">
+                          {ev.date.split(" ")[1]}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-semibold text-slate-700 truncate leading-tight">
+                          {ev.title}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${ev.color}`}>
+                            {ev.type}
                           </span>
-                          <span className="text-lg font-bold text-white leading-none mt-0.5">
-                            {ev.date.split(" ")[1]}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-slate-700 truncate leading-tight">
-                            {ev.title}
-                          </h4>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${ev.color}`}>
-                              {ev.type}
+                          {'time' in ev && ev.time && (
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              {ev.time}
                             </span>
-                            {'time' in ev && ev.time && (
-                              <span className="text-[10px] text-slate-400 font-medium">
-                                {ev.time}
-                              </span>
-                            )}
-                          </div>
+                          )}
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-
-                <p className="text-xs text-slate-400 font-medium text-center mt-3 cursor-pointer hover:text-[#1565D8]">
-                  +2 more events this month
-                </p>
+                    </div>
+                  )
+                })}
               </div>
+
+              <p className="text-xs text-slate-400 font-medium text-center mt-3 cursor-pointer hover:text-[#1565D8]">
+                +2 more events this month
+              </p>
 
               <div className="mt-auto pt-4 border-t border-slate-100">
                 <span className="text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer">
@@ -986,68 +985,61 @@ export default function DashboardPage() {
           </section>
 
           {/* SECTION B — QUICK ACTIONS SLIM BAR */}
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-6 py-4 mt-6 flex flex-col justify-center lg:h-[60px] lg:py-0">
-            <div className="flex flex-wrap lg:flex-nowrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 flex-shrink-0 mr-2">
-                  QUICK ACTIONS
-                </h3>
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 px-6 py-3 mt-6 w-full overflow-x-auto">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex-shrink-0 whitespace-nowrap">
+              QUICK ACTIONS
+            </span>
 
-                <div className="w-px h-6 bg-slate-200 flex-shrink-0 hidden lg:block" />
+            <div className="w-px h-5 bg-slate-200 mx-1 flex-shrink-0" />
 
-                <div className="flex items-center gap-2 flex-wrap flex-1">
-                  {/* Button 1 */}
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 cursor-pointer whitespace-nowrap">
-                    <Plus size={15} className="text-slate-500" />
-                    <span>Add Lead</span>
-                  </button>
+            {/* Button 1 */}
+            <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer">
+              <Plus size={13} className="text-slate-500" />
+              <span>Add Lead</span>
+            </button>
 
-                  {/* Button 2 */}
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 cursor-pointer whitespace-nowrap">
-                    <UserPlus size={15} className="text-slate-500" />
-                    <span>
-                      {institutionConfig.type === 'school' && "New Admission"}
-                      {institutionConfig.type === 'institute' && "New Enrolment"}
-                      {institutionConfig.type === 'learning_center' && "New Enquiry"}
-                    </span>
-                  </button>
+            {/* Button 2 */}
+            <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer">
+              <UserPlus size={13} className="text-slate-500" />
+              <span>
+                {institutionConfig.type === 'school' && "Admission"}
+                {institutionConfig.type === 'institute' && "Enrolment"}
+                {institutionConfig.type === 'learning_center' && "Enquiry"}
+              </span>
+            </button>
 
-                  {/* Button 3 (Hide for learning center) */}
-                  {institutionConfig.type !== 'learning_center' && (
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 cursor-pointer whitespace-nowrap">
-                      <UserCheck size={15} className="text-slate-500" />
-                      <span>Add Student</span>
-                    </button>
-                  )}
+            {/* Button 3 */}
+            {institutionConfig.type !== 'learning_center' && (
+              <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer">
+                <UserCheck size={13} className="text-slate-500" />
+                <span>Student</span>
+              </button>
+            )}
 
-                  {/* Button 4 */}
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 cursor-pointer whitespace-nowrap">
-                    <Receipt size={15} className="text-slate-500" />
-                    <span>New Invoice</span>
-                  </button>
+            {/* Button 4 */}
+            <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer">
+              <Receipt size={13} className="text-slate-500" />
+              <span>Invoice</span>
+            </button>
 
-                  {/* Button 5: Premium Campaign */}
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-200 bg-amber-50 text-sm font-bold text-amber-800 hover:bg-amber-100 transition-all duration-200 cursor-pointer whitespace-nowrap">
-                    <Megaphone size={15} className="text-amber-500" />
-                    <span>Campaign</span>
-                    <Crown size={11} className="text-amber-500 ml-1" />
-                  </button>
+            {/* Button 5 */}
+            <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 text-xs font-bold text-amber-800 hover:bg-amber-100 transition whitespace-nowrap flex-shrink-0 cursor-pointer">
+              <Megaphone size={13} className="text-amber-500" />
+              <span>Campaign</span>
+              <Crown size={11} className="text-amber-500 ml-0.5" />
+            </button>
 
-                  {/* Button 6 */}
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 cursor-pointer whitespace-nowrap">
-                    <Globe size={15} className="text-slate-500" />
-                    <span>Update Listing</span>
-                  </button>
-                </div>
-              </div>
+            {/* Button 6 */}
+            <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer">
+              <Globe size={13} className="text-slate-500" />
+              <span>Listing</span>
+            </button>
 
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <div className="w-px h-6 bg-slate-200 hidden lg:block" />
-                <span className="text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer whitespace-nowrap">
-                  Manage all actions →
-                </span>
-              </div>
-            </div>
+            <div className="w-px h-5 bg-slate-200 ml-auto mr-3 flex-shrink-0" />
+
+            <span className="text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer whitespace-nowrap flex-shrink-0">
+              Manage all actions →
+            </span>
           </div>
 
           {/* PREMIUM FEATURES SECTION */}

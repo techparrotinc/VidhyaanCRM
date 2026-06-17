@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import {
   LayoutDashboard,
   Globe,
@@ -156,11 +157,8 @@ export default function DashboardPage() {
       {/* Navigation list */}
       <div className="flex-1 px-2 overflow-y-auto space-y-1">
         {/* Dashboard */}
-        <button
-          onClick={() => {
-            setActiveNav("Dashboard")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
+        <Link
+          href="/dashboard"
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Dashboard"
               ? 'bg-blue-50 text-[#1565D8] font-semibold'
               : 'text-slate-600 hover:bg-slate-50'
@@ -169,7 +167,7 @@ export default function DashboardPage() {
         >
           <LayoutDashboard className="size-[18px] shrink-0" strokeWidth={1.5} />
           <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Dashboard</span>
-        </button>
+        </Link>
 
         {/* Site Manager */}
         <button
@@ -203,18 +201,15 @@ export default function DashboardPage() {
 
           {salesMarketingOpen && (
             <div className={`pl-8 pr-2 py-1 ${!isMobile ? "md:pl-0 md:pr-0 md:flex md:justify-center lg:pl-8 lg:pr-2 lg:block" : ""}`}>
-              <button
-                onClick={() => {
-                  setActiveNav("Lead Management")
-                  if (isMobile) setMobileMenuOpen(false)
-                }}
+              <Link
+                href="/lead-management"
                 className={`w-full flex items-center gap-3 py-2 text-sm font-medium text-left transition-all ${!isMobile ? "md:justify-center lg:justify-start" : ""} ${activeNav === "Lead Management" ? 'text-[#1565D8] font-semibold' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 title="Lead Management"
               >
                 <LineChart className="size-[16px] shrink-0" strokeWidth={1.5} />
                 <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Lead Management</span>
-              </button>
+              </Link>
             </div>
           )}
         </div>

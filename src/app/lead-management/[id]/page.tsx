@@ -20,24 +20,11 @@ import {
   Menu,
   Crown,
   X,
-  Eye,
-  IndianRupee,
-  BarChart2,
-  GraduationCap,
-  ArrowUpRight,
   ArrowRight,
   CheckCircle2,
-  TriangleAlert,
   Plus,
   UserPlus,
-  UserCheck,
-  Receipt,
-  Megaphone,
-  MessageSquare,
-  GitBranch,
   Calendar,
-  CalendarOff,
-  LayoutList,
   ChevronLeft,
   MoreVertical,
   Check,
@@ -52,66 +39,212 @@ import {
   FileText,
   User,
   Trash2,
-  CalendarDays,
   RefreshCw,
-  Save,
   Pencil,
   Copy,
   Download,
-  ExternalLink,
   ArrowLeft
 } from 'lucide-react'
 
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog"
 
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 
-// ===================================================================
-// DATA & CONFIGS
-// ===================================================================
-const lead = {
-  id: 'LD-001',
-  avatar: 'VD',
-  firstName: 'Vimal',
-  lastName: 'Das',
-  fullName: 'Vimal Das',
-  parentName: 'Raj Kumar',
-  phone: '9884185362',
-  email: 'vimal@email.com',
-  source: 'Vidhyaan',
-  status: 'Rejected',
-  priority: 'High',
-  applyingFor: 'LKG',
-  academicYear: 'AY 2026-27',
-  childName: 'Ravi Kumar',
-  childAge: '4 years',
-  currentSchool: '',
-  counsellor: 'Saran Kumar',
-  counsellorAvatar: 'SK',
-  counsellorRole: 'Sales Counsellor',
-  followUpDate: '20 May 2026',
-  followUpTime: '10:00 AM',
-  createdDate: '18 May 2026',
-  createdTime: '10:30 AM',
-  lastUpdated: '19 May 2026',
-  notes: '',
+// Mock database type definitions
+interface Lead {
+  id: string
+  avatar: string
+  firstName: string
+  lastName: string
+  fullName: string
+  parentName: string
+  phone: string
+  email: string
+  source: string
+  status: string
+  priority: string
+  applyingFor: string
+  academicYear: string
+  childName: string
+  childAge: string
+  currentSchool: string
+  counsellor: string
+  counsellorAvatar: string | null
+  counsellorRole: string
+  followUpDate: string
+  followUpTime: string
+  createdDate: string
+  createdTime: string
+  lastUpdated: string
+  notes: string
+  convertedAt?: string
+  conversionFeePaid?: number
+  conversionPaymentMode?: string
+  rejectionReason?: string
+  rejectionNotes?: string
 }
+
+// Initial mock database
+const initialLeads: Lead[] = [
+  {
+    id: 'LD-001',
+    avatar: 'VD',
+    firstName: 'Vimal',
+    lastName: 'Das',
+    fullName: 'Vimal Das',
+    parentName: 'Raj Kumar',
+    phone: '9884185362',
+    email: 'vimal@email.com',
+    source: 'Vidhyaan',
+    status: 'Rejected',
+    priority: 'High',
+    applyingFor: 'LKG',
+    academicYear: 'Academic Year 2026-27',
+    childName: 'Ravi Kumar',
+    childAge: '4 years',
+    currentSchool: '',
+    counsellor: 'Saran Kumar',
+    counsellorAvatar: 'SK',
+    counsellorRole: 'Sales Counsellor',
+    followUpDate: '20 May 2026',
+    followUpTime: '10:00 AM',
+    createdDate: '18 May 2026',
+    createdTime: '10:30 AM',
+    lastUpdated: '19 May 2026',
+    notes: '',
+    rejectionReason: 'Distance issue',
+    rejectionNotes: 'Parent felt school is too far from their new residence.'
+  },
+  {
+    id: 'LD-002',
+    avatar: 'AS',
+    firstName: 'Aarav',
+    lastName: 'Sharma',
+    fullName: 'Aarav Sharma',
+    parentName: 'Amit Sharma',
+    phone: '9876543210',
+    email: 'aarav@email.com',
+    source: 'Web',
+    status: 'New',
+    priority: 'Normal',
+    applyingFor: 'UKG',
+    academicYear: 'Academic Year 2026-27',
+    childName: 'Aryan Sharma',
+    childAge: '5 years',
+    currentSchool: 'Nursery Play school',
+    counsellor: 'Pradeep K',
+    counsellorAvatar: null,
+    counsellorRole: 'Counsellor',
+    followUpDate: '22 May 2026',
+    followUpTime: '11:00 AM',
+    createdDate: '18 May 2026',
+    createdTime: '11:00 AM',
+    lastUpdated: '18 May 2026',
+    notes: ''
+  },
+  {
+    id: 'LD-003',
+    avatar: 'KP',
+    firstName: 'Kavya',
+    lastName: 'Patel',
+    fullName: 'Kavya Patel',
+    parentName: 'Rajesh Patel',
+    phone: '9123456789',
+    email: 'kavya@email.com',
+    source: 'Walk-in',
+    status: 'Follow-up',
+    priority: 'Urgent',
+    applyingFor: 'Grade 1',
+    academicYear: 'Academic Year 2026-27',
+    childName: 'Keya Patel',
+    childAge: '6 years',
+    currentSchool: 'Nursery Play school',
+    counsellor: 'Saran Kumar',
+    counsellorAvatar: 'SK',
+    counsellorRole: 'Sales Counsellor',
+    followUpDate: '19 May 2026',
+    followUpTime: '02:00 PM',
+    createdDate: '18 May 2026',
+    createdTime: '12:00 PM',
+    lastUpdated: '19 May 2026',
+    notes: ''
+  },
+  {
+    id: 'LD-004',
+    avatar: 'DR',
+    firstName: 'Diya',
+    lastName: 'Reddy',
+    fullName: 'Diya Reddy',
+    parentName: 'Srinivas Reddy',
+    phone: '8887776665',
+    email: 'diya@email.com',
+    source: 'Phone',
+    status: 'Contacted',
+    priority: 'Normal',
+    applyingFor: 'Nursery',
+    academicYear: 'Academic Year 2026-27',
+    childName: 'Dev Reddy',
+    childAge: '3 years',
+    currentSchool: '',
+    counsellor: 'Unassigned',
+    counsellorAvatar: null,
+    counsellorRole: '',
+    followUpDate: '25 May 2026',
+    followUpTime: '04:00 PM',
+    createdDate: '18 May 2026',
+    createdTime: '02:30 PM',
+    lastUpdated: '18 May 2026',
+    notes: ''
+  },
+  {
+    id: 'LD-005',
+    avatar: 'RN',
+    firstName: 'Rohan',
+    lastName: 'Nair',
+    fullName: 'Rohan Nair',
+    parentName: 'Girish Nair',
+    phone: '7776665554',
+    email: 'rohan@email.com',
+    source: 'WhatsApp',
+    status: 'Converted',
+    priority: 'High',
+    applyingFor: 'Grade 2',
+    academicYear: 'Academic Year 2026-27',
+    childName: 'Ridhima Nair',
+    childAge: '7 years',
+    currentSchool: 'Oakridge International',
+    counsellor: 'Pradeep K',
+    counsellorAvatar: null,
+    counsellorRole: 'Counsellor',
+    followUpDate: '18 May 2026',
+    followUpTime: '10:00 AM',
+    createdDate: '18 May 2026',
+    createdTime: '09:00 AM',
+    lastUpdated: '18 May 2026',
+    notes: '',
+    convertedAt: '18 May 2026',
+    conversionFeePaid: 45000,
+    conversionPaymentMode: 'UPI'
+  }
+]
+
+const lead = initialLeads[0]
 
 const institutionConfig = {
   type: 'school',
@@ -154,7 +287,7 @@ const statusConfig: Record<string, { bg: string; text: string; dot: string; bord
   Rejected: { bg: 'bg-red-50', text: 'text-red-600', dot: 'bg-red-500', border: 'border-red-100' },
 }
 
-const priorityConfig: Record<string, { bg: string; text: string; icon: any }> = {
+const priorityConfig: Record<string, { bg: string; text: string; icon: React.ElementType }> = {
   Normal: { bg: 'bg-blue-50', text: 'text-blue-700', icon: CheckCircle2 },
   High: { bg: 'bg-amber-50', text: 'text-amber-700', icon: TrendingUp },
   Urgent: { bg: 'bg-red-50', text: 'text-red-600', icon: Zap },

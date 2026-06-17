@@ -780,8 +780,8 @@ export default function AddLeadPage() {
                     {/* Child's Name */}
                     <div>
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                        Child's Name
-                      </label>
+                      Child&apos;s Name
+                    </label>
                       <input
                         type="text"
                         name="childName"
@@ -795,8 +795,8 @@ export default function AddLeadPage() {
                     {/* Child's Age */}
                     <div>
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                        Child's Age
-                      </label>
+                      Child&apos;s Age
+                    </label>
                       <input
                         type="number"
                         name="childAge"

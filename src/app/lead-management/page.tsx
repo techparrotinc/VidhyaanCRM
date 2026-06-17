@@ -348,13 +348,6 @@ const sources = [
   { id: 'other', label: 'Other', dot: 'bg-orange-400' },
 ]
 
-const statusBorderMap: Record<string, string> = {
-  'New': 'border-l-blue-500',
-  'Contacted': 'border-l-amber-500',
-  'Converted': 'border-l-green-500',
-  'Rejected': 'border-l-red-500',
-  'Follow-up': 'border-l-orange-500'
-}
 
 interface Lead {
   id: string

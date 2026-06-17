@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Globe,
   TrendingUp,
+  TrendingDown,
   LineChart,
   ClipboardList,
   Users,
@@ -34,9 +35,11 @@ import {
   MessageSquare,
   GitBranch,
   Calendar,
+  CalendarDays,
   CalendarOff,
-  Settings,
-  LayoutList
+  LayoutList,
+  Info,
+  XCircle
 } from 'lucide-react'
 
 import { Card } from "@/components/ui/card"
@@ -85,21 +88,69 @@ const unassignedLeads: number = 2
 
 const feeData = {
   collected: 0,
-  target: 50000,
+  collectedLastMonth: 45000,
   overdue: 12221,
+  overdueAccumulated: true,
+  overdueOldestDays: 45,
   upcoming: 3000,
+  upcomingInvoiceCount: 3,
+  ytdCollected: 245000,
+  academicYear: 'AY 2026-27',
+  lastPayment: {
+    studentName: 'Karthi S',
+    amount: 2110,
+    date: '15 May 2026',
+  },
   students: {
+    total: 23,
     paidOnTime: 12,
     overdue: 3,
     upcomingDues: 8,
-  }
+  },
 }
+
+const formatINR = (amount: number) => {
+  return '₹' + amount.toLocaleString('en-IN')
+}
+
+const collectedTrend = feeData.collected < 
+  feeData.collectedLastMonth 
+  ? 'down' : 'up'
 
 export default function DashboardPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [salesMarketingOpen, setSalesMarketingOpen] = useState(true)
   const [trialBannerVisible, setTrialBannerVisible] = useState(true)
   const [activeNav, setActiveNav] = useState("Dashboard")
+
+  // Toast notifications state
+  const [toast, setToast] = useState<{
+    message: string
+    type: 'success' | 'error' | 'info'
+    show: boolean
+  }>({ message: '', type: 'success', show: false })
+
+  // Helper functions
+  const getCurrentMonth = () => {
+    return new Date().toLocaleString('en-IN', {
+      month: 'long',
+      year: 'numeric',
+    })
+  }
+
+  const getShortMonth = () => {
+    return new Date().toLocaleString('en-IN', {
+      month: 'short',
+    })
+  }
+
+  const showToast = (
+    message: string, 
+    type: 'success' | 'error' | 'info' = 'success'
+  ) => {
+    setToast({ message, type, show: true })
+    setTimeout(() => setToast(t => ({ ...t, show: false })), 3000)
+  }
 
   const moduleTitle = institutionConfig.moduleTitle[institutionConfig.type as keyof typeof institutionConfig.moduleTitle]
   const pipelineTitle = institutionConfig.pipelineTitle[institutionConfig.type as keyof typeof institutionConfig.pipelineTitle]
@@ -375,17 +426,6 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-4 shrink-0">
-            {/* Pill Links (Profile Completed State) */}
-            {profileCompletion === 100 && (
-              <div className="hidden lg:flex items-center gap-2">
-                <button className="text-xs font-medium text-slate-500 border border-slate-200 rounded-full px-3 py-1 hover:bg-slate-50 transition">
-                  ⚙ Manage Profile
-                </button>
-                <button className="text-xs font-medium text-slate-500 border border-slate-200 rounded-full px-3 py-1 hover:bg-slate-50 transition">
-                  📋 Update Listing
-                </button>
-              </div>
-            )}
 
             {/* Global Search Bar */}
             <div className="relative hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 w-48 lg:w-64">
@@ -517,19 +557,11 @@ export default function DashboardPage() {
                 </span>
               </div>
 
-              {/* RIGHT: action pill buttons */}
-              <div className="flex flex-wrap items-center gap-2">
-                <button className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 cursor-pointer min-h-[44px] sm:min-h-[auto]">
-                  <Settings size={12} strokeWidth={2} />
-                  Manage Profile
-                </button>
-                <button className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 cursor-pointer min-h-[44px] sm:min-h-[auto]">
+              {/* RIGHT: single Manage Listing button */}
+              <div className="flex items-center gap-2">
+                <button className="flex items-center gap-1.5 text-xs font-semibold border border-[#1565D8] bg-white text-[#1565D8] px-4 py-1.5 rounded-full hover:bg-blue-50 transition cursor-pointer">
                   <LayoutList size={12} strokeWidth={2} />
-                  Update Listing
-                </button>
-                <button className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-[#1565D8] bg-white text-[#1565D8] hover:bg-blue-50 transition-all duration-200 cursor-pointer min-h-[44px] sm:min-h-[auto]">
-                  <Eye size={12} strokeWidth={2} />
-                  Preview Listing →
+                  Manage Listing
                 </button>
               </div>
             </div>
@@ -841,80 +873,136 @@ export default function DashboardPage() {
           {/* SECTION A — 2-COLUMN ROW */}
           <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[3fr_2fr] gap-4 md:gap-5 lg:gap-6 items-stretch">
             {/* Column 1: Fee Overview */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 md:p-5 lg:p-6 flex flex-col hover:shadow-md transition-shadow duration-300 h-full">
-              {/* Header — full width */}
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 h-full flex flex-col">
+              {/* HEADER ROW */}
               <div className="flex items-center justify-between mb-5">
-                <span className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                  FEE OVERVIEW
-                </span>
-                <div className="bg-amber-100 text-amber-700 text-[10px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                    FEE OVERVIEW
+                  </span>
+                  <div className="w-px h-3.5 bg-slate-200 flex-shrink-0" />
+                  <div className="flex items-center gap-1.5 bg-slate-100 text-slate-500 text-[10px] font-semibold px-2.5 py-1 rounded-full">
+                    <CalendarDays size={11} className="text-slate-400 flex-shrink-0" strokeWidth={1.5} />
+                    <span>{getCurrentMonth()}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-semibold px-2.5 py-1 rounded-full">
                   <Crown size={12} className="text-amber-500 fill-amber-500 mr-1" strokeWidth={1.5} />
                   <span>Premium</span>
                 </div>
               </div>
 
-              {/* Two column content */}
-              <div className="flex flex-col lg:flex-row gap-4 lg:gap-0 flex-1">
-                {/* Left: money stats */}
-                <div className="min-w-0 lg:min-w-[160px] lg:flex lg:flex-col lg:justify-between">
-                  <div className="grid grid-cols-3 gap-2 md:gap-3 lg:flex lg:flex-col lg:space-y-3">
-                    {/* Stat 1 — COLLECTED */}
-                    <div className="flex flex-col">
-                      <span className="text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">COLLECTED</span>
-                      <span className="text-[9px] lg:text-[10px] font-medium text-slate-400 mb-2">This Month</span>
-                      <span className="text-lg lg:text-2xl font-bold text-slate-800 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                        ₹{feeData.collected.toLocaleString('en-IN')}
+              {/* CONTENT ROW */}
+              <div className="flex flex-col gap-4 lg:flex-row lg:gap-0 flex-1">
+                {/* LEFT HALF */}
+                <div className="lg:min-w-[165px] lg:pr-5 grid grid-cols-3 gap-2 md:gap-3 lg:grid-cols-1 lg:gap-0 lg:space-y-4">
+                  {/* STAT 1 — COLLECTED */}
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">
+                      COLLECTED
+                    </span>
+                    <span className="text-[10px] text-slate-400 mb-1.5">
+                      {getShortMonth()} 2026
+                    </span>
+                    <span className="text-lg md:text-2xl font-bold text-slate-800 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                      {formatINR(feeData.collected)}
+                    </span>
+                    <div className="hidden md:flex items-center gap-1 mt-1.5">
+                      {collectedTrend === 'down' ? (
+                        <>
+                          <TrendingDown size={12} className="text-red-400 flex-shrink-0" strokeWidth={1.5} />
+                          <span className="text-[10px] text-red-400 font-medium">
+                            vs {formatINR(feeData.collectedLastMonth)} last month
+                          </span>
+                        </>
+                      ) : collectedTrend === 'up' && feeData.collected > 0 ? (
+                        <>
+                          <TrendingUp size={12} className="text-green-500 flex-shrink-0" strokeWidth={1.5} />
+                          <span className="text-[10px] text-green-500 font-medium">
+                            vs {formatINR(feeData.collectedLastMonth)} last month
+                          </span>
+                        </>
+                      ) : feeData.collected === 0 && feeData.collectedLastMonth === 0 ? (
+                        <span className="text-[10px] text-slate-400">
+                          No collections yet
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* STAT 2 — OVERDUE */}
+                  <div className="flex flex-col">
+                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-red-400 mb-0.5">
+                      OVERDUE
+                    </span>
+                    <div className="flex items-center gap-1 mb-1.5">
+                      <TriangleAlert size={10} className="text-red-400 flex-shrink-0" strokeWidth={1.5} />
+                      <span className="text-[9px] md:text-[10px] text-red-400 font-medium">
+                        Action Needed
                       </span>
                     </div>
-
-                    {/* Stat 2 — OVERDUE */}
-                    <div className="flex flex-col">
-                      <span className="text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-red-400 mb-1">OVERDUE</span>
-                      <div className="flex items-center gap-1 mb-2 text-[9px] lg:text-[10px] font-medium text-red-400">
-                        <TriangleAlert size={10} className="text-red-400" />
-                        <span>Action Needed</span>
-                      </div>
-                      <span className="text-lg lg:text-2xl font-bold text-red-600 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                        ₹{feeData.overdue.toLocaleString('en-IN')}
+                    <span className="text-lg md:text-2xl font-bold text-red-600 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                      {formatINR(feeData.overdue)}
+                    </span>
+                    <div className="hidden md:block mt-1.5">
+                      <span className="text-[10px] text-red-400 font-medium">
+                        Accumulated · Oldest: {feeData.overdueOldestDays} days ago
                       </span>
                     </div>
+                  </div>
 
-                    {/* Stat 3 — UPCOMING */}
-                    <div className="flex flex-col">
-                      <span className="text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">UPCOMING</span>
-                      <span className="text-[9px] lg:text-[10px] font-medium text-slate-400 mb-2">Next 7 Days</span>
-                      <span className="text-lg lg:text-2xl font-bold text-slate-800 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                        ₹{feeData.upcoming.toLocaleString('en-IN')}
+                  {/* STAT 3 — UPCOMING */}
+                  <div className="flex flex-col">
+                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">
+                      UPCOMING
+                    </span>
+                    <span className="text-[9px] md:text-[10px] text-slate-400 mb-1.5">
+                      Next 7 Days
+                    </span>
+                    <span className="text-lg md:text-2xl font-bold text-slate-800 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                      {formatINR(feeData.upcoming)}
+                    </span>
+                    <div className="hidden md:flex items-center gap-1 mt-1.5">
+                      <Receipt size={11} className="text-slate-400 flex-shrink-0" strokeWidth={1.5} />
+                      <span className="text-[10px] text-slate-500 font-medium">
+                        {feeData.upcomingInvoiceCount} invoices due
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Divider */}
-                <div className="hidden lg:block w-px bg-slate-100 self-stretch mx-5 flex-shrink-0" />
+                {/* DIVIDER */}
+                <div className="hidden lg:block w-px bg-slate-100 self-stretch mx-0 flex-shrink-0" />
 
-                {/* Right: student status */}
-                <div className="flex-1 flex flex-col justify-between pl-0 lg:pl-2 mt-4 lg:mt-0">
+                {/* RIGHT HALF */}
+                <div className="flex-1 lg:pl-5 flex flex-col justify-between mt-4 lg:mt-0">
                   <div>
-                    <h4 className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4">
+                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
                       STUDENT FEE STATUS
                     </h4>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {/* ROW 1 — Paid on time */}
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full flex-shrink-0 bg-green-500" />
-                            <span className="text-xs md:text-sm font-medium text-slate-600">Paid on time</span>
+                            <span className="text-sm font-medium text-slate-600">Paid on time</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs md:text-sm font-bold text-slate-800">{feeData.students.paidOnTime} students</span>
-                            <span className="text-[10px] md:text-[11px] text-slate-400 font-medium">(52%)</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-bold text-slate-800">
+                              {feeData.students.paidOnTime}
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              students
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-medium">
+                              (52%)
+                            </span>
                           </div>
                         </div>
-                        <div className="w-full bg-slate-100 rounded-full h-2">
-                          <div className="bg-green-500 rounded-full h-2 transition-all duration-500" style={{ width: '52%', minWidth: '4px' }} />
+                        <div className="w-full bg-slate-100 rounded-full h-1.5">
+                          <div className="bg-green-500 rounded-full h-1.5 transition-all duration-500" style={{ width: '52%' }} />
                         </div>
                       </div>
 
@@ -923,15 +1011,22 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full flex-shrink-0 bg-red-500" />
-                            <span className="text-xs md:text-sm font-medium text-slate-600">Overdue</span>
+                            <span className="text-sm font-medium text-slate-600">Overdue</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs md:text-sm font-bold text-slate-800">{feeData.students.overdue} students</span>
-                            <span className="text-[10px] md:text-[11px] text-slate-400 font-medium">(13%)</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-bold text-slate-800">
+                              {feeData.students.overdue}
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              students
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-medium">
+                              (13%)
+                            </span>
                           </div>
                         </div>
-                        <div className="w-full bg-slate-100 rounded-full h-2">
-                          <div className="bg-red-500 rounded-full h-2 transition-all duration-500" style={{ width: '13%', minWidth: '4px' }} />
+                        <div className="w-full bg-slate-100 rounded-full h-1.5">
+                          <div className="bg-red-500 rounded-full h-1.5 transition-all duration-500" style={{ width: '13%' }} />
                         </div>
                       </div>
 
@@ -940,46 +1035,119 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full flex-shrink-0 bg-amber-400" />
-                            <span className="text-xs md:text-sm font-medium text-slate-600">Due in 7 days</span>
+                            <span className="text-sm font-medium text-slate-600">Due in 7 days</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs md:text-sm font-bold text-slate-800">{feeData.students.upcomingDues} students</span>
-                            <span className="text-[10px] md:text-[11px] text-slate-400 font-medium">(35%)</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-bold text-slate-800">
+                              {feeData.students.upcomingDues}
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              students
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-medium">
+                              (35%)
+                            </span>
                           </div>
                         </div>
-                        <div className="w-full bg-slate-100 rounded-full h-2">
-                          <div className="bg-amber-400 rounded-full h-2 transition-all duration-500" style={{ width: '35%', minWidth: '4px' }} />
+                        <div className="w-full bg-slate-100 rounded-full h-1.5">
+                          <div className="bg-amber-400 rounded-full h-1.5 transition-all duration-500" style={{ width: '35%' }} />
                         </div>
                       </div>
                     </div>
                   </div>
 
+                  {/* DIVIDER LINE */}
+                  <div className="border-t border-slate-100 my-3" />
+
+                  {/* CONTEXT ROWS */}
+                  <div className="space-y-2.5">
+                    {/* ROW A — YTD COLLECTED */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp size={13} className="text-green-500" strokeWidth={1.5} />
+                        <span className="text-xs font-medium text-slate-500">
+                          YTD Collected
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-green-600">
+                          {formatINR(feeData.ytdCollected)}
+                        </span>
+                        <span className="text-[10px] text-slate-400 ml-1.5">
+                          {feeData.academicYear}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* ROW B — LAST PAYMENT */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 size={13} className="text-slate-400" strokeWidth={1.5} />
+                        <span className="text-xs font-medium text-slate-500">
+                          Last Payment
+                        </span>
+                      </div>
+                      {feeData.lastPayment ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-slate-700">
+                            {feeData.lastPayment.studentName}
+                          </span>
+                          <span className="text-slate-400 text-xs">·</span>
+                          <span className="text-xs font-bold text-slate-700">
+                            {formatINR(feeData.lastPayment.amount)}
+                          </span>
+                          <span className="text-slate-400 text-xs">·</span>
+                          <span className="text-[10px] text-slate-400">
+                            {feeData.lastPayment.date}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 font-medium">
+                          No payments this month
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
                   {/* NUDGE CARD */}
-                  {feeData.students.overdue > 0 && (
-                    <div className="mt-4 bg-red-50 border border-red-100 rounded-xl px-4 py-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  {feeData.students.overdue > 0 ? (
+                    <div className="mt-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5">
-                        <TriangleAlert size={16} className="text-red-500 flex-shrink-0" />
+                        <TriangleAlert size={15} className="text-red-500 flex-shrink-0" strokeWidth={1.5} />
                         <div>
                           <p className="text-sm font-semibold text-red-700">
                             {feeData.students.overdue} students have overdue fees
                           </p>
                           <p className="text-xs text-red-400 font-medium mt-0.5">
-                            Total outstanding: ₹{feeData.overdue.toLocaleString('en-IN')}
+                            Total outstanding: {formatINR(feeData.overdue)}
                           </p>
                         </div>
                       </div>
-                      <button className="w-full sm:w-auto min-h-[44px] sm:min-h-0 bg-white border border-red-200 text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-50 transition cursor-pointer flex-shrink-0 text-center flex items-center justify-center">
+                      <button
+                        className="text-xs font-bold text-red-600 bg-white border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition cursor-pointer flex-shrink-0"
+                        onClick={() => showToast("Reminders sent to 3 students")}
+                      >
                         Send Reminder →
                       </button>
+                    </div>
+                  ) : (
+                    <div className="mt-3 bg-green-50 border border-green-100 rounded-xl px-4 py-3 flex items-center gap-2.5">
+                      <CheckCircle2 size={15} className="text-green-500 flex-shrink-0" strokeWidth={1.5} />
+                      <span className="text-sm font-semibold text-green-700">
+                        All student fees are up to date
+                      </span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Footer — full width */}
-              <div className="mt-auto pt-4 border-t border-slate-100">
-                <span className="text-xs md:text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer min-h-[44px] sm:min-h-0 flex items-center">
+              {/* FOOTER */}
+              <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer" onClick={() => {}}>
                   Go to Fee Management →
+                </span>
+                <span className="text-xs text-slate-400 font-medium">
+                  {feeData.students.total} students enrolled
                 </span>
               </div>
             </div>
@@ -1343,6 +1511,26 @@ export default function DashboardPage() {
               </div>
             </div>
           </section>
+
+          {/* TOAST NOTIFICATION */}
+          <div 
+            className={`fixed bottom-6 left-1/2 -translate-x-1/2 md:left-auto md:right-6 md:translate-x-0 z-50 transform transition-all duration-300 ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0 pointer-events-none'}`}
+          >
+            <div className="flex items-center gap-3 bg-slate-800 text-white rounded-xl px-5 py-3 shadow-2xl min-w-[280px]">
+              {toast.type === 'success' && <CheckCircle2 size={16} className="text-green-400" strokeWidth={1.5} />}
+              {toast.type === 'info' && <Info size={16} className="text-blue-400" strokeWidth={1.5} />}
+              {toast.type === 'error' && <XCircle size={16} className="text-red-400" strokeWidth={1.5} />}
+              
+              <span className="text-sm font-semibold font-sans">{toast.message}</span>
+              
+              <button 
+                onClick={() => setToast(t => ({ ...t, show: false }))} 
+                className="ml-auto text-slate-400 hover:text-slate-200 cursor-pointer"
+              >
+                <X size={14} strokeWidth={1.5} />
+              </button>
+            </div>
+          </div>
         </main>
       </div>
     </div>

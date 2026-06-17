@@ -4,6 +4,11 @@ This document serves as the single source of truth for design patterns, technolo
 
 ---
 
+## 💬 Developer Communication preference
+- **Communication Style**: Always speak in **caveman** mode (`full` intensity). Keep replies terse, remove articles, keep code exact.
+
+---
+
 ## 🛠️ Build and Development Commands
 - **Run Local Dev Server**: `npm run dev` (Runs Next.js 15 with Turbopack on http://localhost:3000)
 - **Verify Production Compile**: `npm run build`

@@ -13,29 +13,12 @@ import {
   UserCog,
   Shield,
   ChevronDown,
-  ChevronRight,
   Search,
   Bell,
   Menu,
-  Crown,
   X,
-  Eye,
-  IndianRupee,
-  BarChart2,
-  GraduationCap,
-  ArrowUpRight,
   CheckCircle2,
-  Plus,
-  UserPlus,
-  UserCheck,
-  Receipt,
-  Megaphone,
-  MessageSquare,
-  GitBranch,
   Calendar,
-  CalendarOff,
-  Settings,
-  LayoutList,
   Save,
   AlertCircle,
   Lightbulb,
@@ -49,7 +32,6 @@ import {
 
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 
 // ===================================================================
@@ -158,7 +140,6 @@ export default function AddLeadPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [duplicateFound, setDuplicateFound] = useState<typeof existingLeads[0] | null>(null)
-  const [sourceSelected, setSourceSelected] = useState('')
 
   // Check duplicate phone logic
   const checkDuplicate = (phone: string) => {
@@ -183,7 +164,6 @@ export default function AddLeadPage() {
   // Handle source chip click
   const handleSourceSelect = (source: string) => {
     setFormData(prev => ({ ...prev, source }))
-    setSourceSelected(source)
     if (errors.source) {
       setErrors(prev => {
         const copy = { ...prev }

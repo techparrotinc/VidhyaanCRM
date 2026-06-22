@@ -1,17 +1,11 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import Sidebar from '@/components/Sidebar'
 import {
-  LayoutDashboard,
-  Globe,
   TrendingUp,
-  LineChart,
-  ClipboardList,
   Users,
-  CreditCard,
-  UserCog,
   Shield,
   ChevronDown,
   ChevronRight,
@@ -47,7 +41,6 @@ import {
 } from 'lucide-react'
 
 import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 
 import {
   Dialog,
@@ -55,7 +48,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog"
 
 import {
@@ -280,11 +272,11 @@ const timeline = [
 ]
 
 const statusConfig: Record<string, { bg: string; text: string; dot: string; border: string }> = {
-  New: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500', border: 'border-blue-100' },
-  Contacted: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', border: 'border-amber-100' },
-  'Follow-up': { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500', border: 'border-orange-100' },
-  Converted: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500', border: 'border-green-100' },
-  Rejected: { bg: 'bg-red-50', text: 'text-red-600', dot: 'bg-red-500', border: 'border-red-100' },
+  New: { bg: 'bg-blue-100', text: 'text-blue-800', dot: 'bg-blue-500', border: 'border-blue-200' },
+  Contacted: { bg: 'bg-amber-100', text: 'text-amber-800', dot: 'bg-amber-500', border: 'border-amber-200' },
+  'Follow-up': { bg: 'bg-orange-100', text: 'text-orange-800', dot: 'bg-orange-500', border: 'border-orange-200' },
+  Converted: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500', border: 'border-green-200' },
+  Rejected: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500', border: 'border-red-200' },
 }
 
 const priorityConfig: Record<string, { bg: string; text: string; icon: React.ElementType }> = {
@@ -321,9 +313,7 @@ const grades = [
 export default function LeadDetailPage() {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [salesMarketingOpen, setSalesMarketingOpen] = useState(true)
   const [trialBannerVisible, setTrialBannerVisible] = useState(true)
-  const [activeNav, setActiveNav] = useState("Lead Management")
 
   // Edit Mode state
   const [isEditing, setIsEditing] = useState(false)
@@ -545,16 +535,14 @@ export default function LeadDetailPage() {
     }
   }
 
-  // Layout module mapping
-  const moduleTitle = institutionConfig.moduleTitle[institutionConfig.type as keyof typeof institutionConfig.moduleTitle]
 
   // ===================================================================
   // COMPONENT CARDS (HELPERS)
   // ===================================================================
 
-  const ContactDetailsCard = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 md:p-6 text-left">
-      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">
+  const ContactDetailsCard = ({}: { isMobile?: boolean }) => (
+    <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6 text-left">
+      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">
         CONTACT DETAILS
       </h4>
       <div className="space-y-1 divide-y divide-slate-50">
@@ -666,9 +654,9 @@ export default function LeadDetailPage() {
     </Card>
   )
 
-  const LeadDetailsCard = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 md:p-6 text-left">
-      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">
+  const LeadDetailsCard = ({}: { isMobile?: boolean }) => (
+    <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6 text-left">
+      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">
         LEAD DETAILS
       </h4>
       <div className="space-y-0 divide-y divide-slate-50">
@@ -715,7 +703,7 @@ export default function LeadDetailPage() {
                 {currentStatus}
               </span>
               {statusDropdown && (
-                <div className="absolute right-0 top-full mt-1.5 z-20 bg-white rounded-xl border border-slate-100 shadow-lg p-1.5 min-w-[160px]">
+                <div className="absolute right-0 top-full mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px]">
                   {Object.keys(statusConfig).map((st) => (
                     <div
                       key={st}
@@ -797,9 +785,9 @@ export default function LeadDetailPage() {
     </Card>
   )
 
-  const EnquiryInfoCard = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 md:p-6 text-left">
-      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">
+  const EnquiryInfoCard = ({}: { isMobile?: boolean }) => (
+    <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6 text-left">
+      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">
         ENQUIRY INFORMATION
       </h4>
       <div className="space-y-0 divide-y divide-slate-50">
@@ -879,10 +867,10 @@ export default function LeadDetailPage() {
     </Card>
   )
 
-  const TimelineCard = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 md:p-6 text-left">
+  const TimelineCard = ({}: { isMobile?: boolean }) => (
+    <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6 text-left">
       <div className="flex justify-between items-center mb-6">
-        <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+        <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
           ACTIVITY TIMELINE
         </h4>
         <span className="text-xs text-slate-400 font-medium">{activities.length} activities</span>
@@ -922,7 +910,7 @@ export default function LeadDetailPage() {
     </Card>
   )
 
-  const LogActivityCard = ({ isMobile = false }: { isMobile?: boolean }) => {
+  const LogActivityCard = ({}: { isMobile?: boolean }) => {
     const tabConfigs = {
       note: { icon: FileText, color: 'text-slate-500', label: 'Note', ph: 'Add a note about this lead...' },
       call: { icon: Phone, color: 'text-green-500', label: 'Call', ph: 'Log call details and outcome...' },
@@ -931,8 +919,8 @@ export default function LeadDetailPage() {
     }
 
     return (
-      <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 md:p-6 text-left">
-        <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">
+      <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6 text-left">
+        <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">
           LOG ACTIVITY
         </h4>
 
@@ -1012,9 +1000,9 @@ export default function LeadDetailPage() {
     )
   }
 
-  const MoveStageCard = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 text-left">
-      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+  const MoveStageCard = ({}: { isMobile?: boolean }) => (
+    <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 text-left">
+      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
         MOVE STAGE
       </h4>
       <div className="flex items-center gap-2 mb-4">
@@ -1082,9 +1070,9 @@ export default function LeadDetailPage() {
     </Card>
   )
 
-  const FollowUpCard = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 text-left">
-      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">
+  const FollowUpCard = ({}: { isMobile?: boolean }) => (
+    <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 text-left">
+      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">
         FOLLOW-UP
       </h4>
       <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 space-y-2.5 text-left">
@@ -1150,9 +1138,9 @@ export default function LeadDetailPage() {
     </Card>
   )
 
-  const CounsellorCard = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 text-left" ref={counsellorRef}>
-      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">
+  const CounsellorCard = ({}: { isMobile?: boolean }) => (
+    <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 text-left" ref={counsellorRef}>
+      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">
         ASSIGNED COUNSELLOR
       </h4>
       <div className="flex items-center gap-3 mb-4">
@@ -1175,7 +1163,7 @@ export default function LeadDetailPage() {
         </button>
 
         {counsellorDropdown && (
-          <div className="absolute left-0 bottom-full mb-1.5 z-20 bg-white rounded-xl border border-slate-100 shadow-lg p-1.5 w-full">
+          <div className="absolute left-0 bottom-full mb-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 w-full">
             {counsellors.map((c) => (
               <div
                 key={c.id}
@@ -1187,7 +1175,7 @@ export default function LeadDetailPage() {
                 }}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 cursor-pointer text-slate-700"
               >
-                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[9px] font-bold flex items-center justify-center shrink-0">
+                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold flex items-center justify-center shrink-0">
                   {c.avatar}
                 </div>
                 <div className="min-w-0">
@@ -1197,7 +1185,7 @@ export default function LeadDetailPage() {
                 {currentCounsellor === c.name && <Check size={14} className="ml-auto text-slate-400" />}
               </div>
             ))}
-            <div className="border-t border-slate-100 my-1" />
+            <div className="border-t border-slate-200 my-1" />
             <button
               onClick={() => {
                 setCurrentCounsellor("Unassigned")
@@ -1215,17 +1203,17 @@ export default function LeadDetailPage() {
     </Card>
   )
 
-  const RelatedLeadsCard = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 text-left">
-      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+  const RelatedLeadsCard = ({}: { isMobile?: boolean }) => (
+    <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 text-left">
+      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
         RELATED LEADS
       </h4>
       <p className="text-xs text-slate-400 mb-3">From same phone number</p>
 
       <div className="space-y-2">
         {relatedLeads.map((rl) => (
-          <div key={rl.id} className="flex items-center gap-3 bg-slate-50 rounded-xl px-3 py-3 border border-slate-100 hover:border-blue-200 hover:bg-blue-50 transition cursor-pointer">
-            <div className="w-8 h-8 rounded-full bg-[#1565D8]/10 text-[#1565D8] text-xs font-bold flex items-center justify-center flex-shrink-0">
+          <div key={rl.id} className="flex items-center gap-3 bg-slate-50 rounded-xl px-3 py-3 border border-slate-200 hover:border-blue-200 hover:bg-blue-50 transition cursor-pointer">
+            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
               {rl.avatar}
             </div>
             <div className="min-w-0 flex-1">
@@ -1241,163 +1229,13 @@ export default function LeadDetailPage() {
     </Card>
   )
 
-  // ===================================================================
-  // SIDEBAR COMPONENT
-  // ===================================================================
-  const SidebarContent = ({ isMobile = false }) => (
-    <div className="flex flex-col h-full bg-white select-none">
-      <div className={`flex items-center gap-3 px-6 pt-6 pb-2 ${!isMobile ? "md:px-3 lg:px-6 md:justify-center lg:justify-start" : ""}`}>
-        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-50 text-[#1565D8] shrink-0">
-          <Shield className="w-8 h-8 fill-[#1565D8]" strokeWidth={1.5} />
-        </div>
-        <div className={`flex flex-col min-w-0 ${!isMobile ? "md:hidden lg:flex" : ""}`}>
-          <h1 className="text-[15px] font-bold text-slate-800 truncate leading-tight">
-            Prince Matriculation
-          </h1>
-          <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">School Portal</span>
-        </div>
-      </div>
-      <div className={`border-b border-slate-100 mt-4 mb-4 mx-4 ${!isMobile ? "md:mx-2 lg:mx-4" : ""}`} />
-
-      <div className="flex-1 px-2 overflow-y-auto space-y-1">
-        {/* Dashboard */}
-        <Link
-          href="/dashboard"
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Dashboard" ? 'bg-blue-50 text-[#1565D8] font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
-          title="Dashboard"
-        >
-          <LayoutDashboard className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Dashboard</span>
-        </Link>
-
-        {/* Site Manager */}
-        <Link
-          href="/site-manager"
-          onClick={() => {
-            setActiveNav("Site Manager")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Site Manager" ? 'bg-blue-50 text-[#1565D8] font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
-          title="Site Manager"
-        >
-          <Globe className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Site Manager</span>
-        </Link>
-
-        {/* Sales & Marketing (Collapsible) */}
-        <div>
-          <button
-            onClick={() => setSalesMarketingOpen(!salesMarketingOpen)}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""}`}
-            title="Sales & Marketing"
-          >
-            <div className="flex items-center gap-3">
-              <TrendingUp className="size-[18px] shrink-0" strokeWidth={1.5} />
-              <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Sales & Marketing</span>
-            </div>
-            <ChevronDown className={`size-[14px] transition-transform duration-200 ${salesMarketingOpen ? 'rotate-180' : ''} ${!isMobile ? "md:hidden lg:block" : ""}`} />
-          </button>
-
-          {salesMarketingOpen && (
-            <div className={`pl-8 pr-2 py-1 ${!isMobile ? "md:pl-0 md:pr-0 md:flex md:justify-center lg:pl-8 lg:pr-2 lg:block" : ""}`}>
-              <Link
-                href="/lead-management"
-                className={`w-full flex items-center gap-3 py-2 text-sm font-medium text-left transition-all ${!isMobile ? "md:justify-center lg:justify-start" : ""} ${activeNav === "Lead Management" ? 'text-[#1565D8] font-semibold' : 'text-slate-600 hover:text-slate-900'}`}
-                title="Lead Management"
-              >
-                <LineChart className="size-[16px] shrink-0" strokeWidth={1.5} />
-                <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Lead Management</span>
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Dynamic module */}
-        <Link
-          href="/admissions"
-          onClick={() => {
-            setActiveNav("Module Management")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Module Management" ? 'bg-blue-50 text-[#1565D8] font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
-          title={moduleTitle}
-        >
-          <ClipboardList className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`truncate ${!isMobile ? "md:hidden lg:inline" : ""}`}>{moduleTitle}</span>
-        </Link>
-
-        {/* Student Management */}
-        <Link
-          href="/students"
-          onClick={() => {
-            setActiveNav("Student Management")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Student Management" ? 'bg-blue-50 text-[#1565D8] font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
-          title="Student Management"
-        >
-          <Users className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Student Management</span>
-        </Link>
-
-        {/* Fee Management */}
-        <Link
-          href="/fees"
-          onClick={() => {
-            setActiveNav("Fee Management")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Fee Management" ? 'bg-blue-50 text-[#1565D8] font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
-          title="Fee Management"
-        >
-          <CreditCard className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Fee Management</span>
-        </Link>
-
-        {/* User & Role Management */}
-        <Link
-          href="/users"
-          onClick={() => {
-            setActiveNav("User & Role Management")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "User & Role Management" ? 'bg-blue-50 text-[#1565D8] font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
-          title="User & Role Management"
-        >
-          <UserCog className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>User & Role Management</span>
-        </Link>
-      </div>
-
-      {/* Sidebar Footer */}
-      <div className={`mt-auto pt-4 border-t border-slate-100 p-4 bg-slate-50/50 flex flex-col gap-2 ${!isMobile ? "md:p-1 md:items-center lg:p-4 lg:items-start" : ""}`}>
-        <span className={`text-[10px] font-bold uppercase tracking-widest text-slate-400 ${!isMobile ? "md:hidden lg:block" : ""}`}>PLAN STATUS</span>
-        <Badge className={`bg-amber-100 text-amber-700 text-xs font-semibold px-3 py-1 rounded-full w-fit hover:bg-amber-100 border-0 shadow-none ${!isMobile ? "md:hidden lg:flex" : ""}`}>
-          Free Plan
-        </Badge>
-        <p className={`text-xs text-slate-500 mt-1 leading-relaxed ${!isMobile ? "md:hidden lg:block" : ""}`}>
-          Unlock all premium features like Lead automation & fee collections.
-        </p>
-        <button className={`w-full bg-[#1565D8] text-white text-sm font-semibold py-2.5 h-auto rounded-lg mt-2 hover:bg-blue-700 transition duration-200 ${!isMobile ? "md:hidden lg:flex" : ""}`}>
-          Upgrade to Premium
-        </button>
-      </div>
-    </div>
-  )
-
-  const formatINR = (amount: number) => {
-    return '₹' + amount.toLocaleString('en-IN')
-  }
-
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex relative font-sans antialiased select-none">
+    <div className="min-h-screen bg-slate-100 text-slate-800 flex relative font-sans antialiased select-none">
       {/* 1. FIXED LEFT SIDEBAR */}
-      <aside className="hidden md:flex w-16 lg:w-64 fixed inset-y-0 left-0 border-r border-slate-100 bg-white z-30 shadow-sm flex-col">
-        <SidebarContent />
-      </aside>
+      <Sidebar />
 
       {/* MOBILE TOP NAV BAR */}
-      <header className="flex md:hidden h-14 bg-white border-b border-slate-100 px-4 items-center justify-between fixed top-0 left-0 right-0 z-50">
+      <header className="flex md:hidden h-14 bg-white border-b border-slate-200 px-4 items-center justify-between fixed top-0 left-0 right-0 z-50">
         <div className="flex items-center gap-1.5 shrink-0">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-[#1565D8]">
             <Shield className="w-5 h-5 fill-[#1565D8]" strokeWidth={1.5} />
@@ -1428,7 +1266,7 @@ export default function LeadDetailPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <SidebarContent isMobile={true} />
+            <Sidebar isMobile={true} onCloseMobileMenu={() => setMobileMenuOpen(false)} />
           </div>
         </>
       )}
@@ -1436,21 +1274,21 @@ export default function LeadDetailPage() {
       {/* 2. MAIN CONTENT AREA */}
       <div className="flex-1 md:pl-16 lg:pl-64 pt-14 md:pt-0 flex flex-col min-w-0">
         {/* DESKTOP/TABLET HEADER BAR */}
-        <header className="hidden md:flex h-16 border-b border-slate-100 bg-white items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
+        <header className="hidden md:flex h-16 border-b border-slate-200 bg-white items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
           <div className="flex items-center gap-4 min-w-0">
             <div className="flex flex-col min-w-0 text-left">
               <h2 className="text-sm lg:text-base font-bold text-slate-800 tracking-tight leading-tight">
                 View Lead
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Sales & Marketing › Lead Management › {lead.fullName}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-4 shrink-0">
-            <div className="relative hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 w-48 lg:w-64">
-              <Search className="w-4 h-4 text-slate-400 shrink-0" strokeWidth={1.5} />
+            <div className="relative hidden lg:flex items-center gap-2 bg-slate-100 border border-slate-300 rounded-lg px-4 py-2 w-48 lg:w-64">
+              <Search className="w-4 h-4 text-slate-500 shrink-0" strokeWidth={1.5} />
               <input
                 type="text"
                 placeholder="Search anything..."
@@ -1510,7 +1348,7 @@ export default function LeadDetailPage() {
         {/* MAIN CONTAINER CONTENT */}
         <main className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-5 lg:space-y-6 max-w-7xl mx-auto w-full flex-1">
           {/* SECTION 1 — PAGE HEADER CARD */}
-          <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 md:p-6 text-left">
+          <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6 text-left">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               {/* LEFT */}
               <div className="flex items-start gap-4">
@@ -1521,7 +1359,7 @@ export default function LeadDetailPage() {
                   <ChevronLeft size={18} className="text-slate-500" strokeWidth={1.5} />
                 </button>
 
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#1565D8]/10 text-[#1565D8] text-sm md:text-base font-bold flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-blue-100 text-blue-700 text-sm md:text-base font-bold flex items-center justify-center flex-shrink-0">
                   {currentAvatar}
                 </div>
 
@@ -1565,7 +1403,7 @@ export default function LeadDetailPage() {
                       <MoreVertical size={16} className="text-slate-500" strokeWidth={1.5} />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-52 rounded-xl border border-slate-100 shadow-lg p-1.5">
+                  <DropdownMenuContent align="end" className="w-52 rounded-xl border border-slate-200 shadow-lg p-1.5">
                     <DropdownMenuItem onClick={() => {
                       navigator.clipboard.writeText(lead.id)
                       showToast("Lead ID copied")
@@ -1605,7 +1443,7 @@ export default function LeadDetailPage() {
             </div>
 
             {/* ROW 2 */}
-            <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center gap-2">
+            <div className="mt-4 pt-4 border-t border-slate-200 flex flex-wrap items-center gap-2">
               {/* CHIP 1 — STATUS (interactive) */}
               <div className="relative" ref={statusRef}>
                 <button
@@ -1617,7 +1455,7 @@ export default function LeadDetailPage() {
                   <ChevronDown size={13} className="ml-0.5" strokeWidth={1.5} />
                 </button>
                 {statusDropdown && (
-                  <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-100 shadow-lg p-1.5 min-w-[160px]">
+                  <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px]">
                     {Object.keys(statusConfig).map((st) => (
                       <div
                         key={st}
@@ -1662,7 +1500,7 @@ export default function LeadDetailPage() {
                   <ChevronDown size={11} className="text-slate-400" strokeWidth={1.5} />
                 </button>
                 {counsellorDropdown && (
-                  <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-100 shadow-lg p-1.5 min-w-[200px]">
+                  <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[200px]">
                     {counsellors.map((c) => (
                       <div
                         key={c.id}
@@ -1674,7 +1512,7 @@ export default function LeadDetailPage() {
                         }}
                         className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 cursor-pointer text-slate-700"
                       >
-                        <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[9px] font-bold flex items-center justify-center shrink-0">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold flex items-center justify-center shrink-0">
                           {c.avatar}
                         </div>
                         <div className="min-w-0">
@@ -1684,7 +1522,7 @@ export default function LeadDetailPage() {
                         {currentCounsellor === c.name && <Check size={14} className="ml-auto text-slate-400" />}
                       </div>
                     ))}
-                    <div className="border-t border-slate-100 my-1" />
+                    <div className="border-t border-slate-200 my-1" />
                     <button
                       onClick={() => {
                         setCurrentCounsellor("Unassigned")
@@ -1774,9 +1612,9 @@ export default function LeadDetailPage() {
               <DialogTitle className="text-lg font-bold Poppins">Convert to Admission</DialogTitle>
             </DialogHeader>
 
-            <div className="bg-slate-50 rounded-xl p-4 mb-5 border border-slate-100">
+            <div className="bg-slate-50 rounded-xl p-4 mb-5 border border-slate-200">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-full bg-[#1565D8]/10 text-[#1565D8] text-xs font-bold flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
                   {currentAvatar}
                 </div>
                 <div>
@@ -1785,7 +1623,7 @@ export default function LeadDetailPage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5 border-t border-slate-100 pt-3">
+              <div className="space-y-1.5 border-t border-slate-200 pt-3">
                 <div className="flex justify-between">
                   <span className="text-xs text-slate-400">Grade</span>
                   <span className="text-xs font-semibold text-slate-700">{applyingFor}</span>

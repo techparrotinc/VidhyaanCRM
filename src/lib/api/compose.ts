@@ -1,0 +1,153 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/db'
+import { forOrg } from '@/lib/db/tenant'
+import { Errors } from './errors'
+import { errorResponse } from './respond'
+
+const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
+
+type RouteConfig = {
+  module?: string
+  roles?: string[]
+  allowPublic?: boolean
+  handler: (ctx: RouteContext) => Promise<NextResponse>
+}
+
+type RouteContext = {
+  req: NextRequest
+  user: {
+    id: string
+    role: string
+    orgId: string
+    name: string
+  }
+  org: {
+    id: string
+    status: string
+    leadCap: number
+    planId: string | null
+  }
+  db: ReturnType<typeof forOrg>
+  academicYearId: string | null
+  params?: Record<string, string>
+}
+
+export function route(config: RouteConfig) {
+  return async function handler(
+    req: NextRequest,
+    context?: any
+  ): Promise<NextResponse> {
+    try {
+      // STEP 1: Get auth session
+      const session = await auth()
+      if (!session?.user) {
+        throw Errors.unauthenticated()
+      }
+
+      const user = {
+        id: session.user.id,
+        role: session.user.role,
+        orgId: session.user.orgId,
+        name: session.user.name ?? ''
+      }
+
+      // STEP 2: Check role
+      if (config.roles && !config.roles.includes(user.role)) {
+        throw Errors.forbidden('Your role cannot perform this action')
+      }
+
+      // STEP 3: Get organization
+      const org = await prisma.organization.findFirst({
+        where: {
+          id: user.orgId,
+          deletedAt: null
+        },
+        select: {
+          id: true,
+          status: true,
+          leadCap: true,
+          planId: true
+        }
+      })
+
+      if (!org) {
+        throw Errors.forbidden('Organization not found')
+      }
+
+      if ((org.status as string) === 'SUSPENDED') {
+        throw Errors.forbidden('Your account has been suspended')
+      }
+
+      // STEP 4: Check module access
+      if (config.module) {
+        const moduleAccess = await prisma.organizationModule.findFirst({
+          where: {
+            orgId: user.orgId,
+            module: {
+              slug: config.module
+            },
+            enabled: true
+          }
+        })
+
+        if (!moduleAccess) {
+          throw Errors.moduleLocked(config.module)
+        }
+      }
+
+      // STEP 5: Check read-only state
+      const isReadOnly =
+        (org.status as string) === 'TRIAL_EXPIRED' ||
+        (org.status as string) === 'PAST_DUE'
+
+      if (isReadOnly && MUTATING_METHODS.includes(req.method)) {
+        throw Errors.featureReadOnly()
+      }
+
+      // STEP 6: Create tenant DB client
+      const db = forOrg(user.orgId)
+
+      // STEP 7: Resolve academic year
+      const activeYear = await db.academicYear.findFirst({
+        where: { status: 'ACTIVE' },
+        select: { id: true, status: true }
+      })
+
+      const academicYearId =
+        req.headers.get('x-academic-year-id') ??
+        activeYear?.id ??
+        null
+
+      // Check if year is closed
+      if (
+        academicYearId &&
+        academicYearId !== activeYear?.id &&
+        MUTATING_METHODS.includes(req.method)
+      ) {
+        throw Errors.businessRule(
+          'Academic year is closed. Historical data is read-only.'
+        )
+      }
+
+      // STEP 8: Run handler
+      const ctx: RouteContext = {
+        req,
+        user,
+        org: {
+          id: org.id,
+          status: org.status as string,
+          leadCap: org.leadCap,
+          planId: org.planId
+        },
+        db,
+        academicYearId,
+        params: context?.params && typeof context.params.then === 'function' ? await context.params : context?.params
+      }
+
+      return await config.handler(ctx)
+    } catch (error) {
+      return errorResponse(error)
+    }
+  }
+}

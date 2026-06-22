@@ -1,17 +1,14 @@
 "use client"
 
-import React, { useState } from 'react'
-import Link from 'next/link'
+import React, { useState, useEffect } from 'react'
+import Sidebar from '@/components/Sidebar'
 import {
-  LayoutDashboard,
   Globe,
   TrendingUp,
   TrendingDown,
-  LineChart,
   ClipboardList,
   Users,
   CreditCard,
-  UserCog,
   Shield,
   ChevronDown,
   ChevronRight,
@@ -43,9 +40,9 @@ import {
 } from 'lucide-react'
 
 import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 
 // ===================================================================
 // INSTITUTION TYPE CONTEXT VARIABLE & CONSTANTS
@@ -109,19 +106,36 @@ const feeData = {
   },
 }
 
-const formatINR = (amount: number) => {
-  return '₹' + amount.toLocaleString('en-IN')
-}
-
-const collectedTrend = feeData.collected < 
-  feeData.collectedLastMonth 
-  ? 'down' : 'up'
+const formatINR = (amount: number) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0
+  }).format(amount)
 
 export default function DashboardPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [salesMarketingOpen, setSalesMarketingOpen] = useState(true)
   const [trialBannerVisible, setTrialBannerVisible] = useState(true)
-  const [activeNav, setActiveNav] = useState("Dashboard")
+  const [dashData, setDashData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchDashboard() {
+      try {
+        const res = await fetch('/api/v1/dashboard/summary')
+        if (!res.ok) throw new Error('Failed to fetch dashboard data')
+        const json = await res.json()
+        setDashData(json.data)
+      } catch (err) {
+        setError('Failed to load dashboard')
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchDashboard()
+  }, [])
 
   // Toast notifications state
   const [toast, setToast] = useState<{
@@ -155,16 +169,55 @@ export default function DashboardPage() {
   const moduleTitle = institutionConfig.moduleTitle[institutionConfig.type as keyof typeof institutionConfig.moduleTitle]
   const pipelineTitle = institutionConfig.pipelineTitle[institutionConfig.type as keyof typeof institutionConfig.pipelineTitle]
 
+  const getStageColorClass = (colorName: string | null | undefined) => {
+    switch (colorName) {
+      case 'blue': return 'bg-blue-500'
+      case 'amber': return 'bg-amber-500'
+      case 'orange': return 'bg-orange-500'
+      case 'green': return 'bg-green-500'
+      case 'red': return 'bg-red-500'
+      case 'violet': return 'bg-violet-500'
+      case 'indigo': return 'bg-indigo-500'
+      case 'cyan': return 'bg-cyan-500'
+      default: return 'bg-slate-500'
+    }
+  }
+
+  const getStageCount = (stageName: string) => {
+    const stageData = (dashData?.admissions?.byStage ?? []).find(
+      (s: any) => s.stage?.label?.toLowerCase() === stageName.toLowerCase()
+    )
+    return stageData?.count ?? 0
+  }
+
+  const totalAdmissions = dashData?.admissions?.total ?? 0
+  const enrolledAdmissions = getStageCount('Admitted')
+  const rejectedAdmissions = getStageCount('Rejected')
+  const inProcessAdmissions = Math.max(0, totalAdmissions - enrolledAdmissions - rejectedAdmissions)
+  const conversionRate = dashData?.admissions?.conversionRate ?? 0
+  const dropOffRate = totalAdmissions > 0 ? Math.round((rejectedAdmissions / totalAdmissions) * 100) : 0
+
+  const capPct = dashData?.leads?.cap
+    ? Math.min(
+        100,
+        Math.round(
+          (dashData.leads.capUsed /
+           dashData.leads.cap) * 100
+        )
+      )
+    : 0
+  const collectedTrend = (dashData?.fees?.collectedThisMonth ?? 0) < 45000 ? 'down' : 'up'
+
   // KPI configurations
   const kpis = [
-    { title: "TOTAL ENQUIRIES", value: "26", icon: Users, trend: "+8 this month", isPremium: false, link: "/enquiries" },
+    { title: "TOTAL ENQUIRIES", value: String(dashData?.leads?.total ?? 0), icon: Users, trend: `+${dashData?.leads?.new ?? 0} this month`, isPremium: false, link: "/enquiries" },
     { title: "PROFILE VIEWS", value: "142", icon: Eye, trend: "+23 this week", isPremium: false, link: "/site-manager/analytics" },
-    { title: "LEADS THIS MONTH", value: "14", icon: TrendingUp, trend: "+3 today", isPremium: true, link: "/leads" },
-    { title: "FEE COLLECTION", value: "₹1,24,500", icon: IndianRupee, trend: "+8% vs last month", isPremium: true, link: "/fee-management" },
-    { title: "CONVERSION RATE", value: "34%", icon: BarChart2, trend: "+5% this month", isPremium: true, link: "/reports" },
+    { title: "LEADS THIS MONTH", value: String(dashData?.leads?.new ?? 0), icon: TrendingUp, trend: "+3 today", isPremium: true, link: "/leads" },
+    { title: "FEE COLLECTION", value: formatINR(dashData?.fees?.collectedThisMonth ?? 0), icon: IndianRupee, trend: "+8% vs last month", isPremium: true, link: "/fee-management" },
+    { title: "CONVERSION RATE", value: `${dashData?.admissions?.conversionRate ?? 0}%`, icon: BarChart2, trend: "+5% this month", isPremium: true, link: "/reports" },
     {
       title: institutionConfig.type === 'institute' ? "ACTIVE ENROLLMENTS" : "ACTIVE STUDENTS",
-      value: "48",
+      value: String(dashData?.admissions?.admitted ?? 0),
       icon: GraduationCap,
       trend: "No change",
       isPremium: true,
@@ -188,180 +241,15 @@ export default function DashboardPage() {
     }
   ]
 
-  // Sidebar navigation render component
-  const SidebarContent = ({ isMobile = false }) => (
-    <div className="flex flex-col h-full bg-white select-none">
-      {/* Top Brand Section */}
-      <div className={`flex items-center gap-3 px-6 pt-6 pb-2 ${!isMobile ? "md:px-3 lg:px-6 md:justify-center lg:justify-start" : ""}`}>
-        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-50 text-[#1565D8] shrink-0">
-          <Shield className="w-8 h-8 fill-[#1565D8]" strokeWidth={1.5} />
-        </div>
-        <div className={`flex flex-col min-w-0 ${!isMobile ? "md:hidden lg:flex" : ""}`}>
-          <h1 className="text-[15px] font-bold text-slate-800 truncate leading-tight">
-            Prince Matriculation
-          </h1>
-          <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">School Admin Portal</span>
-        </div>
-      </div>
-      <div className={`border-b border-slate-100 mt-4 mb-4 mx-4 ${!isMobile ? "md:mx-2 lg:mx-4" : ""}`} />
-
-      {/* Navigation list */}
-      <div className="flex-1 px-2 overflow-y-auto space-y-1">
-        {/* Dashboard */}
-        <Link
-          href="/dashboard"
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Dashboard"
-              ? 'bg-blue-50 text-[#1565D8] font-semibold'
-              : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          title="Dashboard"
-        >
-          <LayoutDashboard className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Dashboard</span>
-        </Link>
-
-        {/* Site Manager */}
-        <button
-          onClick={() => {
-            setActiveNav("Site Manager")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Site Manager"
-              ? 'bg-blue-50 text-[#1565D8] font-semibold'
-              : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          title="Site Manager"
-        >
-          <Globe className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Site Manager</span>
-        </button>
-
-        {/* Sales & Marketing (Collapsible) */}
-        <div>
-          <button
-            onClick={() => setSalesMarketingOpen(!salesMarketingOpen)}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""}`}
-            title="Sales & Marketing"
-          >
-            <div className="flex items-center gap-3">
-              <TrendingUp className="size-[18px] shrink-0" strokeWidth={1.5} />
-              <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Sales & Marketing</span>
-            </div>
-            <ChevronDown className={`size-[14px] transition-transform duration-200 ${salesMarketingOpen ? 'rotate-180' : ''} ${!isMobile ? "md:hidden lg:block" : ""}`} />
-          </button>
-
-          {salesMarketingOpen && (
-            <div className={`pl-8 pr-2 py-1 ${!isMobile ? "md:pl-0 md:pr-0 md:flex md:justify-center lg:pl-8 lg:pr-2 lg:block" : ""}`}>
-              <Link
-                href="/lead-management"
-                className={`w-full flex items-center gap-3 py-2 text-sm font-medium text-left transition-all ${!isMobile ? "md:justify-center lg:justify-start" : ""} ${activeNav === "Lead Management" ? 'text-[#1565D8] font-semibold' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                title="Lead Management"
-              >
-                <LineChart className="size-[16px] shrink-0" strokeWidth={1.5} />
-                <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Lead Management</span>
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Dynamic Admission/Enrolment/Enquiry module */}
-        <button
-          onClick={() => {
-            setActiveNav("Module Management")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Module Management"
-              ? 'bg-blue-50 text-[#1565D8] font-semibold'
-              : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          title={moduleTitle}
-        >
-          <ClipboardList className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`truncate ${!isMobile ? "md:hidden lg:inline" : ""}`}>{moduleTitle}</span>
-        </button>
-
-        {/* Student Management */}
-        <button
-          onClick={() => {
-            setActiveNav("Student Management")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Student Management"
-              ? 'bg-blue-50 text-[#1565D8] font-semibold'
-              : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          title="Student Management"
-        >
-          <Users className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Student Management</span>
-        </button>
-
-        {/* Fee Management */}
-        <button
-          onClick={() => {
-            setActiveNav("Fee Management")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Fee Management"
-              ? 'bg-blue-50 text-[#1565D8] font-semibold'
-              : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          title="Fee Management"
-        >
-          <CreditCard className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Fee Management</span>
-        </button>
-
-        {/* User & Role Management */}
-        <button
-          onClick={() => {
-            setActiveNav("User & Role Management")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "User & Role Management"
-              ? 'bg-blue-50 text-[#1565D8] font-semibold'
-              : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          title="User & Role Management"
-        >
-          <UserCog className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>User & Role Management</span>
-        </button>
-      </div>
-
-      {/* Sidebar Footer - Plan Status */}
-      <div className={`mt-auto pt-4 border-t border-slate-100 p-4 bg-slate-50/50 flex flex-col gap-2 ${!isMobile ? "md:p-1 md:items-center lg:p-4 lg:items-start" : ""}`}>
-        <span className={`text-[10px] font-bold uppercase tracking-widest text-slate-400 ${!isMobile ? "md:hidden lg:block" : ""}`}>PLAN STATUS</span>
-        {isMobile || activeNav === "Dashboard" ? (
-          <Badge className={`bg-amber-100 text-amber-700 text-xs font-semibold px-3 py-1 rounded-full w-fit hover:bg-amber-100 border-0 shadow-none ${!isMobile ? "md:hidden lg:flex" : ""}`}>
-            Free Plan
-          </Badge>
-        ) : null}
-        {!isMobile && (
-          <div className="hidden md:flex lg:hidden items-center justify-center w-8 h-8 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 cursor-pointer" title="Premium Features (Free Trial)">
-            <Crown size={14} className="fill-amber-500 text-amber-500" />
-          </div>
-        )}
-        <p className={`text-xs text-slate-500 mt-1 leading-relaxed ${!isMobile ? "md:hidden lg:block" : ""}`}>
-          Unlock all premium features like Lead automation & fee collections.
-        </p>
-        <Button className={`w-full bg-[#1565D8] text-white text-sm font-semibold py-2.5 h-auto rounded-lg mt-2 hover:bg-blue-700 transition duration-200 ${!isMobile ? "md:hidden lg:flex" : ""}`}>
-          Upgrade to Premium
-        </Button>
-      </div>
-    </div>
-  )
-
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex relative font-sans antialiased select-none">
+    <div className="min-h-screen bg-slate-100 text-slate-800 flex relative font-sans antialiased select-none">
       {/* 1. FIXED LEFT SIDEBAR (Desktop w-64, Tablet slim w-16) */}
-      <aside className="hidden md:flex w-16 lg:w-64 fixed inset-y-0 left-0 border-r border-slate-100 bg-white z-30 shadow-sm flex-col">
-        <SidebarContent />
+      <aside className="hidden md:flex w-16 lg:w-64 fixed inset-y-0 left-0 border-r border-slate-200 bg-white z-30 shadow-sm flex-col">
+        <Sidebar />
       </aside>
 
       {/* MOBILE TOP NAV BAR */}
-      <header className="flex md:hidden h-14 bg-white border-b border-slate-100 px-2 min-[375px]:px-4 items-center justify-between fixed top-0 left-0 right-0 z-50">
+      <header className="flex md:hidden h-14 bg-white border-b border-slate-200 px-2 min-[375px]:px-4 items-center justify-between fixed top-0 left-0 right-0 z-50">
         <div className="flex items-center gap-1.5 min-[375px]:gap-2 min-w-0 flex-shrink">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-[#1565D8] shrink-0">
             <Shield className="w-5 h-5 fill-[#1565D8]" strokeWidth={1.5} />
@@ -403,7 +291,7 @@ export default function DashboardPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <SidebarContent isMobile={true} />
+            <Sidebar isMobile onCloseMobileMenu={() => setMobileMenuOpen(false)} />
           </div>
         </>
       )}
@@ -411,7 +299,7 @@ export default function DashboardPage() {
       {/* 2. MAIN CONTENT AREA */}
       <div className="flex-1 md:pl-16 lg:pl-64 pt-14 md:pt-0 flex flex-col min-w-0">
         {/* DESKTOP/TABLET HEADER BAR */}
-        <header className="hidden md:flex h-16 border-b border-slate-100 bg-white items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
+        <header className="hidden md:flex h-16 border-b border-slate-200 bg-white items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
           <div className="flex items-center gap-4 min-w-0">
             <div className="flex flex-col min-w-0">
               <h2 className="text-sm lg:text-lg font-bold text-slate-800 tracking-tight leading-tight truncate">
@@ -428,12 +316,12 @@ export default function DashboardPage() {
           <div className="flex items-center gap-4 shrink-0">
 
             {/* Global Search Bar */}
-            <div className="relative hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 w-48 lg:w-64">
+            <div className="relative hidden lg:flex items-center gap-2 bg-slate-100 border border-slate-300 rounded-lg px-4 py-2 w-48 lg:w-64">
               <Search className="w-4 h-4 text-slate-400 shrink-0" strokeWidth={1.5} />
               <input
                 type="text"
                 placeholder="Search anything..."
-                className="bg-transparent border-0 outline-none text-sm text-slate-700 placeholder-slate-400 w-full"
+                className="bg-transparent border-0 outline-none text-sm text-slate-700 placeholder-slate-500 w-full"
                 readOnly
               />
               <span className="bg-slate-200 text-slate-500 text-[10px] px-1.5 py-0.5 rounded font-mono select-none">
@@ -499,11 +387,23 @@ export default function DashboardPage() {
 
         {/* MAIN CONTAINER CONTENT */}
         <main className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-5 lg:space-y-6 max-w-7xl mx-auto w-full">
+          {error ? (
+            <div className="text-center py-20">
+              <p className="text-red-500">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-4 text-[#1565D8] underline text-sm"
+              >
+                Try again
+              </button>
+            </div>
+          ) : (
+            <>
           {/* WELCOME / PROFILE COMPLETION BLOCK — two-state */}
 
           {/* STATE 1: Onboarding (profileCompletion < 100) */}
           {profileCompletion < 100 && (
-            <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 border-l-4 border-l-[#1565D8]">
+            <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 border-l-4 border-l-[#1565D8]">
               <div className="flex flex-col md:flex-row items-stretch md:items-start justify-between gap-4 md:gap-8">
                 {/* LEFT: Heading + Subtext */}
                 <div className="flex-1">
@@ -569,60 +469,66 @@ export default function DashboardPage() {
 
           {/* KPI CARDS ROW */}
           <section className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-6 xl:gap-4">
-            {kpis.map((kpi) => {
-              const Icon = kpi.icon
-              return (
-                <div
-                  key={kpi.title}
-                  className="min-w-0 w-full min-h-[160px] bg-white rounded-xl border border-slate-100 shadow-sm p-4 lg:p-5 xl:p-6 cursor-pointer hover:border-blue-200 hover:shadow-md transition-all duration-200 relative group flex flex-col justify-between"
-                >
-                  {/* Icon top-left */}
-                  <div className="text-slate-400 group-hover:text-[#1565D8] transition-colors">
-                    <Icon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={1.5} />
-                  </div>
-
-                  {/* Badge + Arrow co-located top-right */}
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                    {kpi.isPremium ? (
-                      <div className="bg-amber-100 text-amber-700 text-[9px] md:text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                        <Crown className="w-2.5 h-2.5 fill-amber-500 text-amber-500" strokeWidth={1.5} />
-                        <span>Premium</span>
-                      </div>
-                    ) : (
-                      <span className="bg-slate-100 text-slate-500 text-[9px] md:text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                        Free
-                      </span>
-                    )}
-                    <ArrowUpRight
-                      size={14}
-                      className="text-slate-300 group-hover:text-[#1565D8] transition-colors"
-                      strokeWidth={1.5}
-                    />
-                  </div>
-
-                  <span className="text-[10px] md:text-[11px] font-semibold uppercase tracking-widest text-slate-400 mt-4 block">
-                    {kpi.title}
-                  </span>
-
-                  <h3
-                    className="text-xl md:text-2xl xl:text-[32px] font-bold text-slate-800 tracking-tight leading-tight mt-1"
-                    style={{ fontFamily: "'Poppins', sans-serif" }}
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full rounded-xl" />
+              ))
+            ) : (
+              kpis.map((kpi) => {
+                const Icon = kpi.icon
+                return (
+                  <div
+                    key={kpi.title}
+                    className="min-w-0 w-full min-h-[160px] bg-white rounded-xl border border-slate-200 shadow-sm p-4 lg:p-5 xl:p-6 cursor-pointer hover:border-blue-200 hover:shadow-md transition-all duration-200 relative group flex flex-col justify-between"
                   >
-                    {kpi.value}
-                  </h3>
+                    {/* Icon top-left */}
+                    <div className="text-slate-400 group-hover:text-[#1565D8] transition-colors">
+                      <Icon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={1.5} />
+                    </div>
 
-                  <p className={`text-xs md:text-sm font-medium mt-2 ${kpi.trend.includes('No') ? 'text-slate-400' : 'text-green-600'}`}>
-                    {kpi.trend}
-                  </p>
-                </div>
-              )
-            })}
+                    {/* Badge + Arrow co-located top-right */}
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                      {kpi.isPremium ? (
+                        <div className="bg-amber-100 text-amber-700 text-[9px] md:text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                          <Crown className="w-2.5 h-2.5 fill-amber-500 text-amber-500" strokeWidth={1.5} />
+                          <span>Premium</span>
+                        </div>
+                      ) : (
+                        <span className="bg-slate-100 text-slate-500 text-[9px] md:text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                          Free
+                        </span>
+                      )}
+                      <ArrowUpRight
+                        size={14}
+                        className="text-slate-300 group-hover:text-[#1565D8] transition-colors"
+                        strokeWidth={1.5}
+                      />
+                    </div>
+
+                    <span className="text-[10px] md:text-[11px] font-semibold uppercase tracking-widest text-slate-400 mt-4 block">
+                      {kpi.title}
+                    </span>
+
+                    <h3
+                      className="text-xl md:text-2xl xl:text-[32px] font-bold text-slate-800 tracking-tight leading-tight mt-1"
+                      style={{ fontFamily: "'Poppins', sans-serif" }}
+                    >
+                      {kpi.value}
+                    </h3>
+
+                    <p className={`text-xs md:text-sm font-medium mt-2 ${kpi.trend.includes('No') ? 'text-slate-400' : 'text-green-600'}`}>
+                      {kpi.trend}
+                    </p>
+                  </div>
+                )
+              })
+            )}
           </section>
 
           {/* COMPACT PIPELINE ROW */}
           <section className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {/* LEFT Column: Enquiry & Enrolment Pipeline */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 md:p-5 lg:p-6 flex flex-col justify-between h-full">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-5 lg:p-6 flex flex-col justify-between h-full">
               <div>
                 <div className="flex justify-between items-start">
                   <div className="flex flex-col">
@@ -643,67 +549,65 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3 mt-5">
                   <div className="bg-slate-50 rounded-lg p-3 text-center">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Enquiries</span>
-                    <h4 className="text-xl md:text-2xl font-bold text-slate-800 mt-1">26</h4>
+                    <h4 className="text-xl md:text-2xl font-bold text-slate-800 mt-1">{totalAdmissions}</h4>
                   </div>
                   <div className="bg-slate-50 rounded-lg p-3 text-center">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-500 block">In Process</span>
-                    <h4 className="text-xl md:text-2xl font-bold text-slate-800 mt-1">19</h4>
+                    <h4 className="text-xl md:text-2xl font-bold text-slate-800 mt-1">{inProcessAdmissions}</h4>
                   </div>
                   <div className="bg-slate-50 rounded-lg p-3 text-center">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-green-600 block">Enrolled</span>
-                    <h4 className="text-xl md:text-2xl font-bold text-slate-800 mt-1">17</h4>
-                    <span className="text-[10px] text-green-600 font-semibold mt-0.5 block">65%</span>
+                    <h4 className="text-xl md:text-2xl font-bold text-slate-800 mt-1">{enrolledAdmissions}</h4>
+                    <span className="text-[10px] text-green-600 font-semibold mt-0.5 block">{conversionRate}%</span>
                   </div>
                   <div className="bg-slate-50 rounded-lg p-3 text-center">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-red-500 block">Rejected</span>
-                    <h4 className="text-xl md:text-2xl font-bold text-slate-800 mt-1">10</h4>
-                    <span className="text-[10px] text-red-500 font-semibold mt-0.5 block">27%</span>
+                    <h4 className="text-xl md:text-2xl font-bold text-slate-800 mt-1">{rejectedAdmissions}</h4>
+                    <span className="text-[10px] text-red-500 font-semibold mt-0.5 block">{dropOffRate}%</span>
                   </div>
                 </div>
 
                 <p className="text-[10px] md:text-xs text-slate-400 text-center mt-4">
-                  Conversion Rate: 65% · Drop-off: 27% · Active in Pipeline: 19
+                  Conversion Rate: {conversionRate}% · Drop-off: {dropOffRate}% · Active in Pipeline: {inProcessAdmissions}
                 </p>
 
                 {/* SECTION A — PIPELINE STAGES BAR */}
                 <div className="mt-4 px-1">
-                  <p className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+                  <p className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-3">
                     Pipeline Stages
                   </p>
                   <div className="flex items-end gap-3 w-full overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden">
-                    {[
-                      { name: 'Enquiry',     count: 26, color: 'bg-slate-400'   },
-                      { name: 'Contacted',   count: 8,  color: 'bg-blue-400'    },
-                      { name: 'Application', count: 7,  color: 'bg-blue-500'    },
-                      { name: 'Docs',        count: 4,  color: 'bg-indigo-500'  },
-                      { name: 'Interview',   count: 2,  color: 'bg-violet-500'  },
-                      { name: 'Payment',     count: 6,  color: 'bg-amber-500'   },
-                      { name: 'Enrolled',    count: 17, color: 'bg-green-500'   },
-                    ].map((stage, idx, arr) => (
-                      <React.Fragment key={stage.name}>
-                        <div className="flex flex-col items-center min-w-[80px] md:min-w-[60px] md:flex-1 shrink-0">
-                          <span className="text-[11px] font-bold text-slate-700 mb-1">
-                            {stage.count}
-                          </span>
-                          <div
-                            className={`w-full rounded-t-sm ${stage.color} opacity-80`}
-                            style={{ height: `${(stage.count / 26) * 48}px`, minHeight: '6px' }}
-                          />
-                          <span className="text-[9px] font-medium text-slate-400 mt-1.5 text-center leading-tight w-full truncate px-0.5">
-                            {stage.name}
-                          </span>
-                        </div>
-                        {idx < arr.length - 1 && (
-                          <ChevronRight size={10} className="text-slate-200 mb-4 shrink-0" strokeWidth={2} />
-                        )}
-                      </React.Fragment>
-                    ))}
+                    {(dashData?.admissions?.byStage ?? []).map((item: any, idx: number, arr: any[]) => {
+                      const stageName = item.stage?.label ?? 'Unknown'
+                      const count = item.count ?? 0
+                      const colorClass = getStageColorClass(item.stage?.color)
+                      const maxCount = Math.max(...arr.map((a: any) => a.count ?? 1)) || 1
+                      return (
+                        <React.Fragment key={item.stageId ?? idx}>
+                          <div className="flex flex-col items-center min-w-[80px] md:min-w-[60px] md:flex-1 shrink-0">
+                            <span className="text-[11px] font-bold text-slate-700 mb-1">
+                              {count}
+                            </span>
+                            <div
+                              className={`w-full rounded-t-sm ${colorClass} opacity-80`}
+                              style={{ height: `${(count / maxCount) * 48}px`, minHeight: '6px' }}
+                            />
+                            <span className="text-[9px] font-medium text-slate-400 mt-1.5 text-center leading-tight w-full truncate px-0.5">
+                              {stageName}
+                            </span>
+                          </div>
+                          {idx < arr.length - 1 && (
+                            <ChevronRight size={10} className="text-slate-200 mb-4 shrink-0" strokeWidth={2} />
+                          )}
+                        </React.Fragment>
+                      )
+                    })}
                   </div>
                 </div>
 
                 {/* SECTION B — MINI COMPARISON ROW */}
-                <div className="mt-4 pt-4 border-t border-slate-100">
-                  <p className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-2.5">
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <p className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2.5">
                     This Month vs Last Month
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -750,7 +654,7 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <div className="border-t border-slate-100 mt-4 pt-4 flex justify-between items-center">
+                <div className="border-t border-slate-200 mt-4 pt-4 flex justify-between items-center">
                   <span className="text-xs md:text-sm font-semibold text-[#1565D8] cursor-pointer hover:underline min-h-[44px] sm:min-h-0 flex items-center">
                     View {moduleTitle} →
                   </span>
@@ -765,7 +669,7 @@ export default function DashboardPage() {
             </div>
 
             {/* RIGHT Column: Lead Overview */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 md:p-5 lg:p-6 flex flex-col justify-between h-full">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-5 lg:p-6 flex flex-col justify-between h-full">
               <div>
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm md:text-base font-bold text-slate-800 tracking-tight">
@@ -796,16 +700,16 @@ export default function DashboardPage() {
                 <div className="mt-4">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-xs font-semibold text-slate-500">Free Lead Limit</span>
-                    <span className="text-xs font-bold text-slate-700">{leadsUsed} / {leadsMax}</span>
+                    <span className="text-xs font-bold text-slate-700">{(dashData?.leads?.capUsed ?? 0)} / {(dashData?.leads?.cap ?? 10)}</span>
                   </div>
-                  <Progress value={(leadsUsed / leadsMax) * 100} className="h-2 w-full bg-slate-100" indicatorClassName="bg-amber-400" />
+                  <Progress value={capPct} className="h-2 w-full bg-slate-100" indicatorClassName="bg-amber-400" />
 
-                  {leadsUsed >= 20 && leadsUsed < 25 && (
+                  {(dashData?.leads?.capUsed ?? 0) >= ((dashData?.leads?.cap ?? 10) - 5) && (dashData?.leads?.capUsed ?? 0) < (dashData?.leads?.cap ?? 10) && (
                     <p className="text-xs text-amber-700 font-medium mt-1.5 leading-relaxed">
-                      ⚠ {leadsUsed} of 25 free leads used. Upgrade for unlimited leads.
+                      ⚠ {(dashData?.leads?.capUsed ?? 0)} of {(dashData?.leads?.cap ?? 10)} free leads used. Upgrade for unlimited leads.
                     </p>
                   )}
-                  {leadsUsed === 25 && (
+                  {(dashData?.leads?.capUsed ?? 0) >= (dashData?.leads?.cap ?? 10) && (
                     <div className="flex justify-between items-center mt-1.5">
                       <p className="text-xs text-red-600 font-semibold">
                         🔒 Free lead limit reached. New leads are paused.
@@ -819,20 +723,33 @@ export default function DashboardPage() {
 
                 {/* Status breakdown list */}
                 <div className="mt-4 space-y-2.5">
-                  {[
-                    { label: "New", color: "bg-blue-500", pct: 14, count: "2 (14%)" },
-                    { label: "Contacted", color: "bg-amber-400", pct: 14, count: "2 (14%)" },
-                    { label: "Converted", color: "bg-green-500", pct: 55, count: "17 (55%)" },
-                    { label: "Rejected", color: "bg-red-400", pct: 32, count: "10 (32%)" }
-                  ].map((row) => (
-                    <div key={row.label} className="flex items-center gap-3">
-                      <span className="w-20 text-xs font-medium text-slate-600 shrink-0">{row.label}</span>
-                      <div className="flex-1 bg-slate-100 rounded-full h-1.5">
-                        <div className={`${row.color} rounded-full h-full`} style={{ width: `${row.pct}%` }} />
+                  {(dashData?.leads?.byStatus ?? []).map((row: any) => {
+                    const total = dashData?.leads?.total || 1
+                    const pct = Math.round((row.count / total) * 100)
+                    let color = "bg-slate-500"
+                    if (row.status === 'NEW') color = "bg-blue-500"
+                    else if (row.status === 'CONTACTED') color = "bg-amber-400"
+                    else if (row.status === 'CONVERTED') color = "bg-green-500"
+                    else if (row.status === 'NOT_INTERESTED') color = "bg-red-400"
+
+                    let label = row.status
+                    if (row.status === 'FOLLOW_UP_PENDING') label = 'Follow Up'
+                    else if (row.status === 'NOT_INTERESTED') label = 'Not Interested'
+                    else if (row.status === 'NEW') label = 'New'
+                    else if (row.status === 'CONTACTED') label = 'Contacted'
+                    else if (row.status === 'CONVERTED') label = 'Converted'
+                    else if (row.status === 'INTERESTED') label = 'Interested'
+
+                    return (
+                      <div key={row.status} className="flex items-center gap-3">
+                        <span className="w-20 text-xs font-medium text-slate-600 shrink-0">{label}</span>
+                        <div className="flex-1 bg-slate-100 rounded-full h-1.5">
+                          <div className={`${color} rounded-full h-full`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="text-xs text-slate-500 w-16 text-right shrink-0">{row.count} ({pct}%)</span>
                       </div>
-                      <span className="text-xs text-slate-500 w-16 text-right shrink-0">{row.count}</span>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 {/* Source chips */}
@@ -862,7 +779,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <div className="border-t border-slate-100 mt-4 pt-4">
+              <div className="border-t border-slate-200 mt-4 pt-4">
                 <span className="text-xs md:text-sm font-semibold text-[#1565D8] cursor-pointer hover:underline min-h-[44px] sm:min-h-0 flex items-center">
                   Go to Lead Management →
                 </span>
@@ -873,11 +790,11 @@ export default function DashboardPage() {
           {/* SECTION A — 2-COLUMN ROW */}
           <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[3fr_2fr] gap-4 md:gap-5 lg:gap-6 items-stretch">
             {/* Column 1: Fee Overview */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6 h-full flex flex-col">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 h-full flex flex-col">
               {/* HEADER ROW */}
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
                     FEE OVERVIEW
                   </span>
                   <div className="w-px h-3.5 bg-slate-200 flex-shrink-0" />
@@ -898,14 +815,14 @@ export default function DashboardPage() {
                 <div className="lg:min-w-[165px] lg:pr-5 grid grid-cols-3 gap-2 md:gap-3 lg:grid-cols-1 lg:gap-0 lg:space-y-4">
                   {/* STAT 1 — COLLECTED */}
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">
                       COLLECTED
                     </span>
                     <span className="text-[10px] text-slate-400 mb-1.5">
                       {getShortMonth()} 2026
                     </span>
                     <span className="text-lg md:text-2xl font-bold text-slate-800 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                      {formatINR(feeData.collected)}
+                      {formatINR(dashData?.fees?.collectedThisMonth ?? 0)}
                     </span>
                     <div className="hidden md:flex items-center gap-1 mt-1.5">
                       {collectedTrend === 'down' ? (
@@ -915,14 +832,14 @@ export default function DashboardPage() {
                             vs {formatINR(feeData.collectedLastMonth)} last month
                           </span>
                         </>
-                      ) : collectedTrend === 'up' && feeData.collected > 0 ? (
+                      ) : collectedTrend === 'up' && (dashData?.fees?.collectedThisMonth ?? 0) > 0 ? (
                         <>
                           <TrendingUp size={12} className="text-green-500 flex-shrink-0" strokeWidth={1.5} />
                           <span className="text-[10px] text-green-500 font-medium">
                             vs {formatINR(feeData.collectedLastMonth)} last month
                           </span>
                         </>
-                      ) : feeData.collected === 0 && feeData.collectedLastMonth === 0 ? (
+                      ) : (dashData?.fees?.collectedThisMonth ?? 0) === 0 && feeData.collectedLastMonth === 0 ? (
                         <span className="text-[10px] text-slate-400">
                           No collections yet
                         </span>
@@ -942,7 +859,7 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <span className="text-lg md:text-2xl font-bold text-red-600 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                      {formatINR(feeData.overdue)}
+                      {formatINR(dashData?.fees?.overdue ?? 0)}
                     </span>
                     <div className="hidden md:block mt-1.5">
                       <span className="text-[10px] text-red-400 font-medium">
@@ -953,14 +870,14 @@ export default function DashboardPage() {
 
                   {/* STAT 3 — UPCOMING */}
                   <div className="flex flex-col">
-                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">
+                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">
                       UPCOMING
                     </span>
                     <span className="text-[9px] md:text-[10px] text-slate-400 mb-1.5">
                       Next 7 Days
                     </span>
                     <span className="text-lg md:text-2xl font-bold text-slate-800 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                      {formatINR(feeData.upcoming)}
+                      {formatINR(dashData?.fees?.upcoming ?? 0)}
                     </span>
                     <div className="hidden md:flex items-center gap-1 mt-1.5">
                       <Receipt size={11} className="text-slate-400 flex-shrink-0" strokeWidth={1.5} />
@@ -977,7 +894,7 @@ export default function DashboardPage() {
                 {/* RIGHT HALF */}
                 <div className="flex-1 lg:pl-5 flex flex-col justify-between mt-4 lg:mt-0">
                   <div>
-                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">
                       STUDENT FEE STATUS
                     </h4>
 
@@ -1057,7 +974,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* DIVIDER LINE */}
-                  <div className="border-t border-slate-100 my-3" />
+                  <div className="border-t border-slate-200 my-3" />
 
                   {/* CONTEXT ROWS */}
                   <div className="space-y-2.5">
@@ -1142,7 +1059,7 @@ export default function DashboardPage() {
               </div>
 
               {/* FOOTER */}
-              <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
+              <div className="mt-auto pt-4 border-t border-slate-200 flex items-center justify-between">
                 <span className="text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer" onClick={() => {}}>
                   Go to Fee Management →
                 </span>
@@ -1153,9 +1070,9 @@ export default function DashboardPage() {
             </div>
 
             {/* Column 2: Upcoming Events */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 md:p-5 lg:p-6 flex flex-col hover:shadow-md transition-shadow duration-300 h-full">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-5 lg:p-6 flex flex-col hover:shadow-md transition-shadow duration-300 h-full">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                <h3 className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-500">
                   UPCOMING EVENTS
                 </h3>
                 <div className="flex items-center gap-2">
@@ -1211,7 +1128,7 @@ export default function DashboardPage() {
                 <span className="hidden sm:inline">+2 more events this month</span>
               </p>
 
-              <div className="mt-auto pt-4 border-t border-slate-100">
+              <div className="mt-auto pt-4 border-t border-slate-200">
                 <span className="text-xs md:text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer min-h-[44px] sm:min-h-0 flex items-center">
                   View Calendar →
                 </span>
@@ -1220,8 +1137,8 @@ export default function DashboardPage() {
           </section>
 
           {/* DESKTOP / TABLET QUICK ACTIONS SLIM BAR */}
-          <div className="hidden md:flex items-center gap-2 lg:gap-3 px-4 lg:px-6 py-3 mt-6 w-full flex-wrap bg-white rounded-xl border border-slate-100 shadow-sm">
-            <span className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-400 flex-shrink-0 whitespace-nowrap">
+          <div className="hidden md:flex items-center gap-2 lg:gap-3 px-4 lg:px-6 py-3 mt-6 w-full flex-wrap bg-white rounded-xl border border-slate-200 shadow-sm">
+            <span className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-500 flex-shrink-0 whitespace-nowrap">
               QUICK ACTIONS
             </span>
 
@@ -1332,7 +1249,7 @@ export default function DashboardPage() {
           </div>
 
           {/* PREMIUM FEATURES SECTION */}
-          <section className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 sm:p-6 lg:p-8 space-y-6">
+          <section className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6 lg:p-8 space-y-6">
             <div>
               <div className="flex items-center gap-2">
                 <Crown className="w-5 h-5 text-amber-500 fill-amber-500" strokeWidth={1.5} />
@@ -1358,7 +1275,7 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={feat.title}
-                      className="bg-slate-50 rounded-xl border border-slate-100 hover:border-blue-200 hover:shadow-sm transition cursor-pointer relative flex flex-row items-start gap-4 p-4 sm:flex-col sm:p-5 lg:p-6 group"
+                      className="bg-slate-50 rounded-xl border border-slate-200 hover:border-blue-200 hover:shadow-sm transition cursor-pointer relative flex flex-row items-start gap-4 p-4 sm:flex-col sm:p-5 lg:p-6 group"
                     >
                       <div className="absolute top-4 right-4 bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
                         <Crown className="w-2.5 h-2.5 fill-amber-500 text-amber-500" strokeWidth={1.5} />
@@ -1398,10 +1315,10 @@ export default function DashboardPage() {
           {/* NOTIFICATIONS + ACTIVITY ROW */}
           <section className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {/* LEFT: Recent Notifications */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 md:p-6 flex flex-col justify-between">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6 flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                  <h3 className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-500">
                     RECENT NOTIFICATIONS
                   </h3>
                   <span className="text-xs md:text-sm font-semibold text-[#1565D8] cursor-pointer hover:underline min-h-[44px] sm:min-h-0 flex items-center">
@@ -1443,10 +1360,10 @@ export default function DashboardPage() {
             </div>
 
             {/* RIGHT: Recent Activity */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 md:p-6 flex flex-col justify-between">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6 flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                  <h3 className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-500">
                     RECENT ACTIVITY
                   </h3>
                   <span className="text-xs md:text-sm font-semibold text-[#1565D8] cursor-pointer hover:underline min-h-[44px] sm:min-h-0 flex items-center">
@@ -1455,25 +1372,33 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="divide-y divide-slate-50">
-                  {[
-                    { actor: "Saran Kumar", action: "moved Vimal Das to Contacted stage", time: "2 hours ago", letter: "S" },
-                    { actor: "Pradeep Kumar", action: "created new admission AT-00020", time: "5 hours ago", letter: "P" },
-                    { actor: "Vimal Das", action: "updated fee plan Recurring Fee Plan", time: "1 day ago", letter: "V" }
-                  ].map((act, idx) => (
-                    <div key={idx} className="flex items-start gap-4 py-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs md:text-sm font-bold flex items-center justify-center flex-shrink-0">
-                        {act.letter}
+                  {(dashData?.recentActivity ?? []).map((act: any, idx: number) => {
+                    const leadName = act.lead?.parentName ?? 'Lead'
+                    const actorName = act.performedBy?.name ?? 'System'
+                    const action = act.summary ?? ''
+                    const time = new Date(act.createdAt).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })
+                    const letter = actorName.charAt(0) || 'S'
+                    return (
+                      <div key={act.id ?? idx} className="flex items-start gap-4 py-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs md:text-sm font-bold flex items-center justify-center flex-shrink-0">
+                          {letter}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs md:text-sm text-slate-600 leading-relaxed">
+                            <span className="font-semibold text-slate-800">{actorName}</span> {action} (Lead: {leadName})
+                          </p>
+                          <span className="text-[10px] md:text-xs text-slate-400 mt-1 block">
+                            {time}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs md:text-sm text-slate-600 leading-relaxed">
-                          <span className="font-semibold text-slate-800">{act.actor}</span> {act.action}
-                        </p>
-                        <span className="text-[10px] md:text-xs text-slate-400 mt-1 block">
-                          {act.time}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -1531,8 +1456,10 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
-        </main>
-      </div>
-    </div>
-  )
+        </>
+      )}
+    </main>
+  </div>
+</div>
+)
 }

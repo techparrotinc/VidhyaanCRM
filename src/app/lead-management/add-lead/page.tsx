@@ -1,16 +1,11 @@
 "use client"
 
 import React, { useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import Sidebar from '@/components/Sidebar'
 import {
-  LayoutDashboard,
-  Globe,
   TrendingUp,
-  LineChart,
-  ClipboardList,
   Users,
-  CreditCard,
-  UserCog,
   Shield,
   ChevronDown,
   Search,
@@ -27,18 +22,134 @@ import {
   MapPin,
   User,
   TriangleAlert,
-  ChevronLeft
+  ChevronLeft,
+  Megaphone,
+  Circle,
+  Info,
+  XCircle
 } from 'lucide-react'
 
 import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
 // ===================================================================
-// DATA CONSTANTS
+// DATA CONSTANTS — FULL UPDATE
 // ===================================================================
 const institutionType = 'school'
-// options: 'school' | 'institute' | 'learning_center'
+
+const getCurrentAcademicYear = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+  return month >= 3 
+    ? `AY ${year}-${(year + 1).toString().slice(2)}`
+    : `AY ${year - 1}-${year.toString().slice(2)}`
+}
+
+const academicYears = [
+  `${getCurrentAcademicYear()} (Current)`,
+  `AY ${new Date().getFullYear() + 1}-${(new Date().getFullYear() + 2).toString().slice(2)} (Upcoming)`,
+  `AY ${new Date().getFullYear() - 1}-${new Date().getFullYear().toString().slice(2)} (Previous)`,
+]
+
+const grades = [
+  'Pre-KG / Nursery',
+  'LKG',
+  'UKG',
+  'Class 1',
+  'Class 2',
+  'Class 3',
+  'Class 4',
+  'Class 5',
+  'Class 6',
+  'Class 7',
+  'Class 8',
+  'Class 9',
+  'Class 10',
+  'Class 11 - Science',
+  'Class 11 - Commerce',
+  'Class 11 - Arts',
+  'Class 12 - Science',
+  'Class 12 - Commerce',
+  'Class 12 - Arts',
+]
+
+const courses = [
+  'Bharatanatyam',
+  'Hip Hop',
+  'Guitar - Beginner',
+  'Guitar - Advanced',
+  'Keyboard',
+  'Vocals',
+  'Yoga - Morning',
+  'Yoga - Evening',
+  'Zumba',
+  'Karate',
+  'Swimming',
+]
+
+const sources = [
+  { id: 'vidhyaan',
+    label: 'Vidhyaan',
+    dot: 'bg-blue-500' },
+  { id: 'walkin',
+    label: 'Walk-in',
+    dot: 'bg-teal-500' },
+  { id: 'phone_enquiry',
+    label: 'Phone Enquiry',
+    dot: 'bg-purple-500' },
+  { id: 'whatsapp',
+    label: 'WhatsApp',
+    dot: 'bg-green-500' },
+  { id: 'school_website',
+    label: 'School Website',
+    dot: 'bg-slate-400' },
+  { id: 'social_media',
+    label: 'Social Media',
+    dot: 'bg-pink-500' },
+  { id: 'referral',
+    label: 'Referral',
+    dot: 'bg-amber-500' },
+  { id: 'education_fair',
+    label: 'Education Fair',
+    dot: 'bg-indigo-500' },
+  { id: 'newspaper_ad',
+    label: 'Newspaper Ad',
+    dot: 'bg-orange-500' },
+  { id: 'google_ad',
+    label: 'Google Ad',
+    dot: 'bg-red-500' },
+  { id: 'other',
+    label: 'Other',
+    dot: 'bg-slate-300' },
+]
+
+const statusOptions = [
+  'New',
+  'Contacted',
+  'Interested',
+  'Follow-up Pending',
+  'Converted',
+  'Not Interested',
+]
+
+const priorityOptions = [
+  { value: 'Normal',
+    icon: 'Circle',
+    bg: 'bg-blue-50',
+    text: 'text-blue-700',
+    border: 'border-blue-200' },
+  { value: 'High',
+    icon: 'TrendingUp',
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    border: 'border-amber-200' },
+  { value: 'Urgent',
+    icon: 'Zap',
+    bg: 'bg-red-50',
+    text: 'text-red-600',
+    border: 'border-red-200' },
+]
 
 const counsellors = [
   { id: '1', name: 'Saran Kumar' },
@@ -46,34 +157,29 @@ const counsellors = [
   { id: '3', name: 'Vimal Das' },
 ]
 
-const grades = [
-  'LKG', 'UKG', '1st Class', '2nd Class',
-  '3rd Class', '4th Class', '5th Class',
-  '6th Class', '7th Class', '8th Class',
-  '9th Class', '10th Class', '11th Class',
-  '12th Class',
+const campaigns = [
+  { id: '1', name: 'Summer Admission 2026' },
+  { id: '2', name: 'Open Day May 2026' },
+  { id: '3', name: 'WhatsApp Campaign Apr 2026' },
 ]
 
-const courses = [
-  'Bharatanatyam', 'Hip Hop', 'Guitar - Beginner',
-  'Guitar - Advanced', 'Keyboard', 'Vocals',
-  'Yoga - Morning', 'Yoga - Evening', 'Zumba',
-  'Karate', 'Swimming',
+const timeSlots = [
+  '9:00 AM', '9:30 AM', '10:00 AM',
+  '10:30 AM', '11:00 AM', '11:30 AM',
+  '12:00 PM', '12:30 PM', '1:00 PM',
+  '1:30 PM', '2:00 PM', '2:30 PM',
+  '3:00 PM', '3:30 PM', '4:00 PM',
+  '4:30 PM', '5:00 PM', '5:30 PM',
+  '6:00 PM', '6:30 PM',
 ]
 
-const academicYears = [
-  'AY 2026-27', 'AY 2025-26', 'AY 2024-25',
-]
-
-const sources = [
-  { id: 'vidhyaan', label: 'Vidhyaan', dot: 'bg-blue-500' },
-  { id: 'web', label: 'Web', dot: 'bg-slate-400' },
-  { id: 'walkin', label: 'Walk-in', dot: 'bg-teal-500' },
-  { id: 'phone', label: 'Phone', dot: 'bg-purple-500' },
-  { id: 'whatsapp', label: 'WhatsApp', dot: 'bg-green-500' },
-  { id: 'referral', label: 'Referral', dot: 'bg-pink-500' },
-  { id: 'other', label: 'Other', dot: 'bg-orange-400' },
-]
+const generateLeadId = () => {
+  const year = new Date().getFullYear()
+  const seq = Math.floor(
+    Math.random() * 90000
+  ) + 10000
+  return `LD-${year}-${seq}`
+}
 
 const existingLeads = [
   {
@@ -81,34 +187,16 @@ const existingLeads = [
     phone: '9884185362',
     applyingFor: 'LKG',
     date: '18 May 2026',
-    status: 'Rejected',
+    status: 'Not Interested',
+    id: 'LD-2026-00001',
   },
 ]
 
-const sourceConfig = {
-  Vidhyaan: { dot: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-50' },
-  Web: { dot: 'bg-slate-400', text: 'text-slate-600', bg: 'bg-slate-100' },
-  Website: { dot: 'bg-slate-400', text: 'text-slate-600', bg: 'bg-slate-100' },
-  'Walk-in': { dot: 'bg-teal-500', text: 'text-teal-700', bg: 'bg-teal-50' },
-  Phone: { dot: 'bg-purple-505', text: 'text-purple-700', bg: 'bg-purple-50' },
-  WhatsApp: { dot: 'bg-green-505', text: 'text-green-700', bg: 'bg-green-50' },
-  Referral: { dot: 'bg-pink-500', text: 'text-pink-700', bg: 'bg-pink-50' },
-  Other: { dot: 'bg-orange-400', text: 'text-orange-700', bg: 'bg-orange-50' },
-}
-
-const statusConfig = {
-  New: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500' },
-  Contacted: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
-  Converted: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' },
-  Rejected: { bg: 'bg-red-50', text: 'text-red-600', dot: 'bg-red-500' },
-  'Follow-up': { bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-500' },
-}
-
 export default function AddLeadPage() {
+  const router = useRouter()
+
   // Navigation/Layout states
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [salesMarketingOpen, setSalesMarketingOpen] = useState(true)
-  const [activeNav, setActiveNav] = useState("Lead Management")
 
   // Form states
   const [formData, setFormData] = useState({
@@ -117,29 +205,51 @@ export default function AddLeadPage() {
     phone: '',
     email: '',
     source: '',
-    // School fields
     applyingFor: '',
-    academicYear: 'AY 2026-27',
+    academicYear: academicYears[0],
     childName: '',
     childAge: '',
     currentSchool: '',
-    // Institute fields
     course: '',
     batch: '',
     studentAge: '',
     startDate: '',
-    // Assignment
+    siblingInSchool: false,
+    expectedJoinDate: '',
+    campaignId: '',
     counsellorId: '',
     status: 'New',
     followUpDate: '',
     followUpTime: '',
     priority: 'Normal',
-    // Notes
     notes: '',
   })
 
+  // Auto-generate Lead ID on page load
+  const [leadId] = useState(generateLeadId)
+
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [duplicateFound, setDuplicateFound] = useState<typeof existingLeads[0] | null>(null)
+
+  const [noteType, setNoteType] = useState('General')
+  const noteTypes = [
+    'General', 'Call', 'Meeting',
+    'WhatsApp', 'Email', 'Site Visit',
+  ]
+
+  const [toast, setToast] = useState<{
+    message: string
+    type: 'success' | 'error' | 'info'
+    show: boolean
+  }>({ message: '', type: 'success', show: false })
+
+  const showToast = (
+    message: string, 
+    type: 'success' | 'error' | 'info' = 'success'
+  ) => {
+    setToast({ message, type, show: true })
+    setTimeout(() => setToast(t => ({ ...t, show: false })), 3000)
+  }
 
   // Check duplicate phone logic
   const checkDuplicate = (phone: string) => {
@@ -229,8 +339,32 @@ export default function AddLeadPage() {
     e.preventDefault()
     const isValid = validateForm()
     if (isValid) {
-      alert("Lead created successfully!")
-      // Reset form or navigate
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      const now = new Date()
+      const createdDateStr = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`
+      
+      const newLead = {
+        id: leadId,
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        parentName: formData.childName || '—',
+        phone: formData.phone,
+        email: formData.email || '—',
+        applyingFor: formData.applyingFor,
+        source: formData.source,
+        counsellor: counsellors.find(c => c.id === formData.counsellorId)?.name || null,
+        counsellorAvatar: counsellors.find(c => c.id === formData.counsellorId)?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || null,
+        createdDate: createdDateStr,
+        status: formData.status,
+        avatar: `${formData.firstName.charAt(0)}${formData.lastName.charAt(0)}`.toUpperCase() || 'NL',
+        followUpDate: formData.followUpDate
+      }
+      
+      localStorage.setItem('newLead', JSON.stringify(newLead))
+      showToast("Lead created successfully")
+      
+      setTimeout(() => {
+        router.push('/lead-management')
+      }, 500)
     } else {
       // Find errors and scroll
       const newErrors: Record<string, string> = {}
@@ -259,164 +393,6 @@ export default function AddLeadPage() {
     formData.followUpTime !== '' &&
     formData.priority !== ''
 
-  // Sidebar navigation component
-  const SidebarContent = ({ isMobile = false }) => (
-    <div className="flex flex-col h-full bg-white select-none">
-      {/* Top Brand Section */}
-      <div className={`flex items-center gap-3 px-6 pt-6 pb-2 ${!isMobile ? "md:px-3 lg:px-6 md:justify-center lg:justify-start" : ""}`}>
-        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-50 text-[#1565D8] shrink-0">
-          <Shield className="w-8 h-8 fill-[#1565D8]" strokeWidth={1.5} />
-        </div>
-        <div className={`flex flex-col min-w-0 ${!isMobile ? "md:hidden lg:flex" : ""}`}>
-          <h1 className="text-[15px] font-bold text-slate-800 truncate leading-tight">
-            Prince Matriculation
-          </h1>
-          <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">School Admin Portal</span>
-        </div>
-      </div>
-      <div className={`border-b border-slate-100 mt-4 mb-4 mx-4 ${!isMobile ? "md:mx-2 lg:mx-4" : ""}`} />
-
-      {/* Navigation list */}
-      <div className="flex-1 px-2 overflow-y-auto space-y-1">
-        {/* Dashboard */}
-        <Link
-          href="/dashboard"
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Dashboard"
-              ? 'bg-blue-50 text-[#1565D8] font-semibold'
-              : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          title="Dashboard"
-        >
-          <LayoutDashboard className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Dashboard</span>
-        </Link>
-
-        {/* Site Manager */}
-        <button
-          onClick={() => {
-            setActiveNav("Site Manager")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Site Manager"
-              ? 'bg-blue-50 text-[#1565D8] font-semibold'
-              : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          title="Site Manager"
-        >
-          <Globe className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Site Manager</span>
-        </button>
-
-        {/* Sales & Marketing */}
-        <div>
-          <button
-            onClick={() => setSalesMarketingOpen(!salesMarketingOpen)}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""}`}
-            title="Sales & Marketing"
-          >
-            <div className="flex items-center gap-3">
-              <TrendingUp className="size-[18px] shrink-0" strokeWidth={1.5} />
-              <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Sales & Marketing</span>
-            </div>
-            <ChevronDown className={`size-[14px] transition-transform duration-200 ${salesMarketingOpen ? 'rotate-180' : ''} ${!isMobile ? "md:hidden lg:block" : ""}`} />
-          </button>
-
-          {salesMarketingOpen && (
-            <div className={`pl-8 pr-2 py-1 ${!isMobile ? "md:pl-0 md:pr-0 md:flex md:justify-center lg:pl-8 lg:pr-2 lg:block" : ""}`}>
-              <Link
-                href="/lead-management"
-                className={`w-full flex items-center gap-3 py-2 text-sm font-medium text-left transition-all ${!isMobile ? "md:justify-center lg:justify-start" : ""} ${activeNav === "Lead Management" ? 'text-[#1565D8] font-semibold' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                title="Lead Management"
-              >
-                <LineChart className="size-[16px] shrink-0" strokeWidth={1.5} />
-                <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Lead Management</span>
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Dynamic Admission module */}
-        <button
-          onClick={() => {
-            setActiveNav("Module Management")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Module Management"
-              ? 'bg-blue-50 text-[#1565D8] font-semibold'
-              : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          title="Admission Management"
-        >
-          <ClipboardList className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`truncate ${!isMobile ? "md:hidden lg:inline" : ""}`}>Admission Management</span>
-        </button>
-
-        {/* Student Management */}
-        <button
-          onClick={() => {
-            setActiveNav("Student Management")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Student Management"
-              ? 'bg-blue-50 text-[#1565D8] font-semibold'
-              : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          title="Student Management"
-        >
-          <Users className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Student Management</span>
-        </button>
-
-        {/* Fee Management */}
-        <button
-          onClick={() => {
-            setActiveNav("Fee Management")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "Fee Management"
-              ? 'bg-blue-50 text-[#1565D8] font-semibold'
-              : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          title="Fee Management"
-        >
-          <CreditCard className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>Fee Management</span>
-        </button>
-
-        {/* User & Role Management */}
-        <button
-          onClick={() => {
-            setActiveNav("User & Role Management")
-            if (isMobile) setMobileMenuOpen(false)
-          }}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${!isMobile ? "md:px-0 md:justify-center lg:px-4 lg:justify-start" : ""} ${activeNav === "User & Role Management"
-              ? 'bg-blue-50 text-[#1565D8] font-semibold'
-              : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          title="User & Role Management"
-        >
-          <UserCog className="size-[18px] shrink-0" strokeWidth={1.5} />
-          <span className={`${!isMobile ? "md:hidden lg:inline" : ""}`}>User & Role Management</span>
-        </button>
-      </div>
-
-      {/* Sidebar Footer */}
-      <div className={`mt-auto pt-4 border-t border-slate-100 p-4 bg-slate-50/50 flex flex-col gap-2 ${!isMobile ? "md:p-1 md:items-center lg:p-4 lg:items-start" : ""}`}>
-        <span className={`text-[10px] font-bold uppercase tracking-widest text-slate-400 ${!isMobile ? "md:hidden lg:block" : ""}`}>PLAN STATUS</span>
-        <Badge className={`bg-amber-100 text-amber-700 text-xs font-semibold px-3 py-1 rounded-full w-fit hover:bg-amber-100 border-0 shadow-none ${!isMobile ? "md:hidden lg:flex" : ""}`}>
-          Free Plan
-        </Badge>
-        <p className={`text-xs text-slate-500 mt-1 leading-relaxed ${!isMobile ? "md:hidden lg:block" : ""}`}>
-          Unlock all premium features like Lead automation & fee collections.
-        </p>
-        <Button className={`w-full bg-[#1565D8] text-white text-sm font-semibold py-2.5 h-auto rounded-lg mt-2 hover:bg-blue-700 transition duration-200 ${!isMobile ? "md:hidden lg:flex" : ""}`}>
-          Upgrade to Premium
-        </Button>
-      </div>
-    </div>
-  )
-
   // Get user avatar initials
   const getInitials = () => {
     const f = formData.firstName.trim().charAt(0).toUpperCase()
@@ -430,15 +406,12 @@ export default function AddLeadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex relative font-sans antialiased select-none">
-      
+    <div className="min-h-screen bg-slate-100 text-slate-800 flex relative font-sans antialiased select-none">
       {/* 1. FIXED LEFT SIDEBAR */}
-      <aside className="hidden md:flex w-16 lg:w-64 fixed inset-y-0 left-0 border-r border-slate-100 bg-white z-30 shadow-sm flex-col">
-        <SidebarContent />
-      </aside>
+      <Sidebar />
 
       {/* MOBILE TOP NAV BAR */}
-      <header className="flex md:hidden h-14 bg-white border-b border-slate-100 px-4 items-center justify-between fixed top-0 left-0 right-0 z-50">
+      <header className="flex md:hidden h-14 bg-white border-b border-slate-200 px-4 items-center justify-between fixed top-0 left-0 right-0 z-50">
         <div className="flex items-center gap-2 min-w-0">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-[#1565D8] shrink-0">
             <Shield className="w-5 h-5 fill-[#1565D8]" strokeWidth={1.5} />
@@ -469,7 +442,7 @@ export default function AddLeadPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <SidebarContent isMobile={true} />
+            <Sidebar isMobile={true} onCloseMobileMenu={() => setMobileMenuOpen(false)} />
           </div>
         </>
       )}
@@ -478,7 +451,7 @@ export default function AddLeadPage() {
       <div className="flex-1 md:pl-16 lg:pl-64 pt-14 md:pt-0 flex flex-col min-w-0">
         
         {/* DESKTOP/TABLET HEADER BAR */}
-        <header className="hidden md:flex h-16 border-b border-slate-100 bg-white items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
+        <header className="hidden md:flex h-16 border-b border-slate-200 bg-white items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
           <div className="flex items-center gap-4 min-w-0">
             <div className="flex flex-col min-w-0">
               <h2 className="text-sm lg:text-lg font-bold text-slate-800 tracking-tight leading-tight truncate">
@@ -511,17 +484,18 @@ export default function AddLeadPage() {
         </header>
 
         {/* MAIN CONTAINER CONTENT */}
-        <form onSubmit={handleSave} className="p-4 md:p-6 lg:p-8 pb-28 space-y-6 max-w-7xl mx-auto w-full bg-[#F8FAFC]">
+        <form onSubmit={handleSave} className="p-4 md:p-6 lg:p-8 pb-28 space-y-6 max-w-7xl mx-auto w-full bg-slate-100">
           
           {/* PAGE TITLE ROW */}
           <section className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
-              <Link
-                href="/lead-management"
+              <button
+                type="button"
+                onClick={() => router.back()}
                 className="w-9 h-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 cursor-pointer transition shrink-0"
               >
                 <ChevronLeft className="size-[18px] text-slate-500" />
-              </Link>
+              </button>
               <div>
                 <h1 className="text-2xl font-bold text-slate-800 tracking-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>
                   Add New Lead
@@ -533,12 +507,13 @@ export default function AddLeadPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <Link
-                href="/lead-management"
-                className="border border-slate-200 bg-white text-slate-600 text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-slate-50 transition min-h-[42px] flex items-center justify-center"
+              <button
+                type="button"
+                onClick={() => router.push('/lead-management')}
+                className="border border-slate-200 bg-white text-slate-600 text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-slate-50 transition min-h-[42px] flex items-center justify-center cursor-pointer"
               >
                 Cancel
-              </Link>
+              </button>
               <Button
                 type="submit"
                 className="bg-[#1565D8] text-white text-sm font-semibold px-5 py-2.5 h-auto rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
@@ -556,7 +531,7 @@ export default function AddLeadPage() {
             <div className="space-y-6">
               
               {/* FORM SECTION 1 — LEAD INFORMATION */}
-              <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
+              <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                 <div className="flex items-center gap-2 mb-5">
                   <div className="w-6 h-6 rounded-full bg-[#1565D8] text-white text-xs font-bold flex items-center justify-center">
                     1
@@ -696,7 +671,7 @@ export default function AddLeadPage() {
               </Card>
 
               {/* FORM SECTION 2 — ENQUIRY DETAILS */}
-              <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
+              <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                 <div className="flex items-center gap-2 mb-5">
                   <div className="w-6 h-6 rounded-full bg-[#1565D8] text-white text-xs font-bold flex items-center justify-center">
                     2
@@ -753,8 +728,8 @@ export default function AddLeadPage() {
                     {/* Child's Name */}
                     <div>
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                      Child&apos;s Name
-                    </label>
+                        Child&apos;s Name
+                      </label>
                       <input
                         type="text"
                         name="childName"
@@ -768,8 +743,8 @@ export default function AddLeadPage() {
                     {/* Child's Age */}
                     <div>
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                      Child&apos;s Age
-                    </label>
+                        Child&apos;s Age
+                      </label>
                       <input
                         type="number"
                         name="childAge"
@@ -795,6 +770,47 @@ export default function AddLeadPage() {
                         placeholder="Name of current school"
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition"
                       />
+                    </div>
+
+                    {/* Expected Join Date */}
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                        EXPECTED JOIN DATE
+                      </label>
+                      <input
+                        type="date"
+                        name="expectedJoinDate"
+                        min={getTodayDateString()}
+                        value={formData.expectedJoinDate}
+                        onChange={handleInputChange}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition"
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        When does the parent expect the child to join?
+                      </p>
+                    </div>
+
+                    {/* Sibling enrolled in school */}
+                    <div className="flex flex-col">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                        SIBLING ALREADY ENROLLED
+                      </label>
+                      <div
+                        onClick={() => setFormData(prev => ({ ...prev, siblingInSchool: !prev.siblingInSchool }))}
+                        className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer mt-1"
+                      >
+                        <span className="text-sm text-slate-600 pr-2">
+                          Does the applicant have a sibling currently enrolled in this school?
+                        </span>
+                        <div className={`w-11 h-6 rounded-full relative shrink-0 transition-colors duration-200 ${formData.siblingInSchool ? 'bg-[#1565D8]' : 'bg-slate-200'}`}>
+                          <div className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full shadow-sm transition-transform duration-200 ${formData.siblingInSchool ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </div>
+                      </div>
+                      {formData.siblingInSchool && (
+                        <div className="bg-green-50 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full mt-1.5 w-fit">
+                          ✓ Sibling enrolled — higher conversion likelihood
+                        </div>
+                      )}
                     </div>
 
                   </div>
@@ -875,7 +891,7 @@ export default function AddLeadPage() {
               </Card>
 
               {/* FORM SECTION 3 — ASSIGNMENT & FOLLOW-UP */}
-              <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
+              <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                 <div className="flex items-center gap-2 mb-5">
                   <div className="w-6 h-6 rounded-full bg-[#1565D8] text-white text-xs font-bold flex items-center justify-center">
                     3
@@ -924,7 +940,7 @@ export default function AddLeadPage() {
                       onChange={handleInputChange}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition"
                     >
-                      {['New', 'Contacted', 'Follow-up'].map(status => (
+                      {statusOptions.map(status => (
                         <option key={status} value={status}>{status}</option>
                       ))}
                     </select>
@@ -938,12 +954,24 @@ export default function AddLeadPage() {
                     <input
                       type="date"
                       name="followUpDate"
-                      min={getTodayDateString()}
+                      min={new Date().toISOString().split('T')[0]}
                       value={formData.followUpDate}
                       onChange={handleInputChange}
                       className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.followUpDate ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-slate-200'}`}
                     />
                     <span className="text-[11px] text-slate-400 mt-1 block">When should this lead be followed up?</span>
+                    {formData.followUpDate && (
+                      (() => {
+                        const day = new Date(formData.followUpDate).getDay()
+                        const isWeekend = day === 0 || day === 6
+                        return isWeekend && (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-1.5 flex items-center gap-2">
+                            <TriangleAlert size={13} className="text-amber-500" />
+                            <span className="text-xs text-amber-700 font-medium">Selected date is a weekend. Are you sure?</span>
+                          </div>
+                        )
+                      })()
+                    )}
                     {errors.followUpDate && (
                       <span className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
                         <AlertCircle className="size-3" />
@@ -964,7 +992,7 @@ export default function AddLeadPage() {
                       className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.followUpTime ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-slate-200'}`}
                     >
                       <option value="">Select time</option>
-                      {['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM', '5:00 PM', '5:30 PM', '6:00 PM', '6:30 PM', '7:00 PM'].map(slot => (
+                      {timeSlots.map(slot => (
                         <option key={slot} value={slot}>{slot}</option>
                       ))}
                     </select>
@@ -983,20 +1011,17 @@ export default function AddLeadPage() {
                     </label>
 
                     <div className="flex flex-wrap items-center gap-3">
-                      {[
-                        { value: 'Normal', icon: CheckCircle2, border: 'border-blue-300', bg: 'bg-blue-50', text: 'text-blue-700', iconColor: 'text-blue-500' },
-                        { value: 'High', icon: TrendingUp, border: 'border-amber-300', bg: 'bg-amber-50', text: 'text-amber-700', iconColor: 'text-amber-500' },
-                        { value: 'Urgent', icon: Zap, border: 'border-red-300', bg: 'bg-red-50', text: 'text-red-700', iconColor: 'text-red-500' }
-                      ].map(item => {
+                      {priorityOptions.map(item => {
                         const isSelected = formData.priority === item.value
-                        const Icon = item.icon
+                        const Icon = item.icon === 'Circle' ? Circle : (item.icon === 'TrendingUp' ? TrendingUp : Zap)
+                        const iconColor = item.value === 'High' ? 'text-amber-500' : item.value === 'Urgent' ? 'text-red-500' : 'text-blue-500'
                         return (
                           <div
                             key={item.value}
                             onClick={() => handlePrioritySelect(item.value)}
                             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-semibold cursor-pointer transition-all duration-150 ${isSelected ? `${item.border} ${item.bg} ${item.text} ring-1` : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white'}`}
                           >
-                            <Icon className={`size-3.5 ${isSelected ? item.iconColor : 'text-slate-400'}`} />
+                            <Icon className={`size-3.5 ${isSelected ? iconColor : 'text-slate-400'}`} />
                             <span>{item.value}</span>
                           </div>
                         )
@@ -1004,11 +1029,34 @@ export default function AddLeadPage() {
                     </div>
                   </div>
 
+                  {/* Campaign dropdown selector */}
+                  <div className="md:col-span-2 mt-4">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                      CAMPAIGN (OPTIONAL)
+                    </label>
+                    <select
+                      name="campaignId"
+                      value={formData.campaignId}
+                      onChange={handleInputChange}
+                      className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm w-full focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition"
+                    >
+                      <option value="">None — no campaign</option>
+                      {campaigns.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Link this lead to a marketing campaign for tracking ROI
+                    </p>
+                  </div>
+
                 </div>
               </Card>
 
               {/* FORM SECTION 4 — NOTES */}
-              <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
+              <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                 <div className="flex items-center gap-2 mb-5">
                   <div className="w-6 h-6 rounded-full bg-[#1565D8] text-white text-xs font-bold flex items-center justify-center">
                     4
@@ -1017,6 +1065,27 @@ export default function AddLeadPage() {
                     <span>NOTES</span>
                     <span className="text-xs text-slate-400 font-normal ml-1">(Optional)</span>
                   </h3>
+                </div>
+
+                {/* Note Type tags */}
+                <div className="mb-4">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2 block">
+                    NOTE TYPE
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {noteTypes.map(type => {
+                      const isSelected = noteType === type
+                      return (
+                        <div
+                          key={type}
+                          onClick={() => setNoteType(type)}
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-lg border cursor-pointer transition ${isSelected ? 'bg-slate-800 text-white border-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}
+                        >
+                          {type}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 <textarea
@@ -1040,12 +1109,12 @@ export default function AddLeadPage() {
             <div className="space-y-4 lg:sticky lg:top-24">
               
               {/* CARD 1 — LEAD PREVIEW */}
-              <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
-                <h5 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">
+              <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                <h5 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">
                   LEAD PREVIEW
                 </h5>
 
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-4">
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-4">
                   
                   {/* Top row */}
                   <div className="flex items-center gap-3">
@@ -1063,8 +1132,16 @@ export default function AddLeadPage() {
                   </div>
 
                   {/* Details Rows */}
-                  <div className="space-y-2.5 pt-2 border-t border-slate-100">
+                  <div className="space-y-2.5 pt-2 border-t border-slate-200">
                     
+                    {/* Lead ID */}
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-slate-500 font-medium">Lead ID</span>
+                      <span className="ml-auto font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                        {leadId}
+                      </span>
+                    </div>
+
                     {/* Grade / Course */}
                     <div className="flex items-center gap-2 text-xs">
                       <BookOpen className="size-3.5 text-slate-400 shrink-0" />
@@ -1082,7 +1159,7 @@ export default function AddLeadPage() {
                       <span className="text-slate-500 font-medium">Source</span>
                       <div className="ml-auto flex items-center gap-1.5">
                         {formData.source && (
-                          <div className={`w-1.5 h-1.5 rounded-full ${sourceConfig[formData.source as keyof typeof sourceConfig]?.dot || 'bg-slate-400'}`} />
+                          <div className={`w-1.5 h-1.5 rounded-full ${sources.find(s => s.label === formData.source)?.dot || 'bg-slate-400'}`} />
                         )}
                         <span className="text-slate-700 font-semibold">{formData.source || '—'}</span>
                       </div>
@@ -1108,12 +1185,25 @@ export default function AddLeadPage() {
                   </div>
 
                   {/* Status & Priority tags */}
-                  <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
+                  <div className="pt-3 border-t border-slate-200 flex flex-col gap-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-400">Status:</span>
-                      <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${statusConfig[formData.status as keyof typeof statusConfig]?.bg} ${statusConfig[formData.status as keyof typeof statusConfig]?.text}`}>
-                        <span>{formData.status}</span>
-                      </div>
+                      {(() => {
+                        const statusConfig = {
+                          'New': { bg: 'bg-blue-50', text: 'text-blue-700' },
+                          'Contacted': { bg: 'bg-amber-50', text: 'text-amber-700' },
+                          'Interested': { bg: 'bg-purple-50', text: 'text-purple-700' },
+                          'Follow-up Pending': { bg: 'bg-orange-50', text: 'text-orange-700' },
+                          'Converted': { bg: 'bg-green-50', text: 'text-green-700' },
+                          'Not Interested': { bg: 'bg-red-50', text: 'text-red-600' },
+                        }
+                        const config = statusConfig[formData.status as keyof typeof statusConfig] || { bg: 'bg-slate-50', text: 'text-slate-600' }
+                        return (
+                          <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${config.bg} ${config.text}`}>
+                            <span>{formData.status}</span>
+                          </div>
+                        )
+                      })()}
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-400">Priority:</span>
@@ -1127,8 +1217,8 @@ export default function AddLeadPage() {
               </Card>
 
               {/* CARD 2 — DUPLICATE CHECK */}
-              <Card className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
-                <h5 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+              <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                <h5 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">
                   DUPLICATE CHECK
                 </h5>
 
@@ -1191,6 +1281,32 @@ export default function AddLeadPage() {
                 )}
               </Card>
 
+              {/* SIBLING STATUS card */}
+              {formData.siblingInSchool && (
+                <div className="bg-green-50 border border-green-100 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Users className="size-[15px] text-green-600" strokeWidth={1.5} />
+                    <span className="text-sm font-bold text-green-700">Sibling Enrolled</span>
+                  </div>
+                  <p className="text-xs text-green-600 leading-relaxed">
+                    This applicant has a sibling currently in this school. Conversion likelihood is significantly higher.
+                  </p>
+                </div>
+              )}
+
+              {/* CAMPAIGN card */}
+              {formData.campaignId && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Megaphone className="size-[15px] text-blue-600" strokeWidth={1.5} />
+                    <span className="text-sm font-bold text-blue-700">Linked Campaign</span>
+                  </div>
+                  <p className="text-xs text-blue-600">
+                    {campaigns.find(c => c.id === formData.campaignId)?.name}
+                  </p>
+                </div>
+              )}
+
               {/* CARD 3 — QUICK TIPS */}
               <div className="bg-blue-50 rounded-xl border border-blue-100 p-5 space-y-3">
                 <div className="flex items-center gap-2">
@@ -1202,10 +1318,11 @@ export default function AddLeadPage() {
 
                 <ul className="space-y-2.5">
                   {[
-                    "Phone number is required for WhatsApp connect",
-                    "Assign a counsellor for faster lead follow-up",
-                    "Set a follow-up date to never miss a lead",
-                    "Add notes to capture important details from the conversation"
+                    "Phone required for WhatsApp connect",
+                    "Assign a counsellor immediately for faster follow-up",
+                    "Set follow-up before saving — never miss a lead",
+                    "Link to a campaign to track marketing ROI",
+                    "Mark sibling if family already enrolled — boosts priority"
                   ].map((tip, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-xs text-blue-700 font-medium leading-relaxed">
                       <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
@@ -1220,21 +1337,26 @@ export default function AddLeadPage() {
           </div>
 
           {/* STICKY SAVE FOOTER */}
-          <div className="fixed bottom-0 left-0 md:left-16 lg:left-64 right-0 bg-white border-t border-slate-100 shadow-lg px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 z-40">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="size-3.5 text-slate-400 shrink-0" />
-              <span className="text-xs text-slate-400 font-medium">
-                * Required fields must be filled before saving
+          <div className="fixed bottom-0 left-0 md:left-16 lg:left-64 right-0 bg-white border-t border-slate-200 shadow-lg px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 z-40">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-400">Lead ID:</span>
+              <span className="text-xs font-bold font-mono text-slate-600 bg-slate-100 px-2 py-1 rounded-md">
+                {leadId}
+              </span>
+              <span className="text-slate-300">·</span>
+              <span className="text-xs text-slate-400">
+                * Required fields
               </span>
             </div>
 
             <div className="flex items-center gap-3">
-              <Link
-                href="/lead-management"
+              <button
+                type="button"
+                onClick={() => router.push('/lead-management')}
                 className="border border-slate-200 text-slate-600 bg-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-slate-50 transition min-h-[40px] cursor-pointer flex items-center justify-center"
               >
                 Cancel
-              </Link>
+              </button>
               <Button
                 type="submit"
                 disabled={!isFormValidToSave}
@@ -1247,6 +1369,28 @@ export default function AddLeadPage() {
           </div>
 
         </form>
+
+        {/* TOAST NOTIFICATION */}
+        <div 
+          className={`fixed bottom-24 left-1/2 -translate-x-1/2 md:left-auto md:right-6 md:translate-x-0 z-50 transform transition-all duration-300 ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0 pointer-events-none'}`}
+        >
+          <div className="flex items-center gap-3 bg-slate-800 text-white rounded-xl px-5 py-3 shadow-2xl min-w-[280px]">
+            {toast.type === 'success' && <CheckCircle2 size={16} className="text-green-400" strokeWidth={1.5} />}
+            {toast.type === 'info' && <Info size={16} className="text-blue-400" strokeWidth={1.5} />}
+            {toast.type === 'error' && <XCircle size={16} className="text-red-400" strokeWidth={1.5} />}
+            
+            <span className="text-sm font-semibold font-sans">{toast.message}</span>
+            
+            <button 
+              type="button"
+              onClick={() => setToast(t => ({ ...t, show: false }))} 
+              className="ml-auto text-slate-400 hover:text-slate-200 cursor-pointer"
+            >
+              <X size={14} strokeWidth={1.5} />
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   )

@@ -1,0 +1,2129 @@
+// ============================================================================
+// VIDHYAAN — Prisma Schema
+// TechParrot Innovations LLP
+// Single PostgreSQL database (Neon.tech) with 4 strictly-separated schemas.
+// ----------------------------------------------------------------------------
+// ARCHITECTURE NOTES / DECISIONS (flagged for confirmation):
+//
+// 1. `plans` was listed in the spec under BOTH the `platform` and `billing`
+//    schemas. A plan catalog is a billing concern, so it is modeled ONCE in
+//    the `billing` schema and referenced from `platform.organizations`.
+//    -> Confirm: remove duplicate from platform. (No platform.plans created.)
+//
+// 2. The rule "every marketplace/CRM table has org_id" is applied to
+//    ORG-OWNED data. It is intentionally NOT applied to externally-owned
+//    parent data (`parents`, `kids_profiles`, `parent_bookmarks`,
+//    `open_day_rsvp`) — a parent is a platform-wide actor, not a tenant child.
+//
+// 3. Tenancy columns (org_id / branch_id / academic_year_id) are modeled as
+//    enforced relations on PRIMARY entities (leads, admissions, students,
+//    invoices, etc.) and as indexed SCALAR columns on DEPENDENT CHILD tables
+//    (lead_activities, invoice_items, ...) which are already tenant-scoped
+//    through their parent. This honors "org_id on all tables" while keeping
+//    the hub models (Organization/Branch/AcademicYear) tractable.
+//
+// 4. created_by / updated_by are modeled as indexed scalar columns (soft
+//    references to users.id), not FK relations, to avoid an unmanageable
+//    number of back-relations on the User model.
+//
+// 5. Soft delete: `deleted_at` on all major tables. Hard purge after 30 days
+//    is handled by a scheduled job, not the schema.
+// ============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["platform", "marketplace", "crm", "billing"]
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum InstitutionType {
+  SCHOOL
+  LEARNING_CENTER
+  COACHING_CENTER
+  JUNIOR_COLLEGE
+  SKILL_DEVELOPMENT
+  SPORTS_ACADEMY
+
+  @@schema("platform")
+}
+
+enum OrgStatus {
+  PENDING_VERIFICATION
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  GRACE_PERIOD
+  SUSPENDED
+  CANCELLED
+
+  @@schema("platform")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  OPERATIONS_ADMIN
+  SUPPORT_ADMIN
+  ORG_ADMIN
+  BRANCH_ADMIN
+  COUNSELLOR
+  RECEPTIONIST
+  ACCOUNTANT
+  TEACHER
+  PARENT
+
+  @@schema("platform")
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  DEACTIVATED
+
+  @@schema("platform")
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  EXPORT
+  MODULE_TOGGLE
+  PERMISSION_CHANGE
+
+  @@schema("platform")
+}
+
+enum ScrapingStatus {
+  PENDING
+  SUCCESS
+  PARTIAL
+  FAILED
+
+  @@schema("platform")
+}
+
+enum OtpChannel {
+  SMS
+  WHATSAPP
+  EMAIL
+
+  @@schema("platform")
+}
+
+enum OtpPurpose {
+  SIGNUP
+  LOGIN
+  VERIFY_PHONE
+  VERIFY_EMAIL
+
+  @@schema("platform")
+}
+
+enum DomainStatus {
+  PENDING
+  VERIFYING
+  ACTIVE
+  FAILED
+
+  @@schema("platform")
+}
+
+enum AcademicYearType {
+  ACADEMIC
+  FINANCIAL
+  CALENDAR
+  CUSTOM
+
+  @@schema("crm")
+}
+
+enum AcademicYearStatus {
+  UPCOMING
+  ACTIVE
+  CLOSED
+
+  @@schema("crm")
+}
+
+enum LeadSource {
+  VIDHYAAN
+  WALK_IN
+  PHONE
+  EMAIL
+  WHATSAPP
+  WEBSITE
+  REFERRAL
+  SOCIAL_MEDIA
+  GOOGLE_ADS
+  META_ADS
+  JUSTDIAL
+  CAMPAIGN
+  EVENT
+  NEWSPAPER
+  HOARDING
+  IMPORT
+  OTHER
+
+  @@schema("crm")
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  INTERESTED
+  FOLLOW_UP_PENDING
+  CONVERTED
+  NOT_INTERESTED
+
+  @@schema("crm")
+}
+
+enum LeadPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+
+  @@schema("crm")
+}
+
+enum ActivityType {
+  NOTE
+  CALL
+  EMAIL
+  SMS
+  WHATSAPP
+  MEETING
+  STATUS_CHANGE
+  STAGE_CHANGE
+  ASSIGNMENT
+  DOCUMENT
+  SYSTEM
+
+  @@schema("crm")
+}
+
+enum AdmissionStatus {
+  IN_PROGRESS
+  ADMITTED
+  REJECTED
+  WAITLISTED
+  WITHDRAWN
+
+  @@schema("crm")
+}
+
+enum DocumentReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FLAGGED
+
+  @@schema("crm")
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  ALUMNI
+  TRANSFERRED
+  WITHDRAWN
+
+  @@schema("crm")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+
+  @@schema("crm")
+}
+
+enum CustomFieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  CURRENCY
+  DATE
+  TIME
+  DATETIME
+  DROPDOWN
+  MULTI_SELECT
+  RADIO
+  CHECKBOX
+  BOOLEAN
+  PHONE
+  EMAIL
+  URL
+  FILE
+
+  @@schema("crm")
+}
+
+enum FeeFrequency {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  ANNUAL
+  CUSTOM
+
+  @@schema("crm")
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  WAIVED
+
+  @@schema("crm")
+}
+
+enum PaymentMethod {
+  RAZORPAY
+  CASH
+  CHEQUE
+  DD
+  NEFT
+  BANK_TRANSFER
+  UPI
+  CARD
+  OTHER
+
+  @@schema("crm")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+
+  @@schema("crm")
+}
+
+enum ConcessionType {
+  PERCENTAGE
+  FIXED_AMOUNT
+
+  @@schema("crm")
+}
+
+enum CampaignChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+
+  @@schema("crm")
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  PAUSED
+  FAILED
+
+  @@schema("crm")
+}
+
+enum RecipientStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  OPTED_OUT
+
+  @@schema("crm")
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  WHATSAPP
+  PUSH
+
+  @@schema("crm")
+}
+
+enum CommunicationDirection {
+  INBOUND
+  OUTBOUND
+
+  @@schema("crm")
+}
+
+enum QueueStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  CANCELLED
+
+  @@schema("crm")
+}
+
+enum EnquiryStatus {
+  NEW
+  RESPONDED
+  CONVERTED
+  CLOSED
+
+  @@schema("marketplace")
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  SHORTLISTED
+  ADMITTED
+  REJECTED
+  WAITLISTED
+  WITHDRAWN
+
+  @@schema("marketplace")
+}
+
+enum ReviewStatus {
+  PUBLISHED
+  FLAGGED
+  REMOVED
+
+  @@schema("marketplace")
+}
+
+enum WaitlistStatus {
+  WAITING
+  OFFERED
+  ACCEPTED
+  EXPIRED
+  WITHDRAWN
+
+  @@schema("marketplace")
+}
+
+enum RsvpStatus {
+  GOING
+  MAYBE
+  NOT_GOING
+  ATTENDED
+
+  @@schema("marketplace")
+}
+
+enum VerificationStatus {
+  UNCLAIMED
+  PENDING
+  VERIFIED
+  REJECTED
+
+  @@schema("marketplace")
+}
+
+enum DataSource {
+  SCRAPED
+  CLAIMED
+  MANUAL
+  IMPORTED
+
+  @@schema("marketplace")
+}
+
+enum BillingCycle {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+
+  @@schema("billing")
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  GRACE_PERIOD
+  CANCELLED
+  EXPIRED
+
+  @@schema("billing")
+}
+
+enum TransactionType {
+  SUBSCRIPTION
+  RENEWAL
+  UPGRADE
+  REFUND
+  ADJUSTMENT
+
+  @@schema("billing")
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+
+  @@schema("billing")
+}
+
+enum ReferralStatus {
+  PENDING
+  QUALIFIED
+  REWARDED
+  EXPIRED
+
+  @@schema("billing")
+}
+
+// ============================================================================
+// SCHEMA: platform — Vidhyaan core management
+// ============================================================================
+
+/// Tenant root. One row per customer organization (school / learning center).
+model Organization {
+  id               String          @id @default(cuid())
+  name             String
+  slug             String          @unique
+  institutionType  InstitutionType @map("institution_type")
+  email            String
+  phone            String
+  gstNumber        String?         @map("gst_number")
+  status           OrgStatus       @default(PENDING_VERIFICATION)
+  trialEndsAt      DateTime?       @map("trial_ends_at")
+  leadCap          Int             @default(10) @map("lead_cap") // free-plan cap, configurable by super admin
+  planId           String?         @map("plan_id")
+  settings         Json? // institution-type adaptive config, prefixes, thresholds
+  onboardedAt      DateTime?       @map("onboarded_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  deletedAt        DateTime?       @map("deleted_at")
+
+  plan                 Plan?                    @relation(fields: [planId], references: [id])
+  branches             Branch[]
+  users                User[]
+  organizationModules  OrganizationModule[]
+  auditLogs            AuditLog[]
+  apiKeys              ApiKey[]
+  domains              OrgDomain[]
+  notificationQueue    NotificationQueue[]
+  subscriptions        Subscription[]
+  transactions         Transaction[]
+  schools              School[]
+  parentEnquiries      ParentEnquiry[]
+  parentApplications   ParentApplication[]
+  waitlistEntries      WaitlistEntry[]
+  openDayEvents        OpenDayEvent[]
+  schoolReviews        SchoolReview[]
+  reviewResponses      ReviewResponse[]
+  academicYears        AcademicYear[]
+  leads                Lead[]
+  admissions           Admission[]
+  admissionStages      AdmissionStage[]
+  admissionCapacities  AdmissionCapacity[]
+  students             Student[]
+  studentBatches       StudentBatch[]
+  siblingLinks         SiblingLink[]
+  feePlans             FeePlan[]
+  feePlanTemplates     FeePlanTemplate[]
+  invoices             Invoice[]
+  payments             Payment[]
+  concessions          Concession[]
+  events               Event[]
+  campaigns            Campaign[]
+  notifications        Notification[]
+  notificationPrefs    NotificationPreference[]
+  counsellorTargets    CounsellorTarget[]
+  communicationLogs    CommunicationLog[]
+
+  @@index([status])
+  @@index([institutionType])
+  @@index([planId])
+  @@map("organizations")
+  @@schema("platform")
+}
+
+/// Physical/operational branch. Every org auto-gets one default branch.
+model Branch {
+  id        String    @id @default(cuid())
+  orgId     String    @map("org_id")
+  name      String
+  isDefault Boolean   @default(false) @map("is_default")
+  code      String?
+  addressLine String? @map("address_line")
+  city      String?
+  state     String?
+  pincode   String?
+  phone     String?
+  email     String?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization        Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userBranchAccess    UserBranchAccess[]
+  leads               Lead[]
+  admissions          Admission[]
+  admissionCapacities AdmissionCapacity[]
+  students            Student[]
+  studentBatches      StudentBatch[]
+  feePlans            FeePlan[]
+  invoices            Invoice[]
+  payments            Payment[]
+  events              Event[]
+  campaigns           Campaign[]
+  counsellorTargets   CounsellorTarget[]
+
+  @@index([orgId])
+  @@map("branches")
+  @@schema("platform")
+}
+
+/// All authenticated actors (platform staff + org staff + parents-as-users).
+model User {
+  id        String     @id @default(cuid())
+  orgId     String?    @map("org_id") // null for platform-level users (SUPER_ADMIN etc.)
+  email     String
+  phone     String?
+  name      String
+  role      UserRole
+  status    UserStatus @default(ACTIVE)
+  pinHash   String?    @map("pin_hash") // optional PIN for trusted devices
+  lastLoginAt DateTime? @map("last_login_at")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  deletedAt DateTime?  @map("deleted_at")
+
+  organization      Organization?            @relation(fields: [orgId], references: [id])
+  branchAccess      UserBranchAccess[]
+  assignedLeads     Lead[]                   @relation("LeadCounsellor")
+  assignedAdmissions Admission[]             @relation("AdmissionCounsellor")
+  counsellorTargets CounsellorTarget[]
+  communicationLogs CommunicationLog[]
+  notificationPrefs NotificationPreference[]
+
+  @@unique([orgId, email])
+  @@index([orgId])
+  @@index([role])
+  @@index([phone])
+  @@map("users")
+  @@schema("platform")
+}
+
+/// Per-branch access grant; a user may hold a different role per branch.
+model UserBranchAccess {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  branchId  String   @map("branch_id")
+  role      UserRole
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, branchId])
+  @@index([branchId])
+  @@map("user_branch_access")
+  @@schema("platform")
+}
+
+/// Global catalog of CRM feature modules (one row per module slug).
+model Module {
+  id          String   @id @default(cuid())
+  slug        String   @unique // lead_management, admission_management, ...
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  organizationModules OrganizationModule[]
+
+  @@map("modules")
+  @@schema("platform")
+}
+
+/// Per-org enablement of a module, toggled by Vidhyaan super admin.
+model OrganizationModule {
+  id        String    @id @default(cuid())
+  orgId     String    @map("org_id")
+  moduleId  String    @map("module_id")
+  enabled   Boolean   @default(false)
+  config    Json? // per-module limits/config (e.g., lead cap override)
+  enabledAt DateTime? @map("enabled_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  module       Module       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, moduleId])
+  @@index([orgId])
+  @@map("organization_modules")
+  @@schema("platform")
+}
+
+/// Append-only audit trail (3-5 year retention).
+model AuditLog {
+  id         String      @id @default(cuid())
+  orgId      String?     @map("org_id")
+  userId     String?     @map("user_id") // soft reference
+  action     AuditAction
+  entityType String      @map("entity_type")
+  entityId   String?     @map("entity_id")
+  before     Json?
+  after      Json?
+  ipAddress  String?     @map("ip_address")
+  userAgent  String?     @map("user_agent")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  organization Organization? @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+  @@schema("platform")
+}
+
+/// Logs from the school-data scraping/ingestion pipeline.
+model ScrapingLog {
+  id         String         @id @default(cuid())
+  source     String
+  targetUrl  String?        @map("target_url")
+  schoolId   String?        @map("school_id") // soft reference into marketplace.schools
+  status     ScrapingStatus @default(PENDING)
+  recordsIn  Int            @default(0) @map("records_in")
+  recordsOut Int            @default(0) @map("records_out")
+  error      String?
+  payload    Json?
+  createdAt  DateTime       @default(now()) @map("created_at")
+
+  @@index([status])
+  @@index([schoolId])
+  @@index([createdAt])
+  @@map("scraping_logs")
+  @@schema("platform")
+}
+
+/// API key for the public read-only API (gated by api_access). Max 3 active/org.
+model ApiKey {
+  id          String    @id @default(cuid())
+  orgId       String    @map("org_id")
+  name        String
+  prefix      String // display hint, e.g. vk_live_ab12
+  hash        String    @unique // sha256(token)
+  ipWhitelist String[]  @default([]) @map("ip_whitelist")
+  lastUsedAt  DateTime? @map("last_used_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([hash])
+  @@map("api_keys")
+  @@schema("platform")
+}
+
+/// Issued OTP record (hash only). Backs verification, brute-force lock + audit.
+model OtpCode {
+  id         String     @id @default(cuid())
+  identifier String // phone or email
+  channel    OtpChannel
+  purpose    OtpPurpose
+  codeHash   String     @map("code_hash")
+  attempts   Int        @default(0)
+  consumedAt DateTime?  @map("consumed_at")
+  expiresAt  DateTime   @map("expires_at")
+  ipAddress  String?    @map("ip_address")
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  @@index([identifier])
+  @@index([expiresAt])
+  @@map("otp_codes")
+  @@schema("platform")
+}
+
+/// Custom domain mapping for an org (custom_domain module).
+model OrgDomain {
+  id         String       @id @default(cuid())
+  orgId      String       @map("org_id")
+  domain     String       @unique
+  status     DomainStatus @default(PENDING)
+  dnsRecords Json?        @map("dns_records")
+  verifiedAt DateTime?    @map("verified_at")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@map("org_domains")
+  @@schema("platform")
+}
+
+// ============================================================================
+// SCHEMA: marketplace — parent-facing discovery
+// ============================================================================
+
+/// Public school/learning-center listing. May be claimed (org_id set) or scraped (org_id null).
+model School {
+  id                 String             @id @default(cuid())
+  orgId              String?            @map("org_id") // set when claimed by an organization
+  name               String
+  slug               String             @unique
+  institutionType    InstitutionType    @map("institution_type")
+  description        String?
+  verificationStatus VerificationStatus @default(UNCLAIMED) @map("verification_status")
+  isVerified         Boolean            @default(false) @map("is_verified")
+  profileCompletion  Int                @default(0) @map("profile_completion") // 0-100
+  rankingScore       Int                @default(0) @map("ranking_score") // 0-100 search score
+  avgRating          Float              @default(0) @map("avg_rating")
+  reviewCount        Int                @default(0) @map("review_count")
+  responseRatePct    Int?               @map("response_rate_pct")
+  avgResponseHours   Int?               @map("avg_response_hours")
+  admissionOpen      Boolean            @default(false) @map("admission_open")
+  googlePlaceId      String?            @map("google_place_id")
+  dataSource         DataSource         @default(SCRAPED) @map("data_source")
+  qualityScore       Int                @default(0) @map("quality_score") // data-completeness/quality 0-100
+  claimedAt          DateTime?          @map("claimed_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  deletedAt          DateTime?          @map("deleted_at")
+
+  organization    Organization?       @relation(fields: [orgId], references: [id])
+  locations       SchoolLocation[]
+  contacts        SchoolContact[]
+  media           SchoolMedia[]
+  facilities      SchoolFacility[]
+  feeRanges       SchoolFeeRange[]
+  affiliations    SchoolAffiliation[]
+  accreditations  SchoolAccreditation[]
+  hours           SchoolHours[]
+  enquiries       ParentEnquiry[]
+  applications    ParentApplication[]
+  bookmarks       ParentBookmark[]
+  views           SchoolView[]
+  reviews         SchoolReview[]
+  waitlistEntries WaitlistEntry[]
+  openDayEvents   OpenDayEvent[]
+
+  @@index([orgId])
+  @@index([institutionType])
+  @@index([isVerified])
+  @@index([rankingScore])
+  @@map("schools")
+  @@schema("marketplace")
+}
+
+/// Geo + address record for a school (supports multiple campuses).
+model SchoolLocation {
+  id        String    @id @default(cuid())
+  schoolId  String    @map("school_id")
+  orgId     String?   @map("org_id")
+  label     String?
+  addressLine String? @map("address_line")
+  city      String?
+  state     String?
+  pincode   String?
+  latitude  Float?
+  longitude Float?
+  isPrimary Boolean   @default(false) @map("is_primary")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([city])
+  @@index([pincode])
+  @@map("school_locations")
+  @@schema("marketplace")
+}
+
+/// Public contact channels for a school.
+model SchoolContact {
+  id        String    @id @default(cuid())
+  schoolId  String    @map("school_id")
+  orgId     String?   @map("org_id")
+  type      String // phone, email, website, whatsapp
+  value     String
+  isPrimary Boolean   @default(false) @map("is_primary")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@map("school_contacts")
+  @@schema("marketplace")
+}
+
+/// Images/videos on a school profile (free plan capped at 3 images).
+model SchoolMedia {
+  id        String    @id @default(cuid())
+  schoolId  String    @map("school_id")
+  orgId     String?   @map("org_id")
+  type      String // image, video
+  url       String
+  caption   String?
+  sortOrder Int       @default(0) @map("sort_order")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@map("school_media")
+  @@schema("marketplace")
+}
+
+/// Facility/amenity tags for a school.
+model SchoolFacility {
+  id        String   @id @default(cuid())
+  schoolId  String   @map("school_id")
+  orgId     String?  @map("org_id")
+  name      String
+  category  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@map("school_facilities")
+  @@schema("marketplace")
+}
+
+/// Published fee ranges shown in discovery (not the CRM fee engine).
+model SchoolFeeRange {
+  id          String   @id @default(cuid())
+  schoolId    String   @map("school_id")
+  orgId       String?  @map("org_id")
+  gradeLabel  String   @map("grade_label")
+  minAmount   Decimal  @map("min_amount") @db.Decimal(12, 2)
+  maxAmount   Decimal  @map("max_amount") @db.Decimal(12, 2)
+  frequency   String? // annual, monthly
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@map("school_fee_ranges")
+  @@schema("marketplace")
+}
+
+/// Board/affiliation details for a school (e.g., CBSE, ICSE, State).
+model SchoolAffiliation {
+  id              String   @id @default(cuid())
+  schoolId        String   @map("school_id")
+  orgId           String?  @map("org_id")
+  board           String
+  affiliationNo   String?  @map("affiliation_no")
+  validTill       DateTime? @map("valid_till")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@map("school_affiliation")
+  @@schema("marketplace")
+}
+
+/// Accreditations/awards/recognitions for a school.
+model SchoolAccreditation {
+  id          String    @id @default(cuid())
+  schoolId    String    @map("school_id")
+  orgId       String?   @map("org_id")
+  name        String
+  issuedBy    String?   @map("issued_by")
+  issuedAt    DateTime? @map("issued_at")
+  validTill   DateTime? @map("valid_till")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@map("school_accreditation")
+  @@schema("marketplace")
+}
+
+/// Weekly operating hours for a school (display + "open now" + ranking signal).
+model SchoolHours {
+  id        String   @id @default(cuid())
+  schoolId  String   @map("school_id")
+  orgId     String?  @map("org_id")
+  dayOfWeek Int      @map("day_of_week") // 0=Sun .. 6=Sat
+  openTime  String?  @map("open_time") // HH:mm
+  closeTime String?  @map("close_time") // HH:mm
+  isClosed  Boolean  @default(false) @map("is_closed")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, dayOfWeek])
+  @@index([schoolId])
+  @@map("school_hours")
+  @@schema("marketplace")
+}
+
+/// Parent account (external actor; mobile-OTP first). Not tenant-scoped.
+model Parent {
+  id        String    @id @default(cuid())
+  phone     String    @unique
+  email     String?   @unique
+  name      String?
+  city      String?
+  pinHash   String?   @map("pin_hash")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  kids            KidProfile[]
+  enquiries       ParentEnquiry[]
+  applications    ParentApplication[]
+  bookmarks       ParentBookmark[]
+  reviews         SchoolReview[]
+  waitlistEntries WaitlistEntry[]
+  openDayRsvps    OpenDayRsvp[]
+
+  @@index([phone])
+  @@map("parents")
+  @@schema("marketplace")
+}
+
+/// A child belonging to a parent (used to pre-fill enquiries/applications).
+model KidProfile {
+  id          String    @id @default(cuid())
+  parentId    String    @map("parent_id")
+  name        String
+  dateOfBirth DateTime? @map("date_of_birth")
+  gender      Gender?
+  gradeSought String?   @map("grade_sought")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  parent Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@index([parentId])
+  @@map("kids_profiles")
+  @@schema("marketplace")
+}
+
+/// Discovery-side enquiry from a parent to a school (becomes a CRM lead).
+model ParentEnquiry {
+  id          String        @id @default(cuid())
+  orgId       String?       @map("org_id")
+  schoolId    String        @map("school_id")
+  parentId    String        @map("parent_id")
+  kidName     String?       @map("kid_name")
+  gradeSought String?       @map("grade_sought")
+  message     String?
+  status      EnquiryStatus @default(NEW)
+  leadId      String?       @map("lead_id") // soft link to crm.leads once created
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  deletedAt   DateTime?     @map("deleted_at")
+
+  organization Organization? @relation(fields: [orgId], references: [id])
+  school       School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  parent       Parent        @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([schoolId])
+  @@index([parentId])
+  @@index([status])
+  @@map("parent_enquiries")
+  @@schema("marketplace")
+}
+
+/// Formal admission application submitted by a parent and tracked by them.
+model ParentApplication {
+  id          String            @id @default(cuid())
+  orgId       String?           @map("org_id")
+  schoolId    String            @map("school_id")
+  parentId    String            @map("parent_id")
+  kidName     String            @map("kid_name")
+  gradeSought String?           @map("grade_sought")
+  status      ApplicationStatus @default(SUBMITTED)
+  admissionId String?           @map("admission_id") // soft link to crm.admissions
+  submittedAt DateTime          @default(now()) @map("submitted_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  deletedAt   DateTime?         @map("deleted_at")
+
+  organization Organization? @relation(fields: [orgId], references: [id])
+  school       School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  parent       Parent        @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([schoolId])
+  @@index([parentId])
+  @@index([status])
+  @@map("parent_applications")
+  @@schema("marketplace")
+}
+
+/// Parent's saved/bookmarked schools. Parent-owned; not tenant-scoped.
+model ParentBookmark {
+  id        String   @id @default(cuid())
+  parentId  String   @map("parent_id")
+  schoolId  String   @map("school_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  parent Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, schoolId])
+  @@index([schoolId])
+  @@map("parent_bookmarks")
+  @@schema("marketplace")
+}
+
+/// Profile view analytics (drives ranking + dashboards).
+model SchoolView {
+  id        String   @id @default(cuid())
+  schoolId  String   @map("school_id")
+  orgId     String?  @map("org_id")
+  parentId  String?  @map("parent_id") // soft reference
+  source    String?
+  ipHash    String?  @map("ip_hash")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([createdAt])
+  @@map("school_views")
+  @@schema("marketplace")
+}
+
+/// Parent review of a school (verified parents only; auto-publish).
+model SchoolReview {
+  id         String       @id @default(cuid())
+  schoolId   String       @map("school_id")
+  orgId      String?      @map("org_id")
+  parentId   String       @map("parent_id")
+  rating     Int // 1-5 overall
+  ratingAcademics      Int? @map("rating_academics")      // 1-5
+  ratingFaculty        Int? @map("rating_faculty")        // 1-5
+  ratingInfrastructure Int? @map("rating_infrastructure") // 1-5
+  ratingSafety         Int? @map("rating_safety")         // 1-5
+  ratingActivities     Int? @map("rating_activities")     // 1-5
+  ratingValue          Int? @map("rating_value")          // 1-5 value for money
+  title      String?
+  body       String?
+  status     ReviewStatus @default(PUBLISHED)
+  flagReason String?      @map("flag_reason")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  deletedAt  DateTime?    @map("deleted_at")
+
+  school       School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  organization Organization?    @relation(fields: [orgId], references: [id])
+  parent       Parent           @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  responses    ReviewResponse[]
+
+  @@index([schoolId])
+  @@index([parentId])
+  @@index([status])
+  @@map("school_reviews")
+  @@schema("marketplace")
+}
+
+/// Threaded responses to a review (school + parent reply chain).
+model ReviewResponse {
+  id         String    @id @default(cuid())
+  reviewId   String    @map("review_id")
+  orgId      String?   @map("org_id")
+  authorType String    @map("author_type") // SCHOOL, PARENT, VIDHYAAN
+  authorId   String?   @map("author_id") // soft reference
+  body       String
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  review       SchoolReview  @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [orgId], references: [id])
+
+  @@index([reviewId])
+  @@map("review_responses")
+  @@schema("marketplace")
+}
+
+/// Parent waitlist entry when a grade/seat is full.
+model WaitlistEntry {
+  id          String         @id @default(cuid())
+  orgId       String         @map("org_id")
+  schoolId    String         @map("school_id")
+  parentId    String         @map("parent_id")
+  gradeLabel  String         @map("grade_label")
+  position    Int?
+  status      WaitlistStatus @default(WAITING)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  deletedAt   DateTime?      @map("deleted_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  parent       Parent       @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([schoolId])
+  @@index([status])
+  @@map("waitlist_entries")
+  @@schema("marketplace")
+}
+
+/// Public open-day / campus-visit event published by a school.
+model OpenDayEvent {
+  id          String    @id @default(cuid())
+  orgId       String    @map("org_id")
+  schoolId    String    @map("school_id")
+  title       String
+  description String?
+  startsAt    DateTime  @map("starts_at")
+  endsAt      DateTime? @map("ends_at")
+  venue       String?
+  capacity    Int?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  school       School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  rsvps        OpenDayRsvp[]
+
+  @@index([orgId])
+  @@index([schoolId])
+  @@index([startsAt])
+  @@map("open_day_events")
+  @@schema("marketplace")
+}
+
+/// Parent RSVP to an open-day event. Parent-owned; not tenant-scoped.
+model OpenDayRsvp {
+  id        String     @id @default(cuid())
+  eventId   String     @map("event_id")
+  parentId  String     @map("parent_id")
+  status    RsvpStatus @default(GOING)
+  guests    Int        @default(1)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  event  OpenDayEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  parent Parent       @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, parentId])
+  @@index([parentId])
+  @@map("open_day_rsvp")
+  @@schema("marketplace")
+}
+
+// ============================================================================
+// SCHEMA: crm — school CRM product
+// ============================================================================
+
+/// Org-scoped academic/financial year; exactly one ACTIVE per org.
+model AcademicYear {
+  id        String             @id @default(cuid())
+  orgId     String             @map("org_id")
+  name      String // e.g., 2025-26
+  type      AcademicYearType
+  startDate DateTime           @map("start_date")
+  endDate   DateTime           @map("end_date")
+  status    AcademicYearStatus @default(UPCOMING)
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+
+  organization        Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  leads               Lead[]
+  admissions          Admission[]
+  admissionCapacities AdmissionCapacity[]
+  students            Student[]
+  studentBatches      StudentBatch[]
+  feePlans            FeePlan[]
+  invoices            Invoice[]
+  payments            Payment[]
+  events              Event[]
+  campaigns           Campaign[]
+  counsellorTargets   CounsellorTarget[]
+
+  @@unique([orgId, name])
+  @@index([orgId])
+  @@index([status])
+  @@map("academic_years")
+  @@schema("crm")
+}
+
+/// Admission lead. Auto-created from Vidhyaan enquiries or manual entry.
+model Lead {
+  id             String     @id @default(cuid())
+  orgId          String     @map("org_id")
+  branchId       String?    @map("branch_id")
+  academicYearId String?    @map("academic_year_id")
+  leadCode       String     @map("lead_code") // LD-YYYY-XXXXX
+  parentName     String     @map("parent_name")
+  phone          String
+  email          String?
+  kidName        String?    @map("kid_name")
+  gradeSought    String?    @map("grade_sought")
+  source         LeadSource @default(OTHER)
+  status         LeadStatus @default(NEW)
+  priority       LeadPriority @default(MEDIUM)
+  assignedToId   String?    @map("assigned_to_id")
+  enquiryId      String?    @map("enquiry_id") // soft link to marketplace.parent_enquiries
+  lostReason     String?    @map("lost_reason")
+  firstContactedAt DateTime? @map("first_contacted_at") // drives response-rate metric
+  nextFollowUpAt DateTime?  @map("next_follow_up_at")
+  createdById    String?    @map("created_by_id") // soft reference
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  deletedAt      DateTime?  @map("deleted_at")
+
+  organization  Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch        Branch?        @relation(fields: [branchId], references: [id])
+  academicYear  AcademicYear?  @relation(fields: [academicYearId], references: [id])
+  assignedTo    User?          @relation("LeadCounsellor", fields: [assignedToId], references: [id])
+  activities    LeadActivity[]
+  admissions    Admission[]
+
+  @@unique([orgId, leadCode])
+  @@index([orgId])
+  @@index([branchId])
+  @@index([academicYearId])
+  @@index([status])
+  @@index([assignedToId])
+  @@index([phone])
+  @@map("leads")
+  @@schema("crm")
+}
+
+/// Timeline entry on a lead (notes, calls, status changes, etc.). Dependent child.
+model LeadActivity {
+  id             String       @id @default(cuid())
+  orgId          String       @map("org_id")
+  branchId       String?      @map("branch_id")
+  academicYearId String?      @map("academic_year_id")
+  leadId         String       @map("lead_id")
+  type           ActivityType
+  summary        String
+  metadata       Json?
+  performedById  String?      @map("performed_by_id") // soft reference
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([leadId])
+  @@index([type])
+  @@map("lead_activities")
+  @@schema("crm")
+}
+
+/// Org-defined custom field definitions for leads.
+model LeadCustomField {
+  id        String          @id @default(cuid())
+  orgId     String          @map("org_id")
+  label     String
+  key       String
+  type      CustomFieldType
+  options   Json? // for DROPDOWN
+  required  Boolean         @default(false)
+  sortOrder Int             @default(0) @map("sort_order")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  @@unique([orgId, key])
+  @@index([orgId])
+  @@map("lead_custom_fields")
+  @@schema("crm")
+}
+
+/// Admission record progressing through org-configurable pipeline stages.
+model Admission {
+  id             String          @id @default(cuid())
+  orgId          String          @map("org_id")
+  branchId       String?         @map("branch_id")
+  academicYearId String?         @map("academic_year_id")
+  admissionCode  String          @map("admission_code") // ADM-YYYY-XXXXX
+  leadId         String?         @map("lead_id")
+  stageId        String?         @map("stage_id")
+  status         AdmissionStatus @default(IN_PROGRESS)
+  applicantName  String          @map("applicant_name")
+  gradeSought    String?         @map("grade_sought")
+  phone          String?
+  email          String?
+  assignedToId   String?         @map("assigned_to_id")
+  rejectionReason String?        @map("rejection_reason")
+  decidedAt      DateTime?       @map("decided_at")
+  createdById    String?         @map("created_by_id") // soft reference
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  deletedAt      DateTime?       @map("deleted_at")
+
+  organization Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch       Branch?             @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear?       @relation(fields: [academicYearId], references: [id])
+  lead         Lead?               @relation(fields: [leadId], references: [id])
+  stage        AdmissionStage?     @relation(fields: [stageId], references: [id])
+  assignedTo   User?               @relation("AdmissionCounsellor", fields: [assignedToId], references: [id])
+  activities   AdmissionActivity[]
+  documents    AdmissionDocument[]
+  student      Student?
+
+  @@unique([orgId, admissionCode])
+  @@index([orgId])
+  @@index([branchId])
+  @@index([academicYearId])
+  @@index([status])
+  @@index([stageId])
+  @@index([assignedToId])
+  @@map("admissions")
+  @@schema("crm")
+}
+
+/// Org-configurable pipeline stage (School default 8, LC default 4).
+model AdmissionStage {
+  id        String    @id @default(cuid())
+  orgId     String    @map("org_id")
+  name      String
+  sortOrder Int       @map("sort_order")
+  isWon     Boolean   @default(false) @map("is_won")
+  isLost    Boolean   @default(false) @map("is_lost")
+  requiresDocs    Boolean @default(false) @map("requires_docs")
+  requiresPayment Boolean @default(false) @map("requires_payment")
+  color     String?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  admissions   Admission[]
+
+  @@unique([orgId, sortOrder])
+  @@index([orgId])
+  @@map("admission_stages")
+  @@schema("crm")
+}
+
+/// Timeline entry on an admission. Dependent child.
+model AdmissionActivity {
+  id            String       @id @default(cuid())
+  orgId         String       @map("org_id")
+  branchId      String?      @map("branch_id")
+  academicYearId String?     @map("academic_year_id")
+  admissionId   String       @map("admission_id")
+  type          ActivityType
+  summary       String
+  metadata      Json?
+  performedById String?      @map("performed_by_id") // soft reference
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  admission Admission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([admissionId])
+  @@map("admission_activities")
+  @@schema("crm")
+}
+
+/// Document uploaded against an admission (ClamAV + Vision scanned). Dependent child.
+model AdmissionDocument {
+  id            String               @id @default(cuid())
+  orgId         String               @map("org_id")
+  admissionId   String               @map("admission_id")
+  name          String
+  type          String // PDF, JPG, PNG
+  url           String // Org/Student/filename in DO Spaces
+  sizeBytes     Int?                 @map("size_bytes")
+  scanStatus    DocumentReviewStatus @default(PENDING) @map("scan_status")
+  isAadhaar     Boolean              @default(false) @map("is_aadhaar") // max 1yr retention
+  expiresAt     DateTime?            @map("expires_at")
+  uploadedById  String?              @map("uploaded_by_id") // soft reference
+  createdAt     DateTime             @default(now()) @map("created_at")
+  deletedAt     DateTime?            @map("deleted_at")
+
+  admission Admission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([admissionId])
+  @@index([scanStatus])
+  @@map("admission_documents")
+  @@schema("crm")
+}
+
+/// Seat capacity per grade per year; drives auto-close + waitlist trigger.
+model AdmissionCapacity {
+  id             String    @id @default(cuid())
+  orgId          String    @map("org_id")
+  branchId       String?   @map("branch_id")
+  academicYearId String    @map("academic_year_id")
+  gradeLabel     String    @map("grade_label")
+  totalSeats     Int       @map("total_seats")
+  filledSeats    Int       @default(0) @map("filled_seats")
+  autoClose      Boolean   @default(true) @map("auto_close")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch       Branch?       @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear  @relation(fields: [academicYearId], references: [id])
+
+  @@unique([orgId, academicYearId, branchId, gradeLabel])
+  @@index([orgId])
+  @@index([academicYearId])
+  @@map("admission_capacity")
+  @@schema("crm")
+}
+
+/// Enrolled student. Auto-created on admission/lead convert.
+model Student {
+  id             String        @id @default(cuid())
+  orgId          String        @map("org_id")
+  branchId       String?       @map("branch_id")
+  academicYearId String?       @map("academic_year_id")
+  studentCode    String        @map("student_code") // STU-YYYY-XXXXX
+  rollNumber     String?       @map("roll_number")
+  admissionId    String?       @unique @map("admission_id")
+  batchId        String?       @map("batch_id")
+  name           String
+  gender         Gender?
+  dateOfBirth    DateTime?     @map("date_of_birth")
+  gradeLabel     String?       @map("grade_label")
+  guardianName   String?       @map("guardian_name")
+  guardianPhone  String?       @map("guardian_phone")
+  guardianEmail  String?       @map("guardian_email")
+  status         StudentStatus @default(ACTIVE)
+  alumniSince    DateTime?     @map("alumni_since")
+  portalAccessRevokedAt DateTime? @map("portal_access_revoked_at") // alumni: removed 60 days after
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  deletedAt      DateTime?     @map("deleted_at")
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch       Branch?       @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
+  admission    Admission?    @relation(fields: [admissionId], references: [id])
+  batch        StudentBatch? @relation(fields: [batchId], references: [id])
+  invoices     Invoice[]
+  payments     Payment[]
+  concessions  Concession[]
+  siblingLinksA SiblingLink[] @relation("SiblingPrimary")
+  siblingLinksB SiblingLink[] @relation("SiblingRelated")
+
+  @@unique([orgId, studentCode])
+  @@index([orgId])
+  @@index([branchId])
+  @@index([academicYearId])
+  @@index([status])
+  @@index([batchId])
+  @@map("students")
+  @@schema("crm")
+}
+
+/// Org-defined custom field definitions for students.
+model StudentCustomField {
+  id        String          @id @default(cuid())
+  orgId     String          @map("org_id")
+  label     String
+  key       String
+  type      CustomFieldType
+  options   Json?
+  required  Boolean         @default(false)
+  sortOrder Int             @default(0) @map("sort_order")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  @@unique([orgId, key])
+  @@index([orgId])
+  @@map("student_custom_fields")
+  @@schema("crm")
+}
+
+/// Batch/cohort grouping (primarily Learning Centers).
+model StudentBatch {
+  id             String        @id @default(cuid())
+  orgId          String        @map("org_id")
+  branchId       String?       @map("branch_id")
+  academicYearId String?       @map("academic_year_id")
+  name           String
+  programme      String?
+  startDate      DateTime?     @map("start_date")
+  endDate        DateTime?     @map("end_date")
+  capacity       Int?
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  deletedAt      DateTime?     @map("deleted_at")
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch       Branch?       @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
+  students     Student[]
+
+  @@index([orgId])
+  @@index([branchId])
+  @@map("student_batches")
+  @@schema("crm")
+}
+
+/// Links two students as siblings (drives sibling concessions/insights).
+model SiblingLink {
+  id             String   @id @default(cuid())
+  orgId          String   @map("org_id")
+  studentId      String   @map("student_id")
+  siblingId      String   @map("sibling_id")
+  relation       String? // brother, sister
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  student      Student      @relation("SiblingPrimary", fields: [studentId], references: [id], onDelete: Cascade)
+  sibling      Student      @relation("SiblingRelated", fields: [siblingId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, siblingId])
+  @@index([orgId])
+  @@index([siblingId])
+  @@map("sibling_links")
+  @@schema("crm")
+}
+
+/// Reusable fee structure template (org-level).
+model FeePlanTemplate {
+  id        String    @id @default(cuid())
+  orgId     String    @map("org_id")
+  name      String
+  structure Json // array of { head, amount, frequency }
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  feePlans     FeePlan[]
+
+  @@index([orgId])
+  @@map("fee_plan_templates")
+  @@schema("crm")
+}
+
+/// Applied fee plan instance (per grade/batch/year), basis for invoices.
+model FeePlan {
+  id             String        @id @default(cuid())
+  orgId          String        @map("org_id")
+  branchId       String?       @map("branch_id")
+  academicYearId String?       @map("academic_year_id")
+  templateId     String?       @map("template_id")
+  name           String
+  gradeLabel     String?       @map("grade_label")
+  totalAmount    Decimal       @map("total_amount") @db.Decimal(12, 2)
+  frequency      FeeFrequency  @default(ANNUAL)
+  structure      Json // line items
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  deletedAt      DateTime?     @map("deleted_at")
+
+  organization Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch       Branch?          @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear?    @relation(fields: [academicYearId], references: [id])
+  template     FeePlanTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([orgId])
+  @@index([academicYearId])
+  @@map("fee_plans")
+  @@schema("crm")
+}
+
+/// Student fee invoice (INV-YYYY-XXXXX).
+model Invoice {
+  id             String        @id @default(cuid())
+  orgId          String        @map("org_id")
+  branchId       String?       @map("branch_id")
+  academicYearId String?       @map("academic_year_id")
+  invoiceNumber  String        @map("invoice_number") // INV-YYYY-XXXXX
+  studentId      String        @map("student_id")
+  totalAmount    Decimal       @map("total_amount") @db.Decimal(12, 2)
+  paidAmount     Decimal       @default(0) @map("paid_amount") @db.Decimal(12, 2)
+  lateFeeAmount  Decimal       @default(0) @map("late_fee_amount") @db.Decimal(12, 2)
+  status         InvoiceStatus @default(UNPAID)
+  dueDate        DateTime?     @map("due_date")
+  notes          String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  deletedAt      DateTime?     @map("deleted_at")
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch       Branch?       @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
+  student      Student       @relation(fields: [studentId], references: [id])
+  items        InvoiceItem[]
+  payments     Payment[]
+  concessions  Concession[]
+
+  @@unique([orgId, invoiceNumber])
+  @@index([orgId])
+  @@index([studentId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("invoices")
+  @@schema("crm")
+}
+
+/// Line item on an invoice. Dependent child.
+model InvoiceItem {
+  id         String   @id @default(cuid())
+  orgId      String   @map("org_id")
+  invoiceId  String   @map("invoice_id")
+  head       String // fee head name
+  amount     Decimal  @db.Decimal(12, 2)
+  quantity   Int      @default(1)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([invoiceId])
+  @@map("invoice_items")
+  @@schema("crm")
+}
+
+/// Payment against an invoice (RCP-YYYY-XXXXX); partial payments allowed.
+model Payment {
+  id             String        @id @default(cuid())
+  orgId          String        @map("org_id")
+  branchId       String?       @map("branch_id")
+  academicYearId String?       @map("academic_year_id")
+  receiptNumber  String        @map("receipt_number") // RCP-YYYY-XXXXX
+  invoiceId      String        @map("invoice_id")
+  studentId      String?       @map("student_id")
+  amount         Decimal       @db.Decimal(12, 2)
+  method         PaymentMethod @default(RAZORPAY)
+  status         PaymentStatus @default(PENDING)
+  gatewayRef     String?       @map("gateway_ref") // Razorpay payment id
+  instrumentNo   String?       @map("instrument_no")   // cheque / DD number
+  instrumentDate DateTime?     @map("instrument_date")
+  bankName       String?       @map("bank_name")
+  bankBranch     String?       @map("bank_branch")
+  utrNumber      String?       @map("utr_number")      // NEFT/RTGS/IMPS UTR
+  clearedAt      DateTime?     @map("cleared_at")      // cheque/DD/NEFT realization
+  paidAt         DateTime?     @map("paid_at")
+  createdById    String?       @map("created_by_id") // soft reference
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  deletedAt      DateTime?     @map("deleted_at")
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch       Branch?       @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
+  invoice      Invoice       @relation(fields: [invoiceId], references: [id])
+  student      Student?      @relation(fields: [studentId], references: [id])
+
+  @@unique([orgId, receiptNumber])
+  @@index([orgId])
+  @@index([invoiceId])
+  @@index([studentId])
+  @@index([status])
+  @@map("payments")
+  @@schema("crm")
+}
+
+/// Manual fee concession/discount applied by school admin.
+model Concession {
+  id          String         @id @default(cuid())
+  orgId       String         @map("org_id")
+  studentId   String?        @map("student_id")
+  invoiceId   String?        @map("invoice_id")
+  type        ConcessionType
+  value       Decimal        @db.Decimal(12, 2)
+  reason      String?
+  approvedById String?       @map("approved_by_id") // soft reference
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  deletedAt   DateTime?      @map("deleted_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  student      Student?     @relation(fields: [studentId], references: [id])
+  invoice      Invoice?     @relation(fields: [invoiceId], references: [id])
+
+  @@index([orgId])
+  @@index([studentId])
+  @@index([invoiceId])
+  @@map("concessions")
+  @@schema("crm")
+}
+
+/// Internal CRM event (calendar/meeting); distinct from public open days.
+model Event {
+  id             String        @id @default(cuid())
+  orgId          String        @map("org_id")
+  branchId       String?       @map("branch_id")
+  academicYearId String?       @map("academic_year_id")
+  title          String
+  description    String?
+  startsAt       DateTime      @map("starts_at")
+  endsAt         DateTime?     @map("ends_at")
+  location       String?
+  meetingLink    String?       @map("meeting_link") // manual Zoom link Phase 1
+  createdById    String?       @map("created_by_id") // soft reference
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  deletedAt      DateTime?     @map("deleted_at")
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch       Branch?       @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
+  rsvps        EventRsvp[]
+
+  @@index([orgId])
+  @@index([startsAt])
+  @@map("events")
+  @@schema("crm")
+}
+
+/// RSVP to an internal CRM event. Dependent child.
+model EventRsvp {
+  id          String     @id @default(cuid())
+  orgId       String     @map("org_id")
+  eventId     String     @map("event_id")
+  attendeeType String    @map("attendee_type") // USER, PARENT, LEAD
+  attendeeId  String?    @map("attendee_id") // soft reference
+  status      RsvpStatus @default(GOING)
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([eventId])
+  @@map("event_rsvp")
+  @@schema("crm")
+}
+
+/// Bulk outreach campaign (Email/SMS/WhatsApp via MSG91/Resend).
+model Campaign {
+  id             String         @id @default(cuid())
+  orgId          String         @map("org_id")
+  branchId       String?        @map("branch_id")
+  academicYearId String?        @map("academic_year_id")
+  name           String
+  channel        CampaignChannel
+  status         CampaignStatus @default(DRAFT)
+  templateBody   String?        @map("template_body")
+  scheduledAt    DateTime?      @map("scheduled_at")
+  sentAt         DateTime?      @map("sent_at")
+  audienceFilter Json?          @map("audience_filter")
+  stats          Json? // sent/delivered/read counts
+  createdById    String?        @map("created_by_id") // soft reference
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  deletedAt      DateTime?      @map("deleted_at")
+
+  organization Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch       Branch?             @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear?       @relation(fields: [academicYearId], references: [id])
+  recipients   CampaignRecipient[]
+
+  @@index([orgId])
+  @@index([status])
+  @@map("campaigns")
+  @@schema("crm")
+}
+
+/// Individual recipient row for a campaign. Dependent child.
+model CampaignRecipient {
+  id           String          @id @default(cuid())
+  orgId        String          @map("org_id")
+  campaignId   String          @map("campaign_id")
+  recipientType String         @map("recipient_type") // LEAD, PARENT, STUDENT_GUARDIAN
+  recipientId  String?         @map("recipient_id") // soft reference
+  contact      String // phone/email used
+  status       RecipientStatus @default(QUEUED)
+  providerRef  String?         @map("provider_ref")
+  sentAt       DateTime?       @map("sent_at")
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([campaignId])
+  @@index([status])
+  @@map("campaign_recipients")
+  @@schema("crm")
+}
+
+/// In-app/outbound notification record.
+model Notification {
+  id           String              @id @default(cuid())
+  orgId        String              @map("org_id")
+  recipientType String             @map("recipient_type") // USER, PARENT
+  recipientId  String?             @map("recipient_id") // soft reference
+  channel      NotificationChannel @default(IN_APP)
+  title        String
+  body         String?
+  data         Json?
+  readAt       DateTime?           @map("read_at")
+  createdAt    DateTime            @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([recipientType, recipientId])
+  @@index([readAt])
+  @@map("notifications")
+  @@schema("crm")
+}
+
+/// Per-user notification channel preferences.
+model NotificationPreference {
+  id        String   @id @default(cuid())
+  orgId     String   @map("org_id")
+  userId    String   @map("user_id")
+  category  String // fees, leads, admissions, system
+  email     Boolean  @default(true)
+  sms       Boolean  @default(false)
+  whatsapp  Boolean  @default(false)
+  inApp     Boolean  @default(true) @map("in_app")
+  push      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+  @@index([orgId])
+  @@map("notification_preferences")
+  @@schema("crm")
+}
+
+/// Counsellor performance target per period.
+model CounsellorTarget {
+  id             String        @id @default(cuid())
+  orgId          String        @map("org_id")
+  branchId       String?       @map("branch_id")
+  academicYearId String?       @map("academic_year_id")
+  userId         String        @map("user_id")
+  periodStart    DateTime      @map("period_start")
+  periodEnd      DateTime      @map("period_end")
+  leadTarget     Int           @default(0) @map("lead_target")
+  conversionTarget Int         @default(0) @map("conversion_target")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch       Branch?       @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([userId])
+  @@map("counsellor_targets")
+  @@schema("crm")
+}
+
+/// Immutable log of every outbound/inbound communication (1 year retention).
+model CommunicationLog {
+  id           String                 @id @default(cuid())
+  orgId        String                 @map("org_id")
+  userId       String?                @map("user_id")
+  channel      NotificationChannel
+  direction    CommunicationDirection
+  entityType   String?                @map("entity_type") // LEAD, ADMISSION, INVOICE
+  entityId     String?                @map("entity_id")
+  contact      String // phone/email
+  content      String?
+  providerRef  String?                @map("provider_ref")
+  status       String?
+  createdAt    DateTime               @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id])
+
+  @@index([orgId])
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("communication_logs")
+  @@schema("crm")
+}
+
+/// Outbound notification queue — scheduled sends + delivery retries (worker drains it).
+model NotificationQueue {
+  id            String              @id @default(cuid())
+  orgId         String              @map("org_id")
+  channel       NotificationChannel
+  recipientType String              @map("recipient_type") // USER, PARENT
+  recipientId   String?             @map("recipient_id") // soft reference
+  contact       String // phone/email
+  payload       Json
+  status        QueueStatus         @default(PENDING)
+  scheduledFor  DateTime?           @map("scheduled_for")
+  attempts      Int                 @default(0)
+  lastError     String?             @map("last_error")
+  sentAt        DateTime?           @map("sent_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([status, scheduledFor])
+  @@map("notification_queue")
+  @@schema("crm")
+}
+
+// ============================================================================
+// SCHEMA: billing — subscriptions and revenue
+// ============================================================================
+
+/// Subscription plan catalog (canonical; referenced by platform.organizations).
+model Plan {
+  id           String    @id @default(cuid())
+  slug         String    @unique // free, growth, pro, enterprise
+  name         String
+  description  String?
+  monthlyPrice Decimal   @map("monthly_price") @db.Decimal(12, 2)
+  leadCap      Int?      @map("lead_cap") // null = unlimited
+  isPublic     Boolean   @default(true) @map("is_public")
+  sortOrder    Int       @default(0) @map("sort_order")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  organizations Organization[]
+  planModules   PlanModule[]
+  subscriptions Subscription[]
+
+  @@map("plans")
+  @@schema("billing")
+}
+
+/// Mapping of which modules a plan unlocks.
+model PlanModule {
+  id        String   @id @default(cuid())
+  planId    String   @map("plan_id")
+  moduleSlug String  @map("module_slug") // references platform.modules.slug (soft)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, moduleSlug])
+  @@index([planId])
+  @@map("plan_modules")
+  @@schema("billing")
+}
+
+/// Active subscription for an organization.
+model Subscription {
+  id           String             @id @default(cuid())
+  orgId        String             @map("org_id")
+  planId       String             @map("plan_id")
+  status       SubscriptionStatus @default(TRIALING)
+  billingCycle BillingCycle       @default(ANNUAL) @map("billing_cycle")
+  amount       Decimal            @db.Decimal(12, 2)
+  discountPct  Int                @default(0) @map("discount_pct")
+  trialEndsAt  DateTime?          @map("trial_ends_at")
+  startedAt    DateTime?          @map("started_at")
+  currentPeriodEnd DateTime?      @map("current_period_end")
+  graceEndsAt  DateTime?          @map("grace_ends_at")
+  cancelAtPeriodEnd Boolean       @default(false) @map("cancel_at_period_end")
+  gatewaySubId String?            @map("gateway_sub_id") // Razorpay subscription id
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+  deletedAt    DateTime?          @map("deleted_at")
+
+  organization Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  plan         Plan                @relation(fields: [planId], references: [id])
+  items        SubscriptionItem[]
+  transactions Transaction[]
+
+  @@index([orgId])
+  @@index([status])
+  @@map("subscriptions")
+  @@schema("billing")
+}
+
+/// Line item within a subscription (module/add-on level).
+model SubscriptionItem {
+  id             String   @id @default(cuid())
+  subscriptionId String   @map("subscription_id")
+  moduleSlug     String   @map("module_slug")
+  quantity       Int      @default(1)
+  unitPrice      Decimal  @map("unit_price") @db.Decimal(12, 2)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@map("subscription_items")
+  @@schema("billing")
+}
+
+/// Money movement record (GST 18%, SAC 998314; Razorpay-issued invoices).
+model Transaction {
+  id             String            @id @default(cuid())
+  orgId          String            @map("org_id")
+  subscriptionId String?           @map("subscription_id")
+  type           TransactionType
+  status         TransactionStatus @default(PENDING)
+  amount         Decimal           @db.Decimal(12, 2)
+  gstAmount      Decimal           @default(0) @map("gst_amount") @db.Decimal(12, 2)
+  currency       String            @default("INR")
+  gatewayRef     String?           @map("gateway_ref")
+  invoiceUrl     String?           @map("invoice_url")
+  paidAt         DateTime?         @map("paid_at")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([orgId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@map("transactions")
+  @@schema("billing")
+}
+
+/// Referral program (Phase 2; fields scaffolded now per spec).
+model Referral {
+  id             String         @id @default(cuid())
+  referrerOrgId  String         @map("referrer_org_id") // soft reference to organizations
+  refereeOrgId   String?        @map("referee_org_id") // soft reference
+  code           String         @unique
+  status         ReferralStatus @default(PENDING)
+  rewardAmount   Decimal?       @map("reward_amount") @db.Decimal(12, 2)
+  rewardedAt     DateTime?      @map("rewarded_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  @@index([referrerOrgId])
+  @@index([status])
+  @@map("referrals")
+  @@schema("billing")
+}

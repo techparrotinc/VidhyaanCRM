@@ -104,6 +104,16 @@
 }
 
 :root {
+  --vidhyaan-bg: #F1F5F9;
+  --vidhyaan-card: #FFFFFF;
+  --vidhyaan-border: #E2E8F0;
+  --vidhyaan-border-strong: #CBD5E1;
+  --vidhyaan-text-primary: #0F172A;
+  --vidhyaan-text-secondary: #475569;
+  --vidhyaan-text-muted: #64748B;
+  --vidhyaan-primary: #1565D8;
+  --vidhyaan-primary-light: #EFF6FF;
+
   --font-primary: 'CircularXXWeb', 'Poppins', 'ABC Diatype', system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
   --font-fallback: 'Poppins', system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --background: oklch(1 0 0);
@@ -181,8 +191,9 @@
     box-sizing: border-box;
   }
   body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-primary);
+    background-color: var(--vidhyaan-bg);
+    color: var(--vidhyaan-text-primary);
+    font-family: 'Poppins', system-ui, sans-serif;
     font-size: 14px;
     line-height: 1.6;
     font-weight: 400;

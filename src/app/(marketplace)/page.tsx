@@ -281,13 +281,13 @@ export default function MarketplaceHomepage() {
               </p>
             </div>
 
-            {/* Scroll list with specific Emojis */}
-            <div className="flex gap-4 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden -mx-4 px-4 md:mx-0 md:px-0 select-none">
+            {/* Grid list with specific Emojis */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {cities.map((c) => (
                 <Link 
                   key={c.name} 
                   href={`/schools?city=${c.name}`} 
-                  className="snap-start shrink-0 w-36 sm:w-44 bg-white rounded-2xl border border-slate-200 p-5 text-center hover:border-[#1565D8] hover:shadow-lg transition-all duration-300 cursor-pointer group"
+                  className="w-full bg-white rounded-2xl border border-slate-200 p-5 text-center hover:border-[#1565D8] hover:shadow-lg transition-all duration-300 cursor-pointer group flex flex-col items-center justify-center"
                 >
                   <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3 group-hover:bg-[#1565D8] transition-colors duration-300 border border-blue-100/50">
                     <span className="text-xl group-hover:scale-110 transition-transform duration-300">{c.emoji}</span>

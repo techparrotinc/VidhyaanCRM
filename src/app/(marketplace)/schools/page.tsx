@@ -304,34 +304,31 @@ export default function SchoolsSearchPage() {
           </div>
         </header>
 
-        {/* 2. SEARCH HERO STRIP */}
-        <section className="bg-[#1565D8] py-8 px-6 text-white border-b border-blue-600">
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-xl md:text-2xl font-black mb-5 font-poppins text-center md:text-left leading-none tracking-tight">
-              Find the Best School for Your Child
-            </h1>
-
-            {/* White search bar card */}
-            <form onSubmit={handleSearchSubmit} className="bg-white rounded-xl p-2 flex flex-col md:flex-row items-stretch gap-2.5 max-w-3xl shadow-xl">
-              <div className="flex-1 flex items-center px-3 gap-2">
-                <Search className="w-5.5 h-5.5 text-slate-400 shrink-0" />
+        {/* 2. SLIM SEARCH ROW */}
+        <section className="bg-white border-b border-slate-100 py-3 px-6 select-none">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-3">
+            <div className="text-slate-800 font-extrabold text-sm tracking-tight shrink-0 hidden lg:block uppercase tracking-wider font-poppins">
+              Filter Results
+            </div>
+            
+            <form onSubmit={handleSearchSubmit} className="flex-1 flex flex-col sm:flex-row items-stretch gap-2.5 w-full">
+              <div className="flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 gap-2">
+                <Search className="w-4 h-4 text-slate-400 shrink-0" />
                 <input
                   type="text"
                   value={filters.search}
                   onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                   placeholder="Search school name..."
-                  className="flex-1 text-slate-700 outline-none text-sm placeholder-slate-400 font-medium"
+                  className="bg-transparent text-slate-700 outline-none text-xs placeholder-slate-400 font-semibold w-full"
                 />
               </div>
 
-              <div className="hidden md:block w-px h-8 bg-slate-200 align-self-center self-center" />
-
-              <div className="flex items-center px-3 gap-2">
-                <MapPin className="w-5.5 h-5.5 text-slate-400 shrink-0" />
+              <div className="sm:w-48 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 gap-2">
+                <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
                 <select
                   value={filters.city}
                   onChange={(e) => setFilters({ ...filters, city: e.target.value })}
-                  className="text-sm text-slate-600 outline-none bg-transparent font-medium cursor-pointer"
+                  className="bg-transparent text-slate-700 outline-none text-xs font-bold w-full cursor-pointer"
                 >
                   <option value="">Select City</option>
                   {['Chennai', 'Bangalore', 'Hyderabad', 'Mumbai', 'Delhi', 'Pune', 'Coimbatore', 'Madurai'].map((c) => (
@@ -340,8 +337,8 @@ export default function SchoolsSearchPage() {
                 </select>
               </div>
 
-              <Button type="submit" className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs px-8 py-3 rounded-lg h-auto shrink-0 shadow-sm cursor-pointer whitespace-nowrap">
-                Search Schools
+              <Button type="submit" className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs px-6 py-2 rounded-xl h-auto shrink-0 shadow-sm cursor-pointer whitespace-nowrap">
+                Search
               </Button>
             </form>
           </div>

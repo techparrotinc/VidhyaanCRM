@@ -24,7 +24,8 @@ import {
   Eye,
   MessageSquare,
   ArrowRight,
-  Map
+  Map,
+  Check
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -646,11 +647,11 @@ export default function SchoolsSearchPage() {
                       <div
                         key={school.id}
                         onClick={() => router.push(`/schools/${school.slug}`)}
-                        className="bg-white rounded-2xl border border-slate-200 hover:border-[#1565D8] hover:shadow-lg transition-all duration-300 overflow-hidden group cursor-pointer flex flex-col md:flex-row"
+                        className="bg-white rounded-3xl border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_32px_-6px_rgba(21,101,216,0.08)] hover:border-[#1565D8]/45 transition-all duration-300 overflow-hidden group cursor-pointer flex flex-col md:flex-row hover:-translate-y-0.5"
                       >
                         
                         {/* LEFT Image Pane */}
-                        <div className="w-full md:w-52 h-44 md:h-auto shrink-0 relative overflow-hidden bg-slate-100">
+                        <div className="w-full md:w-56 h-48 md:h-auto shrink-0 relative overflow-hidden bg-slate-50">
                           {school.media?.[0]?.url ? (
                             <img
                               src={school.media[0].url}
@@ -659,10 +660,10 @@ export default function SchoolsSearchPage() {
                             />
                           ) : (
                             <div className={`w-full h-full flex flex-col items-center justify-center text-white p-4 text-center select-none ${getGradientByName(school.name)}`}>
-                              <span className="text-5xl font-black tracking-tight leading-none font-poppins mb-1">
+                              <span className="text-6xl font-black tracking-tight leading-none font-poppins mb-1.5 opacity-90">
                                 {school.name[0]}
                               </span>
-                              <span className="text-[10px] text-white/70 font-semibold leading-tight line-clamp-2">
+                              <span className="text-[11px] text-white/80 font-bold leading-tight line-clamp-2 uppercase tracking-wide">
                                 {school.name}
                               </span>
                             </div>
@@ -671,7 +672,7 @@ export default function SchoolsSearchPage() {
                           {/* Featured Ribbon Badge */}
                           {school.isFeatured && (
                             <div className="absolute top-3 left-3 z-10">
-                              <span className="bg-[#FFC107] text-slate-900 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm uppercase tracking-wider">
+                              <span className="bg-[#FFC107] text-slate-905 border border-yellow-350 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md uppercase tracking-wider">
                                 ⭐ Featured
                               </span>
                             </div>
@@ -680,12 +681,12 @@ export default function SchoolsSearchPage() {
                           {/* Admission open badge */}
                           <div className="absolute bottom-3 left-3 z-10">
                             {school.admissionOpen ? (
-                              <span className="bg-green-500 text-white text-[9px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm leading-none">
+                              <span className="bg-emerald-500 text-white text-[9px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-md leading-none">
                                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
                                 Admissions Open
                               </span>
                             ) : (
-                              <span className="bg-red-500 text-white text-[9px] font-bold px-2.5 py-1 rounded-full shadow-sm leading-none">
+                              <span className="bg-red-500 text-white text-[9px] font-bold px-2.5 py-1 rounded-full shadow-md leading-none">
                                 Admissions Closed
                               </span>
                             )}
@@ -693,23 +694,32 @@ export default function SchoolsSearchPage() {
                         </div>
 
                         {/* RIGHT Content Pane */}
-                        <div className="flex-1 p-5 min-w-0 flex flex-col justify-between space-y-4">
+                        <div className="flex-1 p-6 min-w-0 flex flex-col justify-between space-y-4">
                           
-                          <div className="space-y-2">
+                          <div className="space-y-3.5">
                             {/* Top row */}
                             <div className="flex justify-between items-start gap-4">
-                              <div className="min-w-0">
-                                <h3 className="text-base md:text-lg font-black text-slate-900 font-poppins group-hover:text-[#1565D8] transition-colors leading-tight truncate">
-                                  {school.name}
-                                </h3>
+                              <div className="min-w-0 space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h3 className="text-base md:text-lg font-black text-slate-905 font-poppins group-hover:text-[#1565D8] transition-colors leading-tight truncate">
+                                    {school.name}
+                                  </h3>
+                                  {school.isVerified && (
+                                    <span className="inline-flex items-center justify-center bg-blue-100 text-blue-600 rounded-full p-0.5 shrink-0" title="Verified School">
+                                      <Check className="w-3 h-3 stroke-[3]" />
+                                    </span>
+                                  )}
+                                </div>
 
-                                <div className="flex items-center gap-1.5 mt-1 text-slate-400 font-bold uppercase text-[10px] tracking-wider select-none">
-                                  <MapPin className="w-3.5 h-3.5 text-slate-350 shrink-0" />
-                                  <span>{addressString}</span>
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-slate-400 font-bold uppercase text-[10px] tracking-wider select-none">
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="w-3.5 h-3.5 text-slate-350 shrink-0" />
+                                    <span>{addressString}</span>
+                                  </div>
                                   {school.distance && (
                                     <>
-                                      <span>·</span>
-                                      <span className="text-slate-500">{school.distance} km away</span>
+                                      <span className="text-slate-300">•</span>
+                                      <span className="text-[#1565D8]">{school.distance} km away</span>
                                     </>
                                   )}
                                 </div>
@@ -723,10 +733,10 @@ export default function SchoolsSearchPage() {
                                     e.stopPropagation()
                                     toggleBookmark(school.id)
                                   }}
-                                  className={`w-8 h-8 rounded-lg border flex items-center justify-center hover:border-red-500 hover:text-red-500 transition-colors duration-250 cursor-pointer ${
+                                  className={`w-8.5 h-8.5 rounded-xl border flex items-center justify-center hover:border-red-500 hover:text-red-500 transition-colors duration-250 cursor-pointer ${
                                     isBookmarked
                                       ? 'bg-red-50 border-red-200 text-red-550'
-                                      : 'border-slate-200 text-slate-400'
+                                      : 'border-slate-205 bg-white text-slate-400 hover:bg-slate-50'
                                   }`}
                                 >
                                   <Star className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
@@ -737,84 +747,81 @@ export default function SchoolsSearchPage() {
                                     e.stopPropagation()
                                     handleShare(school.slug)
                                   }}
-                                  className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:border-[#1565D8] hover:text-[#1565D8] text-slate-400 transition-colors duration-250 cursor-pointer"
+                                  className="w-8.5 h-8.5 rounded-xl border border-slate-205 bg-white flex items-center justify-center hover:border-[#1565D8] hover:text-[#1565D8] text-slate-400 hover:bg-slate-50 transition-colors duration-250 cursor-pointer"
                                 >
                                   <Share2 className="w-4 h-4" />
                                 </button>
                               </div>
                             </div>
 
+                            {/* Ratings Block inline with location or under it */}
+                            <div className="flex items-center gap-2 flex-wrap select-none">
+                              {school.avgRating > 0 ? (
+                                <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 text-emerald-700 px-2.5 py-1 rounded-xl text-xs font-black shadow-sm">
+                                  <Star className="w-3.5 h-3.5 fill-current shrink-0" />
+                                  <span>{school.avgRating.toFixed(1)}</span>
+                                  <span className="text-emerald-500/70 font-bold font-sans">({school.reviewCount} Reviews)</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 text-slate-455 px-2.5 py-1 rounded-xl text-xs font-bold shadow-sm">
+                                  <span>No reviews yet</span>
+                                </div>
+                              )}
+
+                              {school.avgResponseHours !== null && school.avgResponseHours !== undefined && (
+                                <span className="text-[10px] font-black text-green-600 bg-green-50 border border-green-100/50 px-2.5 py-1 rounded-xl uppercase tracking-wider animate-pulse flex items-center gap-1">
+                                  ⚡ Responds in ~{school.avgResponseHours} hrs
+                                </span>
+                              )}
+                            </div>
+
                             {/* Curriculum Badges */}
                             <div className="flex items-center gap-2 flex-wrap select-none pt-0.5">
                               {school.affiliations?.map((aff, i) => (
-                                <span key={i} className="text-[10px] font-black text-[#1565D8] bg-blue-50 border border-blue-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                <span key={i} className="text-[10px] font-black text-[#1565D8] bg-blue-50 border border-blue-100 px-3 py-1 rounded-xl uppercase tracking-wider">
                                   {aff.board}
                                 </span>
                               ))}
                               
-                              <span className="text-[10px] font-black text-amber-700 bg-amber-50 border border-amber-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                              <span className="text-[10px] font-black text-amber-700 bg-amber-50 border border-amber-100 px-3 py-1 rounded-xl uppercase tracking-wider">
                                 {school.institutionType}
                               </span>
 
-                              <span className="text-[10px] font-black text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                              <span className="text-[10px] font-black text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-xl uppercase tracking-wider">
                                 Co-Ed
                               </span>
 
-                              <span className="text-[10px] font-black text-purple-700 bg-purple-50 border border-purple-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                              <span className="text-[10px] font-black text-purple-700 bg-purple-50 border border-purple-100 px-3 py-1 rounded-xl uppercase tracking-wider">
                                 Nursery – 12th
                               </span>
                             </div>
 
                             {/* Views, Enquiries, Ratings counts */}
-                            <div className="flex items-center gap-4 text-xs font-bold text-slate-450 pt-1 select-none">
-                              <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-4 text-xs font-bold text-slate-450 pt-0.5 select-none">
+                              <div className="flex items-center gap-1.5 hover:text-slate-700 transition cursor-pointer">
                                 <Eye className="w-4 h-4 text-slate-350 shrink-0" />
-                                <span>{hasViews} views</span>
+                                <span>{hasViews} Views</span>
                               </div>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1.5 hover:text-slate-700 transition cursor-pointer">
                                 <MessageSquare className="w-4 h-4 text-slate-350 shrink-0" />
-                                <span>{hasEnquiries} enquiries</span>
+                                <span>{hasEnquiries} Enquiries</span>
                               </div>
-                              {school.avgRating > 0 && (
-                                <div className="flex items-center gap-0.5">
-                                  <Star className="w-4 h-4 fill-amber-450 text-amber-450 shrink-0" />
-                                  <span className="text-slate-700">{school.avgRating}</span>
-                                  <span className="text-slate-400 font-medium font-sans">({school.reviewCount})</span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Trust Badges */}
-                            <div className="flex items-center gap-3 pt-0.5 select-none">
-                              {school.isVerified && (
-                                <div className="flex items-center gap-1 text-[10px] font-black text-green-600">
-                                  <ShieldCheck className="w-4 h-4 text-green-500 shrink-0" />
-                                  <span>Verified School</span>
-                                </div>
-                              )}
-
-                              {isManagedBySchool && (
-                                <div className="flex items-center gap-1 text-[10px] font-black text-[#1565D8]">
-                                  <Shield className="w-4 h-4 text-blue-500 shrink-0" />
-                                  <span>Managed by School</span>
-                                </div>
-                              )}
                             </div>
 
                           </div>
 
                           {/* Action Buttons footer row */}
-                          <div className="flex flex-wrap items-center gap-3 pt-3.5 border-t border-slate-100 select-none">
+                          <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-100 select-none">
                             <Button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleEnquiryOpen(school)
                               }}
-                              className="bg-[#1565D8] hover:bg-blue-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl h-auto flex items-center gap-1.5 shadow-sm border border-blue-500 cursor-pointer"
+                              className="bg-gradient-to-r from-[#1565D8] to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white text-xs font-bold px-6 py-3 rounded-xl h-auto flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-300 border-0 cursor-pointer"
                             >
                               Send Enquiry
-                              <ArrowRight className="w-3.5 h-3.5" />
+                              <ArrowRight className="w-4 h-4" />
                             </Button>
                             
                             <Button
@@ -823,10 +830,27 @@ export default function SchoolsSearchPage() {
                                 e.stopPropagation()
                                 router.push(`/schools/${school.slug}`)
                               }}
-                              className="border border-[#1565D8] hover:bg-blue-50 text-[#1565D8] text-xs font-bold px-5 py-2.5 rounded-xl h-auto cursor-pointer bg-white"
+                              className="border border-slate-200 hover:border-[#1565D8] hover:bg-blue-50/50 text-[#1565D8] text-xs font-bold px-6 py-3 rounded-xl h-auto transition-all duration-200 cursor-pointer bg-white"
                             >
                               View Profile
                             </Button>
+
+                            {/* Trust badges inline for desktop */}
+                            <div className="hidden lg:flex items-center gap-2.5 ml-4">
+                              {school.isVerified && (
+                                <div className="flex items-center gap-1 text-[10px] font-black text-green-600 bg-green-50/80 border border-green-100/50 px-2.5 py-0.5 rounded-lg">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                                  <span>Verified</span>
+                                </div>
+                              )}
+
+                              {isManagedBySchool && (
+                                <div className="flex items-center gap-1 text-[10px] font-black text-[#1565D8] bg-blue-50/80 border border-blue-100/50 px-2.5 py-0.5 rounded-lg">
+                                  <Shield className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                  <span>Managed</span>
+                                </div>
+                              )}
+                            </div>
 
                             <button
                               type="button"
@@ -834,7 +858,7 @@ export default function SchoolsSearchPage() {
                                 e.stopPropagation()
                                 window.open(`https://maps.google.com/?q=${encodeURIComponent(school.name + ' ' + addressString)}`, '_blank')
                               }}
-                              className="border border-slate-205 text-slate-500 text-xs font-bold px-4 py-2 rounded-xl hover:border-slate-300 transition flex items-center gap-1.5 ml-auto cursor-pointer hover:bg-slate-50"
+                              className="border border-slate-200 text-slate-500 text-xs font-bold px-4 py-2.5 rounded-xl hover:border-slate-355 transition flex items-center gap-1.5 ml-auto cursor-pointer hover:bg-slate-50"
                             >
                               <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                               Locate

@@ -102,7 +102,8 @@ export async function GET(req: NextRequest) {
           },
           _count: {
             select: {
-              enquiries: true
+              enquiries: true,
+              views: true
             }
           }
         }

@@ -73,6 +73,14 @@ Use these Tailwind equivalents throughout the JSX configurations:
 *   **Dashboard API & UI**:
     *   Created dashboard summary endpoints `/api/v1/dashboard/summary`.
     *   Wired KPI cards, active charts, pipeline stages, progress meters, and recent activity logs to live DB records.
+*   **Platform Super Admin Panel**:
+    *   Created administrative endpoints `/api/admin/organizations` and sub-routes for license modules, status updates, and stats.
+    *   Built portal dashboard layout (`/admin`), organizations management list (`/admin/orgs`), and organization approval profile workspace (`/admin/orgs/[id]`).
+*   **Public Marketplace Discovery**:
+    *   Built the public landing page homepage (`/`) featuring hero search sections, featured cities list, popular board categories, learning centers links, how-it-works workflow, counters, and register CTAs.
+    *   Created high-performance search endpoint `/api/public/schools` supporting dynamic sorting (relevance, rating, newest, enquiries) and relation counting.
+    *   Implemented detailed profile endpoint `/api/public/schools/[slug]` returning locations, affiliations, hours, media, and calculated reviews categories metrics.
+    *   Built directory listing client page (`/schools`) and profile client page (`/schools/[slug]`) complete with enquire now dialogs, write-a-review forms, bookmarked storage states, skeleton loading grids, and responsive drawers.
 
 ---
 

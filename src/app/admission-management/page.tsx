@@ -1,8 +1,9 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Skeleton } from '@/components/ui/skeleton'
 import Sidebar from '@/components/Sidebar'
 import LoadingScreen from '@/components/LoadingScreen'
 import {
@@ -54,7 +55,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 
-import { config, type, pipeline } from '@/lib/admission-settings-config'
+import { config, type, pipeline as configPipeline } from '@/lib/admission-settings-config'
 
 const moduleLabel = config.moduleLabel[type]
 const idPrefix = config.idPrefix[type]
@@ -97,225 +98,7 @@ interface Applicant {
   priority: string
 }
 
-// ===================================================================
-// APPLICANTS DATA
-// ===================================================================
-const generateId = (seq: number) => {
-  const year = new Date().getFullYear()
-  return `${idPrefix}-${year}-${String(seq)
-    .padStart(5, '0')}`
-}
 
-const applicants: Applicant[] = [
-  {
-    id: generateId(20),
-    firstName: 'Suman',
-    lastName: 'Manuel',
-    fullName: 'Suman Manuel',
-    avatar: 'SM',
-    parentName: 'Manuel Raja',
-    childName: 'Arjun Manuel',
-    phone: '8939055488',
-    email: 'suman@email.com',
-    applyingFor: 'UKG',
-    source: 'Web',
-    counsellor: 'Vimal Das',
-    counsellorAvatar: 'VD',
-    stage: 'New',
-    stageId: 'new',
-    stageIndex: 0,
-    createdDate: '30 Apr 2026',
-    status: 'active',
-    daysInStage: 3,
-    pendingAction: null,
-    docsUploaded: 0,
-    docsRequired: 3,
-    feePaid: false,
-    priority: 'Normal',
-  },
-  {
-    id: generateId(15),
-    firstName: 'Raja',
-    lastName: 'S',
-    fullName: 'Raja S',
-    avatar: 'RS',
-    parentName: 'Suresh Raja',
-    childName: 'Arjun Raja',
-    phone: '9845678901',
-    email: 'raja@email.com',
-    applyingFor: 'Class 3',
-    source: 'Vidhyaan',
-    counsellor: 'Vimal Das',
-    counsellorAvatar: 'VD',
-    stage: 'Contacted',
-    stageId: 'contacted',
-    stageIndex: 1,
-    createdDate: '28 Apr 2026',
-    status: 'active',
-    daysInStage: 5,
-    pendingAction: null,
-    docsUploaded: 0,
-    docsRequired: 3,
-    feePaid: false,
-    priority: 'High',
-  },
-  {
-    id: generateId(14),
-    firstName: 'Kanna',
-    lastName: 'M',
-    fullName: 'Kanna M',
-    avatar: 'KM',
-    parentName: 'Mohan Kanna',
-    childName: 'Priya Kanna',
-    phone: '9823456781',
-    email: 'kanna@email.com',
-    applyingFor: 'Class 2',
-    source: 'Web',
-    counsellor: 'Saran Kumar',
-    counsellorAvatar: 'SK',
-    stage: 'Application',
-    stageId: 'application',
-    stageIndex: 2,
-    createdDate: '25 Apr 2026',
-    status: 'active',
-    daysInStage: 8,
-    pendingAction: 'Application form incomplete',
-    docsUploaded: 1,
-    docsRequired: 3,
-    feePaid: false,
-    priority: 'High',
-  },
-  {
-    id: generateId(13),
-    firstName: 'Hemanth',
-    lastName: 'R',
-    fullName: 'Hemanth R',
-    avatar: 'HR',
-    parentName: 'Ramesh H',
-    childName: 'Dev Hemanth',
-    phone: '9812345678',
-    email: 'hemanth@email.com',
-    applyingFor: 'LKG',
-    source: 'Vidhyaan',
-    counsellor: 'Saran Kumar',
-    counsellorAvatar: 'SK',
-    stage: 'Interview',
-    stageId: 'interview',
-    stageIndex: 4,
-    createdDate: '20 Apr 2026',
-    status: 'active',
-    daysInStage: 2,
-    pendingAction: 'Interview: 22 May 9AM',
-    docsUploaded: 3,
-    docsRequired: 3,
-    feePaid: false,
-    priority: 'Urgent',
-  },
-  {
-    id: generateId(12),
-    firstName: 'Naresh',
-    lastName: 'K',
-    fullName: 'Naresh K',
-    avatar: 'NK',
-    parentName: 'Kumar Naresh',
-    childName: 'Nila Naresh',
-    phone: '9876543210',
-    email: 'naresh@email.com',
-    applyingFor: 'LKG',
-    source: 'Web',
-    counsellor: 'Pradeep Kumar',
-    counsellorAvatar: 'PK',
-    stage: 'Payment',
-    stageId: 'payment',
-    stageIndex: 5,
-    createdDate: '15 Apr 2026',
-    status: 'warning',
-    daysInStage: 12,
-    pendingAction: 'Payment pending: ₹5,000',
-    docsUploaded: 3,
-    docsRequired: 3,
-    feePaid: false,
-    priority: 'High',
-  },
-  {
-    id: generateId(5),
-    firstName: 'Arjun',
-    lastName: 'Prasad',
-    fullName: 'Arjun Prasad',
-    avatar: 'AP',
-    parentName: 'Prasad Arjun',
-    childName: 'Riya Prasad',
-    phone: '9845123456',
-    email: 'arjun@email.com',
-    applyingFor: 'UKG',
-    source: 'Web',
-    counsellor: 'Pradeep Kumar',
-    counsellorAvatar: 'PK',
-    stage: 'Payment',
-    stageId: 'payment',
-    stageIndex: 5,
-    createdDate: '10 Apr 2026',
-    status: 'overdue',
-    daysInStage: 18,
-    pendingAction: 'Overdue: 18 days in Payment',
-    docsUploaded: 2,
-    docsRequired: 3,
-    feePaid: false,
-    priority: 'Urgent',
-  },
-  {
-    id: generateId(4),
-    firstName: 'Meena',
-    lastName: 'Devi',
-    fullName: 'Meena Devi',
-    avatar: 'MD',
-    parentName: 'Devi Rajan',
-    childName: 'Ram Devi',
-    phone: '9834567890',
-    email: 'meena@email.com',
-    applyingFor: 'LKG',
-    source: 'Phone Enquiry',
-    counsellor: 'Vimal Das',
-    counsellorAvatar: 'VD',
-    stage: 'Admitted',
-    stageId: 'admitted',
-    stageIndex: 6,
-    createdDate: '05 Apr 2026',
-    status: 'active',
-    daysInStage: 1,
-    pendingAction: null,
-    docsUploaded: 3,
-    docsRequired: 3,
-    feePaid: true,
-    priority: 'Normal',
-  },
-  {
-    id: generateId(3),
-    firstName: 'Priya',
-    lastName: 'Nair',
-    fullName: 'Priya Nair',
-    avatar: 'PN',
-    parentName: 'Nair Pradeep',
-    childName: 'Arun Nair',
-    phone: '9823412345',
-    email: 'priya@email.com',
-    applyingFor: 'Class 6',
-    source: 'Referral',
-    counsellor: 'Saran Kumar',
-    counsellorAvatar: 'SK',
-    stage: 'Rejected',
-    stageId: 'rejected',
-    stageIndex: 7,
-    createdDate: '01 Apr 2026',
-    status: 'active',
-    daysInStage: 0,
-    pendingAction: null,
-    docsUploaded: 0,
-    docsRequired: 3,
-    feePaid: false,
-    priority: 'Normal',
-  },
-]
 
 const sourceConfig: Record<string, {
   bg: string; text: string; dot: string
@@ -469,26 +252,204 @@ export default function AdmissionManagementPage() {
     useState<string[]>([])
   const [searchQuery, setSearchQuery] =
     useState('')
-  const [activeStageFilter, 
-    setActiveStageFilter] =
+  const [applicants, setApplicants] =
+    useState<any[]>([])
+  const [loading, setLoading] =
+    useState(true)
+  const [error, setError] =
     useState<string | null>(null)
+  const [pipeline, setPipeline] =
+    useState<any[]>([])
+  const [pipelineStats, setPipelineStats] =
+    useState({
+      total: 0,
+      conversionRate: 0
+    })
+  const [pagination, setPagination] =
+    useState({
+      total: 0,
+      page: 1,
+      limit: 10,
+      totalPages: 0
+    })
+  const [filters, setFilters] = useState({
+    stageId: '',
+    counsellorId: '',
+    search: '',
+    academicYearId: ''
+  })
+  const [activeStageFilter, setActiveStageFilter] =
+    useState<string | null>(null)
+  const searchTimeout = useRef<NodeJS.Timeout | undefined>(undefined)
+  const [counsellors, setCounsellors] =
+    useState<any[]>([])
+
   const [stageDropdownId, 
     setStageDropdownId] =
     useState<string | null>(null)
   const [counsellorDropdownId,
     setCounsellorDropdownId] =
     useState<string | null>(null)
-  const [applicantsList, setApplicantsList] =
-    useState<Applicant[]>(applicants)
   const [toast, setToast] = useState<{
     msg: string
     type: 'success' | 'info' | 'error'
     show: boolean
   }>({ msg: '', type: 'success', show: false })
   const [showConvertModal, setShowConvertModal] =
-    useState<Applicant | null>(null)
+    useState<any | null>(null)
   const [showRejectModal, setShowRejectModal] =
-    useState<Applicant | null>(null)
+    useState<any | null>(null)
+
+  // Fetch counsellors on mount
+  useEffect(() => {
+    const fetchCounsellors = async () => {
+      try {
+        const res = await fetch('/api/v1/counsellors')
+        if (res.ok) {
+          const json = await res.json()
+          setCounsellors(json.data ?? [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch counsellors', err)
+      }
+    }
+    fetchCounsellors()
+  }, [])
+
+  // STEP 4: Fetch pipeline summary on mount
+  const fetchPipeline = useCallback(
+    async () => {
+      try {
+        const res = await fetch(
+          '/api/v1/admissions/pipeline'
+        )
+        if (!res.ok) throw new Error(
+          'Failed to fetch pipeline'
+        )
+        const json = await res.json()
+        setPipeline(json.data?.pipeline ?? [])
+        setPipelineStats({
+          total: json.data?.total ?? 0,
+          conversionRate:
+            json.data?.conversionRate ?? 0
+        })
+      } catch (err) {
+        console.error('Pipeline error:', err)
+      }
+    }, []
+  )
+
+  // STEP 5: Add fetchAdmissions function
+  const fetchAdmissions = useCallback(
+    async () => {
+      setLoading(true)
+      try {
+        const params = new URLSearchParams()
+        params.set('page',
+          String(pagination.page))
+        params.set('limit', '10')
+        if (filters.stageId)
+          params.set('stageId',
+            filters.stageId)
+        if (filters.counsellorId)
+          params.set('counsellorId',
+            filters.counsellorId)
+        if (filters.search)
+          params.set('search', filters.search)
+        if (filters.academicYearId)
+          params.set('academicYearId',
+            filters.academicYearId)
+
+        const res = await fetch(
+          '/api/v1/admissions?' +
+          params.toString()
+        )
+        if (!res.ok) throw new Error(
+          'Failed to fetch admissions'
+        )
+        const json = await res.json()
+        
+        // Map API data to original Applicant UI fields
+        const mapped = (json.data ?? []).map((adm: any) => {
+          const name = adm.applicantName ?? ''
+          const avatar = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+          
+          const counsellorName = adm.assignedTo?.name ?? null
+          const counsellorAvatar = counsellorName
+            ? counsellorName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+            : null
+            
+          const stageData = configPipeline.find(
+            s => s.label === adm.stage?.name ||
+            s.label?.toLowerCase() === adm.stage?.name?.toLowerCase() ||
+            adm.stage?.name?.toLowerCase().startsWith(s.label?.toLowerCase()) ||
+            s.label?.toLowerCase().startsWith(adm.stage?.name?.toLowerCase())
+          )
+          const stageIndex = stageData ? stageData.order - 1 : 0
+          
+          const docsUploaded = adm._count?.documents ?? 0
+          const docsRequired = 3
+
+          const createdDate = adm.createdAt ? new Date(adm.createdAt).toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }) : '—'
+
+          const daysInStage = adm.createdAt
+            ? Math.floor((Date.now() - new Date(adm.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+            : 0
+
+          return {
+            id: adm.id,
+            admissionCode: adm.admissionCode ?? '',
+            firstName: name.split(' ')[0] || '',
+            lastName: name.split(' ').slice(1).join(' ') || '',
+            fullName: name,
+            avatar,
+            parentName: adm.parentName ?? '',
+            phone: adm.phone ?? '',
+            email: adm.email ?? '',
+            applyingFor: adm.gradeSought ?? '',
+            source: adm.source ?? 'Other',
+            counsellor: counsellorName,
+            counsellorAvatar,
+            stage: adm.stage?.name ?? 'New',
+            stageId: stageData ? stageData.id : (adm.stageId ?? 'new'),
+            stageIndex,
+            createdDate,
+            status: daysInStage > 14 ? 'overdue' : daysInStage > 7 ? 'warning' : 'active',
+            daysInStage,
+            pendingAction: null,
+            docsUploaded,
+            docsRequired,
+            feePaid: adm.stage?.isWon ?? false,
+            priority: adm.priority === 'URGENT' ? 'Urgent' : adm.priority === 'HIGH' ? 'High' : 'Normal'
+          }
+        })
+
+        setApplicants(mapped)
+        setPagination(json.pagination ?? {
+          total: 0, page: 1,
+          limit: 10, totalPages: 0
+        })
+      } catch (err) {
+        setError('Failed to load admissions')
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }, [filters, pagination.page]
+  )
+
+  // STEP 6: Add useEffects
+  useEffect(() => {
+    fetchPipeline()
+  }, [fetchPipeline])
+
+  useEffect(() => {
+    fetchAdmissions()
+  }, [fetchAdmissions])
 
   // Dropdown filter variables
   const [filterApplyingFor, setFilterApplyingFor] = useState<string | null>(null)
@@ -540,14 +501,17 @@ export default function AdmissionManagementPage() {
   // FILTERING LOGIC
   // ===================================================================
   const filteredApplicants = 
-    applicantsList.filter(a => {
-      if (activeStageFilter &&
-        a.stageId !== activeStageFilter)
-        return false
+    applicants.filter(a => {
+      if (activeStageFilter) {
+        const localStage = configPipeline.find(s => s.id === activeStageFilter)
+        const activeLabel = localStage ? localStage.label : ''
+        if (a.stage.toLowerCase() !== activeLabel.toLowerCase())
+          return false
+      }
       if (searchQuery &&
         !a.fullName.toLowerCase()
         .includes(searchQuery.toLowerCase()) &&
-        !a.id.toLowerCase()
+        !a.admissionCode.toLowerCase()
         .includes(searchQuery.toLowerCase()) &&
         !a.applyingFor.toLowerCase()
         .includes(searchQuery.toLowerCase()))
@@ -566,20 +530,38 @@ export default function AdmissionManagementPage() {
       return true
     })
 
-  const totalCount = applicantsList.length
-  const conversionRate = Math.round(
-    (applicantsList.filter(
-      a => a.stageId === 'admitted' ||
-      a.stageId === 'enrolled'
-    ).length / totalCount) * 100
-  )
+  const totalCount = pipelineStats.total
+  const conversionRate = pipelineStats.conversionRate
   const pendingActionCount = 
-    applicantsList.filter(
+    applicants.filter(
       a => a.pendingAction !== null
     ).length
 
+  const showingStart = filteredApplicants.length > 0 ? (pagination.page - 1) * 10 + 1 : 0
+  const showingEnd = (pagination.page - 1) * 10 + filteredApplicants.length
+
+  const getStageCount = (stageLabel: string) => {
+    const apiStage = pipeline.find(
+      p => p.label === stageLabel ||
+      p.label?.toLowerCase() === stageLabel?.toLowerCase() ||
+      p.label?.toLowerCase().startsWith(stageLabel?.toLowerCase()) ||
+      stageLabel?.toLowerCase().startsWith(p.label?.toLowerCase())
+    )
+    return apiStage?.count ?? 0
+  }
+
+  const getDatabaseStageId = (localStageLabel: string) => {
+    const apiStage = pipeline.find(
+      p => p.label === localStageLabel ||
+      p.label?.toLowerCase() === localStageLabel?.toLowerCase() ||
+      p.label?.toLowerCase().startsWith(localStageLabel?.toLowerCase()) ||
+      localStageLabel?.toLowerCase().startsWith(p.label?.toLowerCase())
+    )
+    return apiStage?.id
+  }
+
   // Unique lists for filter dropdown values
-  const uniqueApplyingFor = Array.from(new Set(applicantsList.map(a => a.applyingFor)))
+  const uniqueApplyingFor = Array.from(new Set(applicants.map(a => a.applyingFor)))
 
   const isAnyFilterActive = !!(
     filterApplyingFor ||
@@ -619,27 +601,36 @@ export default function AdmissionManagementPage() {
     }
   }
 
-  const handleAssignCounsellor = (applicantId: string, name: string | null) => {
-    setApplicantsList(prev => prev.map(a => {
-      if (a.id === applicantId) {
-        const c = counsellors.find(item => item.name === name)
-        return {
-          ...a,
-          counsellor: name,
-          counsellorAvatar: c ? c.avatar : null
+  // STEP 10: Wire inline counsellor assign
+  const handleAssignCounsellor = async (applicantId: string, counsellorId: string | null) => {
+    try {
+      await fetch(
+        '/api/v1/admissions/' + applicantId,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            assignedToId: counsellorId
+          })
         }
-      }
-      return a
-    }))
+      )
+      fetchAdmissions()
+      const c = counsellors.find(item => item.id === counsellorId)
+      showToast(c ? `Assigned to ${c.name}` : 'Unassigned counsellor')
+    } catch (err) {
+      console.error('Assign failed', err)
+    }
     setCounsellorDropdownId(null)
-    showToast(name ? `Assigned to ${name}` : 'Unassigned counsellor')
   }
 
-  const handleMoveStage = (applicantId: string, targetStageId: string) => {
-    const targetStage = pipeline.find(s => s.id === targetStageId)
+  // STEP 9: Wire inline stage change
+  const handleMoveStage = async (applicantId: string, targetStageId: string) => {
+    const targetStage = configPipeline.find(s => s.id === targetStageId)
     if (!targetStage) return
 
-    const applicant = applicantsList.find(a => a.id === applicantId)
+    const applicant = applicants.find(a => a.id === applicantId)
     if (!applicant) return
 
     if (targetStage.isTerminal) {
@@ -649,117 +640,127 @@ export default function AdmissionManagementPage() {
         setShowRejectModal(applicant)
       }
     } else {
-      setApplicantsList(prev => prev.map(a => {
-        if (a.id === applicantId) {
-          return {
-            ...a,
-            stageId: targetStageId,
-            stage: targetStage.label,
-            stageIndex: targetStage.order - 1
+      try {
+        const dbStageId = getDatabaseStageId(targetStage.label)
+        await fetch(
+          '/api/v1/admissions/' + applicantId,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              stageId: dbStageId || targetStageId
+            })
           }
-        }
-        return a
-      }))
-      showToast(`Moved to ${targetStage.label}`)
+        )
+        fetchAdmissions()
+        fetchPipeline()
+        showToast(`Moved to ${targetStage.label}`)
+      } catch (err) {
+        console.error('Stage update failed', err)
+      }
     }
     setStageDropdownId(null)
   }
 
-  const handleConfirmConvert = () => {
+  // STEP 11: Wire convert modal confirm
+  const handleConfirmConvert = async () => {
     if (!showConvertModal) return
     const applicantId = showConvertModal.id
-    const name = showConvertModal.fullName
-
-    const targetStageId = type === 'school' ? 'admitted' : 'enrolled'
-    const targetStage = pipeline.find(s => s.id === targetStageId)
-    if (targetStage) {
-      setApplicantsList(prev => prev.map(a => {
-        if (a.id === applicantId) {
-          return {
-            ...a,
-            stageId: targetStage.id,
-            stage: targetStage.label,
-            stageIndex: targetStage.order - 1,
-            feePaid: true
-          }
-        }
-        return a
-      }))
+    try {
+      await fetch(
+        '/api/v1/admissions/' +
+        applicantId + '/convert',
+        { method: 'POST' }
+      )
+      fetchAdmissions()
+      fetchPipeline()
+      showToast('Student record created')
+    } catch (err) {
+      console.error('Convert failed', err)
     }
     setShowConvertModal(null)
-    showToast(`${name} converted to student`)
   }
 
-  const handleConfirmReject = () => {
+  // STEP 12: Wire reject confirm
+  const handleConfirmReject = async () => {
     if (!showRejectModal) return
     const applicantId = showRejectModal.id
-    const name = showRejectModal.fullName
-
-    const targetStage = pipeline.find(s => s.id === 'rejected')
-    if (targetStage) {
-      setApplicantsList(prev => prev.map(a => {
-        if (a.id === applicantId) {
-          return {
-            ...a,
-            stageId: targetStage.id,
-            stage: targetStage.label,
-            stageIndex: targetStage.order - 1,
-            pendingAction: rejectReason ? `Rejected: ${rejectReason}` : 'Rejected'
-          }
+    try {
+      await fetch(
+        '/api/v1/admissions/' + applicantId,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            status: 'REJECTED',
+            rejectionReason: rejectReason
+          })
         }
-        return a
-      }))
+      )
+      fetchAdmissions()
+      fetchPipeline()
+    } catch (err) {
+      console.error('Reject failed', err)
     }
     setShowRejectModal(null)
     setRejectReason('')
-    showToast(`${name} application rejected`, 'error')
   }
 
   // Bulk operation handlers
-  const handleBulkMoveStage = (targetStageId: string) => {
-    const targetStage = pipeline.find(s => s.id === targetStageId)
+  const handleBulkMoveStage = async (targetStageId: string) => {
+    const targetStage = configPipeline.find(s => s.id === targetStageId)
     if (!targetStage) return
 
-    setApplicantsList(prev => prev.map(a => {
-      if (selectedItems.includes(a.id)) {
-        return {
-          ...a,
-          stageId: targetStageId,
-          stage: targetStage.label,
-          stageIndex: targetStage.order - 1
-        }
-      }
-      return a
-    }))
+    try {
+      const dbStageId = getDatabaseStageId(targetStage.label)
+      await Promise.all(selectedItems.map(id =>
+        fetch('/api/v1/admissions/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stageId: dbStageId || targetStageId })
+        })
+      ))
+      fetchAdmissions()
+      fetchPipeline()
+      showToast(`Selected applicants moved to ${targetStage.label}`)
+    } catch (err) {
+      console.error('Bulk move failed', err)
+    }
     setShowBulkStageDropdown(false)
     setSelectedItems([])
-    showToast(`Selected applicants moved to ${targetStage.label}`)
   }
 
-  const handleBulkAssignCounsellor = (counsellorName: string | null) => {
-    setApplicantsList(prev => prev.map(a => {
-      if (selectedItems.includes(a.id)) {
-        const c = counsellors.find(item => item.name === counsellorName)
-        return {
-          ...a,
-          counsellor: counsellorName,
-          counsellorAvatar: c ? c.avatar : null
-        }
-      }
-      return a
-    }))
+  const handleBulkAssignCounsellor = async (counsellorName: string | null) => {
+    const c = counsellors.find(item => item.name === counsellorName)
+    const counsellorId = c ? c.id : null
+    try {
+      await Promise.all(selectedItems.map(id =>
+        fetch('/api/v1/admissions/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assignedToId: counsellorId })
+        })
+      ))
+      fetchAdmissions()
+      showToast(counsellorName ? `Selected assigned to ${counsellorName}` : 'Selected unassigned')
+    } catch (err) {
+      console.error('Bulk assign failed', err)
+    }
     setShowBulkCounsellorDropdown(false)
     setSelectedItems([])
-    showToast(counsellorName ? `Selected assigned to ${counsellorName}` : 'Selected unassigned')
   }
 
   const handleBulkDelete = () => {
-    setApplicantsList(prev => prev.filter(a => !selectedItems.includes(a.id)))
+    setApplicants(prev => prev.filter(a => !selectedItems.includes(a.id)))
     setSelectedItems([])
     showToast('Deleted selected applicants', 'error')
   }
 
-  const getLeftBorderBg = (a: typeof applicants[0]) => {
+  const getLeftBorderBg = (a: any) => {
     if (a.status === 'overdue') return 'bg-red-500'
     if (a.status === 'warning') return 'bg-amber-400'
     if (a.status === 'recent' || a.daysInStage <= 1) return 'bg-green-400'
@@ -937,21 +938,32 @@ export default function AdmissionManagementPage() {
             {/* STAGE BOXES ROW */}
             <div className="relative">
               <div className="grid grid-cols-4 gap-2 md:flex md:items-stretch md:gap-2 md:overflow-x-auto pb-2 scroll-smooth [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-slate-400">
-                {pipeline.map((stage, idx) => {
+                {configPipeline.map((stage, idx) => {
                   const IconComponent = getIcon(stage.iconName)
                   const isActive = activeStageFilter === stage.id
-                  const maxCount = Math.max(...pipeline.map(s => s.count)) || 1
+                  const maxCount = Math.max(...pipeline.map(s => s.count), 0) || 1
+                  const stageCount = getStageCount(stage.label)
 
                   return (
                     <React.Fragment key={stage.id}>
                       <div className="flex flex-col">
                         <div
                           onClick={() => {
-                            setActiveStageFilter(
-                              activeStageFilter === stage.id
-                                ? null
-                                : stage.id
+                            const newStageId = activeStageFilter === stage.id ? '' : stage.id
+                            setActiveStageFilter(newStageId || null)
+                            
+                            const dbStage = pipeline.find(
+                              p => p.label === stage.label ||
+                              p.label?.toLowerCase() === stage.label?.toLowerCase() ||
+                              p.label?.toLowerCase().startsWith(stage.label?.toLowerCase()) ||
+                              stage.label?.toLowerCase().startsWith(p.label?.toLowerCase())
                             )
+                            
+                            setFilters(f => ({
+                              ...f,
+                              stageId: newStageId ? (dbStage ? dbStage.id : '') : ''
+                            }))
+                            setPagination(p => ({ ...p, page: 1 }))
                           }}
                           className={`flex flex-col items-center text-center px-2 py-2 rounded-xl border cursor-pointer transition-all duration-200 flex-shrink-0 min-w-[100px]
                             md:flex-row md:items-center md:text-left md:gap-2 md:px-3 md:py-2
@@ -966,7 +978,7 @@ export default function AdmissionManagementPage() {
                             strokeWidth={1.5} 
                           />
                           <span className={`text-lg md:text-xl font-bold ${isActive ? stage.textClass : 'text-slate-800'}`} style={{ fontFamily: "'Poppins', sans-serif" }}>
-                            {stage.count}
+                            {stageCount}
                           </span>
                           
                           {/* Desktop label */}
@@ -981,11 +993,11 @@ export default function AdmissionManagementPage() {
                         </div>
                         <div
                           className={`hidden md:block h-1 rounded-full mt-1.5 ${stage.barClass}`}
-                          style={{ width: `${(stage.count / maxCount) * 100}%`, minWidth: '6px' }}
+                          style={{ width: `${(stageCount / maxCount) * 100}%`, minWidth: '6px' }}
                         />
                       </div>
 
-                      {idx < pipeline.length - 1 && (
+                      {idx < configPipeline.length - 1 && (
                         <ChevronRight 
                           size={12} 
                           className="hidden md:block text-slate-200 self-center flex-shrink-0" 
@@ -1006,11 +1018,16 @@ export default function AdmissionManagementPage() {
                 <button
                   onClick={() => {
                     setActiveStageFilter(null)
+                    setFilters(f => ({
+                      ...f,
+                      stageId: ''
+                    }))
+                    setPagination(p => ({ ...p, page: 1 }))
                   }}
                   className="text-xs font-semibold text-slate-400 hover:text-[#1565D8] flex items-center gap-1 cursor-pointer font-sans"
                 >
                   <X size={12} />
-                  Clear filter · Showing {pipeline.find(p => p.id === activeStageFilter)?.label} ({filteredApplicants.length})
+                  Clear filter · Showing {configPipeline.find(p => p.id === activeStageFilter)?.label} ({filteredApplicants.length})
                 </button>
               </div>
             )}
@@ -1026,11 +1043,32 @@ export default function AdmissionManagementPage() {
                 type="text"
                 placeholder={`Search by name, ID, ${config.applyingForLabel[type]}...`}
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  clearTimeout(searchTimeout.current)
+                  searchTimeout.current = setTimeout(
+                    () => {
+                      setFilters(f => ({
+                        ...f,
+                        search: e.target.value
+                      }))
+                      setPagination(p =>
+                        ({ ...p, page: 1 }))
+                    },
+                    300
+                  )
+                }}
                 className="bg-transparent border-none outline-none text-sm w-full text-slate-750 placeholder-slate-500 font-sans"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-slate-600">
+                <button onClick={() => {
+                  setSearchQuery('')
+                  setFilters(f => ({
+                    ...f,
+                    search: ''
+                  }))
+                  setPagination(p => ({ ...p, page: 1 }))
+                }} className="text-slate-400 hover:text-slate-650">
                   <X size={14} />
                 </button>
               )}
@@ -1126,7 +1164,7 @@ export default function AdmissionManagementPage() {
                   }}
                   className="flex items-center gap-1.5 bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans"
                 >
-                  <span>{filterStage ? `Stage: ${pipeline.find(s => s.id === filterStage)?.label}` : 'Stage ▾'}</span>
+                  <span>{filterStage ? `Stage: ${configPipeline.find(s => s.id === filterStage)?.label}` : 'Stage ▾'}</span>
                 </button>
                 {showStageFilterDropdown && (
                   <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] max-h-48 overflow-y-auto">
@@ -1136,7 +1174,7 @@ export default function AdmissionManagementPage() {
                     >
                       All Stages
                     </div>
-                    {pipeline.map(s => (
+                    {configPipeline.map(s => (
                       <div
                         key={s.id}
                         onClick={() => { setFilterStage(s.id); setShowStageFilterDropdown(false) }}
@@ -1300,7 +1338,7 @@ export default function AdmissionManagementPage() {
 
 
           {/* EMPTY STATE BLOCK */}
-          {filteredApplicants.length === 0 && (
+          {!loading && filteredApplicants.length === 0 && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm py-20 text-center flex flex-col items-center justify-center">
               <ClipboardList size={48} className="text-slate-200" strokeWidth={1.5} />
               <h3 className="text-lg font-bold text-slate-500 mt-4 font-sans" style={{ fontFamily: "'Poppins', sans-serif" }}>
@@ -1322,7 +1360,7 @@ export default function AdmissionManagementPage() {
           {/* ===================================================================
               SECTION 5 — LIST VIEW
               =================================================================== */}
-          {activeView === 'list' && filteredApplicants.length > 0 && (
+          {activeView === 'list' && (loading || filteredApplicants.length > 0) && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               {/* TABLE HEADER */}
               <div className="hidden md:flex items-center px-4 py-3 gap-3 bg-slate-100 border-b border-slate-200 select-none">
@@ -1365,332 +1403,378 @@ export default function AdmissionManagementPage() {
 
               {/* TABLE BODY */}
               <div className="divide-y divide-slate-100">
-                {filteredApplicants.map((a, idx) => {
-                  const stageData = pipeline.find(s => s.id === a.stageId) || pipeline[0]
-                  const leftBorderColor = getLeftBorderBg(a)
-
-                  return (
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, idx) => (
                     <div
-                      key={a.id}
-                      onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                      className={`relative flex items-center px-4 py-3.5 gap-3 transition-colors duration-100 cursor-pointer hover:bg-blue-50 ${
+                      key={`skeleton-${idx}`}
+                      className={`relative flex items-center px-4 py-3.5 gap-3 ${
                         idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
                       }`}
                     >
-                      {/* Left border highlight */}
-                      <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-r ${leftBorderColor}`} />
-
-                      {/* Checkbox */}
-                      <div className="w-8 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedItems.includes(a.id)}
-                          onChange={() => handleSelectApplicant(a.id)}
-                          className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
-                        />
+                      <div className="w-8 flex-shrink-0">
+                        <Skeleton className="w-4 h-4 rounded" />
                       </div>
-
-                      {/* Applicant details */}
                       <div className="flex-1 min-w-[200px] flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
-                          {a.avatar}
+                        <Skeleton className="w-9 h-9 rounded-full" />
+                        <div className="space-y-1.5 flex-1 max-w-[150px]">
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-3 w-2/3" />
                         </div>
-                        <div className="min-w-0">
-                          <Link
-                            href={`/admission-management/${a.id}`}
-                            onClick={e => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              handleNavigate(`/admission-management/${a.id}`)
-                            }}
-                            className="text-base font-semibold text-[#1565D8] hover:underline truncate block font-sans"
-                          >
-                            {a.fullName}
-                          </Link>
-                          <span className="text-xs text-slate-400 mt-0.5 truncate block font-sans">
-                            {type === 'school' ? `Parent: ${a.parentName}` : a.phone}
+                      </div>
+                      <div className="hidden md:flex w-32 flex-shrink-0">
+                        <Skeleton className="h-6 w-16 rounded-lg" />
+                      </div>
+                      <div className="hidden md:flex w-28 flex-shrink-0">
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                      </div>
+                      <div className="hidden xl:flex w-24 flex-shrink-0 gap-1.5">
+                        <Skeleton className="w-7 h-7 rounded-lg" />
+                        <Skeleton className="w-7 h-7 rounded-lg" />
+                        <Skeleton className="w-7 h-7 rounded-lg" />
+                      </div>
+                      <div className="hidden xl:flex w-36 flex-shrink-0">
+                        <Skeleton className="h-5 w-24 rounded" />
+                      </div>
+                      <div className="w-36 flex-shrink-0">
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                      </div>
+                      <div className="hidden md:flex w-20 flex-shrink-0">
+                        <Skeleton className="h-4 w-12" />
+                      </div>
+                      <div className="hidden xl:flex w-24 flex-shrink-0">
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                      <div className="w-12 flex-shrink-0 flex justify-center">
+                        <Skeleton className="w-8 h-8 rounded-lg" />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  filteredApplicants.map((a, idx) => {
+                    const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
+                    const leftBorderColor = getLeftBorderBg(a)
+
+                    return (
+                      <div
+                        key={a.id}
+                        onClick={() => handleNavigate(`/admission-management/${a.id}`)}
+                        className={`relative flex items-center px-4 py-3.5 gap-3 transition-colors duration-100 cursor-pointer hover:bg-blue-50 ${
+                          idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                        }`}
+                      >
+                        {/* Left border highlight */}
+                        <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-r ${leftBorderColor}`} />
+
+                        {/* Checkbox */}
+                        <div className="w-8 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedItems.includes(a.id)}
+                            onChange={() => handleSelectApplicant(a.id)}
+                            className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
+                          />
+                        </div>
+
+                        {/* Applicant details */}
+                        <div className="flex-1 min-w-[200px] flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                            {a.avatar}
+                          </div>
+                          <div className="min-w-0">
+                            <Link
+                              href={`/admission-management/${a.id}`}
+                              onClick={e => {
+                                e.stopPropagation()
+                              }}
+                              className="text-base font-semibold text-[#1565D8] hover:underline truncate block font-sans"
+                            >
+                              {a.fullName}
+                            </Link>
+                            <span className="text-xs text-slate-400 mt-0.5 truncate block font-sans">
+                              {type === 'school' ? `Parent: ${a.parentName}` : a.phone}
+                            </span>
+                            
+                            {/* Pending action badge */}
+                            {a.pendingAction && (
+                              <div className="flex items-center gap-1 w-fit bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5 mt-1">
+                                <AlertCircle size={10} className="text-amber-500" strokeWidth={2.5} />
+                                <span className="text-[10px] font-semibold text-amber-700 font-sans">
+                                  {a.pendingAction}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Applying For */}
+                        <div className="hidden md:flex w-32 flex-shrink-0">
+                          <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1.5 rounded-lg w-fit font-sans">
+                            {a.applyingFor}
                           </span>
-                          
-                          {/* Pending action badge */}
-                          {a.pendingAction && (
-                            <div className="flex items-center gap-1 w-fit bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5 mt-1">
-                              <AlertCircle size={10} className="text-amber-500" strokeWidth={2.5} />
-                              <span className="text-[10px] font-semibold text-amber-700 font-sans">
-                                {a.pendingAction}
+                        </div>
+
+                        {/* Source */}
+                        <div className="hidden md:flex w-28 flex-shrink-0">
+                          <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full w-fit ${
+                            sourceConfig[a.source]?.bg || 'bg-slate-100'
+                          } ${sourceConfig[a.source]?.text || 'text-slate-650'}`}>
+                            <span className={`w-2 h-2 rounded-full ${sourceConfig[a.source]?.dot || 'bg-slate-400'}`} />
+                            <span>{a.source}</span>
+                          </div>
+                        </div>
+
+                        {/* Connect icons */}
+                        <div className="hidden xl:flex w-24 flex-shrink-0 items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => showToast("Email initiated", "info")}
+                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 transition"
+                            title="Send Email"
+                          >
+                            <Mail size={13} className="text-slate-400" strokeWidth={1.5} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              window.open(`https://wa.me/91${a.phone}`)
+                              showToast("WhatsApp opened", "success")
+                            }}
+                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-green-50 hover:border-green-200 transition"
+                            title="WhatsApp chat"
+                          >
+                            <MessageCircle size={13} className="text-green-500" strokeWidth={1.5} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              window.open(`tel:${a.phone}`)
+                              showToast("Call initiated", "success")
+                            }}
+                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 transition"
+                            title="Phone Call"
+                          >
+                            <Phone size={13} className="text-blue-500" strokeWidth={1.5} />
+                          </button>
+                        </div>
+
+                        {/* Counsellor selection */}
+                        <div className="hidden xl:flex w-36 flex-shrink-0 relative" onClick={e => e.stopPropagation()}>
+                          {a.counsellor ? (
+                            <div
+                              onClick={() => setCounsellorDropdownId(counsellorDropdownId === a.id ? null : a.id)}
+                              className="flex items-center gap-2 cursor-pointer group hover:opacity-85"
+                            >
+                              <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold flex items-center justify-center shrink-0">
+                                {a.counsellorAvatar}
+                              </div>
+                              <span className="text-xs font-semibold text-slate-700 group-hover:text-[#1565D8] truncate font-sans">
+                                {a.counsellor}
                               </span>
+                              <Pencil size={11} className="text-slate-300 group-hover:text-slate-400 shrink-0" strokeWidth={2} />
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setCounsellorDropdownId(a.id)}
+                              className="text-[11px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 px-2.5 py-1.5 rounded-lg border border-amber-200 cursor-pointer font-sans"
+                            >
+                              Assign
+                            </button>
+                          )}
+
+                          {counsellorDropdownId === a.id && (
+                            <div className="absolute bottom-full left-0 mb-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[200px]">
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1.5 border-b border-slate-100 mb-1 font-sans">
+                                Assign Counsellor
+                              </div>
+                              {counsellors.map(c => (
+                                <div
+                                  key={c.id}
+                                  onClick={() => handleAssignCounsellor(a.id, c.id)}
+                                  className="px-3 py-2 rounded-lg cursor-pointer text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-sans"
+                                >
+                                  <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 text-[9px] font-bold flex items-center justify-center shrink-0">
+                                    {c.name ? c.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : ''}
+                                  </div>
+                                  <span>{c.name}</span>
+                                </div>
+                              ))}
+                              <DropdownMenuSeparator />
+                              <div
+                                onClick={() => handleAssignCounsellor(a.id, null)}
+                                className="px-3 py-2 rounded-lg cursor-pointer text-xs font-bold text-red-500 hover:bg-red-50 font-sans"
+                              >
+                                Unassign
+                              </div>
                             </div>
                           )}
                         </div>
-                      </div>
 
-                      {/* Applying For */}
-                      <div className="hidden md:flex w-32 flex-shrink-0">
-                        <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1.5 rounded-lg w-fit font-sans">
-                          {a.applyingFor}
-                        </span>
-                      </div>
-
-                      {/* Source */}
-                      <div className="hidden md:flex w-28 flex-shrink-0">
-                        <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full w-fit ${
-                          sourceConfig[a.source]?.bg || 'bg-slate-100'
-                        } ${sourceConfig[a.source]?.text || 'text-slate-600'}`}>
-                          <span className={`w-2 h-2 rounded-full ${sourceConfig[a.source]?.dot || 'bg-slate-400'}`} />
-                          <span>{a.source}</span>
-                        </div>
-                      </div>
-
-                      {/* Connect icons */}
-                      <div className="hidden xl:flex w-24 flex-shrink-0 items-center gap-1.5" onClick={e => e.stopPropagation()}>
-                        <button
-                          onClick={() => showToast("Email initiated", "info")}
-                          className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 transition"
-                          title="Send Email"
-                        >
-                          <Mail size={13} className="text-slate-400" strokeWidth={1.5} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            window.open(`https://wa.me/91${a.phone}`)
-                            showToast("WhatsApp opened", "success")
-                          }}
-                          className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-green-50 hover:border-green-200 transition"
-                          title="WhatsApp chat"
-                        >
-                          <MessageCircle size={13} className="text-green-500" strokeWidth={1.5} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            window.open(`tel:${a.phone}`)
-                            showToast("Call initiated", "success")
-                          }}
-                          className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 transition"
-                          title="Phone Call"
-                        >
-                          <Phone size={13} className="text-blue-500" strokeWidth={1.5} />
-                        </button>
-                      </div>
-
-                      {/* Counsellor selection */}
-                      <div className="hidden xl:flex w-36 flex-shrink-0 relative" onClick={e => e.stopPropagation()}>
-                        {a.counsellor ? (
+                        {/* Stage selection */}
+                        <div className="w-36 flex-shrink-0 relative" onClick={e => e.stopPropagation()}>
                           <div
-                            onClick={() => setCounsellorDropdownId(counsellorDropdownId === a.id ? null : a.id)}
-                            className="flex items-center gap-2 cursor-pointer group hover:opacity-85"
+                            onClick={() => setStageDropdownId(stageDropdownId === a.id ? null : a.id)}
+                            className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-full border cursor-pointer hover:opacity-85 justify-between w-fit ${
+                              stageData.bgClass
+                            } ${stageData.textClass} ${stageData.borderClass}`}
                           >
-                            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold flex items-center justify-center shrink-0">
-                              {a.counsellorAvatar}
-                            </div>
-                            <span className="text-xs font-semibold text-slate-700 group-hover:text-[#1565D8] truncate font-sans">
-                              {a.counsellor}
-                            </span>
-                            <Pencil size={11} className="text-slate-300 group-hover:text-slate-400 shrink-0" strokeWidth={2} />
+                            <span className="truncate">{stageData.label}</span>
+                            <ChevronDown size={10} className="ml-0.5 shrink-0" strokeWidth={2.5} />
                           </div>
-                        ) : (
-                          <button
-                            onClick={() => setCounsellorDropdownId(a.id)}
-                            className="text-[11px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 px-2.5 py-1.5 rounded-lg border border-amber-200 cursor-pointer font-sans"
-                          >
-                            Assign
-                          </button>
-                        )}
 
-                        {counsellorDropdownId === a.id && (
-                          <div className="absolute bottom-full left-0 mb-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[200px]">
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1.5 border-b border-slate-100 mb-1 font-sans">
-                              Assign Counsellor
-                            </div>
-                            {counsellors.map(c => (
-                              <div
-                                key={c.id}
-                                onClick={() => handleAssignCounsellor(a.id, c.name)}
-                                className="px-3 py-2 rounded-lg cursor-pointer text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-sans"
-                              >
-                                <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 text-[9px] font-bold flex items-center justify-center shrink-0">
-                                  {c.avatar}
-                                </div>
-                                <span>{c.name}</span>
-                              </div>
-                            ))}
-                            <DropdownMenuSeparator />
-                            <div
-                              onClick={() => handleAssignCounsellor(a.id, null)}
-                              className="px-3 py-2 rounded-lg cursor-pointer text-xs font-bold text-red-500 hover:bg-red-50 font-sans"
-                            >
-                              Unassign
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Stage selection */}
-                      <div className="w-36 flex-shrink-0 relative" onClick={e => e.stopPropagation()}>
-                        <div
-                          onClick={() => setStageDropdownId(stageDropdownId === a.id ? null : a.id)}
-                          className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-full border cursor-pointer hover:opacity-85 justify-between w-fit ${
-                            stageData.bgClass
-                          } ${stageData.textClass} ${stageData.borderClass}`}
-                        >
-                          <span className="truncate">{stageData.label}</span>
-                          <ChevronDown size={10} className="ml-0.5 shrink-0" strokeWidth={2.5} />
-                        </div>
-
-                        {/* Stage dots */}
-                        <div className="flex items-center gap-1 mt-1.5 select-none">
-                          {pipeline.filter(s => s.id !== 'rejected').map((s, sIdx) => (
-                            <span
-                              key={s.id}
-                              className={`w-2 h-2 rounded-full ${
-                                sIdx <= a.stageIndex ? `${s.dotClass} opacity-100` : 'bg-slate-200'
-                              }`}
-                            />
-                          ))}
-                          <span className="text-[9px] text-slate-400 ml-1.5 font-sans font-medium">
-                            {a.stageIndex + 1}/{pipeline.length - 1}
-                          </span>
-                        </div>
-
-                        {/* Days in stage warning */}
-                        {a.daysInStage > 7 && (
-                          <div className="text-[10px] text-red-400 font-medium mt-1 flex items-center gap-0.5 font-sans">
-                            <span>⚠</span>
-                            <span>{a.daysInStage}d in stage</span>
-                          </div>
-                        )}
-
-                        {stageDropdownId === a.id && (
-                          <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[180px] max-h-56 overflow-y-auto">
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1.5 border-b border-slate-100 mb-1 font-sans">
-                              MOVE TO STAGE
-                            </div>
-                            {pipeline.map(s => (
-                              <div
+                          {/* Stage dots */}
+                          <div className="flex items-center gap-1 mt-1.5 select-none">
+                            {configPipeline.filter(s => s.id !== 'rejected').map((s, sIdx) => (
+                              <span
                                 key={s.id}
-                                onClick={() => handleMoveStage(a.id, s.id)}
-                                className={`px-3 py-2 rounded-lg cursor-pointer text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between font-sans ${
-                                  a.stageId === s.id ? 'bg-slate-50 font-bold' : ''
+                                className={`w-2 h-2 rounded-full ${
+                                  sIdx <= a.stageIndex ? `${s.dotClass} opacity-100` : 'bg-slate-200'
                                 }`}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className={`w-2 h-2 rounded-full ${s.dotClass}`} />
-                                  <span>{s.label}</span>
-                                </div>
-                                {a.stageId === s.id && <Check size={12} className="text-[#1565D8]" />}
-                              </div>
+                              />
                             ))}
+                            <span className="text-[9px] text-slate-400 ml-1.5 font-sans font-medium">
+                              {a.stageIndex + 1}/{configPipeline.length - 1}
+                            </span>
                           </div>
-                        )}
-                      </div>
 
-                      {/* Documents Upload status */}
-                      <div className="hidden md:flex w-20 flex-shrink-0 flex-col gap-1">
-                        <span className={`text-xs font-bold font-sans ${
-                          a.docsUploaded === a.docsRequired ? 'text-green-600 font-bold' :
-                          a.docsUploaded > 0 ? 'text-amber-600 font-bold' : 'text-red-600 font-bold'
-                        }`}>
-                          {a.docsUploaded}/{a.docsRequired}
-                        </span>
-                        <div className="w-12 h-1.5 bg-slate-100 rounded overflow-hidden">
-                          <div
-                            className={`h-1.5 rounded ${
-                              a.docsUploaded === a.docsRequired ? 'bg-green-500' :
-                              a.docsUploaded > 0 ? 'bg-amber-400' : 'bg-red-400'
-                            }`}
-                            style={{ width: `${(a.docsUploaded / a.docsRequired) * 100}%` }}
-                          />
+                          {/* Days in stage warning */}
+                          {a.daysInStage > 7 && (
+                            <div className="text-[10px] text-red-400 font-medium mt-1 flex items-center gap-0.5 font-sans">
+                              <span>⚠</span>
+                              <span>{a.daysInStage}d in stage</span>
+                            </div>
+                          )}
+
+                          {stageDropdownId === a.id && (
+                            <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[180px] max-h-56 overflow-y-auto">
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1.5 border-b border-slate-100 mb-1 font-sans">
+                                MOVE TO STAGE
+                              </div>
+                              {configPipeline.map(s => (
+                                <div
+                                  key={s.id}
+                                  onClick={() => handleMoveStage(a.id, s.id)}
+                                  className={`px-3 py-2 rounded-lg cursor-pointer text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between font-sans ${
+                                    a.stageId === s.id ? 'bg-slate-50 font-bold' : ''
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full ${s.dotClass}`} />
+                                    <span>{s.label}</span>
+                                  </div>
+                                  {a.stageId === s.id && <Check size={12} className="text-[#1565D8]" />}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Documents Upload status */}
+                        <div className="hidden md:flex w-20 flex-shrink-0 flex-col gap-1">
+                          <span className={`text-xs font-bold font-sans ${
+                            a.docsUploaded === a.docsRequired ? 'text-green-600 font-bold' :
+                            a.docsUploaded > 0 ? 'text-amber-600 font-bold' : 'text-red-600 font-bold'
+                          }`}>
+                            {a.docsUploaded}/{a.docsRequired}
+                          </span>
+                          <div className="w-12 h-1.5 bg-slate-100 rounded overflow-hidden">
+                            <div
+                              className={`h-1.5 rounded ${
+                                a.docsUploaded === a.docsRequired ? 'bg-green-500' :
+                                a.docsUploaded > 0 ? 'bg-amber-400' : 'bg-red-400'
+                              }`}
+                              style={{ width: `${(a.docsUploaded / a.docsRequired) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Created Date */}
+                        <div className="hidden xl:flex w-24 flex-shrink-0 text-sm text-slate-500 font-medium font-sans">
+                          {a.createdDate}
+                        </div>
+
+                        {/* Dropdown Menu actions */}
+                        <div className="w-12 flex-shrink-0 flex justify-center" onClick={e => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger>
+                              <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none">
+                                <MoreVertical size={16} strokeWidth={1.5}/>
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className="w-56 min-w-[224px] rounded-xl border border-slate-100 shadow-lg p-1.5"
+                            >
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  router.push('/admission-management/' + a.id)
+                                }}
+                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                              >
+                                <Eye size={14} strokeWidth={1.5} className="text-slate-400"/>
+                                View Applicant
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  router.push('/admission-management/' + a.id + '/edit')
+                                }}
+                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                              >
+                                <Pencil size={14} strokeWidth={1.5} className="text-slate-400"/>
+                                Edit Applicant
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                }}
+                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                              >
+                                <FileText size={14} strokeWidth={1.5} className="text-slate-400"/>
+                                View Documents
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                }}
+                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                              >
+                                <CreditCard size={14} strokeWidth={1.5} className="text-slate-400"/>
+                                View Fee Plans
+                              </DropdownMenuItem>
+
+                              <DropdownMenuSeparator />
+
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setShowConvertModal(a)
+                                }}
+                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
+                              >
+                                <CheckCircle2 size={14} strokeWidth={1.5} className="text-[#1565D8]"/>
+                                {config.convertToStudentLabel[type]}
+                              </DropdownMenuItem>
+
+                              <DropdownMenuSeparator />
+
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setShowRejectModal(a)
+                                }}
+                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer"
+                              >
+                                <XCircle size={14} strokeWidth={1.5} className="text-red-500"/>
+                                Reject Application
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
-
-                      {/* Created Date */}
-                      <div className="hidden xl:flex w-24 flex-shrink-0 text-sm text-slate-500 font-medium font-sans">
-                        {a.createdDate}
-                      </div>
-
-                      {/* Dropdown Menu actions */}
-                      <div className="w-12 flex-shrink-0 flex justify-center" onClick={e => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger>
-                            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none">
-                              <MoreVertical size={16} strokeWidth={1.5}/>
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            className="w-56 min-w-[224px] rounded-xl border border-slate-100 shadow-lg p-1.5"
-                          >
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleNavigate(`/admission-management/${a.id}`)
-                              }}
-                              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                            >
-                              <Eye size={14} strokeWidth={1.5} className="text-slate-400"/>
-                              View Applicant
-                            </DropdownMenuItem>
-
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                router.push(`/admission-management/${a.id}/edit`)
-                              }}
-                              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                            >
-                              <Pencil size={14} strokeWidth={1.5} className="text-slate-400"/>
-                              Edit Applicant
-                            </DropdownMenuItem>
-
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                              }}
-                              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                            >
-                              <FileText size={14} strokeWidth={1.5} className="text-slate-400"/>
-                              View Documents
-                            </DropdownMenuItem>
-
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                              }}
-                              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                            >
-                              <CreditCard size={14} strokeWidth={1.5} className="text-slate-400"/>
-                              View Fee Plans
-                            </DropdownMenuItem>
-
-                            <DropdownMenuSeparator />
-
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setShowConvertModal(a)
-                              }}
-                              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
-                            >
-                              <CheckCircle2 size={14} strokeWidth={1.5} className="text-[#1565D8]"/>
-                              {config.convertToStudentLabel[type]}
-                            </DropdownMenuItem>
-
-                            <DropdownMenuSeparator />
-
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setShowRejectModal(a)
-                              }}
-                              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer"
-                            >
-                              <XCircle size={14} strokeWidth={1.5} className="text-red-500"/>
-                              Reject Application
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })
+                )}
               </div>
             </div>
           )}
@@ -1698,203 +1782,277 @@ export default function AdmissionManagementPage() {
           {/* ===================================================================
               SECTION 6 — GRID VIEW
               =================================================================== */}
-          {activeView === 'grid' && filteredApplicants.length > 0 && (
+          {activeView === 'grid' && (loading || filteredApplicants.length > 0) && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredApplicants.map(a => {
-                const stageData = pipeline.find(s => s.id === a.stageId) || pipeline[0]
-                const leftBorderColor = getLeftBorderBg(a)
-                
-                return (
+              {loading ? (
+                Array.from({ length: 6 }).map((_, idx) => (
                   <div
-                    key={a.id}
-                    onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                    className="bg-white rounded-xl border border-slate-200 shadow-md p-5 hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer relative overflow-hidden"
+                    key={`skeleton-grid-${idx}`}
+                    className="bg-white rounded-xl border border-slate-200 shadow-md p-5 relative overflow-hidden"
                   >
-                    {/* Left border highlight */}
-                    {leftBorderColor !== 'bg-transparent' && (
-                      <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${leftBorderColor}`} />
-                    )}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center shrink-0">
-                          {a.avatar}
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-[10px] font-bold text-slate-400 font-mono block">
-                            {a.id}
-                          </span>
-                          <span className="text-sm font-bold text-slate-800 hover:text-[#1565D8] truncate block font-sans">
-                            {a.fullName}
-                          </span>
-                          <span className="text-xs text-slate-400 mt-0.5 truncate block font-sans">
-                            {type === 'school' ? `Parent: ${a.parentName}` : a.phone}
-                          </span>
+                        <Skeleton className="w-10 h-10 rounded-full" />
+                        <div className="space-y-1.5 flex-1 min-w-[120px]">
+                          <Skeleton className="h-3 w-16" />
+                          <Skeleton className="h-4 w-28" />
+                          <Skeleton className="h-3 w-20" />
                         </div>
                       </div>
-
-                      {/* Grid Trigger Actions */}
-                      <div onClick={e => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger>
-                            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none cursor-pointer">
-                              <MoreVertical size={16} strokeWidth={1.5} />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-56 min-w-[224px] rounded-xl border border-slate-200 shadow-lg p-1.5">
-                            <DropdownMenuItem onClick={() => handleNavigate(`/admission-management/${a.id}`)}>
-                              <Eye size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                              <span>View {config.applicantLabel[type]}</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => router.push(`/admission-management/${a.id}/edit`)}>
-                              <Pencil size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                              <span>Edit {config.applicantLabel[type]}</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => showToast("Showing Documents", "info")}>
-                              <FileText size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                              <span>View Documents</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setShowConvertModal(a)} className="text-[#1565D8] font-semibold">
-                              <CheckCircle2 size={14} className="mr-2 text-[#1565D8]" strokeWidth={1.5} />
-                              <span>{config.convertToStudentLabel[type]}</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setShowRejectModal(a)} className="text-red-500 hover:bg-red-50 hover:text-red-600">
-                              <XCircle size={14} className="mr-2 text-red-500" strokeWidth={1.5} />
-                              <span>Reject Application</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                      <Skeleton className="w-8 h-8 rounded-lg" />
                     </div>
-
                     <div className="flex justify-between items-center mt-3">
-                      <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-lg font-sans">
-                        {a.applyingFor}
-                      </span>
-                      <div className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-0.5 rounded-full ${
-                        sourceConfig[a.source]?.bg || 'bg-slate-100'
-                      } ${sourceConfig[a.source]?.text || 'text-slate-600'}`}>
-                        <span className={`w-2 h-2 rounded-full ${sourceConfig[a.source]?.dot || 'bg-slate-400'}`} />
-                        <span>{a.source}</span>
-                      </div>
+                      <Skeleton className="h-6 w-16 rounded-lg" />
+                      <Skeleton className="h-5 w-20 rounded-full" />
                     </div>
-
                     <div className="border-t border-slate-200 my-3" />
-
                     <div className="flex items-center justify-between">
-                      <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
-                        stageData.bgClass} ${stageData.textClass} ${stageData.borderClass}`}
-                      >
-                        {stageData.label}
-                      </div>
-
-                      <span className={`text-xs font-bold font-sans ${
-                        a.docsUploaded === a.docsRequired ? 'text-green-600 font-bold' :
-                        a.docsUploaded > 0 ? 'text-amber-600 font-bold' : 'text-red-600 font-bold'
-                      }`}>
-                        {a.docsUploaded}/{a.docsRequired} docs
-                      </span>
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                      <Skeleton className="h-4 w-12" />
                     </div>
-
-                    {/* Progress dots in Grid */}
-                    <div className="flex items-center gap-1 mt-2.5 select-none">
-                      {pipeline.filter(s => s.id !== 'rejected').map((s, sIdx) => (
-                        <span
-                          key={s.id}
-                          className={`w-2 h-2 rounded-full ${
-                            sIdx <= a.stageIndex ? `${s.dotClass} opacity-100` : 'bg-slate-200'
-                          }`}
-                        />
+                    <div className="flex items-center gap-1 mt-2.5">
+                      {Array.from({ length: 7 }).map((_, sIdx) => (
+                        <Skeleton key={sIdx} className="w-2 h-2 rounded-full" />
                       ))}
-                      <span className="text-[9px] text-slate-400 ml-1.5 font-sans font-medium">
-                        {a.stageIndex + 1}/{pipeline.length - 1}
-                      </span>
                     </div>
-
-                    {/* Pending Action details */}
-                    {a.pendingAction && (
-                      <div className="flex items-start bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-2">
-                        <AlertCircle size={12} className="text-amber-500 mr-1.5 mt-0.5 shrink-0" strokeWidth={2.5} />
-                        <span className="text-[10px] font-semibold text-amber-700 leading-tight font-sans">
-                          {a.pendingAction}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Counsellor + Date */}
                     <div className="flex items-center justify-between mt-3.5">
-                      <div className="flex items-center gap-2">
-                        {a.counsellor ? (
-                          <>
-                            <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 text-[9px] font-bold flex items-center justify-center shrink-0">
-                              {a.counsellorAvatar}
-                            </div>
-                            <span className="text-xs font-semibold text-slate-650 truncate max-w-[120px] font-sans">
-                              {a.counsellor}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-xs font-medium text-slate-400 font-sans">Unassigned</span>
-                        )}
-                      </div>
-
-                      <span className="text-xs text-slate-400 font-sans">{a.createdDate}</span>
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-16" />
                     </div>
-
-                    {/* Connect Actions strip */}
-                    <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between" onClick={e => e.stopPropagation()}>
+                    <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => showToast("Email initiated", "info")}
-                          className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 transition"
-                        >
-                          <Mail size={13} className="text-slate-400" strokeWidth={1.5} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            window.open(`https://wa.me/91${a.phone}`)
-                            showToast("WhatsApp opened", "success")
-                          }}
-                          className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-green-50 transition"
-                        >
-                          <MessageCircle size={13} className="text-green-500" strokeWidth={1.5} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            window.open(`tel:${a.phone}`)
-                            showToast("Call initiated", "success")
-                          }}
-                          className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 transition"
-                        >
-                          <Phone size={13} className="text-blue-500" strokeWidth={1.5} />
-                        </button>
+                        <Skeleton className="w-7 h-7 rounded-lg" />
+                        <Skeleton className="w-7 h-7 rounded-lg" />
+                        <Skeleton className="w-7 h-7 rounded-lg" />
                       </div>
-
-                      <Link 
-                        href={`/admission-management/${a.id}`} 
-                        onClick={e => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          handleNavigate(`/admission-management/${a.id}`)
-                        }}
-                        className="text-xs font-bold text-[#1565D8] hover:underline font-sans flex items-center gap-0.5"
-                      >
-                        <span>View Details</span>
-                        <span>→</span>
-                      </Link>
+                      <Skeleton className="h-4 w-16" />
                     </div>
                   </div>
-                )
-              })}
+                ))
+              ) : (
+                filteredApplicants.map(a => {
+                  const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
+                  const leftBorderColor = getLeftBorderBg(a)
+                  
+                  return (
+                    <div
+                      key={a.id}
+                      onClick={() => handleNavigate(`/admission-management/${a.id}`)}
+                      className="bg-white rounded-xl border border-slate-200 shadow-md p-5 hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer relative overflow-hidden"
+                    >
+                      {/* Left border highlight */}
+                      {leftBorderColor !== 'bg-transparent' && (
+                        <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${leftBorderColor}`} />
+                      )}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center shrink-0">
+                            {a.avatar}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-bold text-slate-400 font-mono block">
+                              {a.admissionCode}
+                            </span>
+                            <span className="text-sm font-bold text-slate-800 hover:text-[#1565D8] truncate block font-sans">
+                              {a.fullName}
+                            </span>
+                            <span className="text-xs text-slate-400 mt-0.5 truncate block font-sans">
+                              {type === 'school' ? `Parent: ${a.parentName}` : a.phone}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Grid Trigger Actions */}
+                        <div onClick={e => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger>
+                              <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none cursor-pointer">
+                                <MoreVertical size={16} strokeWidth={1.5} />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56 min-w-[224px] rounded-xl border border-slate-200 shadow-lg p-1.5">
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  router.push('/admission-management/' + a.id)
+                                }}
+                              >
+                                <Eye size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
+                                <span>View {config.applicantLabel[type]}</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  router.push('/admission-management/' + a.id + '/edit')
+                                }}
+                              >
+                                <Pencil size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
+                                <span>Edit {config.applicantLabel[type]}</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  showToast("Showing Documents", "info")
+                                }}
+                              >
+                                <FileText size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
+                                <span>View Documents</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setShowConvertModal(a)
+                                }}
+                                className="text-[#1565D8] font-semibold"
+                              >
+                                <CheckCircle2 size={14} className="mr-2 text-[#1565D8]" strokeWidth={1.5} />
+                                <span>{config.convertToStudentLabel[type]}</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setShowRejectModal(a)
+                                }}
+                                className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                              >
+                                <XCircle size={14} className="mr-2 text-red-500" strokeWidth={1.5} />
+                                <span>Reject Application</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center mt-3">
+                        <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-lg font-sans">
+                          {a.applyingFor}
+                        </span>
+                        <div className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-0.5 rounded-full ${
+                          sourceConfig[a.source]?.bg || 'bg-slate-100'
+                        } ${sourceConfig[a.source]?.text || 'text-slate-660'}`}>
+                          <span className={`w-2 h-2 rounded-full ${sourceConfig[a.source]?.dot || 'bg-slate-400'}`} />
+                          <span>{a.source}</span>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-slate-200 my-3" />
+
+                      <div className="flex items-center justify-between">
+                        <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
+                          stageData.bgClass} ${stageData.textClass} ${stageData.borderClass}`}
+                        >
+                          {stageData.label}
+                        </div>
+
+                        <span className={`text-xs font-bold font-sans ${
+                          a.docsUploaded === a.docsRequired ? 'text-green-600 font-bold' :
+                          a.docsUploaded > 0 ? 'text-amber-600 font-bold' : 'text-red-600 font-bold'
+                        }`}>
+                          {a.docsUploaded}/{a.docsRequired} docs
+                        </span>
+                      </div>
+
+                      {/* Progress dots in Grid */}
+                      <div className="flex items-center gap-1 mt-2.5 select-none">
+                        {configPipeline.filter(s => s.id !== 'rejected').map((s, sIdx) => (
+                          <span
+                            key={s.id}
+                            className={`w-2 h-2 rounded-full ${
+                              sIdx <= a.stageIndex ? `${s.dotClass} opacity-100` : 'bg-slate-200'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-[9px] text-slate-400 ml-1.5 font-sans font-medium">
+                          {a.stageIndex + 1}/{configPipeline.length - 1}
+                        </span>
+                      </div>
+
+                      {/* Pending Action details */}
+                      {a.pendingAction && (
+                        <div className="flex items-start bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-2">
+                          <AlertCircle size={12} className="text-amber-500 mr-1.5 mt-0.5 shrink-0" strokeWidth={2.5} />
+                          <span className="text-[10px] font-semibold text-amber-700 leading-tight font-sans">
+                            {a.pendingAction}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Counsellor + Date */}
+                      <div className="flex items-center justify-between mt-3.5">
+                        <div className="flex items-center gap-2">
+                          {a.counsellor ? (
+                            <>
+                              <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 text-[9px] font-bold flex items-center justify-center shrink-0">
+                                {a.counsellorAvatar}
+                              </div>
+                              <span className="text-xs font-semibold text-slate-650 truncate max-w-[120px] font-sans">
+                                {a.counsellor}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-xs font-medium text-slate-400 font-sans">Unassigned</span>
+                          )}
+                        </div>
+
+                        <span className="text-xs text-slate-400 font-sans">{a.createdDate}</span>
+                      </div>
+
+                      {/* Connect Actions strip */}
+                      <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => showToast("Email initiated", "info")}
+                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 transition"
+                          >
+                            <Mail size={13} className="text-slate-400" strokeWidth={1.5} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              window.open(`https://wa.me/91${a.phone}`)
+                              showToast("WhatsApp opened", "success")
+                            }}
+                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-green-50 transition"
+                          >
+                            <MessageCircle size={13} className="text-green-500" strokeWidth={1.5} />
+                          </button>
+                          <button
+                            onClick={() => {
+                              window.open(`tel:${a.phone}`)
+                              showToast("Call initiated", "success")
+                            }}
+                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 transition"
+                          >
+                            <Phone size={13} className="text-blue-500" strokeWidth={1.5} />
+                          </button>
+                        </div>
+
+                        <Link 
+                          href={`/admission-management/${a.id}`} 
+                          onClick={e => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            handleNavigate(`/admission-management/${a.id}`)
+                          }}
+                          className="text-xs font-bold text-[#1565D8] hover:underline font-sans flex items-center gap-0.5"
+                        >
+                          <span>View Details</span>
+                          <span>→</span>
+                        </Link>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
           )}
 
           {/* ===================================================================
               SECTION 7 — KANBAN VIEW
               =================================================================== */}
-          {activeView === 'kanban' && filteredApplicants.length > 0 && (
+          {activeView === 'kanban' && (loading || filteredApplicants.length > 0) && (
             <div className="relative">
               <div className="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-slate-300">
-                {pipeline.map(stage => {
+                {configPipeline.map(stage => {
                   const stageApplicants = filteredApplicants.filter(a => a.stageId === stage.id)
 
                   return (
@@ -1906,9 +2064,13 @@ export default function AdmissionManagementPage() {
                           <span className="text-xs font-bold text-slate-700 truncate font-sans">
                             {stage.label}
                           </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${stage.bgClass} ${stage.textClass}`}>
-                            {stageApplicants.length}
-                          </span>
+                          {loading ? (
+                            <Skeleton className="w-6 h-4 rounded-full shrink-0" />
+                          ) : (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${stage.bgClass} ${stage.textClass}`}>
+                              {stageApplicants.length}
+                            </span>
+                          )}
                         </div>
                         <button
                           onClick={() => router.push(`/admission-management/create?stage=${stage.id}`)}
@@ -1921,7 +2083,44 @@ export default function AdmissionManagementPage() {
 
                       {/* COLUMN BODY */}
                       <div className="space-y-3 min-h-[300px] bg-slate-50/50 p-2 rounded-xl border border-dashed border-slate-150">
-                        {stageApplicants.length === 0 ? (
+                        {loading ? (
+                          Array.from({ length: 2 }).map((_, idx) => (
+                            <div
+                              key={`skeleton-kanban-${stage.id}-${idx}`}
+                              className="bg-white rounded-xl border border-slate-200 shadow-md p-4 relative overflow-hidden"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div className="space-y-1 flex-1">
+                                  <Skeleton className="h-2.5 w-12" />
+                                  <Skeleton className="h-4 w-28" />
+                                </div>
+                                <Skeleton className="w-6 h-6 rounded" />
+                              </div>
+                              <Skeleton className="h-3.5 w-20 mt-1.5" />
+                              <div className="flex justify-between items-center mt-3">
+                                <Skeleton className="h-4 w-12" />
+                                <Skeleton className="h-4 w-16 rounded-full" />
+                              </div>
+                              <div className="flex items-center gap-1 mt-2.5">
+                                {Array.from({ length: 7 }).map((_, sIdx) => (
+                                  <Skeleton key={sIdx} className="w-1.5 h-1.5 rounded-full" />
+                                ))}
+                              </div>
+                              <div className="flex items-center justify-between mt-2.5">
+                                <Skeleton className="h-3 w-12" />
+                              </div>
+                              <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-50">
+                                <Skeleton className="h-4 w-16" />
+                                <Skeleton className="h-3 w-10" />
+                              </div>
+                              <div className="mt-2.5 flex items-center gap-1">
+                                <Skeleton className="w-6 h-6 rounded" />
+                                <Skeleton className="w-6 h-6 rounded" />
+                                <Skeleton className="w-6 h-6 rounded" />
+                              </div>
+                            </div>
+                          ))
+                        ) : stageApplicants.length === 0 ? (
                           <div className="bg-slate-50/20 rounded-xl border border-dashed border-slate-200 py-8 text-center flex flex-col items-center justify-center">
                             <Inbox size={24} className="text-slate-350" strokeWidth={1.5} />
                             <span className="text-[11px] text-slate-400 font-bold mt-2 font-sans">
@@ -1946,7 +2145,7 @@ export default function AdmissionManagementPage() {
                                 <div className="flex justify-between items-start">
                                   <div className="min-w-0">
                                     <span className="text-[9px] font-bold text-slate-400 font-mono block">
-                                      {a.id}
+                                      {a.admissionCode}
                                     </span>
                                     <span className="text-xs font-bold text-slate-800 hover:text-[#1565D8] truncate block mt-0.5 font-sans">
                                       {a.fullName}
@@ -1961,16 +2160,38 @@ export default function AdmissionManagementPage() {
                                         </button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent className="w-48 rounded-lg border border-slate-200 shadow-lg p-1">
-                                        <DropdownMenuItem onClick={() => handleNavigate(`/admission-management/${a.id}`)}>
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            router.push('/admission-management/' + a.id)
+                                          }}
+                                        >
                                           View Info
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => router.push(`/admission-management/${a.id}/edit`)}>
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            router.push('/admission-management/' + a.id + '/edit')
+                                          }}
+                                        >
                                           Edit Info
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setShowConvertModal(a)} className="text-[#1565D8] font-bold">
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            setShowConvertModal(a)
+                                          }}
+                                          className="text-[#1565D8] font-bold"
+                                        >
                                           Convert
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setShowRejectModal(a)} className="text-red-500">
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            setShowRejectModal(a)
+                                          }}
+                                          className="text-red-500"
+                                        >
                                           Reject
                                         </DropdownMenuItem>
                                       </DropdownMenuContent>
@@ -1996,7 +2217,7 @@ export default function AdmissionManagementPage() {
 
                                 {/* Progress dots in Kanban card */}
                                 <div className="flex items-center gap-1 mt-2.5 select-none">
-                                  {pipeline.filter(s => s.id !== 'rejected').map((s, sIdx) => (
+                                  {configPipeline.filter(s => s.id !== 'rejected').map((s, sIdx) => (
                                     <span
                                       key={s.id}
                                       className={`w-1.5 h-1.5 rounded-full ${
@@ -2084,25 +2305,35 @@ export default function AdmissionManagementPage() {
           {/* ===================================================================
               SECTION 11 — PAGINATION & EMPTY SPACE FOOTER
               =================================================================== */}
-          {(activeView === 'list' || activeView === 'grid') && filteredApplicants.length > 0 && (
+          {(activeView === 'list' || activeView === 'grid') && (loading || filteredApplicants.length > 0) && (
             <div className="bg-white border-t border-slate-200 rounded-b-xl px-5 py-4 flex items-center justify-between shadow-sm">
               <span className="text-sm text-slate-500 font-sans">
-                Showing 1–{filteredApplicants.length} of {totalCount} {moduleLabel.toLowerCase()}
+                Showing {loading ? '...' : `${showingStart}–${showingEnd}`} of {totalCount} {moduleLabel.toLowerCase()}
               </span>
 
               <div className="flex items-center gap-2 select-none">
                 <button
-                  disabled
-                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-400 bg-slate-50/50 cursor-not-allowed font-sans"
+                  onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
+                  disabled={loading || pagination.page <= 1}
+                  className={`px-3 py-1.5 border rounded-lg text-xs font-semibold font-sans transition ${
+                    loading || pagination.page <= 1
+                      ? 'border-slate-200 text-slate-400 bg-slate-50/50 cursor-not-allowed'
+                      : 'border-slate-200 hover:bg-slate-50 text-slate-750 cursor-pointer'
+                  }`}
                 >
                   Previous
                 </button>
-                <button className="px-3 py-1.5 border border-[#1565D8] rounded-lg text-xs font-bold text-white bg-[#1565D8] cursor-pointer font-sans">
-                  1
+                <button className="px-3 py-1.5 border border-[#1565D8] rounded-lg text-xs font-bold text-white bg-[#1565D8] font-sans">
+                  {pagination.page}
                 </button>
                 <button
-                  disabled
-                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-400 bg-slate-50/50 cursor-not-allowed font-sans"
+                  onClick={() => setPagination(p => ({ ...p, page: Math.min(pagination.totalPages, p.page + 1) }))}
+                  disabled={loading || pagination.page >= pagination.totalPages}
+                  className={`px-3 py-1.5 border rounded-lg text-xs font-semibold font-sans transition ${
+                    loading || pagination.page >= pagination.totalPages
+                      ? 'border-slate-200 text-slate-400 bg-slate-50/50 cursor-not-allowed'
+                      : 'border-slate-200 hover:bg-slate-50 text-slate-750 cursor-pointer'
+                  }`}
                 >
                   Next
                 </button>

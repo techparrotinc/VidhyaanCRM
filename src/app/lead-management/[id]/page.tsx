@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import {
   TrendingUp,
@@ -41,6 +41,7 @@ import {
 } from 'lucide-react'
 
 import { Card } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import {
   Dialog,
@@ -310,8 +311,75 @@ const grades = [
   '12th Class',
 ]
 
+const statusDbToUi: Record<string, string> = {
+  NEW: 'New',
+  CONTACTED: 'Contacted',
+  INTERESTED: 'Contacted',
+  FOLLOW_UP_PENDING: 'Follow-up',
+  CONVERTED: 'Converted',
+  NOT_INTERESTED: 'Rejected'
+}
+
+const statusUiToDb: Record<string, string> = {
+  'New': 'NEW',
+  'Contacted': 'CONTACTED',
+  'Follow-up': 'FOLLOW_UP_PENDING',
+  'Converted': 'CONVERTED',
+  'Rejected': 'NOT_INTERESTED'
+}
+
+const priorityDbToUi: Record<string, string> = {
+  LOW: 'Normal',
+  MEDIUM: 'Normal',
+  HIGH: 'High',
+  URGENT: 'Urgent'
+}
+
+const priorityUiToDb: Record<string, string> = {
+  'Normal': 'MEDIUM',
+  'High': 'HIGH',
+  'Urgent': 'URGENT'
+}
+
+const sourceDbToUi: Record<string, string> = {
+  VIDHYAAN: 'Vidhyaan',
+  WALK_IN: 'Walk-in',
+  PHONE: 'Phone',
+  EMAIL: 'Email',
+  WHATSAPP: 'WhatsApp',
+  WEBSITE: 'Web',
+  REFERRAL: 'Referral',
+  SOCIAL_MEDIA: 'Social Media',
+  GOOGLE_ADS: 'Google Ad',
+  META_ADS: 'Social Media',
+  JUSTDIAL: 'Other',
+  CAMPAIGN: 'Other',
+  EVENT: 'Other',
+  NEWSPAPER: 'Other',
+  HOARDING: 'Other',
+  IMPORT: 'Other',
+  OTHER: 'Other'
+}
+
+const sourceUiToDb: Record<string, string> = {
+  'Vidhyaan': 'VIDHYAAN',
+  'Web': 'WEBSITE',
+  'Walk-in': 'WALK_IN',
+  'Phone': 'PHONE',
+  'WhatsApp': 'WHATSAPP',
+  'Referral': 'REFERRAL',
+  'Other': 'OTHER'
+}
+
 export default function LeadDetailPage() {
   const router = useRouter()
+  const params = useParams()
+  const leadId = params?.id as string
+
+  const [lead, setLead] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [counsellorsList, setCounsellorsList] = useState<any[]>([])
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [trialBannerVisible, setTrialBannerVisible] = useState(true)
 
@@ -319,48 +387,192 @@ export default function LeadDetailPage() {
   const [isEditing, setIsEditing] = useState(false)
 
   // Additional editable field states
-  const [firstName, setFirstName] = useState(lead.firstName)
-  const [lastName, setLastName] = useState(lead.lastName)
-  const [parentName, setParentName] = useState(lead.parentName)
-  const [phone, setPhone] = useState(lead.phone)
-  const [email, setEmail] = useState(lead.email)
-  const [applyingFor, setApplyingFor] = useState(lead.applyingFor)
-  const [academicYear, setAcademicYear] = useState(lead.academicYear)
-  const [childName, setChildName] = useState(lead.childName)
-  const [childAge, setChildAge] = useState(lead.childAge)
-  const [currentSchool, setCurrentSchool] = useState(lead.currentSchool)
-  const [source, setSource] = useState(lead.source)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [parentName, setParentName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+  const [applyingFor, setApplyingFor] = useState('')
+  const [academicYear, setAcademicYear] = useState('')
+  const [childName, setChildName] = useState('')
+  const [childAge, setChildAge] = useState('')
+  const [currentSchool, setCurrentSchool] = useState('')
+  const [source, setSource] = useState('')
 
   // Lead States
-  const [currentStatus, setCurrentStatus] = useState(lead.status)
-  const [currentPriority, setCurrentPriority] = useState(lead.priority)
-  const [currentCounsellor, setCurrentCounsellor] = useState(lead.counsellor)
-  const [currentCounsellorAvatar, setCurrentCounsellorAvatar] = useState(lead.counsellorAvatar)
-  const [followUpDate, setFollowUpDate] = useState(lead.followUpDate)
-  const [followUpTime, setFollowUpTime] = useState(lead.followUpTime)
+  const [currentStatus, setCurrentStatus] = useState('New')
+  const [currentPriority, setCurrentPriority] = useState('Normal')
+  const [currentCounsellor, setCurrentCounsellor] = useState('Unassigned')
+  const [currentCounsellorAvatar, setCurrentCounsellorAvatar] = useState('UA')
+  const [followUpDate, setFollowUpDate] = useState('')
+  const [followUpTime, setFollowUpTime] = useState('')
+
+  // Reject Modal state
+  const [rejectReason, setRejectReason] = useState('')
 
   const currentAvatar = ((firstName[0] || '') + (lastName[0] || '')).toUpperCase() || 'LD'
 
   // Draft states for cancellation rollback
   const [draftData, setDraftData] = useState({
-    firstName: lead.firstName,
-    lastName: lead.lastName,
-    parentName: lead.parentName,
-    phone: lead.phone,
-    email: lead.email,
-    applyingFor: lead.applyingFor,
-    academicYear: lead.academicYear,
-    childName: lead.childName,
-    childAge: lead.childAge,
-    currentSchool: lead.currentSchool,
-    source: lead.source,
-    status: lead.status,
-    priority: lead.priority,
-    counsellor: lead.counsellor,
-    counsellorAvatar: lead.counsellorAvatar,
-    followUpDate: lead.followUpDate,
-    followUpTime: lead.followUpTime
+    firstName: '',
+    lastName: '',
+    parentName: '',
+    phone: '',
+    email: '',
+    applyingFor: '',
+    academicYear: '',
+    childName: '',
+    childAge: '',
+    currentSchool: '',
+    source: '',
+    status: 'New',
+    priority: 'Normal',
+    counsellor: 'Unassigned',
+    counsellorAvatar: 'UA',
+    followUpDate: '',
+    followUpTime: ''
   })
+
+  // Fetch lead details and counsellors on mount
+  useEffect(() => {
+    if (!leadId) return
+
+    async function fetchLead() {
+      try {
+        const res = await fetch(`/api/v1/leads/${leadId}`)
+        if (!res.ok) throw new Error('Lead not found')
+        const json = await res.json()
+        setLead(json.data)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    async function fetchCounsellors() {
+      try {
+        const res = await fetch('/api/v1/counsellors')
+        if (res.ok) {
+          const json = await res.json()
+          setCounsellorsList(json.data ?? [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch counsellors', err)
+      }
+    }
+
+    fetchLead()
+    fetchCounsellors()
+  }, [leadId])
+
+  // Sync lead details to local states
+  useEffect(() => {
+    if (!lead) return
+    const parts = (lead.parentName || '').split(' ')
+    const fName = parts[0] || ''
+    const lName = parts.slice(1).join(' ') || ''
+    setFirstName(fName)
+    setLastName(lName)
+    setParentName(lead.parentName || '')
+    setPhone(lead.phone || '')
+    setEmail(lead.email || '')
+    setApplyingFor(lead.gradeSought || '')
+    setAcademicYear(lead.academicYear?.name || 'AY 2026-27')
+    setChildName(lead.kidName || '')
+    setChildAge('')
+    setCurrentSchool('')
+    setSource(sourceDbToUi[lead.source] || 'Other')
+
+    const mappedStatus = statusDbToUi[lead.status] || 'New'
+    setCurrentStatus(mappedStatus)
+    setCurrentPriority(priorityDbToUi[lead.priority] || 'Normal')
+    setCurrentCounsellor(lead.assignedTo?.name || 'Unassigned')
+    setCurrentCounsellorAvatar(
+      lead.assignedTo?.name
+        ? lead.assignedTo.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+        : 'UA'
+    )
+
+    if (lead.nextFollowUpAt) {
+      const dateObj = new Date(lead.nextFollowUpAt)
+      const yyyy = dateObj.getFullYear()
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
+      const dd = String(dateObj.getDate()).padStart(2, '0')
+      setFollowUpDate(`${yyyy}-${mm}-${dd}`)
+
+      let hours = dateObj.getHours()
+      const minutes = String(dateObj.getMinutes()).padStart(2, '0')
+      const ampm = hours >= 12 ? 'PM' : 'AM'
+      hours = hours % 12
+      hours = hours ? hours : 12
+      setFollowUpTime(`${String(hours).padStart(2, '0')}:${minutes} ${ampm}`)
+    } else {
+      setFollowUpDate('')
+      setFollowUpTime('')
+    }
+
+    if (lead.activities) {
+      const mappedActivities = lead.activities.map((act: any) => {
+        let iconName = 'FileText'
+        let color = 'bg-slate-500'
+        let title = act.summary
+
+        switch (act.type) {
+          case 'SYSTEM':
+            iconName = 'Plus'
+            color = 'bg-blue-500'
+            break
+          case 'ASSIGNMENT':
+            iconName = 'User'
+            color = 'bg-purple-500'
+            break
+          case 'CALL':
+            iconName = 'Phone'
+            color = 'bg-green-500'
+            break
+          case 'STATUS_CHANGE':
+            iconName = 'Clock'
+            color = 'bg-slate-400'
+            break
+          case 'WHATSAPP':
+            iconName = 'MessageCircle'
+            color = 'bg-green-600'
+            break
+          case 'EMAIL':
+            iconName = 'Mail'
+            color = 'bg-blue-500'
+            break
+          default:
+            iconName = 'FileText'
+            color = 'bg-slate-500'
+        }
+
+        const actDate = new Date(act.createdAt)
+        const dateFormatted = actDate.toLocaleDateString('en-IN', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        })
+        const timeFormatted = actDate.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+
+        return {
+          id: act.id,
+          icon: iconName,
+          color,
+          title,
+          date: dateFormatted,
+          time: timeFormatted,
+          note: '',
+          done: true
+        }
+      })
+      setActivities(mappedActivities)
+    }
+  }, [lead])
 
   const startEditing = () => {
     setDraftData({
@@ -406,16 +618,108 @@ export default function LeadDetailPage() {
     setIsEditing(false)
   }
 
-  const saveEditing = () => {
-    setIsEditing(false)
-    showToast("Lead updated")
+  const saveEditing = async () => {
+    try {
+      const payload: any = {
+        firstName,
+        lastName,
+        phone,
+        email: email || null,
+        source: sourceUiToDb[source] || 'OTHER',
+        status: statusUiToDb[currentStatus] || 'NEW',
+        priority: priorityUiToDb[currentPriority] || 'MEDIUM',
+        gradeSought: applyingFor || null,
+        kidName: childName || null,
+        assignedToId: currentCounsellor === 'Unassigned' ? null : (counsellorsList.find(c => c.name === currentCounsellor)?.id || lead?.assignedToId)
+      }
+
+      if (followUpDate) {
+        let nextFollowUpDate: Date | null = null
+        if (followUpTime) {
+          const [hoursStr, minutesStrWithAmPm] = followUpTime.split(':')
+          const [minutesStr, ampm] = minutesStrWithAmPm.split(' ')
+          let hours = parseInt(hoursStr)
+          const minutes = parseInt(minutesStr)
+          if (ampm === 'PM' && hours < 12) hours += 12
+          if (ampm === 'AM' && hours === 12) hours = 0
+          nextFollowUpDate = new Date(followUpDate)
+          nextFollowUpDate.setHours(hours, minutes, 0, 0)
+        } else {
+          nextFollowUpDate = new Date(followUpDate)
+        }
+        payload.nextFollowUpAt = nextFollowUpDate ? nextFollowUpDate.toISOString() : null
+      } else {
+        payload.nextFollowUpAt = null
+      }
+
+      const res = await fetch(`/api/v1/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error || 'Failed to update lead')
+      }
+
+      const json = await res.json()
+      setLead(json.data)
+      setIsEditing(false)
+      showToast("Lead updated")
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || "Failed to save changes", "error")
+    }
+  }
+
+  // Quick Action Handlers
+  const handleUpdateStatus = async (newStatusUi: string) => {
+    try {
+      const dbStatus = statusUiToDb[newStatusUi]
+      const res = await fetch(`/api/v1/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: dbStatus })
+      })
+      if (!res.ok) throw new Error('Failed to update status')
+      const json = await res.json()
+      setLead(json.data)
+      setCurrentStatus(newStatusUi)
+      showToast(`Status updated to ${newStatusUi}`)
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to update status', 'error')
+    }
+  }
+
+  const handleUpdateCounsellor = async (counsellorName: string) => {
+    try {
+      const found = counsellorsList.find(c => c.name === counsellorName)
+      const counsellorId = counsellorName === 'Unassigned' ? null : found?.id
+
+      const res = await fetch(`/api/v1/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedToId: counsellorId })
+      })
+      if (!res.ok) throw new Error('Failed to reassign counsellor')
+      const json = await res.json()
+      setLead(json.data)
+      setCurrentCounsellor(counsellorName)
+      setCurrentCounsellorAvatar(counsellorName === 'Unassigned' ? 'UA' : (counsellorName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'SK'))
+      showToast(`Reassigned to ${counsellorName}`)
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to reassign counsellor', 'error')
+    }
   }
 
   // Log Activity States
   const [activityTab, setActivityTab] = useState<'note' | 'call' | 'whatsapp' | 'email'>('note')
   const [activityNote, setActivityNote] = useState('')
   const [scheduleFollowUp, setScheduleFollowUp] = useState(false)
-  const [activities, setActivities] = useState(timeline)
+  const [activities, setActivities] = useState<any[]>([])
 
   // Modals & Dropdowns States
   const [showConvertModal, setShowConvertModal] = useState(false)
@@ -662,7 +966,7 @@ export default function LeadDetailPage() {
       <div className="space-y-0 divide-y divide-slate-50">
         <div className="flex items-center justify-between py-3">
           <span className="text-xs font-medium text-slate-400">Lead ID</span>
-          <span className="font-mono text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">{lead.id}</span>
+          <span className="font-mono text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">{lead?.leadCode}</span>
         </div>
         <div className="flex items-center justify-between py-3">
           <span className="text-xs font-medium text-slate-400">Source</span>
@@ -698,7 +1002,7 @@ export default function LeadDetailPage() {
             <div className="relative" ref={statusRef}>
               <span
                 onClick={() => setStatusDropdown(!statusDropdown)}
-                className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border cursor-pointer ${statusConfig[currentStatus].bg} ${statusConfig[currentStatus].text} ${statusConfig[currentStatus].border}`}
+                className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border cursor-pointer ${statusConfig[currentStatus]?.bg || 'bg-slate-100'} ${statusConfig[currentStatus]?.text || 'text-slate-800'} ${statusConfig[currentStatus]?.border || 'border-slate-200'}`}
               >
                 {currentStatus}
               </span>
@@ -708,13 +1012,12 @@ export default function LeadDetailPage() {
                     <div
                       key={st}
                       onClick={() => {
-                        setCurrentStatus(st)
+                        handleUpdateStatus(st)
                         setStatusDropdown(false)
-                        showToast(`Status updated to ${st}`)
                       }}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 cursor-pointer text-slate-700"
                     >
-                      <span className={`w-2 h-2 rounded-full ${statusConfig[st].dot}`} />
+                      <span className={`w-2 h-2 rounded-full ${statusConfig[st]?.dot || 'bg-slate-500'}`} />
                       <span>{st}</span>
                       {currentStatus === st && <Check size={14} className="ml-auto text-slate-400" />}
                     </div>
@@ -737,18 +1040,18 @@ export default function LeadDetailPage() {
               ))}
             </select>
           ) : (
-            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${priorityConfig[currentPriority].bg} ${priorityConfig[currentPriority].text} border-transparent`}>
+            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${priorityConfig[currentPriority]?.bg || 'bg-slate-100'} ${priorityConfig[currentPriority]?.text || 'text-slate-800'} border-transparent`}>
               {currentPriority}
             </span>
           )}
         </div>
         <div className="flex items-center justify-between py-3">
           <span className="text-xs font-medium text-slate-400">Created</span>
-          <span className="text-xs font-semibold text-slate-700">{lead.createdDate} {lead.createdTime}</span>
+          <span className="text-xs font-semibold text-slate-700">{lead?.createdAt ? new Date(lead.createdAt).toLocaleString('en-IN') : '—'}</span>
         </div>
         <div className="flex items-center justify-between py-3">
           <span className="text-xs font-medium text-slate-400">Updated</span>
-          <span className="text-xs font-semibold text-slate-700">{lead.lastUpdated}</span>
+          <span className="text-xs font-semibold text-slate-700">{lead?.updatedAt ? new Date(lead.updatedAt).toLocaleString('en-IN') : '—'}</span>
         </div>
         <div className="flex items-center justify-between py-3">
           <span className="text-xs font-medium text-slate-400">Counsellor</span>
@@ -761,14 +1064,14 @@ export default function LeadDetailPage() {
                 if (val === 'Unassigned') {
                   setCurrentCounsellorAvatar('UA')
                 } else {
-                  const found = counsellors.find(c => c.name === val)
-                  setCurrentCounsellorAvatar(found ? found.avatar : 'UA')
+                  const found = counsellorsList.find(c => c.name === val)
+                  setCurrentCounsellorAvatar(found ? found.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : 'UA')
                 }
               }}
               className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10"
             >
               <option value="Unassigned">Unassigned</option>
-              {counsellors.map(c => (
+              {counsellorsList.map(c => (
                 <option key={c.id} value={c.name}>{c.name}</option>
               ))}
             </select>
@@ -1149,7 +1452,7 @@ export default function LeadDetailPage() {
         </div>
         <div>
           <h5 className="text-sm font-bold text-slate-800">{currentCounsellor}</h5>
-          <p className="text-xs text-slate-400 mt-0.5">{lead.counsellorRole}</p>
+          <p className="text-xs text-slate-400 mt-0.5">Counsellor</p>
         </div>
       </div>
 
@@ -1164,23 +1467,21 @@ export default function LeadDetailPage() {
 
         {counsellorDropdown && (
           <div className="absolute left-0 bottom-full mb-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 w-full">
-            {counsellors.map((c) => (
+            {counsellorsList.map((c) => (
               <div
                 key={c.id}
                 onClick={() => {
-                  setCurrentCounsellor(c.name)
-                  setCurrentCounsellorAvatar(c.avatar)
+                  handleUpdateCounsellor(c.name)
                   setCounsellorDropdown(false)
-                  showToast(`Reassigned to ${c.name}`)
                 }}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 cursor-pointer text-slate-700"
               >
                 <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold flex items-center justify-center shrink-0">
-                  {c.avatar}
+                  {c.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                 </div>
                 <div className="min-w-0">
                   <p className="font-semibold text-xs leading-none">{c.name}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">{c.role}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Counsellor</p>
                 </div>
                 {currentCounsellor === c.name && <Check size={14} className="ml-auto text-slate-400" />}
               </div>
@@ -1188,10 +1489,8 @@ export default function LeadDetailPage() {
             <div className="border-t border-slate-200 my-1" />
             <button
               onClick={() => {
-                setCurrentCounsellor("Unassigned")
-                setCurrentCounsellorAvatar("UA")
+                handleUpdateCounsellor("Unassigned")
                 setCounsellorDropdown(false)
-                showToast("Counsellor assignment removed", "info")
               }}
               className="w-full text-left px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
             >
@@ -1228,6 +1527,63 @@ export default function LeadDetailPage() {
       </div>
     </Card>
   )
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-100 text-slate-800 flex relative font-sans antialiased select-none font-medium">
+        <Sidebar />
+        <div className="flex-1 md:pl-16 lg:pl-64 pt-14 md:pt-0 flex flex-col min-w-0">
+          <header className="hidden md:flex h-16 border-b border-slate-200 bg-white items-center justify-between px-8 sticky top-0 z-20 shadow-sm">
+            <Skeleton className="h-6 w-48 rounded" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-9 w-9 rounded-full" />
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-20 rounded" />
+                <Skeleton className="h-2.5 w-16 rounded" />
+              </div>
+            </div>
+          </header>
+          <main className="p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full flex-1">
+            <Card className="bg-white p-6 border border-slate-200 rounded-xl space-y-4">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-14 w-14 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-48 rounded" />
+                  <Skeleton className="h-4 w-64 rounded" />
+                </div>
+              </div>
+            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-[300px_1fr_280px] gap-6">
+              <div className="space-y-4">
+                <Card className="bg-white p-6 border border-slate-200 rounded-xl space-y-3">
+                  <Skeleton className="h-4 w-24 rounded" />
+                  <Skeleton className="h-8 w-full rounded" />
+                  <Skeleton className="h-8 w-full rounded" />
+                </Card>
+                <Card className="bg-white p-6 border border-slate-200 rounded-xl space-y-3">
+                  <Skeleton className="h-4 w-24 rounded" />
+                  <Skeleton className="h-8 w-full rounded" />
+                  <Skeleton className="h-8 w-full rounded" />
+                </Card>
+              </div>
+              <div className="space-y-4">
+                <Card className="bg-white p-6 border border-slate-200 rounded-xl space-y-4">
+                  <Skeleton className="h-6 w-full rounded" />
+                  <Skeleton className="h-24 w-full rounded" />
+                </Card>
+              </div>
+              <div className="space-y-4">
+                <Card className="bg-white p-6 border border-slate-200 rounded-xl space-y-4">
+                  <Skeleton className="h-10 w-full rounded" />
+                  <Skeleton className="h-10 w-full rounded" />
+                </Card>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 flex relative font-sans antialiased select-none">
@@ -1281,7 +1637,7 @@ export default function LeadDetailPage() {
                 View Lead
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Sales & Marketing › Lead Management › {lead.fullName}
+                Sales & Marketing › Lead Management › {parentName}
               </p>
             </div>
           </div>
@@ -1374,12 +1730,12 @@ export default function LeadDetailPage() {
                     <span className="text-slate-200">·</span>
                     <span>{source}</span>
                     <span className="text-slate-200">·</span>
-                    <span>{lead.createdDate}</span>
+                    <span>{lead?.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-IN') : '—'}</span>
                   </div>
 
                   <div className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-500 text-[10px] font-bold font-mono px-2.5 py-1 rounded-md mt-2">
                     <Hash size={11} strokeWidth={1.5} />
-                    <span>{lead.id}</span>
+                    <span>{lead?.leadCode}</span>
                   </div>
                 </div>
               </div>
@@ -1405,7 +1761,7 @@ export default function LeadDetailPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-52 rounded-xl border border-slate-200 shadow-lg p-1.5">
                     <DropdownMenuItem onClick={() => {
-                      navigator.clipboard.writeText(lead.id)
+                      navigator.clipboard.writeText(lead?.leadCode || '')
                       showToast("Lead ID copied")
                     }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer">
                       <Copy size={14} strokeWidth={1.5} className="text-slate-400" />
@@ -1430,9 +1786,18 @@ export default function LeadDetailPage() {
                       <XCircle size={14} strokeWidth={1.5} className="text-red-400" />
                       Reject Lead
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {
-                      showToast("Lead deleted", "info")
-                      router.push('/lead-management')
+                    <DropdownMenuItem onClick={async () => {
+                      try {
+                        const deleteRes = await fetch(`/api/v1/leads/${leadId}`, {
+                          method: 'DELETE'
+                        })
+                        if (!deleteRes.ok) throw new Error('Failed to delete lead')
+                        showToast("Lead deleted", "info")
+                        router.push('/lead-management')
+                      } catch (err: any) {
+                        console.error(err)
+                        showToast(err.message || "Failed to delete lead", "error")
+                      }
                     }} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer">
                       <Trash2 size={14} strokeWidth={1.5} className="text-red-400" />
                       Delete Lead
@@ -1619,7 +1984,7 @@ export default function LeadDetailPage() {
                 </div>
                 <div>
                   <h4 className="text-sm font-semibold text-slate-800">{firstName} {lastName}</h4>
-                  <span className="text-xs text-slate-400">Lead ID: {lead.id}</span>
+                  <span className="text-xs text-slate-400">Lead ID: {lead?.leadCode}</span>
                 </div>
               </div>
 
@@ -1671,10 +2036,30 @@ export default function LeadDetailPage() {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  setCurrentStatus('Converted')
-                  setShowConvertModal(false)
-                  showToast("Lead converted to admission")
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/v1/admissions', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        applicantName: `${firstName} ${lastName}`,
+                        phone: phone,
+                        email: email || undefined,
+                        gradeSought: applyingFor,
+                        source: sourceUiToDb[source] || 'OTHER',
+                        leadId: leadId,
+                        assignedToId: lead?.assignedToId || undefined,
+                        academicYearId: lead?.academicYearId || undefined
+                      })
+                    })
+                    if (!res.ok) throw new Error('Failed to convert lead')
+                    setCurrentStatus('Converted')
+                    setShowConvertModal(false)
+                    showToast("Lead converted to admission")
+                  } catch (err: any) {
+                    console.error(err)
+                    showToast(err.message || "Failed to convert lead", "error")
+                  }
                 }}
                 className="flex-1 bg-[#1565D8] hover:bg-blue-700 text-white text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
               >
@@ -1703,8 +2088,9 @@ export default function LeadDetailPage() {
                 Reason (optional)
               </label>
               <select
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
                 className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm w-full focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
-                defaultValue=""
               >
                 <option value="" disabled>Select reason (optional)</option>
                 <option value="not_interested">Not interested</option>
@@ -1723,10 +2109,41 @@ export default function LeadDetailPage() {
                 Keep Lead
               </button>
               <button
-                onClick={() => {
-                  setCurrentStatus('Rejected')
-                  setShowRejectModal(false)
-                  showToast("Lead rejected", "info")
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/v1/leads/${leadId}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        status: 'NOT_INTERESTED'
+                      })
+                    })
+                    if (!res.ok) throw new Error('Failed to reject lead')
+
+                    if (rejectReason) {
+                      await fetch(`/api/v1/leads/${leadId}/activities`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          type: 'STATUS_CHANGE',
+                          summary: `Rejected with reason: ${rejectReason}`
+                        })
+                      })
+                    }
+
+                    setCurrentStatus('Rejected')
+                    setShowRejectModal(false)
+                    showToast("Lead rejected", "info")
+
+                    const detailRes = await fetch(`/api/v1/leads/${leadId}`)
+                    if (detailRes.ok) {
+                      const json = await detailRes.json()
+                      setLead(json.data)
+                    }
+                  } catch (err: any) {
+                    console.error(err)
+                    showToast(err.message || "Failed to reject lead", "error")
+                  }
                 }}
                 className="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
               >

@@ -1,0 +1,50 @@
+import { z } from 'zod'
+import { route } from '@/lib/api/compose'
+import { ok, created } from '@/lib/api/respond'
+import { ROLES } from '@/constants/roles'
+
+export const GET = route({
+  roles: [
+    ROLES.ORG_ADMIN,
+    ROLES.BRANCH_ADMIN
+  ],
+  handler: async ({ db, user }) => {
+    const stages = await db.admissionStage.findMany({
+      where: { orgId: user.orgId },
+      orderBy: { sortOrder: 'asc' }
+    })
+    return ok(stages)
+  }
+})
+
+export const POST = route({
+  roles: [ROLES.ORG_ADMIN],
+  handler: async ({ req, db, user }) => {
+    const body = z.object({
+      name: z.string().min(1),
+      color: z.string().default('blue'),
+      requiresDocs: z.boolean().default(false),
+      requiresPayment: z.boolean().default(false)
+    }).parse(await req.json())
+
+    const lastStage = await db.admissionStage.findFirst({
+      where: { orgId: user.orgId },
+      orderBy: { sortOrder: 'desc' }
+    })
+
+    const stage = await db.admissionStage.create({
+      data: {
+        orgId: user.orgId,
+        name: body.name,
+        color: body.color,
+        requiresDocs: body.requiresDocs,
+        requiresPayment: body.requiresPayment,
+        sortOrder: (lastStage?.sortOrder ?? 0) + 1,
+        isWon: false,
+        isLost: false
+      }
+    })
+
+    return created(stage)
+  }
+})

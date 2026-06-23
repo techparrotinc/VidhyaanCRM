@@ -192,6 +192,35 @@ const existingLeads = [
   },
 ]
 
+const sourceUiToDb: Record<string, string> = {
+  'Vidhyaan': 'VIDHYAAN',
+  'Walk-in': 'WALK_IN',
+  'Phone Enquiry': 'PHONE',
+  'WhatsApp': 'WHATSAPP',
+  'School Website': 'WEBSITE',
+  'Social Media': 'SOCIAL_MEDIA',
+  'Referral': 'REFERRAL',
+  'Education Fair': 'EVENT',
+  'Newspaper Ad': 'NEWSPAPER',
+  'Google Ad': 'GOOGLE_ADS',
+  'Other': 'OTHER'
+}
+
+const statusUiToDb: Record<string, string> = {
+  'New': 'NEW',
+  'Contacted': 'CONTACTED',
+  'Interested': 'INTERESTED',
+  'Follow-up Pending': 'FOLLOW_UP_PENDING',
+  'Converted': 'CONVERTED',
+  'Not Interested': 'NOT_INTERESTED'
+}
+
+const priorityUiToDb: Record<string, string> = {
+  'Normal': 'MEDIUM',
+  'High': 'HIGH',
+  'Urgent': 'URGENT'
+}
+
 export default function AddLeadPage() {
   const router = useRouter()
 
@@ -228,8 +257,10 @@ export default function AddLeadPage() {
   // Auto-generate Lead ID on page load
   const [leadId] = useState(generateLeadId)
 
-  const [errors, setErrors] = useState<Record<string, string>>({})
   const [duplicateFound, setDuplicateFound] = useState<typeof existingLeads[0] | null>(null)
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [noteType, setNoteType] = useState('General')
   const noteTypes = [
@@ -252,9 +283,36 @@ export default function AddLeadPage() {
   }
 
   // Check duplicate phone logic
-  const checkDuplicate = (phone: string) => {
-    const found = existingLeads.find(l => l.phone === phone)
-    setDuplicateFound(found || null)
+  const checkDuplicate = async (phone: string) => {
+    if (phone.length !== 10) return
+    try {
+      const res = await fetch('/api/v1/leads?search=' + phone)
+      const json = await res.json()
+      if (json.data && json.data.length > 0) {
+        const lead = json.data[0]
+        setDuplicateWarning(
+          'A lead with this phone number already exists: ' +
+          lead.parentName
+        )
+        setDuplicateFound({
+          name: lead.parentName || '—',
+          phone: lead.phone || '—',
+          applyingFor: lead.gradeSought || '—',
+          date: lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }) : '—',
+          status: lead.status || 'NEW',
+          id: lead.id
+        })
+      } else {
+        setDuplicateWarning(null)
+        setDuplicateFound(null)
+      }
+    } catch (err) {
+      console.error('Duplicate check failed', err)
+    }
   }
 
   // Handle Input Changes
@@ -335,37 +393,10 @@ export default function AddLeadPage() {
   }
 
   // Handle Save
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     const isValid = validateForm()
-    if (isValid) {
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-      const now = new Date()
-      const createdDateStr = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`
-      
-      const newLead = {
-        id: leadId,
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
-        parentName: formData.childName || '—',
-        phone: formData.phone,
-        email: formData.email || '—',
-        applyingFor: formData.applyingFor,
-        source: formData.source,
-        counsellor: counsellors.find(c => c.id === formData.counsellorId)?.name || null,
-        counsellorAvatar: counsellors.find(c => c.id === formData.counsellorId)?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || null,
-        createdDate: createdDateStr,
-        status: formData.status,
-        avatar: `${formData.firstName.charAt(0)}${formData.lastName.charAt(0)}`.toUpperCase() || 'NL',
-        followUpDate: formData.followUpDate
-      }
-      
-      localStorage.setItem('newLead', JSON.stringify(newLead))
-      showToast("Lead created successfully")
-      
-      setTimeout(() => {
-        router.push('/lead-management')
-      }, 500)
-    } else {
+    if (!isValid) {
       // Find errors and scroll
       const newErrors: Record<string, string> = {}
       if (!formData.firstName.trim()) newErrors.firstName = "firstName"
@@ -378,6 +409,56 @@ export default function AddLeadPage() {
       if (!formData.followUpDate) newErrors.followUpDate = "followUpDate"
       if (!formData.followUpTime) newErrors.followUpTime = "followUpTime"
       scrollToFirstError(newErrors)
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await fetch(
+        '/api/v1/leads',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            phone: formData.phone,
+            email: formData.email || null,
+            source: sourceUiToDb[formData.source] || 'OTHER',
+            status: statusUiToDb[formData.status] || 'NEW',
+            priority: priorityUiToDb[formData.priority] || 'MEDIUM',
+            gradeSought: formData.applyingFor || null,
+            kidName: formData.childName || null,
+            assignedToId: formData.counsellorId || null,
+            nextFollowUpAt: formData.followUpDate ? new Date(formData.followUpDate).toISOString() : null,
+            notes: formData.notes || null
+          })
+        }
+      )
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        throw new Error(json.error ?? 'Failed to create lead')
+      }
+
+      if (json.data?.queued) {
+        showToast(
+          'Lead saved to queue. Upgrade to access queued leads.',
+          'info'
+        )
+      } else {
+        showToast('Lead created successfully')
+      }
+
+      router.push('/lead-management')
+
+    } catch (err: any) {
+      showToast(err.message ?? 'Failed to create lead', 'error')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -516,10 +597,17 @@ export default function AddLeadPage() {
               </button>
               <Button
                 type="submit"
+                disabled={submitting}
                 className="bg-[#1565D8] text-white text-sm font-semibold px-5 py-2.5 h-auto rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
               >
-                <Save className="size-4" />
-                <span>Save Lead</span>
+                {submitting ? (
+                  <span>Saving...</span>
+                ) : (
+                  <>
+                    <Save className="size-4" />
+                    <span>Save Lead</span>
+                  </>
+                )}
               </Button>
             </div>
           </section>

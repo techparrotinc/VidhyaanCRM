@@ -558,12 +558,12 @@ export default function SchoolsSearchPage() {
             {/* Right Column: Listing & counters */}
             <div className="flex-1 min-w-0 space-y-4">
               
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-5 rounded-2xl border border-slate-200 shadow-sm gap-3 select-none">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-2 px-1 gap-3 select-none">
                 <div>
-                  <h2 className="text-base md:text-lg font-black text-slate-900 font-poppins leading-none">
+                  <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
                     Schools in {filters.city || 'India'}
                   </h2>
-                  <p className="text-xs text-slate-400 font-semibold mt-1">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wide">
                     Showing {startItem}–{endItem} of {pagination.total} schools
                   </p>
                 </div>
@@ -571,20 +571,20 @@ export default function SchoolsSearchPage() {
                 {/* Active Filters chips */}
                 <div className="flex items-center gap-2 flex-wrap">
                   {distanceRadius < 40 && (
-                    <span className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-[#1565D8] text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full shadow-sm">
+                    <span className="flex items-center gap-1 bg-blue-50/80 border border-blue-200 text-[#1565D8] text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded">
                       Within {distanceRadius}km
                       <X 
-                        size={12} 
+                        size={10} 
                         className="cursor-pointer text-blue-400 hover:text-red-500" 
                         onClick={() => setDistanceRadius(40)} 
                       />
                     </span>
                   )}
                   {activeBoards.map((b) => (
-                    <span key={b} className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-[#1565D8] text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full shadow-sm">
+                    <span key={b} className="flex items-center gap-1 bg-blue-50/80 border border-blue-200 text-[#1565D8] text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded">
                       {b}
                       <X 
-                        size={12} 
+                        size={10} 
                         className="cursor-pointer text-blue-400 hover:text-red-500" 
                         onClick={() => toggleBoard(b)} 
                       />

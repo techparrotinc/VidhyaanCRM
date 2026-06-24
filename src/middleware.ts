@@ -126,6 +126,22 @@ export default async function middleware(request: NextRequest) {
     if (!isPlatformRole(role)) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
+
+    // SUPPORT_ADMIN restrictions: cannot access settings, revenue, or impersonation
+    if (role === 'SUPPORT_ADMIN') {
+      const blockedPaths = ['/admin/settings', '/admin/revenue', '/admin/impersonate']
+      if (blockedPaths.some((prefix) => pathname === prefix || pathname.startsWith(prefix + '/'))) {
+        return NextResponse.redirect(new URL('/admin', request.url))
+      }
+    }
+
+    // OPERATIONS_ADMIN restrictions: cannot impersonate
+    if (role === 'OPERATIONS_ADMIN') {
+      const blockedPaths = ['/admin/impersonate']
+      if (blockedPaths.some((prefix) => pathname === prefix || pathname.startsWith(prefix + '/'))) {
+        return NextResponse.redirect(new URL('/admin', request.url))
+      }
+    }
   }
 
   // 5. Parent routes → parent role only

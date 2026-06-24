@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { AuditAction, OrgStatus, VerificationStatus } from '@prisma/client'
+import { sendTemplateEmail, schoolVerifiedTemplate } from '@/lib/integrations/resend'
 
 export async function POST(
   req: NextRequest,
@@ -55,36 +56,38 @@ export async function POST(
     const adminEmail = school.organization?.email || school.contacts.find(c => c.type === 'email')?.value
     if (adminEmail) {
       const origin = req.headers.get('origin') || 'https://vidhyaan.com'
-      const dashboardUrl = `${origin}/dashboard`
-      
-      console.log(`[SuperAdmin Notification] School "${school.name}" verification approved. Sending email to admin: ${adminEmail}`)
+      const listingUrl = `${origin}/schools/${school.slug}`
 
-      if (process.env.RESEND_API_KEY) {
-        try {
-          await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
-            },
-            body: JSON.stringify({
-              from: 'Vidhyaan <noreply@vidhyaan.com>',
-              to: adminEmail,
-              subject: 'Your school listing is approved!',
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-                  <h2 style="color: #1a365d;">Congratulations!</h2>
-                  <p>Your school listing <strong>${school.name}</strong> on Vidhyaan has been approved and is now live!</p>
-                  <p>You can access your CRM dashboard and manage your listing here:</p>
-                  <p><a href="${dashboardUrl}" style="display: inline-block; background-color: #3182ce; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to CRM Dashboard</a></p>
-                  <p style="color: #718096; font-size: 14px; margin-top: 20px;">If the button above does not work, copy and paste this link: ${dashboardUrl}</p>
-                </div>
-              `
-            })
-          })
-        } catch (emailErr) {
-          console.error('Failed to send Resend email:', emailErr)
+      // Fetch ORG_ADMIN name if available
+      let adminName = 'Administrator'
+      if (school.orgId) {
+        const adminUser = await prisma.user.findFirst({
+          where: {
+            orgId: school.orgId,
+            role: 'ORG_ADMIN',
+            deletedAt: null
+          },
+          select: { name: true }
+        })
+        if (adminUser?.name) {
+          adminName = adminUser.name
         }
+      }
+
+      console.log(`[SuperAdmin Notification] School "${school.name}" verification approved. Sending live email to admin: ${adminEmail}`)
+
+      try {
+        await sendTemplateEmail(
+          adminEmail,
+          "Your school is now live! 🎉",
+          schoolVerifiedTemplate({
+            schoolName: school.name,
+            adminName,
+            listingUrl
+          })
+        )
+      } catch (emailErr) {
+        console.error('Failed to send verification email:', emailErr)
       }
     }
 

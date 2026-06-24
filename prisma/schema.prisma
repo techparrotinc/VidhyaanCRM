@@ -65,6 +65,7 @@ enum OrgStatus {
   GRACE_PERIOD
   SUSPENDED
   CANCELLED
+  TRIAL_EXPIRED
 
   @@schema("platform")
 }
@@ -513,6 +514,7 @@ model Organization {
   gstNumber        String?         @map("gst_number")
   status           OrgStatus       @default(PENDING_VERIFICATION)
   trialEndsAt      DateTime?       @map("trial_ends_at")
+  trialReminderSent DateTime?      @map("trial_reminder_sent")
   leadCap          Int             @default(10) @map("lead_cap") // free-plan cap, configurable by super admin
   planId           String?         @map("plan_id")
   settings         Json? // institution-type adaptive config, prefixes, thresholds
@@ -857,6 +859,9 @@ model School {
   schoolType           String?            @map("school_type")
   gender               String?            @map("gender")
   gradesOffered        String?            @map("grades_offered")
+  academicYear         String?            @map("academic_year")
+  admissionDeadline    DateTime?          @map("admission_deadline")
+  admissionFormLink    String?            @map("admission_form_link")
   isManagedBySchool    Boolean            @default(false) @map("is_managed_by_school")
   isPublished          Boolean            @default(false) @map("is_published")
   isClaimed            Boolean            @default(false) @map("is_claimed")

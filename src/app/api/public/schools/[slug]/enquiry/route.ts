@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { sendTemplateEmail, enquiryNotificationTemplate, enquiryConfirmationTemplate } from '@/lib/integrations/resend'
 
 export async function POST(
   req: NextRequest,
@@ -143,8 +144,71 @@ export async function POST(
       data: { enquiryCount: { increment: 1 } }
     }).catch(e => console.error('Error incrementing enquiryCount:', e))
 
-    // 8. Log email notification (Mock in development)
-    console.log(`[Email Mock] Sending enquiry notification for ${school.name} to admin.`)
+    // 8. Send real email notifications
+    try {
+      // Find school admin email
+      let schoolAdminEmail = null
+      if (school.orgId) {
+        const org = await prisma.organization.findUnique({
+          where: { id: school.orgId },
+          select: { email: true }
+        })
+        schoolAdminEmail = org?.email
+      }
+      if (!schoolAdminEmail) {
+        const primaryEmailContact = await prisma.schoolContact.findFirst({
+          where: {
+            schoolId: school.id,
+            type: 'email',
+            isPrimary: true
+          }
+        })
+        schoolAdminEmail = primaryEmailContact?.value
+      }
+
+      // Send to school admin
+      if (schoolAdminEmail) {
+        const crmLink = `${process.env.NEXTAUTH_URL || 'https://vidhyaan.com'}/lead-management`
+        await sendTemplateEmail(
+          schoolAdminEmail,
+          `New admission enquiry for ${school.name}! 🏫`,
+          enquiryNotificationTemplate({
+            schoolName: school.name,
+            parentName,
+            phone,
+            childName: childName || 'Not specified',
+            gradeSought: gradeSought || 'Not specified',
+            message: message || '',
+            crmLink
+          })
+        )
+      }
+
+      // Send confirmation to parent (if email is provided)
+      if (email) {
+        const phoneContact = await prisma.schoolContact.findFirst({
+          where: {
+            schoolId: school.id,
+            type: 'phone',
+            isPrimary: true
+          }
+        })
+        const schoolPhone = phoneContact?.value || 'Contact school directly'
+
+        await sendTemplateEmail(
+          email,
+          `Your enquiry to ${school.name} has been received!`,
+          enquiryConfirmationTemplate({
+            parentName,
+            schoolName: school.name,
+            schoolPhone,
+            referenceId: enquiry.id
+          })
+        )
+      }
+    } catch (emailErr) {
+      console.error('Failed to send enquiry email notifications:', emailErr)
+    }
 
     return NextResponse.json({
       success: true,

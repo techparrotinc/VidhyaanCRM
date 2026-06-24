@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { OtpChannel, OtpPurpose } from '@prisma/client'
+import { otpSendLimiter } from '@/lib/ratelimit'
+import { sendTemplateEmail, otpEmailTemplate } from '@/lib/integrations/resend'
 
 const schema = z.object({
   contact: z.string().min(1),
@@ -15,14 +17,27 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { contact, purpose } = schema.parse(body)
 
-    // Detect channel
-    const isPhone = /^[6-9]\d{9}$/.test(contact)
+    // Detect and validate channel
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)
+    const isPhone = /^[6-9]\d{9}$/.test(contact)
 
     if (!isPhone && !isEmail) {
       return NextResponse.json(
-        { success: false, error: 'Invalid phone or email' },
+        { success: false, error: 'INVALID_CONTACT', message: 'Invalid contact format. Phone must be 10-digit Indian number starting with 6-9.' },
         { status: 400 }
+      )
+    }
+
+    // Rate Limiting
+    const rateLimit = await otpSendLimiter(`otp_send_${contact}`)
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        {
+          error: 'RATE_LIMITED',
+          message: 'Too many OTP requests. Please wait 15 minutes.',
+          retryAfter: rateLimit.reset
+        },
+        { status: 429 }
       )
     }
 
@@ -33,7 +48,6 @@ export async function POST(req: NextRequest) {
     if (purpose === 'SIGNUP') {
       mappedPurpose = OtpPurpose.SIGNUP
     } else if (purpose === 'RECOVERY') {
-      // Recovery behaves as LOGIN since RECOVERY is not in Prisma enum
       mappedPurpose = OtpPurpose.LOGIN
     }
 
@@ -46,7 +60,19 @@ export async function POST(req: NextRequest) {
       ipAddress
     )
 
-    await sendOTP(contact, code, channel)
+    if (channel === 'EMAIL') {
+      await sendTemplateEmail(
+        contact,
+        "Your Vidhyaan OTP",
+        otpEmailTemplate({
+          otp: code,
+          expiryMinutes: 10,
+          purpose
+        })
+      )
+    } else {
+      await sendOTP(contact, code, channel)
+    }
 
     return NextResponse.json({
       success: true,

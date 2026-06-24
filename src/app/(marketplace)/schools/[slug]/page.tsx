@@ -54,6 +54,8 @@ import {
   BookOpen
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import MarketplaceHeader from '@/components/MarketplaceHeader'
+import CompareBar from '@/components/CompareBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -185,7 +187,127 @@ export default function SchoolProfilePage() {
   const [error, setError] = useState<string | null>(null)
 
   // Navigation & Interactive States
-  const [isProductsOpen, setIsProductsOpen] = useState(false)
+  // Visit Scheduler Modal States
+  const [visitModalOpen, setVisitModalOpen] = useState(false)
+  const [visitSubmitted, setVisitSubmitted] = useState(false)
+  const [visitLoading, setVisitLoading] = useState(false)
+  const [visitError, setVisitError] = useState<string | null>(null)
+  const [visitForm, setVisitForm] = useState({
+    parentName: '',
+    phone: '',
+    email: '',
+    preferredDate: '',
+    preferredTime: '',
+    numberOfVisitors: '1',
+    notes: ''
+  })
+
+  // Prefill visit form with session data when loaded
+  useEffect(() => {
+    if (session?.user) {
+      setVisitForm(prev => ({
+        ...prev,
+        parentName: session.user.name || '',
+        phone: (session.user as any).phone || '',
+        email: session.user.email || ''
+      }))
+    }
+  }, [session])
+
+  // Comparison State
+  const [comparedSlugs, setComparedSlugs] = useState<string[]>([])
+
+  useEffect(() => {
+    const loadCompare = () => {
+      try {
+        const stored = localStorage.getItem('compare_schools')
+        if (stored) {
+          const list = JSON.parse(stored)
+          if (Array.isArray(list)) {
+            setComparedSlugs(list.map((s: any) => s.slug))
+          }
+        } else {
+          setComparedSlugs([])
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    loadCompare()
+    window.addEventListener('compare-changed', loadCompare)
+    window.addEventListener('storage', loadCompare)
+    return () => {
+      window.removeEventListener('compare-changed', loadCompare)
+      window.removeEventListener('storage', loadCompare)
+    }
+  }, [])
+
+  const toggleCompare = (sc: any) => {
+    try {
+      const stored = localStorage.getItem('compare_schools')
+      let list = stored ? JSON.parse(stored) : []
+      if (!Array.isArray(list)) list = []
+      
+      const isAlreadyAdded = list.some((s: any) => s.slug === sc.slug)
+      if (isAlreadyAdded) {
+        list = list.filter((s: any) => s.slug !== sc.slug)
+        localStorage.setItem('compare_schools', JSON.stringify(list))
+        window.dispatchEvent(new Event('compare-changed'))
+        setToastMsg(`Removed ${sc.name} from comparison`)
+      } else {
+        if (list.length >= 3) {
+          setToastMsg("You can compare up to 3 schools side-by-side.")
+          return
+        }
+        list.push({ slug: sc.slug, name: sc.name })
+        localStorage.setItem('compare_schools', JSON.stringify(list))
+        window.dispatchEvent(new Event('compare-changed'))
+        setToastMsg(`Added ${sc.name} to comparison`)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const handleVisitSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!school) return
+    setVisitLoading(true)
+    setVisitError(null)
+    try {
+      const res = await fetch(`/api/public/schools/${school.slug}/visit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          parentName: visitForm.parentName,
+          phone: visitForm.phone,
+          email: visitForm.email || undefined,
+          preferredDate: visitForm.preferredDate,
+          preferredTime: visitForm.preferredTime || undefined,
+          numberOfVisitors: visitForm.numberOfVisitors ? parseInt(visitForm.numberOfVisitors) : undefined,
+          notes: visitForm.notes || undefined
+        })
+      })
+      const json = await res.json()
+      if (json.success) {
+        setVisitSubmitted(true)
+        setVisitForm(prev => ({
+          ...prev,
+          preferredDate: '',
+          preferredTime: '',
+          numberOfVisitors: '1',
+          notes: ''
+        }))
+      } else {
+        setVisitError(json.error || 'Failed to schedule visit')
+      }
+    } catch (err: any) {
+      setVisitError(err.message || 'An error occurred')
+    } finally {
+      setVisitLoading(false)
+    }
+  }
+
   const [activeTab, setActiveTab] = useState('Overview')
   const [readMore, setReadMore] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -607,199 +729,7 @@ export default function SchoolProfilePage() {
     <div className="min-h-screen bg-[#F5F7FA] font-sans antialiased text-slate-800 flex flex-col justify-between select-none">
       
       {/* 1. STICKY BRAND HEADER */}
-      <div onMouseLeave={() => setIsProductsOpen(false)}>
-        <header className="sticky top-0 w-full bg-white border-b border-slate-100 z-50 shadow-sm transition-all">
-          <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 cursor-pointer">
-              <div className="w-8 h-8 rounded-lg bg-[#1565D8] flex items-center justify-center text-white font-black text-sm shadow-md">
-                V
-              </div>
-              <span className="text-base font-black tracking-tight text-slate-900">Vidhyaan</span>
-            </Link>
-
-            <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600 h-full">
-              <div 
-                className="h-full flex items-center animate-none"
-                onMouseEnter={() => setIsProductsOpen(true)}
-              >
-                <button className="flex items-center gap-1 hover:text-[#1565D8] transition cursor-pointer py-5">
-                  Products <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isProductsOpen ? 'rotate-180' : ''}`} />
-                </button>
-              </div>
-              <Link href="/schools" className="hover:text-[#1565D8] transition">Find Schools</Link>
-              <Link href="/learning-centers" className="hover:text-[#1565D8] transition">Learning Centers</Link>
-              <Link href="/pricing" className="hover:text-[#1565D8] transition">Pricing</Link>
-              <Link href="/about" className="hover:text-[#1565D8] transition">About Us</Link>
-              <Link href="/contact" className="hover:text-[#1565D8] transition">Contact Us</Link>
-            </nav>
-
-            <div className="flex items-center gap-2.5">
-              <Link href="/login">
-                <Button variant="ghost" className="text-slate-700 hover:text-blue-700 font-bold text-xs px-4 py-2 rounded-xl h-auto">
-                  Log in
-                </Button>
-              </Link>
-              <Link href="/schools">
-                <Button variant="outline" className="border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs px-4 py-2.5 rounded-full h-auto">
-                  Search Schools Nearby
-                </Button>
-              </Link>
-              <Link href="/signup">
-                <Button className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-full h-auto shadow-sm">
-                  Claim Free Profile
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Products Mega Menu Dropdown */}
-          {isProductsOpen && (
-            <div 
-              className="absolute left-0 right-0 top-16 w-full bg-white border-t-[3px] border-[#1565D8] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15),0_15px_25px_-10px_rgba(0,0,0,0.1),0_0_30px_rgba(0,0,0,0.05)] z-40 transition-all duration-300 ease-out"
-              onMouseEnter={() => setIsProductsOpen(true)}
-            >
-              <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 grid grid-cols-2 gap-8 relative">
-                <div className="absolute top-8 bottom-8 left-1/2 w-px bg-[#E2E8F0] -translate-x-1/2 hidden md:block" />
-
-                <div className="pr-0 md:pr-8">
-                  <div className="flex items-center gap-2 pb-3 mb-6 border-b border-slate-100">
-                    <LayoutGrid className="w-4 h-4 text-[#1565D8] fill-current" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">CORE PRODUCTS</h3>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <Link href="/signup" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                      <div className="w-12 h-12 rounded-xl bg-[#EFF6FF] group-hover:bg-[#DBEAFE] text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-300">
-                        <Building className="w-5 h-5 fill-current" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">School Profile</span>
-                          <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-505 font-medium mt-0.5 leading-relaxed">Create and manage school listings and learning institutes online</p>
-                      </div>
-                    </Link>
-
-                    <Link href="/signup" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                      <div className="w-12 h-12 rounded-xl bg-[#FFFBEB] group-hover:bg-[#FEF3C7] text-[#D97706] flex items-center justify-center shrink-0 transition-colors duration-300">
-                        <UserPlus className="w-5 h-5 fill-current" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Admissions CRM</span>
-                          <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Manage applications and convert enquiries into enrollments faster</p>
-                      </div>
-                    </Link>
-
-                    <Link href="/signup" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                      <div className="w-12 h-12 rounded-xl bg-[#FFF1F2] group-hover:bg-[#FFE4E6] text-[#E11D48] flex items-center justify-center shrink-0 transition-colors duration-300">
-                        <MessageSquare className="w-5 h-5 fill-current" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Centralized Communications</span>
-                          <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-505 font-medium mt-0.5 leading-relaxed">Engage parents, students and staff seamlessly in one place</p>
-                      </div>
-                    </Link>
-                  </div>
-                </div>
-
-                <div className="pl-0 md:pl-8">
-                  <div className="flex items-center gap-2 pb-3 mb-6 border-b border-slate-100">
-                    <Layers className="w-4 h-4 text-[#1565D8] fill-current" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">ACADEMIC & OPERATIONS</h3>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <Link href="/signup" className="flex items-start gap-4 p-3 rounded-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                      <div className="w-12 h-12 rounded-xl bg-[#F0FDF4] group-hover:bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center shrink-0 transition-colors duration-300">
-                        <Wallet className="w-5 h-5 fill-current" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Fees & Payments</span>
-                          <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Collect payments, track dues and share invoices with ease</p>
-                      </div>
-                    </Link>
-
-                    <Link href="/signup" className="flex items-start gap-4 p-3 rounded-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                      <div className="w-12 h-12 rounded-xl bg-[#F5F3FF] group-hover:bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 transition-colors duration-300">
-                        <BookOpen className="w-5 h-5 fill-current" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Education ERP</span>
-                          <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-505 font-medium mt-0.5 leading-relaxed">Digitize school calendars, attendance, exams and schedules</p>
-                      </div>
-                    </Link>
-
-                    <Link href="/signup" className="flex items-start gap-4 p-3 rounded-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group group-hover:duration-300 cursor-pointer">
-                      <div className="w-12 h-12 rounded-xl bg-[#F0FDFA] group-hover:bg-[#CCFBF1] text-[#0D9488] flex items-center justify-center shrink-0 transition-colors duration-300">
-                        <GraduationCap className="w-5 h-5 fill-current" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Student Hub</span>
-                          <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Empower students with self-service tools, materials and grades</p>
-                      </div>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom Trust Bar */}
-              <div className="bg-[#F8FAFC] border-t border-slate-200 py-5 px-4 md:px-6 lg:px-8">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
-                  <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-[#1565D8]">
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="font-bold text-slate-700">100% Verified Listings</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
-                        <Star className="w-3.5 h-3.5 fill-current" />
-                      </div>
-                      <span className="font-bold text-slate-700">50,000+ Parent Reviews</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="font-bold text-slate-700">Direct Application Support</span>
-                    </div>
-                  </div>
-                  <span className="font-bold text-slate-400">Trusted by 500+ Indian Institutions</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </header>
-      </div>
+      <MarketplaceHeader />
 
       {/* 2. SCHOOL COVER SECTION */}
       <section className="relative h-[200px] md:h-[280px] w-full bg-slate-200 overflow-hidden">
@@ -865,6 +795,16 @@ export default function SchoolProfilePage() {
             >
               <Bookmark className={`w-3.5 h-3.5 ${bookmarked ? 'fill-current' : ''}`} />
               {bookmarked ? 'Bookmarked' : 'Bookmark'}
+            </Button>
+            <Button
+              onClick={() => toggleCompare(school)}
+              className={`flex-1 md:flex-none border font-bold text-xs px-4 py-2.5 rounded-xl h-auto flex items-center justify-center gap-1.5 transition ${
+                comparedSlugs.includes(school.slug)
+                  ? 'bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700'
+                  : 'bg-white/10 hover:bg-white/20 border-white/20 text-white'
+              }`}
+            >
+              {comparedSlugs.includes(school.slug) ? '✓ Compared' : '+ Compare'}
             </Button>
           </div>
         </div>
@@ -1541,6 +1481,22 @@ export default function SchoolProfilePage() {
               )}
             </Card>
 
+            {/* CARD 1.5 — SCHEDULE VISIT */}
+            <Card className="bg-white rounded-2xl border-t-[3px] border-t-emerald-500 border-x-slate-200 border-b-slate-200 p-6 shadow-md space-y-4">
+              <div>
+                <h4 className="text-sm font-black text-slate-800">Schedule a Campus Visit</h4>
+                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Book a physical visit to see the campus.</p>
+              </div>
+              <Button
+                type="button"
+                onClick={() => setVisitModalOpen(true)}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md border border-emerald-500 h-auto cursor-pointer"
+              >
+                <Calendar className="w-4 h-4 shrink-0" />
+                Schedule Visit
+              </Button>
+            </Card>
+
             {/* CARD 2 — SCHOOL QUICK INFO */}
             <Card className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
               <h4 className="text-sm font-black text-slate-800 border-b border-slate-100 pb-2.5">Quick Info</h4>
@@ -1988,6 +1944,162 @@ export default function SchoolProfilePage() {
         </DialogContent>
       </Dialog>
 
+      {/* Schedule Visit Modal */}
+      <Dialog open={visitModalOpen} onOpenChange={(open) => {
+        setVisitModalOpen(open)
+        if (!open) setVisitSubmitted(false)
+      }}>
+        <DialogContent className="max-w-md bg-white p-6 rounded-2xl border border-slate-200 select-none">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-black text-slate-805">
+              Schedule Campus Visit
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-400 font-medium mt-1">
+              Request a physical campus tour at {school?.name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          {visitSubmitted ? (
+            <div className="py-8 text-center space-y-4">
+              <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 border border-emerald-250 mx-auto">
+                <Check className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-black text-slate-800">Visit Scheduled!</h4>
+                <p className="text-xs text-slate-550 font-medium leading-relaxed max-w-xs mx-auto">
+                  The admissions representative from {school?.name} has been notified and will reach out to confirm your slot.
+                </p>
+              </div>
+              <Button
+                onClick={() => {
+                  setVisitModalOpen(false)
+                  setVisitSubmitted(false)
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl h-auto mx-auto shadow-md"
+              >
+                Done
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleVisitSubmit} className="space-y-4">
+              {visitError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-655 rounded-xl text-xs font-semibold">
+                  {visitError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Parent Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={visitForm.parentName}
+                    onChange={(e) => setVisitForm({ ...visitForm, parentName: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
+                    placeholder="Saran Kumar"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Mobile Phone *</label>
+                  <input
+                    type="tel"
+                    required
+                    pattern="[6-9]\d{9}"
+                    value={visitForm.phone}
+                    onChange={(e) => setVisitForm({ ...visitForm, phone: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
+                    placeholder="9845000001"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Preferred Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={visitForm.preferredDate}
+                    onChange={(e) => setVisitForm({ ...visitForm, preferredDate: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Preferred Time</label>
+                  <input
+                    type="time"
+                    value={visitForm.preferredTime}
+                    onChange={(e) => setVisitForm({ ...visitForm, preferredTime: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Email Address</label>
+                  <input
+                    type="email"
+                    value={visitForm.email}
+                    onChange={(e) => setVisitForm({ ...visitForm, email: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
+                    placeholder="parent@example.com"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Number of Visitors</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={visitForm.numberOfVisitors}
+                    onChange={(e) => setVisitForm({ ...visitForm, numberOfVisitors: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Message / Notes</label>
+                <textarea
+                  rows={2}
+                  value={visitForm.notes}
+                  onChange={(e) => setVisitForm({ ...visitForm, notes: e.target.value })}
+                  placeholder="Any specific questions, classes to visit, etc."
+                  className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none resize-none focus:border-blue-500"
+                />
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setVisitModalOpen(false)}
+                  className="font-bold text-xs h-auto px-4 py-2.5 rounded-xl border-slate-200"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={visitLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-auto px-6 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md border border-emerald-500 disabled:opacity-50 cursor-pointer"
+                >
+                  {visitLoading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Scheduling...
+                    </>
+                  ) : (
+                    'Confirm Visit'
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Login Prompt Modal */}
       {loginPromptOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -2029,6 +2141,7 @@ export default function SchoolProfilePage() {
           </button>
         </div>
       )}
+      <CompareBar />
     </div>
   )
 }

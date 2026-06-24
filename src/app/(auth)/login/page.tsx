@@ -129,11 +129,11 @@ export default function LoginPage() {
       const role = session?.user?.role
 
       if (role === 'PARENT') {
-        router.push('/parent/dashboard')
+        window.location.href = '/parent/dashboard'
       } else if (['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN'].includes(role || '')) {
-        router.push('/admin')
+        window.location.href = '/admin'
       } else {
-        router.push('/dashboard')
+        window.location.href = '/dashboard'
       }
     } catch (err) {
       console.error(err)

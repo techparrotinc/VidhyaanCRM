@@ -27,6 +27,7 @@ interface Enquiry {
   gradeSought: string
   lastUpdated: string
   message: string | null
+  lastFollowUpAt?: string | null
 }
 
 interface School {
@@ -81,8 +82,38 @@ export default function ParentApplicationsPage() {
     }, 3000)
   }
 
-  const handleFollowUp = (schoolName: string) => {
-    triggerToast(`Follow-up notification sent to ${schoolName}`)
+  const handleFollowUp = async (enquiryId: string, schoolName: string) => {
+    try {
+      const res = await fetch(`/api/v1/parent/applications/${enquiryId}/followup`, {
+        method: 'POST'
+      })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        triggerToast(`Follow-up notification sent to ${schoolName}`)
+        fetchApplications()
+      } else {
+        triggerToast(json.error || 'Failed to send follow-up')
+      }
+    } catch (err) {
+      console.error(err)
+      triggerToast('Failed to send follow-up request')
+    }
+  }
+
+  const checkFollowUpDisabled = (enquiry: Enquiry) => {
+    // 1. Initial 3 days check from creation
+    const diffTime = Math.abs(new Date().getTime() - new Date(enquiry.createdAt).getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    if (diffDays <= 3) return true
+
+    // 2. 24 hour check from last follow-up
+    if (enquiry.lastFollowUpAt) {
+      const msSinceLast = new Date().getTime() - new Date(enquiry.lastFollowUpAt).getTime()
+      const hoursSinceLast = msSinceLast / (1000 * 60 * 60)
+      if (hoursSinceLast < 24) return true
+    }
+
+    return false
   }
 
   const handleWithdraw = (schoolName: string) => {
@@ -336,8 +367,8 @@ export default function ParentApplicationsPage() {
                       {app.latestStatus === 'PENDING' && (
                         <>
                           <Button
-                            onClick={() => handleFollowUp(app.school.name)}
-                            disabled={!checkOlderThan3Days(latestEnquiry.createdAt)}
+                            onClick={() => handleFollowUp(latestEnquiry.id, app.school.name)}
+                            disabled={checkFollowUpDisabled(latestEnquiry)}
                             className="bg-[#1565D8] hover:bg-blue-700 disabled:bg-blue-200 text-white font-bold text-xs py-2 rounded-xl h-auto flex items-center justify-center gap-1 shadow-sm"
                           >
                             <Send className="w-3 h-3" /> Send Follow-up

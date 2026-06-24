@@ -171,7 +171,7 @@ export default function ParentVerifyOtpPage() {
 
       // Success: Clear verify phone and go to parent dashboard
       sessionStorage.removeItem('parent_verify_phone')
-      router.push('/parent/dashboard')
+      window.location.href = '/parent/dashboard'
 
     } catch (err) {
       console.error(err)

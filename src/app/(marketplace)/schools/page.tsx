@@ -37,6 +37,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useLocation } from '@/hooks/useLocation'
+import MarketplaceHeader from '@/components/MarketplaceHeader'
+import CompareBar from '@/components/CompareBar'
 import {
   Dialog,
   DialogContent,
@@ -121,7 +123,7 @@ export default function SchoolsSearchPage() {
     searchParams.get('board') ? (searchParams.get('board')?.split(',') ?? []) : []
   )
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([])
-  const [isProductsOpen, setIsProductsOpen] = useState(false)
+
   
   // Enquiry Modal States
   const [selectedSchoolForEnquiry, setSelectedSchoolForEnquiry] = useState<School | null>(null)
@@ -134,6 +136,60 @@ export default function SchoolsSearchPage() {
     gradeSought: 'Grade 1',
     notes: ''
   })
+
+    const [comparedSlugs, setComparedSlugs] = useState<string[]>([])
+
+  useEffect(() => {
+    const loadCompare = () => {
+      try {
+        const stored = localStorage.getItem('compare_schools')
+        if (stored) {
+          const list = JSON.parse(stored)
+          if (Array.isArray(list)) {
+            setComparedSlugs(list.map((s: any) => s.slug))
+          }
+        } else {
+          setComparedSlugs([])
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    loadCompare()
+    window.addEventListener('compare-changed', loadCompare)
+    window.addEventListener('storage', loadCompare)
+    return () => {
+      window.removeEventListener('compare-changed', loadCompare)
+      window.removeEventListener('storage', loadCompare)
+    }
+  }, [])
+
+  const toggleCompare = (school: School) => {
+    try {
+      const stored = localStorage.getItem('compare_schools')
+      let list = stored ? JSON.parse(stored) : []
+      if (!Array.isArray(list)) list = []
+      
+      const isAlreadyAdded = list.some((s: any) => s.slug === school.slug)
+      if (isAlreadyAdded) {
+        list = list.filter((s: any) => s.slug !== school.slug)
+        localStorage.setItem('compare_schools', JSON.stringify(list))
+        window.dispatchEvent(new Event('compare-changed'))
+        setToastMsg(`Removed ${school.name} from comparison`)
+      } else {
+        if (list.length >= 3) {
+          setToastMsg("You can compare up to 3 schools side-by-side.")
+          return
+        }
+        list.push({ slug: school.slug, name: school.name })
+        localStorage.setItem('compare_schools', JSON.stringify(list))
+        window.dispatchEvent(new Event('compare-changed'))
+        setToastMsg(`Added ${school.name} to comparison`)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   // Load Bookmarks on Mount or Session Change
   useEffect(() => {
@@ -372,220 +428,7 @@ export default function SchoolsSearchPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans antialiased text-slate-800 flex flex-col justify-between select-none">
       
-      <div onMouseLeave={() => setIsProductsOpen(false)}>
-        {/* 1. STICKY BRAND NAV HEADER */}
-        <header className="sticky top-0 w-full bg-white border-b border-slate-100 z-50 shadow-sm transition-all">
-          <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 cursor-pointer">
-              <div className="w-8 h-8 rounded-lg bg-[#1565D8] flex items-center justify-center text-white font-black text-sm shadow-md">
-                V
-              </div>
-              <span className="text-base font-black tracking-tight text-slate-900">Vidhyaan</span>
-            </Link>
-
-            <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600 h-full">
-              <div 
-                className="h-full flex items-center"
-                onMouseEnter={() => setIsProductsOpen(true)}
-              >
-                <button className="flex items-center gap-1 hover:text-[#1565D8] transition cursor-pointer py-5">
-                  Products <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isProductsOpen ? 'rotate-180' : ''}`} />
-                </button>
-              </div>
-              <Link href="/schools" className="hover:text-[#1565D8] transition font-bold text-[#1565D8]">Find Schools</Link>
-              <Link href="/learning-centers" className="hover:text-[#1565D8] transition">Learning Centers</Link>
-              <Link href="/pricing" className="hover:text-[#1565D8] transition">Pricing</Link>
-              <Link href="/about" className="hover:text-[#1565D8] transition">About Us</Link>
-              <Link href="/contact" className="hover:text-[#1565D8] transition">Contact Us</Link>
-            </nav>
-
-            <div className="flex items-center gap-2.5">
-              <Link href="/login">
-                <Button variant="ghost" className="text-slate-700 hover:text-blue-700 font-bold text-xs px-4 py-2 rounded-xl h-auto">
-                  Log in
-                </Button>
-              </Link>
-              <Link href="/schools">
-                <Button variant="outline" className="border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs px-4 py-2.5 rounded-full h-auto">
-                  Search Schools Nearby
-                </Button>
-              </Link>
-              <Link href="/signup">
-                <Button className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-full h-auto shadow-sm">
-                  Claim Free Profile
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Products Mega Menu Dropdown */}
-          {isProductsOpen && (
-            <div 
-              className="absolute left-0 right-0 top-16 w-full bg-white border-t-[3px] border-[#1565D8] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15),0_15px_25px_-10px_rgba(0,0,0,0.1),0_0_30px_rgba(0,0,0,0.05)] z-40 transition-all duration-300 ease-out"
-              onMouseEnter={() => setIsProductsOpen(true)}
-            >
-              <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 grid grid-cols-2 gap-8 relative">
-                {/* Column Divider */}
-                <div className="absolute top-8 bottom-8 left-1/2 w-px bg-[#E2E8F0] -translate-x-1/2 hidden md:block" />
-
-                {/* Left Column: CORE PRODUCTS */}
-                <div className="pr-0 md:pr-8">
-                  <div className="flex items-center gap-2 pb-3 mb-6 border-b border-slate-100">
-                    <LayoutGrid className="w-4 h-4 text-[#1565D8] fill-current" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">CORE PRODUCTS</h3>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {/* Product 1: School Profile */}
-                    <Link href="/signup" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                      <div className="w-12 h-12 rounded-xl bg-[#EFF6FF] group-hover:bg-[#DBEAFE] text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-300">
-                        <Building className="w-5 h-5 fill-current" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">School Profile</span>
-                          <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Create and manage school listings and learning institutes online</p>
-                      </div>
-                    </Link>
-
-                    {/* Product 2: Admissions CRM */}
-                    <Link href="/signup" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                      <div className="w-12 h-12 rounded-xl bg-[#FFFBEB] group-hover:bg-[#FEF3C7] text-[#D97706] flex items-center justify-center shrink-0 transition-colors duration-300">
-                        <UserPlus className="w-5 h-5 fill-current" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Admissions CRM</span>
-                          <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-505 font-medium mt-0.5 leading-relaxed">Manage applications and convert enquiries into enrollments faster</p>
-                      </div>
-                    </Link>
-
-                    {/* Product 3: Centralized Communications */}
-                    <Link href="/signup" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                      <div className="w-12 h-12 rounded-xl bg-[#FFF1F2] group-hover:bg-[#FFE4E6] text-[#E11D48] flex items-center justify-center shrink-0 transition-colors duration-300">
-                        <MessageSquare className="w-5 h-5 fill-current" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Centralized Communications</span>
-                          <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Engage parents, students and staff seamlessly in one place</p>
-                      </div>
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Right Column: ACADEMIC & OPERATIONS */}
-                <div className="pl-0 md:pl-8">
-                  <div className="flex items-center gap-2 pb-3 mb-6 border-b border-slate-100">
-                    <Layers className="w-4 h-4 text-[#1565D8] fill-current" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">ACADEMIC & OPERATIONS</h3>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {/* Product 4: Fees & Payments */}
-                    <Link href="/signup" className="flex items-start gap-4 p-3 rounded-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                      <div className="w-12 h-12 rounded-xl bg-[#F0FDF4] group-hover:bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center shrink-0 transition-colors duration-300">
-                        <Wallet className="w-5 h-5 fill-current" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Fees & Payments</span>
-                          <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Collect payments, track dues and share invoices with ease</p>
-                      </div>
-                    </Link>
-
-                    {/* Product 5: Education ERP */}
-                    <Link href="/signup" className="flex items-start gap-4 p-3 rounded-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                      <div className="w-12 h-12 rounded-xl bg-[#F5F3FF] group-hover:bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shrink-0 transition-colors duration-300">
-                        <BookOpen className="w-5 h-5 fill-current" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Education ERP</span>
-                          <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Manage academics, staff, students and communication efficiently</p>
-                      </div>
-                    </Link>
-
-                    {/* Product 6: Student Hub */}
-                    <Link href="/signup" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                      <div className="w-12 h-12 rounded-xl bg-[#F0FDFA] group-hover:bg-[#CCFBF1] text-[#0D9488] flex items-center justify-center shrink-0 transition-colors duration-300">
-                        <GraduationCap className="w-5 h-5 fill-current" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Student Hub</span>
-                          <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Maintain one student record from enquiry to alumni</p>
-                      </div>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-              {/* Enhanced Dropdown Bottom Bar */}
-              <div className="bg-[#F8FAFC] border-t border-[#E2E8F0]">
-                <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-5 flex flex-col md:flex-row justify-between items-center gap-6 text-slate-700">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#EFF6FF] text-[#1565D8] flex items-center justify-center shrink-0 border border-blue-100/50">
-                      <ShieldCheck className="w-5 h-5 fill-current" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-bold text-[#0F172A] block">Secure & Reliable</span>
-                      <span className="text-xs text-slate-505 font-medium">Enterprise-grade security</span>
-                    </div>
-                  </div>
-                  
-                  <div className="w-px h-8 bg-slate-200 hidden md:block" />
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#FFFBEB] text-[#D97706] flex items-center justify-center shrink-0 border border-amber-100/50">
-                      <Zap className="w-5 h-5 fill-current" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-bold text-[#0F172A] block">Quick To Launch</span>
-                      <span className="text-xs text-slate-500 font-medium">Go live in 3 minutes. No IT support needed</span>
-                    </div>
-                  </div>
-                  
-                  <div className="w-px h-8 bg-slate-200 hidden md:block" />
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#F0FDF4] text-[#16A34A] flex items-center justify-center shrink-0 border border-emerald-100/50">
-                      <Cloud className="w-5 h-5 fill-current" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-bold text-[#0F172A] block">Cloud Based</span>
-                      <span className="text-xs text-slate-500 font-medium">Access anywhere, anytime from any device</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </header>
+      <MarketplaceHeader />
 
         {/* Navigation Tabs above Hero Strip */}
         <div className="bg-white border-b border-slate-200">
@@ -1246,6 +1089,21 @@ export default function SchoolsSearchPage() {
                             >
                               View Profile
                             </Button>
+                            
+                            <Button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggleCompare(school)
+                              }}
+                              className={`border text-xs font-bold px-5 py-2.5 rounded-xl h-auto transition cursor-pointer ${
+                                comparedSlugs.includes(school.slug)
+                                  ? 'bg-emerald-50 border-emerald-500 text-emerald-600 hover:bg-emerald-100/50'
+                                  : 'border-slate-200 hover:bg-slate-50 text-slate-700 bg-white'
+                              }`}
+                            >
+                              {comparedSlugs.includes(school.slug) ? '✓ Compared' : '+ Compare'}
+                            </Button>
 
                             <button
                               type="button"
@@ -1310,8 +1168,6 @@ export default function SchoolsSearchPage() {
 
           </div>
         </div>
-
-      </div>
 
       {/* FOOTER */}
       <footer className="bg-slate-900 text-white mt-12 py-12 px-6 md:px-8">
@@ -1519,6 +1375,7 @@ export default function SchoolsSearchPage() {
           </button>
         </div>
       )}
+      <CompareBar />
     </div>
   )
 }

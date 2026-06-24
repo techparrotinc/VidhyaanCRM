@@ -121,6 +121,7 @@ export default function ParentProfilePage() {
   // Delete Account Modal State
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
 
   const fetchProfile = async () => {
     try {
@@ -392,15 +393,16 @@ export default function ParentProfilePage() {
 
   // Handle Account Deletion
   const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') return
     try {
       setDeleteLoading(true)
-      const res = await fetch('/api/v1/parent/profile', {
-        method: 'DELETE'
+      const res = await fetch('/api/v1/parent/account/delete', {
+        method: 'POST'
       })
       const json = await res.json()
       if (json.success) {
         setDeleteModalOpen(false)
-        await signOut({ callbackUrl: '/login' })
+        await signOut({ callbackUrl: '/?message=' + encodeURIComponent('Account deleted. Data will be fully removed within 30 days.') })
       } else {
         throw new Error(json.error || 'Failed to delete account')
       }
@@ -994,14 +996,30 @@ export default function ParentProfilePage() {
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl animate-fade-in border border-slate-100 text-center">
             <ShieldAlert className="w-12 h-12 text-red-500 mx-auto mb-4" strokeWidth={1.5} />
             <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider mb-2">Delete Your Account?</h3>
-            <p className="text-[10px] text-slate-450 font-bold leading-relaxed mb-6">
+            <p className="text-[10px] text-slate-450 font-bold leading-relaxed mb-4">
               WARNING: This action is permanent. All your data, submitted enquiries, applications, bookmarks, and child profiles will be deactivated.
             </p>
+
+            <div className="mb-6 space-y-2">
+              <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block text-left">
+                Type "DELETE" to confirm
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type DELETE"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-red-550 focus:bg-white transition text-center uppercase"
+              />
+            </div>
 
             <div className="flex gap-3">
               <Button
                 type="button"
-                onClick={() => setDeleteModalOpen(false)}
+                onClick={() => {
+                  setDeleteModalOpen(false)
+                  setDeleteConfirmText('')
+                }}
                 variant="outline"
                 className="flex-1 border-slate-200 text-slate-750 hover:bg-slate-50 font-bold text-xs py-2.5 rounded-xl h-auto"
               >
@@ -1010,8 +1028,8 @@ export default function ParentProfilePage() {
               <Button
                 type="button"
                 onClick={handleDeleteAccount}
-                disabled={deleteLoading}
-                className="flex-1 bg-red-650 hover:bg-red-700 text-white font-bold text-xs py-2.5 rounded-xl h-auto"
+                disabled={deleteLoading || deleteConfirmText !== 'DELETE'}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs py-2.5 rounded-xl h-auto disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleteLoading ? (
                   <>

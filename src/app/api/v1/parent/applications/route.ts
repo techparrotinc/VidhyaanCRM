@@ -109,7 +109,8 @@ export async function GET(req: NextRequest) {
         status: calculatedStatus,
         gradeSought: enquiry.gradeSought || 'Not set',
         lastUpdated: enquiry.updatedAt,
-        message: enquiry.message
+        message: enquiry.message,
+        lastFollowUpAt: enquiry.lastFollowUpAt
       }
     })
 

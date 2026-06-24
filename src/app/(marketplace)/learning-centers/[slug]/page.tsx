@@ -53,6 +53,8 @@ import {
   Sparkles
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import MarketplaceHeader from '@/components/MarketplaceHeader'
+import CompareBar from '@/components/CompareBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -263,7 +265,7 @@ export default function LearningCenterDetailPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('Overview')
   const [bookmarked, setBookmarked] = useState(false)
-  const [isProductsOpen, setIsProductsOpen] = useState(false)
+
   const [similarLCs, setSimilarLCs] = useState<LearningCenter[]>([])
 
   // Modal / Form states
@@ -585,52 +587,7 @@ export default function LearningCenterDetailPage() {
     <div className="min-h-screen bg-[#F5F7FA] font-sans antialiased text-slate-800 flex flex-col justify-between select-none">
       
       {/* 1. BRAND HEADER */}
-      <div onMouseLeave={() => setIsProductsOpen(false)}>
-        <header className="sticky top-0 w-full bg-white border-b border-slate-100 z-50 shadow-sm transition-all">
-          <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 cursor-pointer">
-              <div className="w-8 h-8 rounded-lg bg-[#1565D8] flex items-center justify-center text-white font-black text-sm shadow-md">
-                V
-              </div>
-              <span className="text-base font-black tracking-tight text-slate-900">Vidhyaan</span>
-            </Link>
-
-            <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600 h-full">
-              <div 
-                className="h-full flex items-center"
-                onMouseEnter={() => setIsProductsOpen(true)}
-              >
-                <button className="flex items-center gap-1 hover:text-[#1565D8] transition cursor-pointer py-5">
-                  Products <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isProductsOpen ? 'rotate-180' : ''}`} />
-                </button>
-              </div>
-              <Link href="/schools" className="hover:text-[#1565D8] transition">Find Schools</Link>
-              <Link href="/learning-centers" className="hover:text-[#1565D8] transition font-bold text-[#1565D8]">Learning Centers</Link>
-              <Link href="/pricing" className="hover:text-[#1565D8] transition">Pricing</Link>
-              <Link href="/about" className="hover:text-[#1565D8] transition">About Us</Link>
-              <Link href="/contact" className="hover:text-[#1565D8] transition">Contact Us</Link>
-            </nav>
-
-            <div className="flex items-center gap-2.5">
-              <Link href="/login">
-                <Button variant="ghost" className="text-slate-700 hover:text-blue-700 font-bold text-xs px-4 py-2 rounded-xl h-auto">
-                  Log in
-                </Button>
-              </Link>
-              <Link href="/schools">
-                <Button variant="outline" className="border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs px-4 py-2.5 rounded-full h-auto">
-                  Search Schools Nearby
-                </Button>
-              </Link>
-              <Link href="/signup">
-                <Button className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-full h-auto shadow-sm">
-                  Claim Free Profile
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </header>
-      </div>
+      <MarketplaceHeader />
 
       {/* 2. COVER PHOTO SECTION */}
       <section className="relative h-[200px] md:h-[280px] w-full bg-slate-200 overflow-hidden">
@@ -1504,6 +1461,7 @@ export default function LearningCenterDetailPage() {
           </button>
         </div>
       )}
+      <CompareBar />
     </div>
   )
 }

@@ -1178,18 +1178,23 @@ model KidProfile {
 
 /// Discovery-side enquiry from a parent to a school (becomes a CRM lead).
 model ParentEnquiry {
-  id          String        @id @default(cuid())
-  orgId       String?       @map("org_id")
-  schoolId    String        @map("school_id")
-  parentId    String        @map("parent_id")
-  kidName     String?       @map("kid_name")
-  gradeSought String?       @map("grade_sought")
-  message     String?
-  status      EnquiryStatus @default(NEW)
-  leadId      String?       @map("lead_id") // soft link to crm.leads once created
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-  deletedAt   DateTime?     @map("deleted_at")
+  id             String        @id @default(cuid())
+  orgId          String?       @map("org_id")
+  schoolId       String        @map("school_id")
+  parentId       String        @map("parent_id")
+  kidName        String?       @map("kid_name")
+  gradeSought    String?       @map("grade_sought")
+  message        String?
+  status         EnquiryStatus @default(NEW)
+  leadId         String?       @map("lead_id") // soft link to crm.leads once created
+  type           String?       @default("ENQUIRY") // ENQUIRY, VISIT_REQUEST
+  preferredDate  DateTime?     @map("preferred_date")
+  preferredTime  String?       @map("preferred_time")
+  visitorCount   Int?          @map("visitor_count")
+  lastFollowUpAt DateTime?     @map("last_follow_up_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  deletedAt      DateTime?     @map("deleted_at")
 
   organization Organization? @relation(fields: [orgId], references: [id])
   school       School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)

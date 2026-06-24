@@ -85,7 +85,7 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
           }
         }
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   // Fetch unread leads count
@@ -97,7 +97,7 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
           setUnreadLeadsCount(data.leads.new)
         }
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   const isActive = (path: string) => {
@@ -123,18 +123,18 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
     { name: 'Admission Management', href: '/admission-management', icon: ClipboardList, module: 'admission_management', section: 'Main' },
     { name: 'Student Management', href: '/student-management', icon: GraduationCap, module: 'student_management', section: 'Main' },
     { name: 'Fee Management', href: '/fee-management', icon: CreditCard, module: 'fee_management', section: 'Main' },
-    
+
     // Section 2: Engagement
     { name: 'Campaigns', href: '/campaign-management', icon: Megaphone, module: 'campaign_management', section: 'Engagement' },
     { name: 'Events', href: '/event-management', icon: CalendarDays, section: 'Engagement' },
-    
+
     // Section 3: Analytics
     { name: 'Reports', href: '/reports', icon: BarChart2, module: 'advanced_reports', section: 'Analytics' },
-    
+
     // Section 4: Team
     { name: 'Users', href: '/users', icon: UserCog, section: 'Team', roles: ['ORG_ADMIN', 'BRANCH_ADMIN'] },
     { name: 'Roles', href: '/roles', icon: ShieldCheck, section: 'Team', roles: ['ORG_ADMIN'] },
-    
+
     // Section 5: Configuration
     { name: 'Settings', href: '/settings', icon: Settings, section: 'Configuration' }
   ]
@@ -160,12 +160,12 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
 
   const renderSectionHeader = (sectionName: string) => {
     if (sectionName === 'Main') return null
-    
+
     // Collapsed divider
     if (isCollapsed) {
       return (
-        <div 
-          className="h-[1px] bg-[#334155] mx-auto my-2" 
+        <div
+          className="h-[1px] bg-[#334155] mx-auto my-2"
           style={{ width: '32px' }}
         />
       )
@@ -180,7 +180,7 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
     const marginTop = sectionName === 'Engagement' ? '8px' : '16px'
 
     return (
-      <div 
+      <div
         className="text-[10px] font-bold uppercase tracking-[0.1em] select-none"
         style={{ color, marginTop, padding: '8px 16px 4px' }}
       >
@@ -238,6 +238,12 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
                   {unreadLeadsCount > 99 ? '99+' : unreadLeadsCount}
                 </span>
               )}
+              {/* Profile Completion Badge on Site Manager */}
+              {item.href === '/settings/school-profile' && profileCompletion !== null && (
+                <span className="absolute -top-1.5 -right-3 px-1 py-0.5 bg-blue-600 rounded text-[8px] text-white font-bold border border-[#1E293B]">
+                  {profileCompletion}%
+                </span>
+              )}
             </div>
           </Link>
 
@@ -246,6 +252,9 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
             <div className="w-1.5 h-1.5 bg-[#0F172A] border-l border-b border-[#334155] rotate-45 -mr-[4px] z-10" />
             <div className="bg-[#0F172A] border border-[#334155] text-[#F1F5F9] text-[13px] font-medium rounded-lg px-3 py-1.5 shadow-lg whitespace-nowrap flex items-center gap-1.5">
               {item.name}
+              {item.href === '/settings/school-profile' && profileCompletion !== null && (
+                <span className="text-[#60A5FA] font-bold text-xs ml-1">({profileCompletion}%)</span>
+              )}
               {locked && <Lock className="w-3.5 h-3.5 text-[#475569] shrink-0" />}
             </div>
           </div>
@@ -286,6 +295,15 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
           )}
         </div>
         <span className="truncate flex-1">{item.name}</span>
+        {item.href === '/settings/school-profile' && profileCompletion !== null && (
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border transition-colors ${
+            active 
+              ? 'bg-white/20 text-white border-white/30' 
+              : 'bg-[#1565D8]/20 text-[#60A5FA] border-[#1565D8]/30'
+          }`}>
+            {profileCompletion}%
+          </span>
+        )}
         {locked && <Lock className="w-3 h-3 text-[#475569] shrink-0" />}
       </Link>
     )

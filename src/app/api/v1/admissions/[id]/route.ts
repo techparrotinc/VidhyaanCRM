@@ -3,6 +3,7 @@ import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
+import { createNotification } from '@/lib/services/notifications'
 
 export const GET = route({
   module: MODULES.ADMISSION_MANAGEMENT,
@@ -88,6 +89,26 @@ export const PUT = route({
           performedById: user.id
         }
       })
+
+      // Create in-app notification for counsellor
+      if (updated.assignedToId) {
+        try {
+          await createNotification({
+            orgId: user.orgId,
+            recipientType: 'USER',
+            recipientId: updated.assignedToId,
+            type: 'ADMISSION_STAGE_CHANGED',
+            title: 'Application Stage Updated',
+            body: `${updated.applicantName} moved to ${updated.stage?.name || 'New Stage'}`,
+            data: {
+              admissionId: updated.id,
+              href: '/admission-management'
+            }
+          })
+        } catch (e) {
+          console.error('Failed to trigger admission notification:', e)
+        }
+      }
 
       // Check if new stage is won
       if (updated.stage?.isWon) {

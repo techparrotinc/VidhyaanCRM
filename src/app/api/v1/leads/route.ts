@@ -6,6 +6,7 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
 import { LeadSource, LeadStatus, LeadPriority } from '@prisma/client'
+import { createNotification } from '@/lib/services/notifications'
 
 export const GET = route({
   module: MODULES.LEAD_MANAGEMENT,
@@ -175,6 +176,26 @@ export const POST = route({
         performedById: user.id
       }
     })
+
+    // Create in-app notification for the assigned counsellor
+    if (assignedToId) {
+      try {
+        await createNotification({
+          orgId: user.orgId,
+          recipientType: 'USER',
+          recipientId: assignedToId,
+          type: 'LEAD_RECEIVED',
+          title: 'New Lead Received',
+          body: `${parentName} enquired about ${body.gradeSought || 'N/A'}`,
+          data: {
+            leadId: lead.id,
+            href: `/lead-management/${lead.id}`
+          }
+        })
+      } catch (e) {
+        console.error('Failed to trigger lead notification:', e)
+      }
+    }
 
     return created({
       ...lead,

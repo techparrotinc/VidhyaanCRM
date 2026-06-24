@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { sendTemplateEmail, trialEndingTemplate } from '@/lib/integrations/resend'
+import { createNotification } from '@/lib/services/notifications'
 
 export async function GET(req: NextRequest) {
   try {
@@ -58,6 +59,24 @@ export async function GET(req: NextRequest) {
           )
         } catch (emailErr) {
           console.error(`Failed to send trial ending email for org ${org.id}:`, emailErr)
+        }
+      }
+
+      if (adminUser) {
+        try {
+          await createNotification({
+            orgId: org.id,
+            recipientType: 'USER',
+            recipientId: adminUser.id,
+            type: 'TRIAL_ENDING',
+            title: 'Your trial ends in 3 days',
+            body: 'Upgrade to keep access to all CRM features.',
+            data: {
+              href: '/settings/billing'
+            }
+          })
+        } catch (nErr) {
+          console.error(`Failed to trigger trial ending in-app notification for org ${org.id}:`, nErr)
         }
       }
 

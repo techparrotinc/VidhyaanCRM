@@ -7,7 +7,8 @@ const TENANT_MODELS = [
   'Payment', 'Concession', 'Event', 'EventRsvp', 'Campaign', 'CampaignRecipient',
   'Notification', 'NotificationPreference', 'CommunicationLog', 'NotificationQueue',
   'AcademicYear', 'CounsellorTarget', 'LeadActivity', 'AdmissionActivity',
-  'LeadCustomField', 'StudentCustomField', 'ApiKey', 'OrgDomain'
+  'LeadCustomField', 'StudentCustomField', 'ApiKey', 'OrgDomain',
+  'BatchSchedule', 'Instructor', 'TrialClassBooking'
 ]
 
 const SOFT_DELETE_MODELS = [

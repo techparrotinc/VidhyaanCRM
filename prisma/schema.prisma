@@ -783,6 +783,23 @@ model OrgDomain {
   @@schema("platform")
 }
 
+model LocationCache {
+  id          String    @id @default(cuid())
+  latRounded  String    @map("lat_rounded")
+  lngRounded  String    @map("lng_rounded")
+  city        String
+  state       String?
+  country     String    @default("India")
+  pincode     String?
+  fullAddress String?   @map("full_address")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([latRounded, lngRounded])
+  @@index([city])
+  @@map("location_cache")
+  @@schema("platform")
+}
+
 // ============================================================================
 // SCHEMA: marketplace — parent-facing discovery
 // ============================================================================
@@ -812,6 +829,32 @@ model School {
   updatedAt          DateTime           @updatedAt @map("updated_at")
   deletedAt          DateTime?          @map("deleted_at")
 
+  // For Learning Centers
+  trialClassAvailable   Boolean   @default(false) @map("trial_class_available")
+  enrollmentStatus      String    @default("OPEN") @map("enrollment_status")
+  ageGroupMin           Int?      @map("age_group_min")
+  ageGroupMax           Int?      @map("age_group_max")
+  monthlyFeeMin         Int?      @map("monthly_fee_min")
+  monthlyFeeMax         Int?      @map("monthly_fee_max")
+  activityTypes         String[]  @map("activity_types")
+  homeVisitAvailable    Boolean   @default(false) @map("home_visit_available")
+  batchCount            Int       @default(0) @map("batch_count")
+  enrolledStudentCount  Int       @default(0) @map("enrolled_student_count")
+
+  // Profile data fields
+  establishedYear      Int?               @map("established_year")
+  totalStudents        Int?               @map("total_students")
+  totalTeachers        Int?               @map("total_teachers")
+  mediumOfInstruction  String?            @map("medium_of_instruction")
+  schoolType           String?            @map("school_type")
+  gender               String?            @map("gender")
+  gradesOffered        String?            @map("grades_offered")
+  isManagedBySchool    Boolean            @default(false) @map("is_managed_by_school")
+  isPublished          Boolean            @default(false) @map("is_published")
+  isClaimed            Boolean            @default(false) @map("is_claimed")
+  viewCount            Int                @default(0) @map("view_count")
+  enquiryCount         Int                @default(0) @map("enquiry_count")
+
   organization    Organization?       @relation(fields: [orgId], references: [id])
   locations       SchoolLocation[]
   contacts        SchoolContact[]
@@ -828,6 +871,9 @@ model School {
   reviews         SchoolReview[]
   waitlistEntries WaitlistEntry[]
   openDayEvents   OpenDayEvent[]
+  instructors     Instructor[]
+  batchSchedules  BatchSchedule[]
+  trialBookings   TrialClassBooking[]
 
   @@index([orgId])
   @@index([institutionType])
@@ -992,6 +1038,94 @@ model SchoolHours {
   @@unique([schoolId, dayOfWeek])
   @@index([schoolId])
   @@map("school_hours")
+  @@schema("marketplace")
+}
+
+model Instructor {
+  id                String    @id @default(cuid())
+  orgId             String    @map("org_id")
+  schoolId          String    @map("school_id")
+  name              String
+  qualification     String?
+  specialization    String?
+  experienceYears   Int?      @map("experience_years")
+  photoUrl          String?   @map("photo_url")
+  bio               String?
+  isActive          Boolean   @default(true) @map("is_active")
+  sortOrder         Int       @default(0) @map("sort_order")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  school            School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([orgId])
+  @@map("instructors")
+  @@schema("marketplace")
+}
+
+model BatchSchedule {
+  id              String    @id @default(cuid())
+  orgId           String    @map("org_id")
+  schoolId        String    @map("school_id")
+  activityName    String    @map("activity_name")
+  batchName       String?   @map("batch_name")
+  daysOfWeek      String[]  @map("days_of_week")
+  startTime       String    @map("start_time")
+  endTime         String    @map("end_time")
+  ageGroupMin     Int?      @map("age_group_min")
+  ageGroupMax     Int?      @map("age_group_max")
+  monthlyFee      Int       @default(0) @map("monthly_fee")
+  yearlyFee       Int?      @map("yearly_fee")
+  registrationFee Int       @default(0) @map("registration_fee")
+  capacity        Int       @default(20)
+  enrolledCount   Int       @default(0) @map("enrolled_count")
+  gender          String    @default("ALL")
+  isActive        Boolean   @default(true) @map("is_active")
+  isFull          Boolean   @default(false) @map("is_full")
+  startDate       DateTime? @map("start_date")
+  endDate         DateTime? @map("end_date")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  trialBookings   TrialClassBooking[]
+
+  @@index([schoolId])
+  @@index([orgId])
+  @@map("batch_schedules")
+  @@schema("marketplace")
+}
+
+model TrialClassBooking {
+  id                String    @id @default(cuid())
+  orgId             String    @map("org_id")
+  schoolId          String    @map("school_id")
+  batchScheduleId   String?   @map("batch_schedule_id")
+  parentName        String    @map("parent_name")
+  phone             String
+  email             String?
+  childName         String    @map("child_name")
+  childAge          Int?      @map("child_age")
+  preferredDate     DateTime? @map("preferred_date")
+  activityType      String?   @map("activity_type")
+  message           String?
+  status            String    @default("PENDING")
+  confirmedAt       DateTime? @map("confirmed_at")
+  cancelledAt       DateTime? @map("cancelled_at")
+  notes             String?
+  ipAddress         String?   @map("ip_address")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  school            School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  batchSchedule     BatchSchedule? @relation(fields: [batchScheduleId], references: [id])
+
+  @@index([schoolId])
+  @@index([orgId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("trial_class_bookings")
   @@schema("marketplace")
 }
 

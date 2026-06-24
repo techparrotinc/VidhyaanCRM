@@ -8,8 +8,11 @@ export async function GET(
   try {
     const { slug } = await context.params
 
-    const school = await prisma.school.findUnique({
-      where: { slug },
+    const school = await prisma.school.findFirst({
+      where: { 
+        slug,
+        isPublished: true
+      },
       include: {
         locations: {
           where: { deletedAt: null }
@@ -24,11 +27,20 @@ export async function GET(
         facilities: true,
         feeRanges: true,
         affiliations: true,
+        accreditations: true,
         hours: true,
+        instructors: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' }
+        },
+        batchSchedules: {
+          where: { isActive: true },
+          orderBy: { startTime: 'asc' }
+        },
         reviews: {
           where: { status: 'PUBLISHED', deletedAt: null },
           orderBy: { createdAt: 'desc' },
-          take: 5,
+          take: 10,
           include: {
             parent: {
               select: { name: true }
@@ -44,6 +56,20 @@ export async function GET(
         { status: 404 }
       )
     }
+
+    // Increment viewCount asynchronously in the background (both school view count column and schoolView log)
+    prisma.school.update({
+      where: { id: school.id },
+      data: { viewCount: { increment: 1 } }
+    }).catch((e) => console.error('Error incrementing school viewCount:', e))
+
+    prisma.schoolView.create({
+      data: {
+        schoolId: school.id,
+        orgId: school.orgId,
+        source: 'DIRECT'
+      }
+    }).catch((e) => console.error('Error logging school view:', e))
 
     // Calculate reviews aggregates
     const reviews = await prisma.schoolReview.findMany({
@@ -74,15 +100,6 @@ export async function GET(
       value: countVal > 0 ? Number((avgValue / countVal).toFixed(1)) : 0
     }
 
-    // Increment view count analytics in the background
-    await prisma.schoolView.create({
-      data: {
-        schoolId: school.id,
-        orgId: school.orgId,
-        source: 'DIRECT'
-      }
-    }).catch((e) => console.error('Error logging school view:', e))
-
     return NextResponse.json({
       success: true,
       data: {
@@ -96,6 +113,7 @@ export async function GET(
     })
 
   } catch (error: any) {
+    console.error('School profile detail API error:', error)
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to retrieve school details' },
       { status: 500 }

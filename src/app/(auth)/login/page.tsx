@@ -1,6 +1,6 @@
 'use client'
 
-import { signIn } from 'next-auth/react'
+import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Shield, Loader2 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
@@ -125,7 +125,16 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/dashboard')
+      const session = await getSession()
+      const role = session?.user?.role
+
+      if (role === 'PARENT') {
+        router.push('/parent/dashboard')
+      } else if (['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN'].includes(role || '')) {
+        router.push('/admin')
+      } else {
+        router.push('/dashboard')
+      }
     } catch (err) {
       console.error(err)
       setError('Authentication failed. Try again.')
@@ -264,13 +273,29 @@ export default function LoginPage() {
                 )}
               </button>
 
-              <div className="pt-2 text-center">
+              <div className="pt-2 text-center space-y-4">
                 <Link
                   href="/signup"
-                  className="text-xs font-semibold text-slate-500 hover:text-[#1565D8] transition-colors"
+                  className="block text-xs font-semibold text-slate-500 hover:text-[#1565D8] transition-colors"
                 >
                   New school? Register on Vidhyaan
                 </Link>
+
+                <div className="flex items-center gap-3 my-4">
+                  <div className="h-px bg-slate-200 flex-1" />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">OR</span>
+                  <div className="h-px bg-slate-200 flex-1" />
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-slate-400">New to Vidhyaan?</p>
+                  <Link
+                    href="/parent/register"
+                    className="inline-block text-sm font-bold text-[#1565D8] hover:underline"
+                  >
+                    Create Parent Account
+                  </Link>
+                </div>
               </div>
             </form>
           ) : (

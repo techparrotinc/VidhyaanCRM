@@ -25,6 +25,8 @@ function isPublicRoute(pathname: string): boolean {
     '/api/webhooks',
     '/api/public',
     '/api/location',
+    '/parent/register',
+    '/parent/verify-otp',
     '/_next',
     '/fonts',
     '/images',

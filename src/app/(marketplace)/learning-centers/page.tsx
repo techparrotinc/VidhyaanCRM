@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import {
   Search,
   MapPin,
@@ -223,6 +224,10 @@ const mockCenters: LearningCenter[] = [
 export default function LearningCentersSearchPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { data: session } = useSession()
+
+  const [loginPromptOpen, setLoginPromptOpen] = useState(false)
+  const [toastMsg, setToastMsg] = useState<string | null>(null)
 
   const { city: detectedCity, lat, lng } = useLocation()
 
@@ -260,11 +265,29 @@ export default function LearningCentersSearchPage() {
     notes: ''
   })
 
-  // Load bookmarks on mount
+  // Load Bookmarks on Mount or Session Change
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('bookmarked_centers') ?? '[]')
-    setBookmarkedIds(saved)
-  }, [])
+    const loadBookmarks = async () => {
+      if (session?.user && session.user.role === 'PARENT') {
+        try {
+          const res = await fetch('/api/v1/parent/bookmarks')
+          const json = await res.json()
+          if (json.success && json.data) {
+            const ids = json.data.map((b: any) => b.schoolId)
+            setBookmarkedIds(ids)
+            return
+          }
+        } catch (e) {
+          console.error('Error fetching bookmarks:', e)
+        }
+      }
+      // Fallback
+      const saved = JSON.parse(localStorage.getItem('bookmarked_centers') ?? '[]')
+      setBookmarkedIds(saved)
+    }
+
+    loadBookmarks()
+  }, [session])
 
   // Sync detected location city if no city is currently filtered
   useEffect(() => {
@@ -426,17 +449,31 @@ export default function LearningCentersSearchPage() {
     setCurrentPage(1)
   }
 
-  const toggleBookmark = (id: string) => {
-    const saved = JSON.parse(localStorage.getItem('bookmarked_centers') ?? '[]')
-    let updated = []
-    if (saved.includes(id)) {
-      updated = saved.filter((x: string) => x !== id)
-      setBookmarkedIds(updated)
-    } else {
-      updated = [...saved, id]
-      setBookmarkedIds(updated)
+  const toggleBookmark = async (id: string, slug?: string) => {
+    if (!session?.user || session.user.role !== 'PARENT') {
+      setLoginPromptOpen(true)
+      return
     }
-    localStorage.setItem('bookmarked_centers', JSON.stringify(updated))
+
+    try {
+      const targetSlug = slug || id
+      const res = await fetch(`/api/public/schools/${targetSlug}/bookmark`, {
+        method: 'POST'
+      })
+      const json = await res.json()
+      if (json.success) {
+        if (json.bookmarked) {
+          setBookmarkedIds(prev => [...prev, id])
+          setToastMsg('Learning center saved to bookmarks')
+        } else {
+          setBookmarkedIds(prev => prev.filter(bId => bId !== id))
+          setToastMsg('Removed from bookmarks')
+        }
+        setTimeout(() => setToastMsg(null), 3000)
+      }
+    } catch (e) {
+      console.error('Error toggling bookmark:', e)
+    }
   }
 
   const handleClearFilters = () => {
@@ -1186,7 +1223,7 @@ export default function LearningCentersSearchPage() {
                             {/* Bookmark and Share icons */}
                             <div className="flex gap-1">
                               <button
-                                onClick={() => toggleBookmark(c.id)}
+                                onClick={() => toggleBookmark(c.id, c.slug)}
                                 className={`p-1.5 border rounded-lg transition hover:bg-slate-50 cursor-pointer ${
                                   isBookmarked
                                     ? 'bg-red-50 border-red-200 text-red-500'
@@ -1507,6 +1544,48 @@ export default function LearningCentersSearchPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Login Prompt Modal */}
+      {loginPromptOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 text-center animate-fade-in">
+            <Bookmark className="w-12 h-12 text-[#1565D8] mx-auto mb-4" strokeWidth={1.5} />
+            <h3 className="text-base font-extrabold text-slate-900 uppercase tracking-wider mb-2">Save this Center</h3>
+            <p className="text-xs text-slate-500 leading-relaxed mb-6">
+              Please sign in with a parent account to bookmark learning centers and track your queries.
+            </p>
+            <div className="flex gap-3">
+              <Link href="/login" className="flex-1">
+                <Button className="w-full bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-xl h-auto">
+                  Login
+                </Button>
+              </Link>
+              <Link href="/parent/register" className="flex-1">
+                <Button variant="outline" className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs py-2.5 rounded-xl h-auto">
+                  Register
+                </Button>
+              </Link>
+            </div>
+            <button 
+              onClick={() => setLoginPromptOpen(false)}
+              className="text-xs font-semibold text-slate-400 hover:text-slate-600 mt-4 underline cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMsg && (
+        <div className="fixed bottom-6 right-6 bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl flex items-center gap-2.5 shadow-2xl z-50 animate-slide-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <span>{toastMsg}</span>
+          <button onClick={() => setToastMsg(null)} className="hover:text-slate-300 ml-2">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

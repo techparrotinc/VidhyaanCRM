@@ -620,6 +620,7 @@ model User {
   counsellorTargets CounsellorTarget[]
   communicationLogs CommunicationLog[]
   notificationPrefs NotificationPreference[]
+  parent            Parent?
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -1148,6 +1149,8 @@ model Parent {
   reviews         SchoolReview[]
   waitlistEntries WaitlistEntry[]
   openDayRsvps    OpenDayRsvp[]
+  userId          String?       @unique @map("user_id")
+  user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([phone])
   @@map("parents")

@@ -1,10 +1,12 @@
 "use client"
 
 import React from 'react'
+import ProfileCompletionWidget from '@/components/shared/ProfileCompletionWidget'
 
 export default function SettingsGeneralPage() {
   return (
     <div className="space-y-6 animate-fade-in">
+      <ProfileCompletionWidget />
       <div>
         <h3 className="text-lg font-bold text-slate-950">General Settings</h3>
         <p className="text-sm text-slate-500">Configure your institution's profile and default workspace properties.</p>

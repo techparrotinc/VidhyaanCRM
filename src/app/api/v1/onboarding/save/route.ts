@@ -1,0 +1,430 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/db'
+import { InstitutionType } from '@prisma/client'
+
+function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+}
+
+async function generateUniqueOrgSlug(name: string): Promise<string> {
+  const base = slugify(name) || 'school-org'
+  let slug = base
+  let count = 1
+  while (true) {
+    const existing = await prisma.organization.findUnique({
+      where: { slug }
+    })
+    if (!existing) break
+    slug = `${base}-${count}`
+    count++
+  }
+  return slug
+}
+
+async function generateUniqueSchoolSlug(name: string): Promise<string> {
+  const base = slugify(name) || 'school'
+  let slug = base
+  let count = 1
+  while (true) {
+    const existing = await prisma.school.findUnique({
+      where: { slug }
+    })
+    if (!existing) break
+    slug = `${base}-${count}`
+    count++
+  }
+  return slug
+}
+
+function mapInstitutionType(type: string): InstitutionType {
+  const normalized = type.toUpperCase().replace(/\s+/g, '_')
+  if (normalized === 'SCHOOL') return InstitutionType.SCHOOL
+  if (normalized === 'LEARNING_CENTER') return InstitutionType.LEARNING_CENTER
+  if (normalized === 'COACHING_CENTER') return InstitutionType.COACHING_CENTER
+  if (normalized === 'JUNIOR_COLLEGE') return InstitutionType.JUNIOR_COLLEGE
+  if (normalized === 'SKILL_DEVELOPMENT') return InstitutionType.SKILL_DEVELOPMENT
+  if (normalized === 'SPORTS_ACADEMY') return InstitutionType.SPORTS_ACADEMY
+  return InstitutionType.SCHOOL
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    })
+
+    if (!user || user.role !== 'ORG_ADMIN') {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden' },
+        { status: 403 }
+      )
+    }
+
+    const body = await req.json()
+    const { step, data } = body
+
+    if (!step || !data) {
+      return NextResponse.json(
+        { success: false, error: 'step and data are required' },
+        { status: 400 }
+      )
+    }
+
+    let orgId = user.orgId
+    let org = null
+
+    // Ensure Organization exists for ORG_ADMIN
+    if (!orgId) {
+      const orgName = data.name || 'My Institution'
+      const slug = await generateUniqueOrgSlug(orgName)
+      org = await prisma.organization.create({
+        data: {
+          name: orgName,
+          slug,
+          institutionType: data.institutionType ? mapInstitutionType(data.institutionType) : InstitutionType.SCHOOL,
+          email: user.email,
+          phone: user.phone || '0000000000',
+          status: 'ACTIVE'
+        }
+      })
+      orgId = org.id
+
+      // Link User to new organization
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { orgId: org.id }
+      })
+    } else {
+      org = await prisma.organization.findUnique({
+        where: { id: orgId }
+      })
+    }
+
+    if (!org) {
+      return NextResponse.json(
+        { success: false, error: 'Organization not found' },
+        { status: 404 }
+      )
+    }
+
+    // Ensure School exists for Organization
+    let school = await prisma.school.findFirst({
+      where: { orgId: org.id }
+    })
+
+    // STEP 1: Save School basic info
+    if (step === 1) {
+      const mappedInstType = data.institutionType ? mapInstitutionType(data.institutionType) : org.institutionType
+
+      if (school) {
+        school = await prisma.school.update({
+          where: { id: school.id },
+          data: {
+            name: data.name,
+            institutionType: mappedInstType,
+            schoolType: data.schoolType || null,
+            establishedYear: data.establishedYear ? parseInt(data.establishedYear) : null,
+            description: data.description || null,
+            totalStudents: data.totalStudents ? parseInt(data.totalStudents) : null,
+            totalTeachers: data.totalTeachers ? parseInt(data.totalTeachers) : null,
+            mediumOfInstruction: Array.isArray(data.mediumOfInstruction) ? data.mediumOfInstruction.join(', ') : data.mediumOfInstruction || null,
+            gender: data.gender || null,
+            gradesOffered: (data.gradeFrom && data.gradeTo) ? `${data.gradeFrom} to ${data.gradeTo}` : null
+          }
+        })
+      } else {
+        const slug = await generateUniqueSchoolSlug(data.name || 'school')
+        school = await prisma.school.create({
+          data: {
+            orgId: org.id,
+            name: data.name,
+            slug,
+            institutionType: mappedInstType,
+            schoolType: data.schoolType || null,
+            establishedYear: data.establishedYear ? parseInt(data.establishedYear) : null,
+            description: data.description || null,
+            totalStudents: data.totalStudents ? parseInt(data.totalStudents) : null,
+            totalTeachers: data.totalTeachers ? parseInt(data.totalTeachers) : null,
+            mediumOfInstruction: Array.isArray(data.mediumOfInstruction) ? data.mediumOfInstruction.join(', ') : data.mediumOfInstruction || null,
+            gender: data.gender || null,
+            gradesOffered: (data.gradeFrom && data.gradeTo) ? `${data.gradeFrom} to ${data.gradeTo}` : null,
+            verificationStatus: 'VERIFIED',
+            isVerified: true
+          }
+        })
+      }
+    }
+
+    // For other steps, school must already be created/initialized in Step 1
+    if (!school) {
+      return NextResponse.json(
+        { success: false, error: 'School profile must be created in Step 1 before proceeding.' },
+        { status: 400 }
+      )
+    }
+
+    // STEP 2: Save Location & Contacts
+    if (step === 2) {
+      const addressLine = [data.address1, data.address2].filter(Boolean).join(', ')
+      
+      const existingLocation = await prisma.schoolLocation.findFirst({
+        where: { schoolId: school.id, isPrimary: true, deletedAt: null }
+      })
+
+      if (existingLocation) {
+        await prisma.schoolLocation.update({
+          where: { id: existingLocation.id },
+          data: {
+            addressLine,
+            city: data.city,
+            state: data.state,
+            pincode: data.pincode,
+            label: 'Main Campus'
+          }
+        })
+      } else {
+        await prisma.schoolLocation.create({
+          data: {
+            schoolId: school.id,
+            orgId: org.id,
+            addressLine,
+            city: data.city,
+            state: data.state,
+            pincode: data.pincode,
+            isPrimary: true,
+            label: 'Main Campus'
+          }
+        })
+      }
+
+      // Sync primary phone/email to organization too, for admin convenience
+      await prisma.organization.update({
+        where: { id: org.id },
+        data: {
+          email: data.email || org.email,
+          phone: data.phone || org.phone
+        }
+      })
+
+      // Sync School contacts
+      await prisma.schoolContact.deleteMany({
+        where: { schoolId: school.id }
+      })
+
+      const contacts = []
+      if (data.phone) {
+        contacts.push({ schoolId: school.id, orgId: org.id, type: 'phone', value: data.phone, isPrimary: true })
+      }
+      if (data.phoneSecondary) {
+        contacts.push({ schoolId: school.id, orgId: org.id, type: 'phone_secondary', value: data.phoneSecondary, isPrimary: false })
+      }
+      if (data.email) {
+        contacts.push({ schoolId: school.id, orgId: org.id, type: 'email', value: data.email, isPrimary: true })
+      }
+      if (data.website) {
+        contacts.push({ schoolId: school.id, orgId: org.id, type: 'website', value: data.website, isPrimary: false })
+      }
+      if (data.officeHours) {
+        contacts.push({ schoolId: school.id, orgId: org.id, type: 'office_hours', value: data.officeHours, isPrimary: false })
+      }
+      if (data.mapsLink) {
+        contacts.push({ schoolId: school.id, orgId: org.id, type: 'maps_link', value: data.mapsLink, isPrimary: false })
+      }
+
+      if (contacts.length > 0) {
+        await prisma.schoolContact.createMany({
+          data: contacts
+        })
+      }
+    }
+
+    // STEP 3: Save Academics, Facilities & Fee Ranges
+    if (step === 3) {
+      // Recreate Affiliations/Boards
+      await prisma.schoolAffiliation.deleteMany({
+        where: { schoolId: school.id }
+      })
+      if (data.boards && data.boards.length > 0) {
+        await prisma.schoolAffiliation.createMany({
+          data: data.boards.map((b: string) => ({
+            schoolId: school!.id,
+            orgId: org!.id,
+            board: b,
+            affiliationNo: data.affiliationNo || null
+          }))
+        })
+      }
+
+      // Recreate Facilities
+      await prisma.schoolFacility.deleteMany({
+        where: { schoolId: school.id }
+      })
+      if (data.facilities && data.facilities.length > 0) {
+        await prisma.schoolFacility.createMany({
+          data: data.facilities.map((f: string) => ({
+            schoolId: school!.id,
+            orgId: org!.id,
+            name: f
+          }))
+        })
+      }
+
+      // Recreate Fee Ranges for regular schools
+      await prisma.schoolFeeRange.deleteMany({
+        where: { schoolId: school.id }
+      })
+      if (data.feeRanges && data.feeRanges.length > 0) {
+        await prisma.schoolFeeRange.createMany({
+          data: data.feeRanges.map((fr: any) => ({
+            schoolId: school!.id,
+            orgId: org!.id,
+            gradeLabel: fr.gradeLabel,
+            minAmount: parseFloat(fr.minAmount || 0),
+            maxAmount: parseFloat(fr.maxAmount || 0),
+            frequency: 'annual'
+          }))
+        })
+      }
+
+      // Update monthly fee range, activity types and admissions toggle
+      await prisma.school.update({
+        where: { id: school.id },
+        data: {
+          monthlyFeeMin: data.monthlyFeeMin ? parseInt(data.monthlyFeeMin) : null,
+          monthlyFeeMax: data.monthlyFeeMax ? parseInt(data.monthlyFeeMax) : null,
+          activityTypes: data.activityTypes || [],
+          admissionOpen: data.admissionOpen ?? false
+        }
+      })
+    }
+
+    // STEP 4: Save Photos
+    if (step === 4) {
+      await prisma.schoolMedia.deleteMany({
+        where: { schoolId: school.id }
+      })
+
+      const media = []
+      if (data.logoUrl) {
+        media.push({ schoolId: school.id, orgId: org.id, type: 'image', url: data.logoUrl, caption: 'logo', sortOrder: 0 })
+      }
+      if (data.coverUrl) {
+        media.push({ schoolId: school.id, orgId: org.id, type: 'image', url: data.coverUrl, caption: 'cover', sortOrder: 1 })
+      }
+      if (data.galleryUrls && data.galleryUrls.length > 0) {
+        data.galleryUrls.forEach((url: string, index: number) => {
+          media.push({ schoolId: school!.id, orgId: org!.id, type: 'image', url, caption: 'gallery', sortOrder: index + 2 })
+        })
+      }
+
+      if (media.length > 0) {
+        await prisma.schoolMedia.createMany({
+          data: media
+        })
+      }
+    }
+
+    // STEP 5: Launch / Go Live
+    if (step === 5) {
+      await prisma.school.update({
+        where: { id: school.id },
+        data: {
+          isPublished: data.isPublished ?? true
+        }
+      })
+    }
+
+    // Update Onboarding status settings in Organization
+    const currentSettings = (org.settings as any) || {}
+    const completedSteps = new Set<number>(currentSettings.onboardingCompletedSteps || [])
+    completedSteps.add(step)
+
+    let nextStep = step + 1
+    if (step === 5) nextStep = 5
+
+    const updatedSettings = {
+      ...currentSettings,
+      onboardingStep: nextStep,
+      onboardingCompletedSteps: Array.from(completedSteps),
+      onboardingIsComplete: step === 5 ? true : currentSettings.onboardingIsComplete || false
+    }
+
+    const savedOrg = await prisma.organization.update({
+      where: { id: org.id },
+      data: {
+        settings: updatedSettings
+      }
+    })
+
+    // Calculate and save the profile completion percentage dynamically (100-point formula)
+    const updatedSchool = await prisma.school.findUnique({
+      where: { id: school.id },
+      include: {
+        locations: { where: { deletedAt: null } },
+        contacts: { where: { deletedAt: null } },
+        affiliations: true,
+        media: { where: { deletedAt: null } },
+        feeRanges: true
+      }
+    })
+
+    let score = 10 // Name is always registered / true (10 points)
+    if (updatedSchool) {
+      if (updatedSchool.media && updatedSchool.media.some(m => m.caption === 'logo')) score += 15
+      if (updatedSchool.media && updatedSchool.media.some(m => m.caption === 'cover')) score += 15
+      if (updatedSchool.media && updatedSchool.media.some(m => m.caption === 'gallery')) score += 10
+      if (updatedSchool.description && updatedSchool.description.trim() !== '') score += 10
+      if (updatedSchool.locations && updatedSchool.locations.length > 0) score += 10
+      if (updatedSchool.affiliations && updatedSchool.affiliations.length > 0) score += 10
+      if (updatedSchool.contacts && updatedSchool.contacts.length > 0) score += 10
+      const hasFeeRange = (updatedSchool.feeRanges && updatedSchool.feeRanges.length > 0) || updatedSchool.monthlyFeeMin !== null
+      if (hasFeeRange) score += 10
+
+      // Update school profileCompletion in DB
+      await prisma.school.update({
+        where: { id: school.id },
+        data: { profileCompletion: score }
+      })
+
+      // Update organization settings
+      const latestSettings = (savedOrg.settings as any) || {}
+      await prisma.organization.update({
+        where: { id: org.id },
+        data: {
+          settings: {
+            ...latestSettings,
+            profileCompletePct: score
+          }
+        }
+      })
+    }
+
+    return NextResponse.json({
+      success: true,
+      nextStep,
+      profileCompletePct: score
+    })
+
+  } catch (error: any) {
+    console.error('Save onboarding step API error:', error)
+    return NextResponse.json(
+      { success: false, error: error.message || 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}

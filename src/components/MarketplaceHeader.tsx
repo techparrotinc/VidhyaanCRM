@@ -106,6 +106,12 @@ export default function MarketplaceHeader() {
               Learning Centers
             </Link>
             <Link 
+              href="/for-schools" 
+              className={`hover:text-[#1565D8] transition ${pathname === '/for-schools' ? 'text-[#1565D8] font-bold' : ''}`}
+            >
+              For Schools
+            </Link>
+            <Link 
               href="/pricing" 
               className={`hover:text-[#1565D8] transition ${pathname === '/pricing' ? 'text-[#1565D8] font-bold' : ''}`}
             >
@@ -217,6 +223,11 @@ export default function MarketplaceHeader() {
                     Login
                   </Button>
                 </Link>
+                <Link href="/for-schools">
+                  <Button variant="outline" className="border-blue-200 text-[#1565D8] hover:bg-blue-50 font-bold text-xs px-4 py-2 rounded-xl h-auto shrink-0 shadow-sm">
+                    Claim Free Profile
+                  </Button>
+                </Link>
                 <Link href="/parent/register">
                   <Button className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-full h-auto shadow-sm">
                     Register as Parent
@@ -244,7 +255,7 @@ export default function MarketplaceHeader() {
                 </div>
                 
                 <div className="space-y-3">
-                  <Link href="/signup" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
+                  <Link href="/for-schools" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
                     <div className="w-12 h-12 rounded-xl bg-[#EFF6FF] group-hover:bg-[#DBEAFE] text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-300">
                       <Building className="w-5 h-5 fill-current" />
                     </div>
@@ -259,7 +270,22 @@ export default function MarketplaceHeader() {
                     </div>
                   </Link>
 
-                  <Link href="/signup" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
+                  <Link href="/register-school" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 group-hover:bg-blue-100 text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-300">
+                      <Building className="w-5 h-5 text-[#1565D8]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Register School</span>
+                        <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
+                          <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Register a new school or learning center on Vidhyaan</p>
+                    </div>
+                  </Link>
+
+                  <Link href="/for-schools" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
                     <div className="w-12 h-12 rounded-xl bg-[#FFFBEB] group-hover:bg-[#FEF3C7] text-[#D97706] flex items-center justify-center shrink-0 transition-colors duration-300">
                       <UserPlus className="w-5 h-5 fill-current" />
                     </div>

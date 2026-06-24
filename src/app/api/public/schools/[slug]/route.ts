@@ -7,11 +7,16 @@ export async function GET(
 ) {
   try {
     const { slug } = await context.params
+    const { searchParams } = new URL(req.url)
+    const isClaim = searchParams.get('claim') === 'true'
 
     const school = await prisma.school.findFirst({
       where: { 
-        slug,
-        isPublished: true
+        OR: [
+          { slug },
+          { id: slug }
+        ],
+        ...(isClaim ? {} : { isPublished: true })
       },
       include: {
         locations: {

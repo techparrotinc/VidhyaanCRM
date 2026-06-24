@@ -77,6 +77,11 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Allow onboarding routes to pass through
+  if (pathname.startsWith('/onboarding') || pathname.startsWith('/api/v1/onboarding')) {
+    return addSecurityHeaders(NextResponse.next())
+  }
+
   // 1. Allow all public routes
   if (isPublicRoute(pathname)) {
     return addSecurityHeaders(NextResponse.next())
@@ -93,6 +98,25 @@ export default async function middleware(request: NextRequest) {
   }
 
   const role = session.user.role
+
+  // 3.5. Onboarding Guard for ORG_ADMIN accessing CRM/Dashboard routes
+  if (role === 'ORG_ADMIN' && isCRMRoute(pathname)) {
+    try {
+      const statusRes = await fetch(new URL('/api/v1/onboarding/status', request.url), {
+        headers: {
+          cookie: request.headers.get('cookie') || ''
+        }
+      })
+      if (statusRes.ok) {
+        const statusData = await statusRes.json()
+        if (statusData.success && !statusData.isComplete && statusData.currentStep < 5) {
+          return NextResponse.redirect(new URL(`/onboarding/step/${statusData.currentStep}`, request.url))
+        }
+      }
+    } catch (e) {
+      console.error('Middleware onboarding guard check error:', e)
+    }
+  }
 
   // 4. Admin routes → platform roles only
   if (pathname.startsWith('/admin')) {

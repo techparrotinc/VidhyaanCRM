@@ -113,12 +113,38 @@ const formatINR = (amount: number) =>
     maximumFractionDigits: 0
   }).format(amount)
 
+import Link from 'next/link'
+
 export default function DashboardPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [trialBannerVisible, setTrialBannerVisible] = useState(true)
+  const [welcomeBannerVisible, setWelcomeBannerVisible] = useState(false)
+  const [profileCompletePct, setProfileCompletePct] = useState(0)
+  const [schoolSlug, setSchoolSlug] = useState('')
+  const [isLC, setIsLC] = useState(false)
   const [dashData, setDashData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const bannerDismissed = localStorage.getItem('vidhyaan_welcome_banner_dismissed')
+    const sessionSeen = sessionStorage.getItem('vidhyaan_welcome_banner_seen')
+
+    if (!bannerDismissed && !sessionSeen) {
+      fetch('/api/v1/onboarding/status')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.isComplete) {
+            setWelcomeBannerVisible(true)
+            setProfileCompletePct(data.profileCompletePct || 0)
+            setSchoolSlug(data.schoolSlug || '')
+            setIsLC(data.school?.institutionType === 'LEARNING_CENTER' || data.school?.institutionType === 'COACHING_CENTER')
+            sessionStorage.setItem('vidhyaan_welcome_banner_seen', 'true')
+          }
+        })
+        .catch((err) => console.error('Error fetching onboarding status in dashboard:', err))
+    }
+  }, [])
 
   useEffect(() => {
     async function fetchDashboard() {
@@ -348,6 +374,54 @@ export default function DashboardPage() {
             </div>
           </div>
         </header>
+
+        {/* WELCOME BANNER */}
+        {welcomeBannerVisible && (
+          <div className="bg-emerald-50 border-b border-emerald-200 px-4 py-3.5 md:px-8 flex flex-col md:flex-row gap-3 md:gap-4 items-center w-full">
+            <div className="flex items-start md:items-center gap-2.5 w-full md:w-auto">
+              <span className="text-xl">🎉</span>
+              <div className="space-y-0.5">
+                <p className="text-xs md:text-sm text-emerald-800 font-bold leading-none">
+                  Welcome to Vidhyaan CRM!
+                </p>
+                <p className="text-[11px] md:text-xs text-emerald-600 font-medium">
+                  Your school profile is live. Your 7-day free trial has started.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto md:ml-auto shrink-0 mt-2 md:mt-0">
+              {profileCompletePct < 80 && (
+                <Link
+                  href="/onboarding/step/1"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition duration-200 text-center"
+                >
+                  Complete Your Profile ({profileCompletePct}%)
+                </Link>
+              )}
+              {schoolSlug && (
+                <a
+                  href={isLC ? `/learning-centers/${schoolSlug}` : `/schools/${schoolSlug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-bold text-[#1565D8] hover:underline flex items-center gap-0.5 cursor-pointer"
+                >
+                  View My Listing
+                </a>
+              )}
+              <button
+                onClick={() => {
+                  setWelcomeBannerVisible(false)
+                  localStorage.setItem('vidhyaan_welcome_banner_dismissed', 'true')
+                }}
+                className="p-1 rounded text-emerald-500 hover:text-emerald-700 ml-auto md:ml-0 transition shrink-0 cursor-pointer"
+                title="Dismiss Welcome Banner"
+              >
+                <X className="w-4 h-4" strokeWidth={1.5} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* TRIAL BANNER */}
         {trialBannerVisible && (

@@ -67,9 +67,13 @@ Use these Tailwind equivalents throughout the JSX configurations:
     *   Created CRUD endpoints `/api/v1/leads` and `/api/v1/leads/[id]`.
     *   Connected UI to real endpoints: wired list table, search, filters, counsellors dropdowns, and pagination.
     *   Wired Lead Detail Drawer and delete modal actions to real API calls.
+    *   Synchronized Add Lead top & bottom Save buttons validation/loading states with inline spinners.
 *   **Admission Management**:
     *   Created endpoints for admissions lists, single record CRUD, activities logging, pipeline stage counts, and student conversion.
     *   Mapped schema adjustments (`sortOrder` instead of `order`, `gradeLabel` instead of `currentClass`, `guardianPhone` instead of `phone`).
+    *   Added `parentName` string field to Prisma `Admission` schema and mapped database column.
+    *   Unified grade options dropdowns/filters using `@/constants/grades` constants (`GRADE_OPTIONS`).
+    *   Redesigned Convert Lead to Admission modals and APIs (details view and list view rows) to map applicantName (kidName fallback to parentName), preserve parentName, auto-map and dynamically handle mismatched grade values, and explicitly define POST/Prisma data fields without `source`.
 *   **Dashboard API & UI**:
     *   Created dashboard summary endpoints `/api/v1/dashboard/summary`.
     *   Wired KPI cards, active charts, pipeline stages, progress meters, and recent activity logs to live DB records.

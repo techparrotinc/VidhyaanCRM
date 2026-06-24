@@ -13,7 +13,8 @@ import {
   GitBranch,
   MessageSquare,
   Users,
-  CreditCard
+  CreditCard,
+  Lock
 } from 'lucide-react'
 
 export default function SettingsLayout({
@@ -26,6 +27,7 @@ export default function SettingsLayout({
 
   const menuItems = [
     { name: 'General', path: '/settings', icon: Settings },
+    { name: 'Security Settings', path: '/settings/security', icon: Lock },
     { name: 'Academic Year', path: '/settings/academic-year', icon: Calendar },
     { name: 'Admission Pipeline', path: '/settings/pipeline', icon: GitBranch },
     { name: 'Notification Preferences', path: '/settings/notifications', icon: MessageSquare },

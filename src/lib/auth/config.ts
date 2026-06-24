@@ -6,82 +6,145 @@ import bcrypt from 'bcryptjs'
 const authConfig: NextAuthConfig = {
   providers: [
     Credentials({
-      name: 'OTP',
+      name: 'Credentials',
       credentials: {
         contact: { label: 'Phone or Email' },
         code: { label: 'OTP Code' },
-        purpose: { label: 'Purpose' }
+        phone: { label: 'Phone' },
+        pin: { label: 'PIN' },
+        token: { label: 'Token' }
       },
       async authorize(credentials) {
-        if (!credentials?.contact || !credentials?.code) return null
-
-        const contact = credentials.contact as string
-        const code = credentials.code as string
-
-        // Find valid OTP record
-        const isDevBypass = process.env.NODE_ENV === 'development' && code === '123456'
-        let otpRecord = null
-
-        if (!isDevBypass) {
-          otpRecord = await prisma.otpCode.findFirst({
-            where: {
-              identifier: contact,
-              consumedAt: null,
-              expiresAt: { gt: new Date() }
-            },
-            orderBy: { createdAt: 'desc' }
-          })
-
-          if (!otpRecord) return null
-        }
-
-        if (otpRecord) {
-          // Check attempt limit
-          if (otpRecord.attempts >= 5) {
-            await prisma.otpCode.delete({
-              where: { id: otpRecord.id }
+        // 1. Temp token authentication
+        if (credentials?.token) {
+          const token = credentials.token as string
+          const authUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+          try {
+            const res = await fetch(`${authUrl}/api/auth/pin/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token })
             })
+            if (!res.ok) return null
+            const data = await res.json()
+            if (!data.success || !data.userId) return null
+
+            const user = await prisma.user.findUnique({
+              where: { id: data.userId, status: 'ACTIVE' }
+            })
+            if (!user) return null
+
+            return {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              role: user.role,
+              orgId: user.orgId ?? ''
+            }
+          } catch (e) {
+            console.error('NextAuth token authorize fetch error:', e)
             return null
           }
-
-          // Increment attempts
-          await prisma.otpCode.update({
-            where: { id: otpRecord.id },
-            data: { attempts: { increment: 1 } }
-          })
-
-          // Verify OTP hash
-          const isValid = await bcrypt.compare(code, otpRecord.codeHash)
-
-          if (!isValid) return null
-
-          // Mark OTP as consumed
-          await prisma.otpCode.update({
-            where: { id: otpRecord.id },
-            data: { consumedAt: new Date() }
-          })
         }
 
-        // Find user by contact
-        const user = await prisma.user.findFirst({
-          where: {
-            OR: [
-              { phone: contact },
-              { email: contact }
-            ],
-            status: 'ACTIVE'
+        // 2. PIN authentication
+        if (credentials?.phone && credentials?.pin) {
+          const phone = credentials.phone as string
+          const pin = credentials.pin as string
+          const authUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+          try {
+            const res = await fetch(`${authUrl}/api/auth/pin/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ phone, pin })
+            })
+            if (!res.ok) return null
+            const data = await res.json()
+            if (!data.success || !data.userId) return null
+
+            const user = await prisma.user.findUnique({
+              where: { id: data.userId, status: 'ACTIVE' }
+            })
+            if (!user) return null
+
+            return {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              role: user.role,
+              orgId: user.orgId ?? ''
+            }
+          } catch (e) {
+            console.error('NextAuth PIN authorize fetch error:', e)
+            return null
           }
-        })
-
-        if (!user) return null
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          orgId: user.orgId ?? ''
         }
+
+        // 3. OTP authentication
+        if (credentials?.contact && credentials?.code) {
+          const contact = credentials.contact as string
+          const code = credentials.code as string
+
+          const isDevBypass = process.env.NODE_ENV === 'development' && code === '123456'
+          let otpRecord = null
+
+          if (!isDevBypass) {
+            otpRecord = await prisma.otpCode.findFirst({
+              where: {
+                identifier: contact,
+                consumedAt: null,
+                expiresAt: { gt: new Date() }
+              },
+              orderBy: { createdAt: 'desc' }
+            })
+
+            if (!otpRecord) return null
+          }
+
+          if (otpRecord) {
+            if (otpRecord.attempts >= 5) {
+              await prisma.otpCode.delete({
+                where: { id: otpRecord.id }
+              })
+              return null
+            }
+
+            await prisma.otpCode.update({
+              where: { id: otpRecord.id },
+              data: { attempts: { increment: 1 } }
+            })
+
+            const isValid = await bcrypt.compare(code, otpRecord.codeHash)
+            if (!isValid) return null
+
+            await prisma.otpCode.update({
+              where: { id: otpRecord.id },
+              data: { consumedAt: new Date() }
+            })
+          }
+
+          const user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { phone: contact },
+                { email: contact }
+              ],
+              status: 'ACTIVE'
+            }
+          })
+
+          if (!user) return null
+
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            orgId: user.orgId ?? ''
+          }
+        }
+
+        return null
       }
     })
   ],

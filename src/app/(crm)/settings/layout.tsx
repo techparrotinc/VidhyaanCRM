@@ -34,9 +34,9 @@ export default function SettingsLayout({
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full flex-1 flex flex-col md:flex-row gap-6 select-none">
+    <div className="w-full p-6 flex flex-col md:flex-row gap-6 items-start select-none">
       {/* Settings Left Navigation Sidebar */}
-      <aside className="w-full md:w-64 shrink-0 flex flex-col gap-1 bg-white p-4 rounded-xl border border-slate-200 h-fit shadow-sm">
+      <aside className="w-full md:w-[220px] shrink-0 sticky top-24 h-fit flex flex-col gap-1 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 mb-2">
           System Settings
         </div>

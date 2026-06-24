@@ -6,22 +6,36 @@ import { useSession, signOut } from 'next-auth/react'
 import Sidebar from '@/components/Sidebar'
 import NotificationBell from '@/components/NotificationBell'
 import { useUIStore } from '@/stores/ui.store'
-import { Menu, LogOut, User, ShieldAlert } from 'lucide-react'
+import { Menu, LogOut, User, Settings, Calendar, ChevronDown } from 'lucide-react'
 
 export default function CrmLayout({ children }: { children: React.ReactNode }) {
-  const { sidebarCollapsed, mobileSidebarOpen, toggleMobileSidebar, setMobileSidebarOpen } = useUIStore()
+  const { sidebarCollapsed, mobileSidebarOpen, toggleMobileSidebar, closeMobileSidebar } = useUIStore()
   const pathname = usePathname()
   const router = useRouter()
   const { data: session } = useSession()
 
   const [avatarDropdownOpen, setAvatarDropdownOpen] = useState(false)
+  const [academicYear, setAcademicYear] = useState('AY 2026-27')
+  const [ayDropdownOpen, setAyDropdownOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Close mobile sidebar on route change
   useEffect(() => {
-    setMobileSidebarOpen(false)
-  }, [pathname, setMobileSidebarOpen])
+    closeMobileSidebar()
+  }, [pathname, closeMobileSidebar])
 
   const getPageTitle = () => {
+    if (!pathname) return 'CRM Portal'
     if (pathname.startsWith('/dashboard')) return 'Dashboard'
     if (pathname.startsWith('/lead-management')) return 'Lead Management'
     if (pathname.startsWith('/admission-management')) return 'Admission Management'
@@ -30,13 +44,13 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
     if (pathname.startsWith('/campaign-management')) return 'Campaigns'
     if (pathname.startsWith('/event-management')) return 'Events'
     if (pathname.startsWith('/reports')) return 'Reports'
-    if (pathname.startsWith('/users')) return 'Users'
+    if (pathname.startsWith('/users')) return 'Team Members'
     if (pathname.startsWith('/roles')) return 'Roles & Permissions'
     if (pathname.startsWith('/settings')) return 'Settings'
     return 'CRM Portal'
   }
 
-  // User details for initials
+  // User details
   const user = session?.user
   const name = user?.name || "School Admin"
   const email = user?.email || "admin@vidhyaan.com"
@@ -52,19 +66,19 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
       {/* Dark overlay behind sidebar on mobile */}
       {mobileSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/40 z-[90] md:hidden transition-opacity duration-200" 
-          onClick={toggleMobileSidebar} 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-200" 
+          onClick={closeMobileSidebar} 
         />
       )}
 
       {/* Sidebar container (Desktop fixed, Mobile drawer) */}
       <aside 
-        className={`fixed top-0 bottom-0 z-50 h-screen transition-all duration-200 ease-in-out md:block border-r border-[#E2E8F0] bg-white ${
-          mobileSidebarOpen ? 'left-0 w-64' : '-left-64 md:left-0'
+        className={`fixed top-0 bottom-0 z-50 h-screen transition-all duration-300 md:duration-200 ease-in-out md:block border-r border-[#334155] bg-[#1E293B] ${
+          mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
         style={{ width: mobileSidebarOpen ? '256px' : (sidebarCollapsed ? '64px' : '256px') }}
       >
-        <Sidebar />
+        <Sidebar isMobile={isMobile} />
       </aside>
 
       {/* Main Content Area */}
@@ -74,7 +88,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
         } ml-0`}
       >
         {/* Dynamic Top Bar */}
-        <header className="h-[60px] bg-white border-b border-[#E2E8F0] px-6 flex items-center justify-between sticky top-0 z-40 transition-all duration-200 ease-in-out">
+        <header className="h-[60px] bg-white border-b border-[#E2E8F0] px-6 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3">
             {/* Hamburger menu on mobile */}
             <button
@@ -89,15 +103,50 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
             </h2>
           </div>
 
-          {/* Right items: Notification bell + avatar dropdown */}
+          {/* Right items: Academic year switcher + Notification bell + avatar dropdown */}
           <div className="flex items-center gap-4">
+            
+            {/* Academic Year Switcher */}
+            <div className="relative">
+              <button
+                onClick={() => setAyDropdownOpen(!ayDropdownOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors focus:outline-none cursor-pointer"
+              >
+                <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                <span>{academicYear}</span>
+                <ChevronDown className="w-3 h-3 text-slate-500 transition-transform duration-200" style={{ transform: ayDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+              </button>
+
+              {ayDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setAyDropdownOpen(false)} />
+                  <div className="absolute right-0 mt-1.5 w-36 bg-white border border-[#E2E8F0] rounded-lg shadow-lg py-1 z-50 text-left animate-fade-in">
+                    {['AY 2025-26', 'AY 2026-27', 'AY 2027-28'].map((year) => (
+                      <button
+                        key={year}
+                        onClick={() => {
+                          setAcademicYear(year)
+                          setAyDropdownOpen(false)
+                        }}
+                        className={`w-full px-3 py-1.5 text-xs text-left transition-colors hover:bg-slate-50 ${
+                          academicYear === year ? 'text-[#1565D8] font-bold bg-blue-50/50' : 'text-slate-600'
+                        }`}
+                      >
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
             <NotificationBell />
             
             {/* User Avatar Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setAvatarDropdownOpen(!avatarDropdownOpen)}
-                className="w-8 h-8 rounded-full bg-[#1565D8] text-white flex items-center justify-center font-bold text-xs shadow-sm hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+                className="w-9 h-9 rounded-full bg-[#1565D8] text-white flex items-center justify-center font-bold text-xs shadow-sm hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
               >
                 {initials}
               </button>
@@ -105,31 +154,35 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
               {avatarDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setAvatarDropdownOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-56 bg-white border border-[#E2E8F0] rounded-xl shadow-xl py-2 z-50 animate-fade-in">
-                    <div className="px-4 py-2 border-b border-slate-100 select-none">
-                      <p className="text-sm font-semibold text-slate-800 truncate">{name}</p>
-                      <p className="text-[11px] text-slate-500 truncate mt-0.5">{email}</p>
+                  <div className="absolute right-0 mt-2 w-56 bg-white border border-[#E2E8F0] rounded-xl shadow-xl py-2 z-50 animate-fade-in text-left">
+                    <div className="px-4 py-2 border-b border-slate-100 select-none flex flex-col gap-1">
+                      <p className="text-sm font-bold text-slate-800 truncate">{name}</p>
+                      <div>
+                        <span className="inline-block px-2 py-0.5 text-[10px] font-semibold bg-blue-50 text-[#1565D8] rounded-full uppercase tracking-wider">
+                          {session?.user?.role || 'Admin'}
+                        </span>
+                      </div>
                     </div>
                     <div className="py-1">
                       <button
                         onClick={() => {
                           setAvatarDropdownOpen(false)
-                          router.push('/settings/school-profile')
+                          router.push('/settings/profile')
                         }}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left focus:outline-none cursor-pointer"
                       >
                         <User className="w-4 h-4 text-slate-500" />
-                        View Profile
+                        My Profile
                       </button>
                       <button
                         onClick={() => {
                           setAvatarDropdownOpen(false)
-                          router.push('/settings/security')
+                          router.push('/settings')
                         }}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left focus:outline-none cursor-pointer"
                       >
-                        <ShieldAlert className="w-4 h-4 text-slate-500" />
-                        Change PIN
+                        <Settings className="w-4 h-4 text-slate-500" />
+                        Settings
                       </button>
                       <div className="border-t border-slate-100 my-1" />
                       <button
@@ -137,7 +190,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
                           setAvatarDropdownOpen(false)
                           signOut()
                         }}
-                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left focus:outline-none cursor-pointer"
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left focus:outline-none cursor-pointer font-medium"
                       >
                         <LogOut className="w-4 h-4 text-red-500" />
                         Logout

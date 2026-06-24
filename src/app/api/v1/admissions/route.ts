@@ -97,6 +97,7 @@ export const GET = route({
 
 const createAdmissionSchema = z.object({
   applicantName: z.string().min(1),
+  parentName: z.string().optional().nullable(),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
   gradeSought: z.string().optional(),
@@ -142,16 +143,21 @@ export const POST = route({
     const admissionCode =
       prefix + '-' + year + '-' + String(count + 1).padStart(5, '0')
 
-    const { notes, priority, ...admissionData } = body
-
     // Create admission
     const admission = await db.admission.create({
       data: {
-        ...admissionData,
+        applicantName: body.applicantName,
+        parentName: body.parentName ?? null,
+        phone: body.phone ?? null,
+        email: body.email ?? null,
+        gradeSought: body.gradeSought ?? null,
         orgId: user.orgId,
         admissionCode,
         stageId: stageId ?? null,
-        academicYearId: body.academicYearId ?? academicYearId ?? null
+        assignedToId: body.assignedToId ?? null,
+        academicYearId: body.academicYearId ?? academicYearId ?? null,
+        leadId: body.leadId ?? null,
+        status: 'IN_PROGRESS'
       },
       include: {
         stage: true

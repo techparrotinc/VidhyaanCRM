@@ -1533,6 +1533,7 @@ model Admission {
   stageId        String?         @map("stage_id")
   status         AdmissionStatus @default(IN_PROGRESS)
   applicantName  String          @map("applicant_name")
+  parentName     String?         @map("parent_name")
   gradeSought    String?         @map("grade_sought")
   phone          String?
   email          String?

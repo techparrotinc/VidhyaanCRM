@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { sendTemplateEmail, enquiryNotificationTemplate, enquiryConfirmationTemplate } from '@/lib/integrations/resend'
+import { cleanPhoneNumber } from '@/lib/utils'
 
 export async function POST(
   req: NextRequest,
@@ -10,7 +11,9 @@ export async function POST(
     const { slug } = await context.params
     const body = await req.json()
 
-    const { parentName, phone, email, childName, gradeSought, message, source = 'VIDHYAAN' } = body
+    const { parentName, phone: rawPhone, email, childName, gradeSought, message, source = 'VIDHYAAN' } = body
+    const phone = typeof rawPhone === 'string' ? cleanPhoneNumber(rawPhone) as string : rawPhone
+
 
     // 1. Validation
     if (!parentName || parentName.trim().length < 2) {

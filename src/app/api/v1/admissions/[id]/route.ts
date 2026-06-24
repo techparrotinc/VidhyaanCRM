@@ -25,7 +25,13 @@ export const GET = route({
           orderBy: { createdAt: 'desc' },
           take: 20
         },
-        documents: true
+        documents: true,
+        lead: {
+          select: { parentName: true }
+        },
+        student: {
+          select: { id: true, studentCode: true }
+        }
       }
     })
 

@@ -6,6 +6,7 @@ import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES, CRM_ROLES } from '@/constants/roles'
 import { LeadSource, LeadStatus, LeadPriority } from '@prisma/client'
+import { cleanPhoneNumber } from '@/lib/utils'
 
 export const GET = route({
   module: MODULES.LEAD_MANAGEMENT,
@@ -35,7 +36,7 @@ export const GET = route({
 const updateLeadSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
-  phone: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number').optional(),
+  phone: z.preprocess(cleanPhoneNumber, z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number').optional()),
   email: z.string().email().optional().nullable(),
   source: z.nativeEnum(LeadSource).optional(),
   status: z.nativeEnum(LeadStatus).optional(),

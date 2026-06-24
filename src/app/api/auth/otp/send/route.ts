@@ -4,6 +4,7 @@ import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { OtpChannel, OtpPurpose } from '@prisma/client'
 import { otpSendLimiter } from '@/lib/ratelimit'
 import { sendTemplateEmail, otpEmailTemplate } from '@/lib/integrations/resend'
+import { cleanPhoneNumber } from '@/lib/utils'
 
 const schema = z.object({
   contact: z.string().min(1),
@@ -19,7 +20,8 @@ export async function POST(req: NextRequest) {
 
     // Detect and validate channel
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)
-    const isPhone = /^[6-9]\d{9}$/.test(contact)
+    const cleanedContact = isEmail ? contact : (cleanPhoneNumber(contact) as string)
+    const isPhone = /^[6-9]\d{9}$/.test(cleanedContact)
 
     if (!isPhone && !isEmail) {
       return NextResponse.json(
@@ -28,8 +30,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const contactToUse = isPhone ? cleanedContact : contact
+
     // Rate Limiting
-    const rateLimit = await otpSendLimiter(`otp_send_${contact}`)
+    const rateLimit = await otpSendLimiter(`otp_send_${contactToUse}`)
     if (!rateLimit.success) {
       return NextResponse.json(
         {
@@ -54,7 +58,7 @@ export async function POST(req: NextRequest) {
     const ipAddress = req.headers.get('x-forwarded-for') ?? undefined
 
     const code = await createOTP(
-      contact,
+      contactToUse,
       channel,
       mappedPurpose,
       ipAddress
@@ -62,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     if (channel === 'EMAIL') {
       await sendTemplateEmail(
-        contact,
+        contactToUse,
         "Your Vidhyaan OTP",
         otpEmailTemplate({
           otp: code,
@@ -71,11 +75,12 @@ export async function POST(req: NextRequest) {
         })
       )
     } else {
-      await sendOTP(contact, code, channel)
+      await sendOTP(contactToUse, code, channel)
     }
 
     return NextResponse.json({
       success: true,
+
       message: 'OTP sent successfully',
       expiresIn: Number(process.env.OTP_TTL_SECONDS || 600),
       channel

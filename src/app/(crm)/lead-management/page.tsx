@@ -41,6 +41,7 @@ import {
 
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 
 import {
   Dialog,
@@ -223,13 +224,7 @@ const sourceConfig = {
   },
 }
 
-const grades = [
-  'LKG', 'UKG', '1st Class', '2nd Class',
-  '3rd Class', '4th Class', '5th Class',
-  '6th Class', '7th Class', '8th Class',
-  '9th Class', '10th Class', '11th Class',
-  '12th Class',
-]
+// Grades constants are imported from @/constants/grades
 
 const courses = [
   'Bharatanatyam', 'Hip Hop', 'Guitar - Beginner',
@@ -289,6 +284,7 @@ export default function LeadManagementPage() {
 
   // STEP 2: Remove hardcoded leads array. Replace with empty array:
   const [leads, setLeads] = useState<any[]>([])
+  const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null)
 
   // STEP 3: Add state variables:
   const [loading, setLoading] = useState(true)
@@ -310,8 +306,23 @@ export default function LeadManagementPage() {
 
   // State for active counsellors
   const [counsellors, setCounsellors] = useState<any[]>([])
+  const [academicYears, setAcademicYears] = useState<any[]>([])
+  const [pipelineStages, setPipelineStages] = useState<any[]>([])
 
-  // Fetch counsellors on mount
+  const [showConvertModal, setShowConvertModal] = useState(false)
+  const [convertLead, setConvertLead] = useState<any | null>(null)
+  const [convertApplicantName, setConvertApplicantName] = useState('')
+  const [convertParentName, setConvertParentName] = useState('')
+  const [convertPhone, setConvertPhone] = useState('')
+  const [convertEmail, setConvertEmail] = useState('')
+  const [convertGrade, setConvertGrade] = useState('')
+  const [convertAcademicYearId, setConvertAcademicYearId] = useState('')
+  const [convertStageId, setConvertStageId] = useState('')
+  const [convertCounsellorId, setConvertCounsellorId] = useState('')
+  const [convertNotes, setConvertNotes] = useState('')
+  const [convertError, setConvertError] = useState('')
+
+  // Fetch counsellors, academic years, and pipeline stages on mount
   useEffect(() => {
     const fetchCounsellors = async () => {
       try {
@@ -324,8 +335,70 @@ export default function LeadManagementPage() {
         console.error('Failed to fetch counsellors', err)
       }
     }
+
+    const fetchAcademicYears = async () => {
+      try {
+        const res = await fetch('/api/v1/academic-years')
+        const json = await res.json()
+        if (res.ok && json.data) {
+          const years = json.data.map((y: any) => ({
+            id: y.id,
+            name: y.name,
+            status: y.status
+          }))
+          setAcademicYears(years)
+        }
+      } catch (err) {
+        console.error('Failed to fetch academic years', err)
+      }
+    }
+
+    const fetchPipelineStages = async () => {
+      try {
+        const res = await fetch('/api/v1/admissions/pipeline')
+        const json = await res.json()
+        if (res.ok && json.data) {
+          const stages = json.data.map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            sortOrder: s.sortOrder
+          }))
+          setPipelineStages(stages)
+        }
+      } catch (err) {
+        console.error('Failed to fetch pipeline stages', err)
+      }
+    }
+
     fetchCounsellors()
+    fetchAcademicYears()
+    fetchPipelineStages()
   }, [])
+
+  const openConvertModal = (lead: any) => {
+    setConvertLead(lead)
+    setConvertApplicantName(lead.kidName || lead.parentName || '')
+    setConvertParentName(lead.parentName || '')
+    setConvertPhone(lead.phone || '')
+    setConvertEmail(lead.email || '')
+    setConvertGrade(lead.gradeSought || '')
+    setConvertCounsellorId(lead.assignedToId || '')
+    
+    const currentAy = academicYears.find((y: any) => y.status === 'ACTIVE')
+    if (currentAy) {
+      setConvertAcademicYearId(currentAy.id)
+    } else if (academicYears.length > 0) {
+      setConvertAcademicYearId(academicYears[0].id)
+    }
+    
+    if (pipelineStages.length > 0) {
+      setConvertStageId(pipelineStages[0].id)
+    }
+    
+    setConvertNotes(lead.notes || '')
+    setConvertError('')
+    setShowConvertModal(true)
+  }
 
   // STEP 4: Add fetchLeads function:
   const fetchLeads = useCallback(async () => {
@@ -475,7 +548,8 @@ export default function LeadManagementPage() {
   // STEP 9: Wire inline status change
   const updateStatus = async (leadId: string, newStatus: string) => {
     try {
-      await fetch(
+      setUpdatingLeadId(leadId)
+      const res = await fetch(
         '/api/v1/leads/' + leadId,
         {
           method: 'PUT',
@@ -487,9 +561,17 @@ export default function LeadManagementPage() {
           })
         }
       )
-      fetchLeads()
+      if (res.ok) {
+        setLeads(prevLeads =>
+          prevLeads.map(lead =>
+            lead.id === leadId ? { ...lead, status: newStatus } : lead
+          )
+        )
+      }
     } catch (err) {
       console.error('Status update failed', err)
+    } finally {
+      setUpdatingLeadId(null)
     }
   }
 
@@ -1183,11 +1265,19 @@ export default function LeadManagementPage() {
                                 className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none cursor-pointer min-w-0"
                               >
                                 <option value="">Select option</option>
-                                {(institutionType === 'school' ? grades : courses).map(opt => (
-                                  <option key={opt} value={opt}>
-                                    {opt}
-                                  </option>
-                                ))}
+                                {institutionType === 'school' ? (
+                                  GRADE_OPTIONS.map(g => (
+                                    <option key={g.value} value={g.value}>
+                                      {g.label}
+                                    </option>
+                                  ))
+                                ) : (
+                                  courses.map(opt => (
+                                    <option key={opt} value={opt}>
+                                      {opt}
+                                    </option>
+                                  ))
+                                )}
                               </select>
                             </div>
 
@@ -1289,7 +1379,9 @@ export default function LeadManagementPage() {
                               >
                                 {lead.name}
                               </Link>
-                              <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5 truncate font-sans">
+                              <div className="flex items-center gap-1 text-xs text-slate-500 font-semibold mt-1">
+                                <span>{institutionType === 'school' ? getGradeLabel(lead.applyingFor) : lead.applyingFor}</span>
+                                <span>·</span>
                                 <span className="font-mono text-slate-500">{lead.leadCode}</span>
                                 <span>·</span>
                                 <span>{lead.source}</span>
@@ -1334,7 +1426,7 @@ export default function LeadManagementPage() {
                                 {institutionType === 'school' && (
                                   <DropdownMenuItem 
                                     className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
-                                    onClick={() => {}}
+                                    onClick={() => openConvertModal(lead)}
                                   >
                                     <ArrowRight size={14} className="text-[#1565D8] flex-shrink-0" strokeWidth={1.5} />
                                     Convert to Admission
@@ -1399,9 +1491,9 @@ export default function LeadManagementPage() {
                             </div>
                           </div>
 
-                          {/* Applying For */}
-                          <div className="hidden md:flex w-32 flex-shrink-0 items-center text-sm font-medium text-slate-700 font-sans truncate">
-                            {lead.applyingFor || '—'}
+                          {/* Grade / Course */}
+                          <div className="w-32 flex-shrink-0 text-sm font-semibold text-slate-700">
+                            {institutionType === 'school' ? getGradeLabel(lead.applyingFor) : (lead.applyingFor || '—')}
                           </div>
 
                           {/* Source */}
@@ -1557,7 +1649,8 @@ export default function LeadManagementPage() {
                             className="w-28 flex-shrink-0 relative"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <button
+                             <button
+                              disabled={updatingLeadId === lead.id}
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setCounsellorDropdownId(null)
@@ -1573,9 +1666,21 @@ export default function LeadManagementPage() {
                                 statusConfig[lead.status as keyof typeof statusConfig]?.border || 'border-transparent'
                               }`}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusConfig[lead.status as keyof typeof statusConfig]?.dot}`} />
-                              {statusLabels[lead.status] || lead.status}
-                              <ChevronDown size={10} className="ml-0.5 opacity-60" strokeWidth={2} />
+                              {updatingLeadId === lead.id ? (
+                                <>
+                                  <svg className="animate-spin h-3.5 w-3.5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  <span>Saving...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusConfig[lead.status as keyof typeof statusConfig]?.dot}`} />
+                                  {statusLabels[lead.status] || lead.status}
+                                  <ChevronDown size={10} className="ml-0.5 opacity-60" strokeWidth={2} />
+                                </>
+                              )}
                             </button>
 
                             {/* Status dropdown */}
@@ -1646,7 +1751,7 @@ export default function LeadManagementPage() {
                                 {institutionType === 'school' && (
                                   <DropdownMenuItem 
                                     className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
-                                    onClick={() => {}}
+                                    onClick={() => openConvertModal(lead)}
                                   >
                                     <ArrowRight size={14} className="text-[#1565D8] flex-shrink-0" strokeWidth={1.5} />
                                     Convert to Admission
@@ -1716,7 +1821,7 @@ export default function LeadManagementPage() {
                     <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
                       <div>
                         <span className="text-slate-400 block font-semibold">Applying For</span>
-                        <span className="text-slate-700 font-medium">{lead.applyingFor}</span>
+                        <span className="text-slate-700 font-medium">{institutionType === 'school' ? getGradeLabel(lead.applyingFor) : lead.applyingFor}</span>
                       </div>
                       <div>
                         <span className="text-slate-400 block font-semibold">Source</span>
@@ -1914,7 +2019,7 @@ export default function LeadManagementPage() {
                         {selectedLead.name}
                       </h3>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        {selectedLead.applyingFor} · {selectedLead.source}
+                        {(institutionType === 'school' ? getGradeLabel(selectedLead.applyingFor) : selectedLead.applyingFor)} · {selectedLead.source}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -1999,7 +2104,7 @@ export default function LeadManagementPage() {
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1 block">
                           {applyingForLabel[institutionType as keyof typeof applyingForLabel]}
                         </span>
-                        <span className="text-sm font-semibold text-slate-700">{selectedLead.applyingFor}</span>
+                        <span className="text-sm font-semibold text-slate-700">{institutionType === 'school' ? getGradeLabel(selectedLead.applyingFor) : selectedLead.applyingFor}</span>
                       </div>
                       <div>
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1 block">Counsellor</span>
@@ -2077,7 +2182,10 @@ export default function LeadManagementPage() {
                 {/* DRAWER FOOTER */}
                 <div className="px-6 py-4 border-t border-slate-200 bg-slate-50">
                   {institutionType === 'school' ? (
-                    <Button className="w-full bg-[#1565D8] text-white text-sm font-bold py-3 h-auto rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition">
+                    <Button 
+                      onClick={() => openConvertModal(selectedLead)}
+                      className="w-full bg-[#1565D8] text-white text-sm font-bold py-3 h-auto rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition"
+                    >
                       <span>Convert to Admission</span>
                       <ArrowRight className="size-4" strokeWidth={2.5} />
                     </Button>
@@ -2117,7 +2225,7 @@ export default function LeadManagementPage() {
                     <div>
                       <h4 className="text-sm font-bold text-slate-800 font-sans">{deleteModalLead.name}</h4>
                       <p className="text-xs text-slate-400 mt-0.5 font-sans">
-                        {deleteModalLead.applyingFor} · {deleteModalLead.id}
+                        {(institutionType === 'school' ? getGradeLabel(deleteModalLead.applyingFor) : deleteModalLead.applyingFor)} · {deleteModalLead.id}
                       </p>
                     </div>
                   </div>
@@ -2202,6 +2310,213 @@ export default function LeadManagementPage() {
                   className="w-full text-slate-400 text-sm font-medium text-center cursor-pointer hover:text-slate-600 py-2"
                 >
                   Keep editing current record
+                </button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* CONVERT TO ADMISSION DIALOG */}
+          <Dialog open={showConvertModal} onOpenChange={setShowConvertModal}>
+            <DialogContent className="max-w-md w-full rounded-2xl p-6 text-left max-h-[90vh] overflow-y-auto">
+              <DialogHeader className="flex justify-between mb-2">
+                <DialogTitle className="text-xl font-bold Poppins text-slate-900">Convert Lead to Admission</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-slate-500 mb-4">Creating admission record for {convertLead?.kidName || convertLead?.parentName}</p>
+
+              {convertError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-medium">
+                  {convertError}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {/* Field 1: Applicant Name */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1 block">Applicant Name <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={convertApplicantName}
+                    onChange={(e) => setConvertApplicantName(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                    placeholder="Child / Applicant name"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">Enter child&apos;s name</p>
+                </div>
+
+                {/* Field 2: Parent / Guardian Name */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1 block">Parent / Guardian <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={convertParentName}
+                    onChange={(e) => setConvertParentName(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                    placeholder="Parent / Guardian Name"
+                  />
+                </div>
+
+                {/* Field 3: Phone Number */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1 block">Phone <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    readOnly
+                    value={convertPhone}
+                    className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-500 cursor-not-allowed focus:outline-none"
+                    placeholder="Phone"
+                  />
+                </div>
+
+                {/* Field 4: Email */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1 block">Email</label>
+                  <input
+                    type="email"
+                    value={convertEmail}
+                    onChange={(e) => setConvertEmail(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                    placeholder="Email"
+                  />
+                </div>
+
+                {/* Field 5: Applying For (Grade) */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1 block">Applying For <span className="text-red-500">*</span></label>
+                  <select
+                    required
+                    value={convertGrade}
+                    onChange={(e) => setConvertGrade(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">Select Grade</option>
+                    {GRADE_OPTIONS.map((g) => (
+                      <option key={g.value} value={g.value}>{g.label}</option>
+                    ))}
+                    {convertGrade && !GRADE_OPTIONS.some(opt => opt.value === convertGrade) && (
+                      <option value={convertGrade}>{getGradeLabel(convertGrade)}</option>
+                    )}
+                  </select>
+                </div>
+
+                {/* Field 6: Academic Year */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1 block">Academic Year <span className="text-red-500">*</span></label>
+                  <select
+                    required
+                    value={convertAcademicYearId}
+                    onChange={(e) => setConvertAcademicYearId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">Select Year</option>
+                    {academicYears.map((ay) => (
+                      <option key={ay.id} value={ay.id}>
+                        {ay.name} {ay.status === 'ACTIVE' ? '(Current)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Field 7: Start at Stage */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1 block">Start at Stage <span className="text-red-500">*</span></label>
+                  <select
+                    required
+                    value={convertStageId}
+                    onChange={(e) => setConvertStageId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">Select Stage</option>
+                    {pipelineStages.map((stage) => (
+                      <option key={stage.id} value={stage.id}>{stage.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Field 8: Assign To */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1 block">Assign To</label>
+                  <select
+                    value={convertCounsellorId}
+                    onChange={(e) => setConvertCounsellorId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">Unassigned</option>
+                    {counsellors.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowConvertModal(false)
+                    setConvertError('')
+                  }}
+                  className="flex-1 border border-slate-200 text-slate-600 text-sm font-semibold py-3 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      setConvertError('')
+                      if (!convertApplicantName.trim()) {
+                        throw new Error('Applicant name is required')
+                      }
+                      if (!convertParentName.trim()) {
+                        throw new Error('Parent / guardian name is required')
+                      }
+                      if (!convertPhone.trim()) {
+                        throw new Error('Phone is required')
+                      }
+                      if (!convertGrade) {
+                        throw new Error('Applying grade is required')
+                      }
+                      if (!convertAcademicYearId) {
+                        throw new Error('Academic year is required')
+                      }
+                      if (!convertStageId) {
+                        throw new Error('Start stage is required')
+                      }
+
+                      const res = await fetch('/api/v1/admissions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          applicantName: convertApplicantName,
+                          parentName: convertParentName,
+                          phone: convertPhone,
+                          email: convertEmail || undefined,
+                          gradeSought: convertGrade,
+                          leadId: convertLead?.id,
+                          assignedToId: convertCounsellorId || undefined,
+                          academicYearId: convertAcademicYearId || undefined,
+                          stageId: convertStageId || undefined,
+                          notes: convertNotes || undefined
+                        })
+                      })
+                      const data = await res.json()
+                      if (!res.ok) {
+                        throw new Error(data.error || 'Failed to convert lead')
+                      }
+                      setShowConvertModal(false)
+                      setDrawerOpen(false)
+                      showToast("Lead converted to admission!")
+                      fetchLeads()
+                      router.push(`/admission-management/${data.data.id}`)
+                    } catch (err: any) {
+                      console.error(err)
+                      setConvertError(err.message || "Failed to convert lead")
+                    }
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
+                >
+                  Convert to Admission →
                 </button>
               </div>
             </DialogContent>

@@ -3,10 +3,11 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { AuditAction, OtpChannel, OtpPurpose, UserRole, UserStatus } from '@prisma/client'
+import { cleanPhoneNumber } from '@/lib/utils'
 
 const parentRegisterSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
-  phone: z.string().regex(/^[6-9]\d{9}$/, { message: 'Please enter a valid 10-digit mobile number' }),
+  phone: z.preprocess(cleanPhoneNumber, z.string().regex(/^[6-9]\d{9}$/, { message: 'Please enter a valid 10-digit mobile number' })),
   email: z.string().email({ message: 'Please enter a valid email address' }).optional().or(z.literal('')),
   city: z.string().optional()
 })

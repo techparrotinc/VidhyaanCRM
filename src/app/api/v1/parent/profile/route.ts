@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
 import bcrypt from 'bcryptjs'
+import { cleanPhoneNumber } from '@/lib/utils'
 
 export async function GET(req: NextRequest) {
   try {
@@ -59,7 +60,9 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { name, email, city, phone } = body
+    const { name, email, city, phone: rawPhone } = body
+    const phone = rawPhone ? (cleanPhoneNumber(rawPhone) as string) : undefined
+
 
     if (!name || name.trim().length < 2) {
       return NextResponse.json(

@@ -102,8 +102,12 @@ export const POST = route({
     const leadCount = await db.lead.count()
 
     // Map body to DB fields
-    const { firstName, lastName, nextFollowUpAt, notes, ...bodyRest } = body
+    const { firstName, lastName, nextFollowUpAt, notes, assignedToId: rawAssignedTo, academicYearId: rawAY, ...bodyRest } = body
     const parentName = lastName ? `${firstName} ${lastName}` : firstName
+
+    // Clean up empty strings or invalid inputs to null
+    const cleanedAssignedToId = rawAssignedTo && rawAssignedTo.trim() !== '' ? rawAssignedTo : null
+    const cleanedAcademicYearId = rawAY && rawAY.trim() !== '' ? rawAY : (academicYearId || null)
 
     if (org.leadCap !== null && leadCount >= org.leadCap) {
       // Create lead in "JUNK" state or default since metadata/queued field doesn't exist
@@ -113,8 +117,9 @@ export const POST = route({
           orgId: user.orgId,
           parentName,
           leadCode: await generateLeadCode(user.orgId),
+          assignedToId: cleanedAssignedToId,
           nextFollowUpAt: nextFollowUpAt ? new Date(nextFollowUpAt) : null,
-          academicYearId: body.academicYearId ?? academicYearId ?? null
+          academicYearId: cleanedAcademicYearId
         }
       })
 
@@ -131,7 +136,7 @@ export const POST = route({
     })
 
     // Auto-assign counsellor if not provided
-    let assignedToId = body.assignedToId
+    let assignedToId = cleanedAssignedToId
     if (!assignedToId) {
       const counsellors = await prisma.user.findMany({
         where: {
@@ -162,7 +167,7 @@ export const POST = route({
         leadCode,
         assignedToId,
         nextFollowUpAt: nextFollowUpAt ? new Date(nextFollowUpAt) : null,
-        academicYearId: body.academicYearId ?? academicYearId ?? null
+        academicYearId: cleanedAcademicYearId
       }
     })
 

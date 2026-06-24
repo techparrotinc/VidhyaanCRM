@@ -81,6 +81,19 @@ Use these Tailwind equivalents throughout the JSX configurations:
     *   Created high-performance search endpoint `/api/public/schools` supporting dynamic sorting (relevance, rating, newest, enquiries) and relation counting.
     *   Implemented detailed profile endpoint `/api/public/schools/[slug]` returning locations, affiliations, hours, media, and calculated reviews categories metrics.
     *   Built directory listing client page (`/schools`) and profile client page (`/schools/[slug]`) complete with enquire now dialogs, write-a-review forms, bookmarked storage states, skeleton loading grids, and responsive drawers.
+*   **Location Detection Hook**:
+    *   Created `src/hooks/useLocation.ts` for browser GPS permission checks, reverse geocoding to city, localStorage caching, and selector updates.
+*   **Parent Authentication & Registration**:
+    *   Built POST `/api/auth/parent/register` and `/api/auth/parent/verify-otp` bypassable development-ready registration APIs.
+    *   Created client registration pages, OTP modal verification forms, and session bindings.
+*   **Parent Portal & Dashboard Layout**:
+    *   Designed `/parent/layout` top desktop bar & mobile sticky bottom icons nav.
+    *   Implemented `/parent/dashboard` KPI summary stats cards, recent applications list, and nearest schools recommendation rows.
+    *   Implemented `/parent/profile` fields editing, OTP change-phone modal validation, children database CRUD, and deactivation options.
+*   **Applications, Bookmarks & Notifications**:
+    *   Created applications status resolver APIs and tracking list layouts with progress dot timelines and action links.
+    *   Built school bookmarks list/grid layouts with sortings/filters, toggling endpoints `/api/public/schools/[slug]/bookmark`, and wired bookmark toggle buttons on schools and learning center search & profile cards.
+    *   Created Notifications list views with item-read update and "Mark all read" capabilities.
 
 ---
 

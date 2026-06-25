@@ -378,24 +378,24 @@ export default function EditLeadPage() {
   }
 
   // Handle Save
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const isValid = validateForm()
-    if (!isValid) {
-      const newErrors: Record<string, string> = {}
-      if (!formData.parentName.trim()) newErrors.parentName = "parentName"
-      if (!formData.phone.trim() || !/^[0-9]{10}$/.test(formData.phone)) newErrors.phone = "phone"
-      if (!formData.source) newErrors.source = "source"
-      if (institutionType === 'school' && !formData.gradeSought) newErrors.gradeSought = "gradeSought"
-      if (institutionType !== 'school' && !formData.course) newErrors.course = "course"
-      if (!formData.assignedToId) newErrors.counsellorId = "counsellorId"
-      if (!followUpDate) newErrors.followUpDate = "followUpDate"
-      if (!followUpTime) newErrors.followUpTime = "followUpTime"
-      scrollToFirstError(newErrors)
+  const handleSubmit = async () => {
+    console.log('Submit started')
+    console.log('Form data:', formData)
+
+    if (!formData.parentName?.trim()) {
+      showToast('Parent name is required', 'error')
+      return
+    }
+
+    if (!formData.phone?.trim() ||
+      formData.phone.trim().length !== 10
+    ) {
+      showToast('Valid 10-digit phone is required', 'error')
       return
     }
 
     setSubmitting(true)
+
     try {
       let nextFollowUpAt: string | null = null
 
@@ -408,37 +408,47 @@ export default function EditLeadPage() {
       const payload = {
         parentName: formData.parentName.trim(),
         phone: formData.phone.trim(),
-        email: formData.email.trim() || null,
-        kidName: formData.kidName.trim() || null,
-        childAge: formData.childAge ? parseInt(formData.childAge) : null,
+        email: formData.email?.trim() || null,
+        kidName: formData.kidName?.trim() || null,
+        childAge: formData.childAge
+          ? parseInt(formData.childAge.toString())
+          : null,
         source: formData.source || 'WALK_IN',
         priority: formData.priority || 'MEDIUM',
         status: formData.status || 'NEW',
         gradeSought: formData.gradeSought || null,
         academicYearId: formData.academicYearId || null,
         assignedToId: formData.assignedToId || null,
-        notes: formData.notes.trim() || null,
+        notes: formData.notes?.trim() || null,
         nextFollowUpAt,
       }
+
+      console.log('Sending payload:', payload)
 
       const url = `/api/v1/leads/${lead.id}`
       const res = await fetch(url, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       })
 
+      console.log('Response status:', res.status)
+
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.message || 'Save failed')
+        const errorData = await res.json()
+        console.error('API error:', errorData)
+        throw new Error(
+          errorData.message || 'Failed to update lead'
+        )
       }
 
       showToast('Lead updated successfully')
       router.push(`/lead-management/${lead.id}`)
 
     } catch (err: any) {
+      console.error('Submit error:', err)
       showToast(err.message || 'Failed to save lead', 'error')
     } finally {
       setSubmitting(false)
@@ -471,7 +481,7 @@ export default function EditLeadPage() {
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="p-4 md:p-6 lg:p-8 pb-28 space-y-6 max-w-7xl mx-auto w-full">
+      <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="p-4 md:p-6 lg:p-8 pb-28 space-y-6 max-w-7xl mx-auto w-full">
           
           {/* PAGE TITLE ROW */}
           <section className="flex items-center justify-between mb-2">
@@ -502,7 +512,8 @@ export default function EditLeadPage() {
                 Cancel
               </button>
               <Button
-                type="submit"
+                type="button"
+                onClick={handleSubmit}
                 disabled={buttonDisabled}
                 className={`text-white text-sm font-semibold px-5 py-2.5 h-auto rounded-lg flex items-center gap-2 transition ${submitting ? 'opacity-70 cursor-not-allowed bg-[#1565D8]' : (!buttonDisabled ? 'bg-[#1565D8] hover:bg-blue-700 cursor-pointer' : 'bg-[#1565D8]/50 opacity-50 cursor-not-allowed')}`}
               >
@@ -1339,7 +1350,8 @@ export default function EditLeadPage() {
                 Cancel
               </button>
               <Button
-                type="submit"
+                type="button"
+                onClick={handleSubmit}
                 disabled={buttonDisabled}
                 className={`text-white text-sm font-semibold px-6 py-2.5 h-auto rounded-lg flex items-center gap-2 transition ${submitting ? 'opacity-70 cursor-not-allowed bg-[#1565D8]' : (!buttonDisabled ? 'bg-[#1565D8] hover:bg-blue-700 cursor-pointer' : 'bg-[#1565D8]/50 opacity-50 cursor-not-allowed')}`}
               >

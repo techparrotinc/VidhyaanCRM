@@ -327,24 +327,25 @@ export default function AddLeadPage() {
   }
 
   // Handle Save
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const isValid = validateForm()
-    if (!isValid) {
-      const newErrors: Record<string, string> = {}
-      if (!formData.parentName.trim()) newErrors.parentName = "parentName"
-      if (!formData.phone.trim() || !/^[0-9]{10}$/.test(formData.phone)) newErrors.phone = "phone"
-      if (!formData.source) newErrors.source = "source"
-      if (institutionType === 'school' && !formData.gradeSought) newErrors.gradeSought = "gradeSought"
-      if (institutionType !== 'school' && !formData.course) newErrors.course = "course"
-      if (!formData.assignedToId) newErrors.counsellorId = "counsellorId"
-      if (!followUpDate) newErrors.followUpDate = "followUpDate"
-      if (!followUpTime) newErrors.followUpTime = "followUpTime"
-      scrollToFirstError(newErrors)
+  // Handle Save
+  const handleSubmit = async () => {
+    console.log('Submit started')
+    console.log('Form data:', formData)
+
+    if (!formData.parentName?.trim()) {
+      showToast('Parent name is required', 'error')
+      return
+    }
+
+    if (!formData.phone?.trim() ||
+      formData.phone.trim().length !== 10
+    ) {
+      showToast('Valid 10-digit phone is required', 'error')
       return
     }
 
     setIsSubmitting(true)
+
     try {
       let nextFollowUpAt: string | null = null
 
@@ -357,46 +358,54 @@ export default function AddLeadPage() {
       const payload = {
         parentName: formData.parentName.trim(),
         phone: formData.phone.trim(),
-        email: formData.email.trim() || null,
-        kidName: formData.kidName.trim() || null,
-        childAge: formData.childAge ? parseInt(formData.childAge) : null,
+        email: formData.email?.trim() || null,
+        kidName: formData.kidName?.trim() || null,
+        childAge: formData.childAge
+          ? parseInt(formData.childAge.toString())
+          : null,
         source: formData.source || 'WALK_IN',
         priority: formData.priority || 'MEDIUM',
-        status: formData.status || 'NEW',
+        status: 'NEW',
         gradeSought: formData.gradeSought || null,
         academicYearId: formData.academicYearId || null,
         assignedToId: formData.assignedToId || null,
-        notes: formData.notes.trim() || null,
+        notes: formData.notes?.trim() || null,
         nextFollowUpAt,
       }
 
-      const res = await fetch('/api/v1/leads', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      })
+      console.log('Sending payload:', payload)
 
-      const json = await res.json()
+      const res = await fetch(
+        '/api/v1/leads',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      )
+
+      console.log('Response status:', res.status)
 
       if (!res.ok) {
-        throw new Error(json.error ?? 'Failed to create lead')
-      }
-
-      if (json.data?.queued) {
-        showToast(
-          'Lead saved to queue. Upgrade to access queued leads.',
-          'info'
+        const errorData = await res.json()
+        console.error('API error:', errorData)
+        throw new Error(
+          errorData.message || 'Failed to create lead'
         )
-      } else {
-        showToast('Lead created successfully')
       }
 
-      router.push('/lead-management')
+      const created = await res.json()
+      console.log('Created lead:', created)
+
+      showToast('Lead created successfully')
+
+      router.push(`/lead-management/${created.id}`)
 
     } catch (err: any) {
-      showToast(err.message ?? 'Failed to create lead', 'error')
+      console.error('Submit error:', err)
+      showToast(err.message || 'Failed to create lead', 'error')
     } finally {
       setIsSubmitting(false)
     }
@@ -426,7 +435,7 @@ export default function AddLeadPage() {
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="p-4 md:p-6 lg:p-8 pb-28 space-y-6 max-w-7xl mx-auto w-full">
+      <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="p-4 md:p-6 lg:p-8 pb-28 space-y-6 max-w-7xl mx-auto w-full">
           
           {/* PAGE TITLE ROW */}
           <section className="flex items-center justify-between mb-2">
@@ -457,7 +466,8 @@ export default function AddLeadPage() {
                 Cancel
               </button>
               <Button
-                type="submit"
+                type="button"
+                onClick={handleSubmit}
                 disabled={buttonDisabled}
                 className={`text-white text-sm font-semibold px-5 py-2.5 h-auto rounded-lg flex items-center gap-2 transition ${isSubmitting ? 'opacity-70 cursor-not-allowed bg-[#1565D8]' : (!buttonDisabled ? 'bg-[#1565D8] hover:bg-blue-700 cursor-pointer' : 'bg-[#1565D8]/50 opacity-50 cursor-not-allowed')}`}
               >
@@ -1282,7 +1292,8 @@ export default function AddLeadPage() {
                 Cancel
               </button>
               <Button
-                type="submit"
+                type="button"
+                onClick={handleSubmit}
                 disabled={buttonDisabled}
                 className={`text-white text-sm font-semibold px-6 py-2.5 h-auto rounded-lg flex items-center gap-2 transition ${isSubmitting ? 'opacity-70 cursor-not-allowed bg-[#1565D8]' : (!buttonDisabled ? 'bg-[#1565D8] hover:bg-blue-700 cursor-pointer' : 'bg-[#1565D8]/50 opacity-50 cursor-not-allowed')}`}
               >

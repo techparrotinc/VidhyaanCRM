@@ -96,18 +96,77 @@ export const GET = route({
 })
 
 const createAdmissionSchema = z.object({
-  applicantName: z.string().min(1),
-  parentName: z.string().optional().nullable(),
-  phone: z.string().optional(),
-  email: z.string().email().optional().or(z.literal('')),
-  gradeSought: z.string().optional(),
-  source: z.string().optional(),
-  stageId: z.string().optional(),
-  assignedToId: z.string().optional(),
-  leadId: z.string().optional(),
-  academicYearId: z.string().optional(),
-  priority: z.string().default('MEDIUM'),
-  notes: z.string().optional()
+  applicantName: z.string().min(1,
+    'Applicant name is required'),
+  parentName: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  phone: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  email: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  gradeSought: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  academicYearId: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  stageId: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  assignedToId: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  priority: z.string()
+    .optional()
+    .default('MEDIUM'),
+  notes: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  leadId: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  expectedJoinDate: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  currentSchool: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
 })
 
 export const POST = route({

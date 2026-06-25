@@ -93,6 +93,16 @@ const createLeadSchema = z.object({
       : parseInt(v) || null
     )
   ]).optional().nullable(),
+  currentSchool: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  expectedJoinDate: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
   source: z.string()
     .default('WALK_IN'),
   priority: z.string()
@@ -153,6 +163,7 @@ export const POST = route({
           email: body.email || null,
           kidName: body.kidName || null,
           childAge: body.childAge || null,
+          currentSchool: body.currentSchool || null,
           source: (body.source || 'WALK_IN') as LeadSource,
           priority: (body.priority || 'MEDIUM') as LeadPriority,
           status: 'NEW',
@@ -161,6 +172,7 @@ export const POST = route({
           orgId: user.orgId,
           academicYearId: body.academicYearId || null,
           nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
+          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
         }
       })
 
@@ -228,6 +240,7 @@ export const POST = route({
         email: body.email || null,
         kidName: body.kidName || null,
         childAge: body.childAge || null,
+        currentSchool: body.currentSchool || null,
         source: (body.source || 'WALK_IN') as LeadSource,
         priority: (body.priority || 'MEDIUM') as LeadPriority,
         status: 'NEW',
@@ -236,6 +249,7 @@ export const POST = route({
         orgId: user.orgId,
         academicYearId: body.academicYearId || null,
         nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
+        expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
         ...(finalAssignedToId && {
           assignedToId: finalAssignedToId
         }),

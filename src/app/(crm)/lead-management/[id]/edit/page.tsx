@@ -413,6 +413,7 @@ export default function EditLeadPage() {
         childAge: formData.childAge
           ? parseInt(formData.childAge.toString())
           : null,
+        currentSchool: formData.currentSchool?.trim() || null,
         source: formData.source || 'WALK_IN',
         priority: formData.priority || 'MEDIUM',
         status: formData.status || 'NEW',
@@ -421,6 +422,7 @@ export default function EditLeadPage() {
         assignedToId: formData.assignedToId || null,
         notes: formData.notes?.trim() || null,
         nextFollowUpAt,
+        expectedJoinDate: formData.expectedJoinDate ? new Date(formData.expectedJoinDate).toISOString() : null,
       }
 
       console.log('Sending payload:', payload)

@@ -13,6 +13,7 @@ import {
   X,
   CheckCircle2,
   Calendar,
+  CalendarDays,
   Save,
   AlertCircle,
   Lightbulb,
@@ -31,6 +32,8 @@ import {
 
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Calendar as UiCalendar } from "@/components/ui/calendar"
 import { GRADE_OPTIONS } from '@/constants/grades'
 import { mapGradeValue } from '@/lib/utils/gradeMapping'
 
@@ -42,6 +45,10 @@ const format = (date: Date, formatStr: string): string => {
   const dd = String(date.getDate()).padStart(2, '0')
   if (formatStr === 'yyyy-MM-dd') {
     return `${yyyy}-${mm}-${dd}`
+  }
+  if (formatStr === 'd MMM yyyy') {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return `${date.getDate()} ${months[date.getMonth()]} ${yyyy}`
   }
   return date.toLocaleDateString()
 }
@@ -178,7 +185,6 @@ export default function AddLeadPage() {
     assignedToId: '',
     notes: '',
     siblingInSchool: false,
-    expectedJoinDate: '',
     campaignId: '',
     course: '',
     batch: '',
@@ -188,6 +194,7 @@ export default function AddLeadPage() {
 
   const [followUpDate, setFollowUpDate] = useState<Date | undefined>(undefined)
   const [followUpTime, setFollowUpTime] = useState('09:00')
+  const [expectedJoinDate, setExpectedJoinDate] = useState<Date | undefined>(undefined)
 
   // Auto-generate Lead ID on page load
   const [leadId] = useState(generateLeadId)
@@ -363,6 +370,7 @@ export default function AddLeadPage() {
         childAge: formData.childAge
           ? parseInt(formData.childAge.toString())
           : null,
+        currentSchool: formData.currentSchool?.trim() || null,
         source: formData.source || 'WALK_IN',
         priority: formData.priority || 'MEDIUM',
         status: 'NEW',
@@ -371,6 +379,7 @@ export default function AddLeadPage() {
         assignedToId: formData.assignedToId || null,
         notes: formData.notes?.trim() || null,
         nextFollowUpAt,
+        expectedJoinDate: expectedJoinDate ? expectedJoinDate.toISOString() : null,
       }
 
       console.log('Sending payload:', payload)
@@ -719,14 +728,35 @@ export default function AddLeadPage() {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
                         EXPECTED JOIN DATE
                       </label>
-                      <input
-                        type="date"
-                        name="expectedJoinDate"
-                        min={getTodayDateString()}
-                        value={formData.expectedJoinDate}
-                        onChange={handleInputChange}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition"
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="w-full h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white flex items-center gap-2 text-slate-700 text-left focus:outline-none focus:border-[#1565D8]"
+                          >
+                            <CalendarDays size={13} className="text-slate-400 flex-shrink-0" />
+                            <span className="flex-1 truncate">
+                              {expectedJoinDate
+                                ? format(expectedJoinDate, 'd MMM yyyy')
+                                : 'Select date'}
+                            </span>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          align="start"
+                          avoidCollisions={true}
+                          collisionPadding={16}
+                          sideOffset={4}
+                          className="z-[9999] w-auto p-0 shadow-xl rounded-xl border border-slate-200"
+                        >
+                          <UiCalendar
+                            mode="single"
+                            selected={expectedJoinDate}
+                            onSelect={setExpectedJoinDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                       <p className="text-[11px] text-slate-400 mt-1">
                         When does the parent expect the child to join?
                       </p>
@@ -893,14 +923,35 @@ export default function AddLeadPage() {
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">
                       Follow-up Date <span className="text-red-500 ml-0.5">*</span>
                     </label>
-                    <input
-                      type="date"
-                      name="followUpDate"
-                      min={new Date().toISOString().split('T')[0]}
-                      value={followUpDate ? format(followUpDate, 'yyyy-MM-dd') : ''}
-                      onChange={(e) => setFollowUpDate(e.target.value ? new Date(e.target.value) : undefined)}
-                      className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.followUpDate ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-slate-200'}`}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className={`w-full h-9 px-3 text-sm border rounded-lg bg-white flex items-center gap-2 text-slate-700 text-left focus:outline-none focus:border-[#1565D8] ${errors.followUpDate ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}
+                        >
+                          <CalendarDays size={13} className="text-slate-400 flex-shrink-0" />
+                          <span className="flex-1 truncate">
+                            {followUpDate
+                              ? format(followUpDate, 'd MMM yyyy')
+                              : 'Select date'}
+                          </span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        align="start"
+                        avoidCollisions={true}
+                        collisionPadding={16}
+                        sideOffset={4}
+                        className="z-[9999] w-auto p-0 shadow-xl rounded-xl border border-slate-200"
+                      >
+                        <UiCalendar
+                          mode="single"
+                          selected={followUpDate}
+                          onSelect={setFollowUpDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <span className="text-[11px] text-slate-400 mt-1 block">When should this lead be followed up?</span>
                     {followUpDate && (
                       (() => {

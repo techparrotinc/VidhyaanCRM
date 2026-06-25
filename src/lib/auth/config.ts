@@ -18,9 +18,9 @@ const authConfig: NextAuthConfig = {
         // 1. Temp token authentication
         if (credentials?.token) {
           const token = credentials.token as string
-          const authUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
           try {
-            const res = await fetch(`${authUrl}/api/auth/pin/verify`, {
+            const res = await fetch(`${appUrl}/api/auth/pin/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token })
@@ -51,9 +51,9 @@ const authConfig: NextAuthConfig = {
         if (credentials?.phone && credentials?.pin) {
           const phone = credentials.phone as string
           const pin = credentials.pin as string
-          const authUrl = process.env.AUTH_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
           try {
-            const res = await fetch(`${authUrl}/api/auth/pin/verify`, {
+            const res = await fetch(`${appUrl}/api/auth/pin/verify`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ phone, pin })

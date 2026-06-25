@@ -43,6 +43,7 @@ import {
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
+import ConvertToAdmissionModal from '@/components/modals/ConvertToAdmissionModal'
 
 import {
   Dialog,
@@ -469,44 +470,9 @@ export default function LeadDetailPage() {
       }
     }
 
-    async function fetchAcademicYears() {
-      try {
-        const res = await fetch('/api/v1/settings/academic-year')
-        if (res.ok) {
-          const json = await res.json()
-          const years = json.data ?? []
-          setAcademicYears(years)
-          const activeYear = years.find((y: any) => y.status === 'ACTIVE')
-          if (activeYear) {
-            setConvertAcademicYearId(activeYear.id)
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch academic years', err)
-      }
-    }
-
-    async function fetchPipelineStages() {
-      try {
-        const res = await fetch('/api/v1/settings/pipeline')
-        if (res.ok) {
-          const json = await res.json()
-          const stages = json.data ?? []
-          setPipelineStages(stages)
-          if (stages.length > 0) {
-            setConvertStageId(stages[0].id)
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch pipeline stages', err)
-      }
-    }
-
     fetchLead()
     fetchCounsellors()
     fetchModules()
-    fetchAcademicYears()
-    fetchPipelineStages()
   }, [leadId])
 
   // Sync lead details to local states
@@ -616,13 +582,6 @@ export default function LeadDetailPage() {
       setActivities(mappedActivities)
     }
 
-    setConvertApplicantName(lead.kidName || lead.parentName || '')
-    setConvertParentName(lead.parentName || '')
-    setConvertPhone(lead.phone || '')
-    setConvertEmail(lead.email || '')
-    setConvertGrade(lead.gradeSought || '')
-    setConvertCounsellorId(lead.assignedToId || '')
-    setConvertNotes(lead.notes || '')
   }, [lead])
 
   const startEditing = () => {
@@ -779,18 +738,6 @@ export default function LeadDetailPage() {
   const [counsellorDropdown, setCounsellorDropdown] = useState(false)
 
   const [enabledModules, setEnabledModules] = useState<string[]>([])
-  const [academicYears, setAcademicYears] = useState<any[]>([])
-  const [pipelineStages, setPipelineStages] = useState<any[]>([])
-  const [convertApplicantName, setConvertApplicantName] = useState('')
-  const [convertParentName, setConvertParentName] = useState('')
-  const [convertPhone, setConvertPhone] = useState('')
-  const [convertEmail, setConvertEmail] = useState('')
-  const [convertGrade, setConvertGrade] = useState('')
-  const [convertAcademicYearId, setConvertAcademicYearId] = useState('')
-  const [convertStageId, setConvertStageId] = useState('')
-  const [convertCounsellorId, setConvertCounsellorId] = useState('')
-  const [convertNotes, setConvertNotes] = useState('')
-  const [convertError, setConvertError] = useState('')
 
   // Toast State
   const [toast, setToast] = useState<{
@@ -1938,210 +1885,18 @@ export default function LeadDetailPage() {
 
         {/* DIALOG MODALS */}
         {/* CONVERT MODAL */}
-        <Dialog open={showConvertModal} onOpenChange={setShowConvertModal}>
-          <DialogContent className="max-w-md w-full rounded-2xl p-6 text-left max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="flex justify-between mb-2">
-              <DialogTitle className="text-xl font-bold Poppins text-slate-900">Convert Lead to Admission</DialogTitle>
-            </DialogHeader>
-            <p className="text-sm text-slate-500 mb-4">Creating admission record for {lead?.kidName || lead?.parentName}</p>
-
-            {convertError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-medium">
-                {convertError}
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {/* Field 1: Applicant Name */}
-              <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">Applicant Name <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  required
-                  value={convertApplicantName}
-                  onChange={(e) => setConvertApplicantName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                  placeholder="Child / Applicant name"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">Enter child&apos;s name</p>
-              </div>
-
-              {/* Field 2: Parent / Guardian Name */}
-              <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">Parent / Guardian <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  required
-                  value={convertParentName}
-                  onChange={(e) => setConvertParentName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                  placeholder="Parent / Guardian Name"
-                />
-              </div>
-
-              {/* Field 3: Phone Number */}
-              <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">Phone <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  required
-                  readOnly
-                  value={convertPhone}
-                  className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-500 cursor-not-allowed focus:outline-none"
-                  placeholder="Phone"
-                />
-              </div>
-
-              {/* Field 4: Email */}
-              <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">Email</label>
-                <input
-                  type="email"
-                  value={convertEmail}
-                  onChange={(e) => setConvertEmail(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                  placeholder="Email"
-                />
-              </div>
-
-              {/* Field 5: Applying For (Grade) */}
-              <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">Applying For <span className="text-red-500">*</span></label>
-                <select
-                  required
-                  value={convertGrade}
-                  onChange={(e) => setConvertGrade(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="">Select Grade</option>
-                  {GRADE_OPTIONS.map((g) => (
-                    <option key={g.value} value={g.value}>{g.label}</option>
-                  ))}
-                  {convertGrade && !GRADE_OPTIONS.some(opt => opt.value === convertGrade) && (
-                    <option value={convertGrade}>{getGradeLabel(convertGrade)}</option>
-                  )}
-                </select>
-              </div>
-
-              {/* Field 6: Academic Year */}
-              <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">Academic Year <span className="text-red-500">*</span></label>
-                <select
-                  required
-                  value={convertAcademicYearId}
-                  onChange={(e) => setConvertAcademicYearId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="">Select Year</option>
-                  {academicYears.map((ay) => (
-                    <option key={ay.id} value={ay.id}>
-                      {ay.name} {ay.status === 'ACTIVE' ? '(Current)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Field 7: Start at Stage */}
-              <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">Start at Stage <span className="text-red-500">*</span></label>
-                <select
-                  required
-                  value={convertStageId}
-                  onChange={(e) => setConvertStageId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="">Select Stage</option>
-                  {pipelineStages.map((stage) => (
-                    <option key={stage.id} value={stage.id}>{stage.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Field 8: Assign To */}
-              <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">Assign To</label>
-                <select
-                  value={convertCounsellorId}
-                  onChange={(e) => setConvertCounsellorId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="">Unassigned</option>
-                  {counsellorsList.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => {
-                  setShowConvertModal(false)
-                  setConvertError('')
-                }}
-                className="flex-1 border border-slate-200 text-slate-600 text-sm font-semibold py-3 rounded-xl hover:bg-slate-50 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    setConvertError('')
-                    if (!convertApplicantName.trim()) {
-                      throw new Error('Applicant name is required')
-                    }
-                    if (!convertParentName.trim()) {
-                      throw new Error('Parent / guardian name is required')
-                    }
-                    if (!convertPhone.trim()) {
-                      throw new Error('Phone is required')
-                    }
-                    if (!convertGrade) {
-                      throw new Error('Applying grade is required')
-                    }
-                    if (!convertAcademicYearId) {
-                      throw new Error('Academic year is required')
-                    }
-                    if (!convertStageId) {
-                      throw new Error('Start stage is required')
-                    }
-
-                    const res = await fetch('/api/v1/admissions', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        applicantName: convertApplicantName,
-                        parentName: convertParentName,
-                        phone: convertPhone,
-                        email: convertEmail || undefined,
-                        gradeSought: convertGrade,
-                        leadId: lead?.id,
-                        assignedToId: convertCounsellorId || undefined,
-                        academicYearId: convertAcademicYearId || undefined,
-                        stageId: convertStageId || undefined,
-                        notes: convertNotes || undefined
-                      })
-                    })
-                    const data = await res.json()
-                    if (!res.ok) {
-                      throw new Error(data.error || 'Failed to convert lead')
-                    }
-                    setCurrentStatus('Converted')
-                    setShowConvertModal(false)
-                    showToast("Lead converted to admission!")
-                    router.push(`/admission-management/${data.data.id}`)
-                  } catch (err: any) {
-                    console.error(err)
-                    setConvertError(err.message || "Failed to convert lead")
-                  }
-                }}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
-              >
-                Convert to Admission →
-              </button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {lead && (
+          <ConvertToAdmissionModal
+            lead={lead}
+            isOpen={showConvertModal}
+            onClose={() => setShowConvertModal(false)}
+            onSuccess={(admissionId) => {
+              setCurrentStatus('Converted')
+              showToast("Lead converted to admission!")
+              router.push(`/admission-management/${admissionId}`)
+            }}
+          />
+        )}
 
         {/* REJECT MODAL */}
         <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>

@@ -208,7 +208,7 @@ export default function UsersPage() {
       <div className="flex justify-between items-center bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Team Members</h1>
-          <p className="text-xs text-slate-400 mt-1 font-normal leading-normal">
+          <p className="text-xs text-slate-500 mt-1 font-normal leading-normal">
             Manage roles, workspace access, and view activity of team members.
           </p>
         </div>
@@ -243,7 +243,7 @@ export default function UsersPage() {
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold uppercase tracking-wider text-[10px]">
                 <th className="py-3 px-6">Name</th>
                 <th className="py-3 px-6">Role</th>
                 <th className="py-3 px-6">Phone</th>
@@ -268,7 +268,7 @@ export default function UsersPage() {
                       </div>
                       <div>
                         <div className="font-bold text-slate-800">{u.name}</div>
-                        <div className="text-xs text-slate-400 font-normal">{u.email}</div>
+                        <div className="text-xs text-slate-500 font-normal">{u.email}</div>
                       </div>
                     </td>
                     <td className="py-4 px-6">
@@ -320,7 +320,7 @@ export default function UsersPage() {
               })}
               {filteredUsers.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-400 font-semibold">
+                  <td colSpan={5} className="py-8 text-center text-slate-500 font-semibold">
                     No team members in this tab list.
                   </td>
                 </tr>

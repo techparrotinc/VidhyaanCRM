@@ -74,6 +74,27 @@ const stageShortLabel: Record<string, string> = {
 
 // Grades constants are imported from @/constants/grades
 
+const getStatusBadgeStyle = (status: string) => {
+  switch (status) {
+    case 'ADMITTED':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    case 'REJECTED':
+      return 'bg-red-50 text-red-700 border-red-200'
+    case 'WAITLISTED':
+      return 'bg-amber-50 text-amber-700 border-amber-200'
+    case 'WITHDRAWN':
+      return 'bg-slate-50 text-slate-700 border-slate-200'
+    case 'IN_PROGRESS':
+    default:
+      return 'bg-blue-50 text-blue-700 border-blue-200'
+  }
+}
+
+const getStatusLabel = (status: string) => {
+  if (!status) return '—'
+  return status.replace('_', ' ')
+}
+
 interface Applicant {
   id: string
   firstName: string
@@ -427,7 +448,8 @@ export default function AdmissionManagementPage() {
             docsUploaded,
             docsRequired,
             feePaid: adm.stage?.isWon ?? false,
-            priority: adm.priority === 'URGENT' ? 'Urgent' : adm.priority === 'HIGH' ? 'High' : 'Normal'
+            priority: adm.priority === 'URGENT' ? 'Urgent' : adm.priority === 'HIGH' ? 'High' : 'Normal',
+            dbStatus: adm.status
           }
         })
 
@@ -1321,32 +1343,23 @@ export default function AdmissionManagementPage() {
                     className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
                   />
                 </div>
-                <div className="flex-1 min-w-[200px] text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
-                  {config.applicantLabel[type].toUpperCase()}
+                <div className="flex-1 min-w-[220px] text-[11px] font-bold uppercase tracking-wider text-slate-700 font-semibold font-sans">
+                  Applicant
                 </div>
-                <div className="hidden md:flex w-32 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
-                  {config.applyingForLabel[type].toUpperCase()}
+                <div className="hidden md:flex w-[180px] flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-700 font-semibold font-sans">
+                  Stage & Grade
                 </div>
-                <div className="hidden md:flex w-28 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
-                  SOURCE
+                <div className="hidden md:flex w-[120px] flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-700 font-semibold font-sans">
+                  Status
                 </div>
-                <div className="hidden xl:flex w-24 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
-                  CONNECT
+                <div className="hidden md:flex w-[80px] flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-700 font-semibold font-sans">
+                  Docs
                 </div>
-                <div className="hidden xl:flex w-36 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
-                  COUNSELLOR
+                <div className="hidden xl:flex w-[140px] flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-700 font-semibold font-sans">
+                  Counsellor
                 </div>
-                <div className="w-36 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
-                  STAGE
-                </div>
-                <div className="hidden md:flex w-20 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
-                  DOCS
-                </div>
-                <div className="hidden xl:flex w-24 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
-                  DATE
-                </div>
-                <div className="w-12 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
-                  ACTION
+                <div className="w-[80px] flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-700 font-semibold font-sans text-center">
+                  Action
                 </div>
               </div>
 
@@ -1363,37 +1376,27 @@ export default function AdmissionManagementPage() {
                       <div className="w-8 flex-shrink-0">
                         <Skeleton className="w-4 h-4 rounded" />
                       </div>
-                      <div className="flex-1 min-w-[200px] flex items-center gap-3">
+                      <div className="flex-1 min-w-[220px] flex items-center gap-3">
                         <Skeleton className="w-9 h-9 rounded-full" />
                         <div className="space-y-1.5 flex-1 max-w-[150px]">
                           <Skeleton className="h-4 w-full" />
                           <Skeleton className="h-3 w-2/3" />
                         </div>
                       </div>
-                      <div className="hidden md:flex w-32 flex-shrink-0">
+                      <div className="hidden md:flex w-[180px] flex-shrink-0 flex-col gap-1">
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
+                      <div className="hidden md:flex w-[120px] flex-shrink-0">
                         <Skeleton className="h-6 w-16 rounded-lg" />
                       </div>
-                      <div className="hidden md:flex w-28 flex-shrink-0">
-                        <Skeleton className="h-5 w-20 rounded-full" />
-                      </div>
-                      <div className="hidden xl:flex w-24 flex-shrink-0 gap-1.5">
-                        <Skeleton className="w-7 h-7 rounded-lg" />
-                        <Skeleton className="w-7 h-7 rounded-lg" />
-                        <Skeleton className="w-7 h-7 rounded-lg" />
-                      </div>
-                      <div className="hidden xl:flex w-36 flex-shrink-0">
-                        <Skeleton className="h-5 w-24 rounded" />
-                      </div>
-                      <div className="w-36 flex-shrink-0">
-                        <Skeleton className="h-6 w-20 rounded-full" />
-                      </div>
-                      <div className="hidden md:flex w-20 flex-shrink-0">
+                      <div className="hidden md:flex w-[80px] flex-shrink-0">
                         <Skeleton className="h-4 w-12" />
                       </div>
-                      <div className="hidden xl:flex w-24 flex-shrink-0">
-                        <Skeleton className="h-4 w-16" />
+                      <div className="hidden xl:flex w-[140px] flex-shrink-0">
+                        <Skeleton className="h-5 w-24 rounded" />
                       </div>
-                      <div className="w-12 flex-shrink-0 flex justify-center">
+                      <div className="w-[80px] flex-shrink-0 flex justify-center">
                         <Skeleton className="w-8 h-8 rounded-lg" />
                       </div>
                     </div>
@@ -1424,23 +1427,24 @@ export default function AdmissionManagementPage() {
                           />
                         </div>
 
-                        {/* Applicant details */}
-                        <div className="flex-1 min-w-[200px] flex items-center gap-3">
+                        {/* Column 1: APPLICANT (name + code combined) */}
+                        <div className="flex-1 min-w-[220px] flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
                             {a.avatar}
                           </div>
                           <div className="min-w-0">
-                            <Link
-                              href={`/admission-management/${a.id}`}
-                              onClick={e => {
-                                e.stopPropagation()
-                              }}
-                              className="text-base font-semibold text-[#1565D8] hover:underline truncate block font-sans"
-                            >
-                              {a.fullName}
-                            </Link>
-                            <span className="text-xs text-slate-400 mt-0.5 truncate block font-sans">
-                              {type === 'school' ? `Parent: ${a.parentName}` : a.phone}
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-bold text-slate-500 font-mono">#{a.admissionCode}</span>
+                              <Link
+                                href={`/admission-management/${a.id}`}
+                                onClick={e => e.stopPropagation()}
+                                className="text-sm font-semibold text-slate-900 hover:text-[#1565D8] hover:underline truncate block"
+                              >
+                                {a.fullName}
+                              </Link>
+                            </div>
+                            <span className="text-xs text-slate-600 truncate block">
+                              {type === 'school' && a.parentName ? `Parent: ${a.parentName} • ` : ''}{a.phone}
                             </span>
                             
                             {/* Pending action badge */}
@@ -1455,56 +1459,75 @@ export default function AdmissionManagementPage() {
                           </div>
                         </div>
 
-                        {/* Applying For */}
-                        <div className="hidden md:flex w-32 flex-shrink-0">
-                          <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1.5 rounded-lg w-fit font-sans">
-                            {getGradeLabel(a.applyingFor)}
+                        {/* Column 2: STAGE & GRADE */}
+                        <div className="hidden md:flex w-[180px] flex-shrink-0 flex-col gap-1">
+                          <div
+                            onClick={e => {
+                              e.stopPropagation()
+                              setStageDropdownId(stageDropdownId === a.id ? null : a.id)
+                            }}
+                            className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border cursor-pointer hover:opacity-85 justify-between w-fit ${
+                              stageData.bgClass
+                            } ${stageData.textClass} ${stageData.borderClass}`}
+                          >
+                            <span className="truncate">{stageData.label}</span>
+                            <ChevronDown size={10} className="ml-0.5 shrink-0" strokeWidth={2.5} />
+                          </div>
+                          
+                          {/* Stage dots */}
+                          <div className="flex items-center gap-1 mt-0.5 select-none">
+                            {configPipeline.filter(s => s.id !== 'rejected').map((s, sIdx) => (
+                              <span
+                                key={s.id}
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  sIdx <= a.stageIndex ? `${s.dotClass} opacity-100` : 'bg-slate-200'
+                                }`}
+                              />
+                            ))}
+                            <span className="text-[9px] text-slate-500 font-medium">
+                              ({getGradeLabel(a.applyingFor)})
+                            </span>
+                          </div>
+
+                          {stageDropdownId === a.id && (
+                            <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[180px] max-h-56 overflow-y-auto">
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1.5 border-b border-slate-100 mb-1 font-sans">
+                                MOVE TO STAGE
+                              </div>
+                              {configPipeline.map(s => (
+                                <div
+                                  key={s.id}
+                                  onClick={() => handleMoveStage(a.id, s.id)}
+                                  className={`px-3 py-2 rounded-lg cursor-pointer text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between font-sans ${
+                                    a.stageId === s.id ? 'bg-slate-50 font-bold' : ''
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full ${s.dotClass}`} />
+                                    <span>{s.label}</span>
+                                  </div>
+                                  {a.stageId === s.id && <Check size={12} className="text-[#1565D8]" />}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Column 3: STATUS */}
+                        <div className="hidden md:flex w-[120px] flex-shrink-0">
+                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md border ${getStatusBadgeStyle(a.dbStatus)}`}>
+                            {getStatusLabel(a.dbStatus)}
                           </span>
                         </div>
 
-                        {/* Source */}
-                        <div className="hidden md:flex w-28 flex-shrink-0">
-                          <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full w-fit ${
-                            sourceConfig[a.source]?.bg || 'bg-slate-100'
-                          } ${sourceConfig[a.source]?.text || 'text-slate-650'}`}>
-                            <span className={`w-2 h-2 rounded-full ${sourceConfig[a.source]?.dot || 'bg-slate-400'}`} />
-                            <span>{a.source}</span>
-                          </div>
+                        {/* Column 4: DOCS */}
+                        <div className="hidden md:flex w-[80px] flex-shrink-0 items-center gap-1 text-slate-700 font-medium">
+                          <FileText size={14} className="text-slate-400" />
+                          <span className="text-xs">{a.docsUploaded}/{a.docsRequired} docs</span>
                         </div>
 
-                        {/* Connect icons */}
-                        <div className="hidden xl:flex w-24 flex-shrink-0 items-center gap-1.5" onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={() => showToast("Email initiated", "info")}
-                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 transition"
-                            title="Send Email"
-                          >
-                            <Mail size={13} className="text-slate-400" strokeWidth={1.5} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              window.open(`https://wa.me/91${a.phone}`)
-                              showToast("WhatsApp opened", "success")
-                            }}
-                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-green-50 hover:border-green-200 transition"
-                            title="WhatsApp chat"
-                          >
-                            <MessageCircle size={13} className="text-green-500" strokeWidth={1.5} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              window.open(`tel:${a.phone}`)
-                              showToast("Call initiated", "success")
-                            }}
-                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 transition"
-                            title="Phone Call"
-                          >
-                            <Phone size={13} className="text-blue-500" strokeWidth={1.5} />
-                          </button>
-                        </div>
-
-                        {/* Counsellor selection */}
-                        <div className="hidden xl:flex w-36 flex-shrink-0 relative" onClick={e => e.stopPropagation()}>
+                        {/* Column 5: COUNSELLOR */}
+                        <div className="hidden xl:flex w-[140px] flex-shrink-0 relative" onClick={e => e.stopPropagation()}>
                           {a.counsellor ? (
                             <div
                               onClick={() => setCounsellorDropdownId(counsellorDropdownId === a.id ? null : a.id)}
@@ -1555,100 +1578,17 @@ export default function AdmissionManagementPage() {
                           )}
                         </div>
 
-                        {/* Stage selection */}
-                        <div className="w-36 flex-shrink-0 relative" onClick={e => e.stopPropagation()}>
-                          <div
-                            onClick={() => setStageDropdownId(stageDropdownId === a.id ? null : a.id)}
-                            className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-full border cursor-pointer hover:opacity-85 justify-between w-fit ${
-                              stageData.bgClass
-                            } ${stageData.textClass} ${stageData.borderClass}`}
-                          >
-                            <span className="truncate">{stageData.label}</span>
-                            <ChevronDown size={10} className="ml-0.5 shrink-0" strokeWidth={2.5} />
-                          </div>
-
-                          {/* Stage dots */}
-                          <div className="flex items-center gap-1 mt-1.5 select-none">
-                            {configPipeline.filter(s => s.id !== 'rejected').map((s, sIdx) => (
-                              <span
-                                key={s.id}
-                                className={`w-2 h-2 rounded-full ${
-                                  sIdx <= a.stageIndex ? `${s.dotClass} opacity-100` : 'bg-slate-200'
-                                }`}
-                              />
-                            ))}
-                            <span className="text-[9px] text-slate-400 ml-1.5 font-sans font-medium">
-                              {a.stageIndex + 1}/{configPipeline.length - 1}
-                            </span>
-                          </div>
-
-                          {/* Days in stage warning */}
-                          {a.daysInStage > 7 && (
-                            <div className="text-[10px] text-red-400 font-medium mt-1 flex items-center gap-0.5 font-sans">
-                              <span>⚠</span>
-                              <span>{a.daysInStage}d in stage</span>
-                            </div>
-                          )}
-
-                          {stageDropdownId === a.id && (
-                            <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[180px] max-h-56 overflow-y-auto">
-                              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1.5 border-b border-slate-100 mb-1 font-sans">
-                                MOVE TO STAGE
-                              </div>
-                              {configPipeline.map(s => (
-                                <div
-                                  key={s.id}
-                                  onClick={() => handleMoveStage(a.id, s.id)}
-                                  className={`px-3 py-2 rounded-lg cursor-pointer text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between font-sans ${
-                                    a.stageId === s.id ? 'bg-slate-50 font-bold' : ''
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <span className={`w-2 h-2 rounded-full ${s.dotClass}`} />
-                                    <span>{s.label}</span>
-                                  </div>
-                                  {a.stageId === s.id && <Check size={12} className="text-[#1565D8]" />}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Documents Upload status */}
-                        <div className="hidden md:flex w-20 flex-shrink-0 flex-col gap-1">
-                          <span className={`text-xs font-bold font-sans ${
-                            a.docsUploaded === a.docsRequired ? 'text-green-600 font-bold' :
-                            a.docsUploaded > 0 ? 'text-amber-600 font-bold' : 'text-red-600 font-bold'
-                          }`}>
-                            {a.docsUploaded}/{a.docsRequired}
-                          </span>
-                          <div className="w-12 h-1.5 bg-slate-100 rounded overflow-hidden">
-                            <div
-                              className={`h-1.5 rounded ${
-                                a.docsUploaded === a.docsRequired ? 'bg-green-500' :
-                                a.docsUploaded > 0 ? 'bg-amber-400' : 'bg-red-400'
-                              }`}
-                              style={{ width: `${(a.docsUploaded / a.docsRequired) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Created Date */}
-                        <div className="hidden xl:flex w-24 flex-shrink-0 text-sm text-slate-500 font-medium font-sans">
-                          {a.createdDate}
-                        </div>
-
-                        {/* Dropdown Menu actions */}
-                        <div className="w-12 flex-shrink-0 flex justify-center" onClick={e => e.stopPropagation()}>
+                        {/* Column 6: ACTIONS */}
+                        <div className="w-[80px] flex-shrink-0 flex justify-center ml-auto" onClick={e => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger>
-                              <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none">
+                              <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none cursor-pointer">
                                 <MoreVertical size={16} strokeWidth={1.5}/>
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                               align="end"
-                              className="w-56 min-w-[224px] rounded-xl border border-slate-100 shadow-lg p-1.5"
+                              className="w-56 min-w-[224px] rounded-xl border border-slate-100 shadow-lg p-1.5 bg-white"
                             >
                               <DropdownMenuItem
                                 onClick={(e) => {
@@ -1715,7 +1655,7 @@ export default function AdmissionManagementPage() {
                                 className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer"
                               >
                                 <XCircle size={14} strokeWidth={1.5} className="text-red-500"/>
-                                Reject Application
+                                Reject Applicant
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

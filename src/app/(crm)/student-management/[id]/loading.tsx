@@ -1,5 +1,9 @@
-import PageLoader from '@/components/shared/PageLoader'
+import RecordSkeleton from '@/components/shared/RecordSkeleton'
 
 export default function Loading() {
-  return <PageLoader />
+  return (
+    <div className="p-6">
+      <RecordSkeleton />
+    </div>
+  )
 }

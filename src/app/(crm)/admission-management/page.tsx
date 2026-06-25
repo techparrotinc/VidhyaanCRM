@@ -4,8 +4,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Skeleton } from '@/components/ui/skeleton'
-import Sidebar from '@/components/Sidebar'
-import LoadingScreen from '@/components/LoadingScreen'
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 import {
   ClipboardList,
@@ -503,13 +501,9 @@ export default function AdmissionManagementPage() {
   const [showBulkCounsellorDropdown, setShowBulkCounsellorDropdown] = useState(false)
 
   const router = useRouter()
-  const [navigating, setNavigating] = useState(false)
 
   const handleNavigate = (path: string) => {
-    setNavigating(true)
-    setTimeout(() => {
-      router.push(path)
-    }, 100)
+    router.push(path)
   }
 
   const showToast = (
@@ -819,7 +813,6 @@ export default function AdmissionManagementPage() {
 
   return (
     <>
-      {navigating && <LoadingScreen />}
       <div className="p-4 md:p-6 lg:p-8 space-y-4 max-w-7xl mx-auto w-full select-none">
           
           {/* SECTION 1 — PAGE TITLE ROW */}

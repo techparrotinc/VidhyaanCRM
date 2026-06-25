@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
-import LoadingScreen from '@/components/LoadingScreen'
 import { Skeleton } from '@/components/ui/skeleton'
 import TableSkeleton from '@/components/shared/TableSkeleton'
 import {
@@ -274,14 +273,10 @@ interface Lead {
 
 export default function LeadManagementPage() {
   const router = useRouter()
-  const [navigating, setNavigating] = useState(false)
   const searchTimeout = useRef<NodeJS.Timeout | undefined>(undefined)
 
   const handleNavigate = (path: string) => {
-    setNavigating(true)
-    setTimeout(() => {
-      router.push(path)
-    }, 100)
+    router.push(path)
   }
 
   // STEP 2: Remove hardcoded leads array. Replace with empty array:
@@ -738,7 +733,6 @@ export default function LeadManagementPage() {
 
   return (
     <>
-      {navigating && <LoadingScreen />}
       <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-5 lg:space-y-6 max-w-7xl mx-auto w-full select-none">
           
           {/* SECTION 1 — GREETING + BREADCRUMB ROW */}

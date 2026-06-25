@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import Sidebar from '@/components/Sidebar'
 import NotificationBell from '@/components/NotificationBell'
+import { RouteLoader } from '@/components/shared/RouteLoader'
 import { useUIStore } from '@/stores/ui.store'
 import { Menu, LogOut, User, Settings, Calendar, ChevronDown } from 'lucide-react'
 
@@ -63,6 +64,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex relative font-sans antialiased">
+      <RouteLoader />
       {/* Dark overlay behind sidebar on mobile */}
       {mobileSidebarOpen && (
         <div 

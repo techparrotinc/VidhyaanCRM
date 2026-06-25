@@ -1,5 +1,9 @@
-import PageLoader from '@/components/shared/PageLoader'
+import TableSkeleton from '@/components/shared/TableSkeleton'
 
 export default function Loading() {
-  return <PageLoader />
+  return (
+    <div className="p-6">
+      <TableSkeleton rows={8} />
+    </div>
+  )
 }

@@ -1,5 +1,9 @@
-import PageLoader from '@/components/shared/PageLoader'
+import { FormSkeleton } from '@/components/shared/FormSkeleton'
 
 export default function Loading() {
-  return <PageLoader />
+  return (
+    <div className="p-6">
+      <FormSkeleton />
+    </div>
+  )
 }

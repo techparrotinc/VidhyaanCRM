@@ -46,6 +46,7 @@ import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 import ConvertToAdmissionModal from '@/components/modals/ConvertToAdmissionModal'
+import DateSelector from '@/components/ui/DateSelector'
 
 import {
   Dialog,
@@ -291,11 +292,20 @@ const priorityConfig: Record<string, { bg: string; text: string; icon: React.Ele
 }
 
 const timeSlots = [
+  "06:00 AM", "06:30 AM", "07:00 AM", "07:30 AM", "08:00 AM", "08:30 AM",
   "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
   "12:00 PM", "12:30 PM", "01:00 PM", "01:30 PM", "02:00 PM", "02:30 PM",
   "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM", "05:00 PM", "05:30 PM",
-  "06:00 PM", "06:30 PM", "07:00 PM"
+  "06:00 PM", "06:30 PM", "07:00 PM", "07:30 PM", "08:00 PM", "08:30 PM",
+  "09:00 PM"
 ]
+
+const getFormattedDate = (dateStr: string) => {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 const sources = [
   { id: 'vidhyaan', label: 'Vidhyaan', dot: 'bg-blue-500' },
@@ -802,51 +812,71 @@ export default function LeadDetailPage() {
   }
 
   // Save Activity Handler
-  const handleSaveActivity = () => {
+  const handleSaveActivity = async () => {
     if (!activityNote.trim()) return
 
-    const tabConfig = {
-      note: { icon: 'FileText', color: 'bg-slate-500', name: 'Note' },
-      call: { icon: 'Phone', color: 'bg-green-500', name: 'Call' },
-      whatsapp: { icon: 'MessageCircle', color: 'bg-green-600', name: 'WhatsApp chat' },
-      email: { icon: 'Mail', color: 'bg-blue-500', name: 'Email' }
-    }
+    const tabTypeMap = {
+      note: 'NOTE',
+      call: 'CALL',
+      whatsapp: 'WHATSAPP',
+      email: 'EMAIL'
+    } as const
 
-    const newActivity = {
-      id: Date.now(),
-      icon: tabConfig[activityTab].icon,
-      color: tabConfig[activityTab].color,
-      title: `${tabConfig[activityTab].name} logged`,
-      date: new Date().toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      note: activityNote,
-      done: true
-    }
+    const type = tabTypeMap[activityTab]
 
-    if (scheduleFollowUp) {
-      const today = new Date()
-      const formattedDate = new Date(followUpDate || today).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-      const followUpActivity = {
-        id: Date.now() + 1,
-        icon: 'Calendar',
-        color: 'bg-amber-500',
-        title: 'Follow-up scheduled',
-        date: formattedDate,
-        time: followUpTime,
-        note: `Follow-up scheduled for ${formattedDate} at ${followUpTime}`,
-        done: false
+    try {
+      const activityRes = await fetch(`/api/v1/leads/${leadId}/activities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          summary: activityNote
+        })
+      })
+
+      if (!activityRes.ok) throw new Error('Failed to log activity')
+
+      if (scheduleFollowUp && followUpDate) {
+        let nextFollowUpDate: Date | null = null
+        if (followUpTime) {
+          const [hoursStr, minutesStrWithAmPm] = followUpTime.split(':')
+          const [minutesStr, ampm] = minutesStrWithAmPm.split(' ')
+          let hours = parseInt(hoursStr)
+          const minutes = parseInt(minutesStr)
+          if (ampm === 'PM' && hours < 12) hours += 12
+          if (ampm === 'AM' && hours === 12) hours = 0
+          nextFollowUpDate = new Date(followUpDate)
+          nextFollowUpDate.setHours(hours, minutes, 0, 0)
+        } else {
+          nextFollowUpDate = new Date(followUpDate)
+        }
+
+        const putRes = await fetch(`/api/v1/leads/${leadId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nextFollowUpAt: nextFollowUpDate ? nextFollowUpDate.toISOString() : null,
+            status: 'FOLLOW_UP_PENDING'
+          })
+        })
+        if (putRes.ok) {
+          setCurrentStatus('Follow-up')
+        }
       }
-      setActivities(prev => [followUpActivity, newActivity, ...prev])
-      setFollowUpDate(formattedDate)
-      setFollowUpTime(followUpTime)
-      setCurrentStatus('Follow-up')
-    } else {
-      setActivities(prev => [newActivity, ...prev])
-    }
 
-    setActivityNote('')
-    setScheduleFollowUp(false)
-    showToast("Activity logged")
+      const detailRes = await fetch(`/api/v1/leads/${leadId}`)
+      if (detailRes.ok) {
+        const detailJson = await detailRes.json()
+        setLead(detailJson.data)
+      }
+
+      setActivityNote('')
+      setScheduleFollowUp(false)
+      showToast("Activity logged")
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || "Failed to log activity", "error")
+    }
   }
 
   // Textarea Ctrl+Enter listener
@@ -863,22 +893,60 @@ export default function LeadDetailPage() {
   // ===================================================================
 
   const ContactDetailsCard = ({}: { isMobile?: boolean }) => (
-    <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6 text-left">
-      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">
+    <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 text-left">
+      <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-4">
         CONTACT DETAILS
       </h4>
-      <div className="space-y-1 divide-y divide-slate-50">
-        <div className="flex items-center gap-3 py-3">
+      <div className="space-y-1 divide-y divide-slate-100">
+        {/* Lead Name */}
+        <div className="flex items-center gap-3 py-3.5">
           <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center flex-shrink-0 text-slate-500">
             <User size={16} strokeWidth={1.5} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Lead Name</p>
+            <p className="text-xs uppercase text-slate-500 tracking-wide font-semibold">Lead Name</p>
+            {isEditing ? (
+              <div className="flex gap-2 mt-1">
+                <input
+                  type="text"
+                  placeholder="First"
+                  value={firstName}
+                  onChange={(e) => {
+                    setFirstName(e.target.value)
+                    setParentName(e.target.value + (lastName ? ' ' + lastName : ''))
+                  }}
+                  className="w-1/2 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10"
+                />
+                <input
+                  type="text"
+                  placeholder="Last"
+                  value={lastName}
+                  onChange={(e) => {
+                    setLastName(e.target.value)
+                    setParentName((firstName ? firstName + ' ' : '') + e.target.value)
+                  }}
+                  className="w-1/2 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10"
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-slate-800 font-medium mt-0.5">{firstName} {lastName}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Parent Name */}
+        <div className="flex items-center gap-3 py-3.5">
+          <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center flex-shrink-0 text-slate-500">
+            <Users size={16} strokeWidth={1.5} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs uppercase text-slate-500 tracking-wide font-semibold">Parent Name</p>
             {isEditing ? (
               <input
                 type="text"
-                value={`${firstName} ${lastName}`}
+                value={parentName}
                 onChange={(e) => {
+                  setParentName(e.target.value)
                   const parts = e.target.value.split(' ')
                   setFirstName(parts[0] || '')
                   setLastName(parts.slice(1).join(' ') || '')
@@ -886,37 +954,18 @@ export default function LeadDetailPage() {
                 className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 mt-1"
               />
             ) : (
-              <p className="text-sm font-semibold text-slate-700 mt-0.5">{firstName} {lastName}</p>
+              <p className="text-sm text-slate-800 font-medium mt-0.5">{parentName}</p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-3 py-3">
-          <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center flex-shrink-0 text-slate-500">
-            <Users size={16} strokeWidth={1.5} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Parent Name</p>
-            {isEditing ? (
-              <input
-                type="text"
-                value={parentName}
-                onChange={(e) => setParentName(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 mt-1"
-              />
-            ) : (
-              <p className="text-sm font-semibold text-slate-700 mt-0.5">{parentName}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Child Name / Student Name */}
-        <div className="flex items-center gap-3 py-3">
+        {/* Child Name */}
+        <div className="flex items-center gap-3 py-3.5">
           <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center flex-shrink-0 text-slate-500">
             <User size={16} strokeWidth={1.5} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Child Name</p>
+            <p className="text-xs uppercase text-slate-500 tracking-wide font-semibold">Child Name</p>
             {isEditing ? (
               <input
                 type="text"
@@ -925,17 +974,18 @@ export default function LeadDetailPage() {
                 className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 mt-1"
               />
             ) : (
-              <p className="text-sm font-semibold text-slate-700 mt-0.5">{childName || '—'}</p>
+              <p className="text-sm text-slate-800 font-medium mt-0.5">{childName || '—'}</p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-3 py-3">
+        {/* Phone */}
+        <div className="flex items-center gap-3 py-3.5">
           <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-500">
             <Phone size={16} strokeWidth={1.5} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Phone</p>
+            <p className="text-xs uppercase text-slate-500 tracking-wide font-semibold">Phone</p>
             {isEditing ? (
               <input
                 type="tel"
@@ -944,22 +994,27 @@ export default function LeadDetailPage() {
                 className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 mt-1"
               />
             ) : (
-              <p className="text-sm font-medium text-slate-700 mt-0.5">{phone}</p>
+              <p className="text-sm text-slate-800 font-medium mt-0.5">{phone}</p>
             )}
           </div>
           {!isEditing && (
-            <a href={`tel:${phone}`} className="text-xs font-semibold text-[#1565D8] ml-auto hover:underline">
-              Call →
+            <a
+              href={`tel:${phone}`}
+              className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center text-[#1565D8] ml-auto transition"
+              title="Call parent"
+            >
+              <Phone size={14} strokeWidth={2} />
             </a>
           )}
         </div>
 
-        <div className="flex items-center gap-3 py-3">
+        {/* Email */}
+        <div className="flex items-center gap-3 py-3.5">
           <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center flex-shrink-0 text-slate-500">
             <Mail size={16} strokeWidth={1.5} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Email</p>
+            <p className="text-xs uppercase text-slate-500 tracking-wide font-semibold">Email</p>
             {isEditing ? (
               <input
                 type="email"
@@ -968,46 +1023,67 @@ export default function LeadDetailPage() {
                 className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 mt-1"
               />
             ) : (
-              <p className="text-sm font-medium text-slate-700 mt-0.5 truncate">{email}</p>
+              <p className="text-sm text-slate-800 font-medium mt-0.5 truncate">{email || '—'}</p>
             )}
           </div>
-          {!isEditing && (
-            <a href={`mailto:${email}`} className="text-xs font-semibold text-[#1565D8] ml-auto hover:underline">
-              Email →
+          {!isEditing && email && (
+            <a
+              href={`mailto:${email}`}
+              className="w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-600 ml-auto transition"
+              title="Send email"
+            >
+              <Mail size={14} strokeWidth={2} />
             </a>
           )}
         </div>
 
-        <div className="flex items-center gap-3 py-3">
+        {/* WhatsApp */}
+        <div className="flex items-center gap-3 py-3.5">
           <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0 text-green-500">
             <MessageCircle size={16} strokeWidth={1.5} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">WhatsApp</p>
-            <p className="text-sm font-medium text-slate-700 mt-0.5">Send Message</p>
+            <p className="text-xs uppercase text-slate-500 tracking-wide font-semibold">WhatsApp</p>
+            <p className="text-sm text-slate-800 font-medium mt-0.5">Send Message</p>
           </div>
           {!isEditing && (
-            <a href={`https://wa.me/${phone}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#1565D8] ml-auto hover:underline">
-              Chat →
+            <a
+              href={`https://wa.me/${phone}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs font-semibold text-white bg-green-600 px-3 py-1.5 rounded-lg hover:bg-green-700 transition flex items-center gap-1 ml-auto"
+            >
+              <MessageCircle size={12} strokeWidth={2} />
+              <span>Chat</span>
             </a>
           )}
+        </div>
+
+        {/* Lead Code */}
+        <div className="flex items-center gap-3 py-3.5">
+          <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center flex-shrink-0 text-slate-500">
+            <Hash size={16} strokeWidth={1.5} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs uppercase text-slate-500 tracking-wide font-semibold">Lead Code</p>
+            <span className="inline-block text-xs font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md mt-0.5">
+              {lead?.leadCode}
+            </span>
+          </div>
         </div>
       </div>
     </Card>
   )
 
   const LeadDetailsCard = ({}: { isMobile?: boolean }) => (
-    <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6 text-left">
-      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">
+    <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 text-left">
+      <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-4">
         LEAD DETAILS
       </h4>
-      <div className="space-y-0 divide-y divide-slate-50">
+      <div className="space-y-0 divide-y divide-slate-100">
+        {/* Source */}
         <div className="flex items-center justify-between py-3">
-          <span className="text-xs font-medium text-slate-400">Lead ID</span>
-          <span className="font-mono text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">{lead?.leadCode}</span>
-        </div>
-        <div className="flex items-center justify-between py-3">
-          <span className="text-xs font-medium text-slate-400">Source</span>
+          <span className="text-xs font-medium text-slate-500">Source</span>
           {isEditing ? (
             <select
               value={source}
@@ -1024,49 +1100,10 @@ export default function LeadDetailPage() {
             </span>
           )}
         </div>
+
+        {/* Priority */}
         <div className="flex items-center justify-between py-3">
-          <span className="text-xs font-medium text-slate-400">Status</span>
-          {isEditing ? (
-            <select
-              value={currentStatus}
-              onChange={(e) => setCurrentStatus(e.target.value)}
-              className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10"
-            >
-              {Object.keys(statusConfig).map(st => (
-                <option key={st} value={st}>{st}</option>
-              ))}
-            </select>
-          ) : (
-            <div className="relative" ref={statusRef}>
-              <span
-                onClick={() => setStatusDropdown(!statusDropdown)}
-                className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border cursor-pointer ${statusConfig[currentStatus]?.bg || 'bg-slate-100'} ${statusConfig[currentStatus]?.text || 'text-slate-800'} ${statusConfig[currentStatus]?.border || 'border-slate-200'}`}
-              >
-                {currentStatus}
-              </span>
-              {statusDropdown && (
-                <div className="absolute right-0 top-full mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px]">
-                  {Object.keys(statusConfig).map((st) => (
-                    <div
-                      key={st}
-                      onClick={() => {
-                        handleUpdateStatus(st)
-                        setStatusDropdown(false)
-                      }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 cursor-pointer text-slate-700"
-                    >
-                      <span className={`w-2 h-2 rounded-full ${statusConfig[st]?.dot || 'bg-slate-500'}`} />
-                      <span>{st}</span>
-                      {currentStatus === st && <Check size={14} className="ml-auto text-slate-400" />}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="flex items-center justify-between py-3">
-          <span className="text-xs font-medium text-slate-400">Priority</span>
+          <span className="text-xs font-medium text-slate-500">Priority</span>
           {isEditing ? (
             <select
               value={currentPriority}
@@ -1083,57 +1120,10 @@ export default function LeadDetailPage() {
             </span>
           )}
         </div>
-        <div className="flex items-center justify-between py-3">
-          <span className="text-xs font-medium text-slate-400">Created</span>
-          <span className="text-xs font-semibold text-slate-700">{lead?.createdAt ? new Date(lead.createdAt).toLocaleString('en-IN') : '—'}</span>
-        </div>
-        <div className="flex items-center justify-between py-3">
-          <span className="text-xs font-medium text-slate-400">Updated</span>
-          <span className="text-xs font-semibold text-slate-700">{lead?.updatedAt ? new Date(lead.updatedAt).toLocaleString('en-IN') : '—'}</span>
-        </div>
-        <div className="flex items-center justify-between py-3">
-          <span className="text-xs font-medium text-slate-400">Counsellor</span>
-          {isEditing ? (
-            <select
-              value={currentCounsellor}
-              onChange={(e) => {
-                const val = e.target.value
-                setCurrentCounsellor(val)
-                if (val === 'Unassigned') {
-                  setCurrentCounsellorAvatar('UA')
-                } else {
-                  const found = counsellorsList.find(c => c.name === val)
-                  setCurrentCounsellorAvatar(found ? found.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : 'UA')
-                }
-              }}
-              className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10"
-            >
-              <option value="Unassigned">Unassigned</option>
-              {counsellorsList.map(c => (
-                <option key={c.id} value={c.name}>{c.name}</option>
-              ))}
-            </select>
-          ) : (
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[9px] font-bold flex items-center justify-center">
-                {currentCounsellorAvatar}
-              </div>
-              <span className="text-sm font-semibold text-slate-700">{currentCounsellor}</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </Card>
-  )
 
-  const EnquiryInfoCard = ({}: { isMobile?: boolean }) => (
-    <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6 text-left">
-      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">
-        ENQUIRY INFORMATION
-      </h4>
-      <div className="space-y-0 divide-y divide-slate-50">
+        {/* Applying For */}
         <div className="flex items-center justify-between py-3">
-          <span className="text-xs font-medium text-slate-400">Applying For</span>
+          <span className="text-xs font-medium text-slate-500">Applying For</span>
           {isEditing ? (
             <select
               value={applyingFor}
@@ -1152,8 +1142,10 @@ export default function LeadDetailPage() {
             <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">{getGradeLabel(applyingFor)}</span>
           )}
         </div>
+
+        {/* Academic Year */}
         <div className="flex items-center justify-between py-3">
-          <span className="text-xs font-medium text-slate-400">Academic Year</span>
+          <span className="text-xs font-medium text-slate-500">Academic Year</span>
           {isEditing ? (
             <select
               value={academicYear}
@@ -1168,33 +1160,99 @@ export default function LeadDetailPage() {
           )}
         </div>
 
+        {/* Child Age */}
         <div className="flex items-center justify-between py-3">
-          <span className="text-xs font-medium text-slate-400">Child Age</span>
+          <span className="text-xs font-medium text-slate-500">Child Age</span>
           {isEditing ? (
             <input
               type="text"
               value={childAge}
               onChange={(e) => setChildAge(e.target.value)}
-              className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10"
+              className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 text-right w-28"
             />
           ) : (
-            <span className="text-sm font-semibold text-slate-700">{childAge}</span>
+            <span className="text-sm font-semibold text-slate-700">{childAge || '—'}</span>
           )}
         </div>
+
+        {/* Current School */}
         <div className="flex items-center justify-between py-3">
-          <span className="text-xs font-medium text-slate-400">Current School</span>
+          <span className="text-xs font-medium text-slate-500">Current School</span>
           {isEditing ? (
             <input
               type="text"
               value={currentSchool}
               onChange={(e) => setCurrentSchool(e.target.value)}
-              className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10"
+              className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 text-right w-40"
             />
           ) : (
             <span className={`text-sm font-semibold ${currentSchool ? "text-slate-700" : "text-slate-300"}`}>
               {currentSchool || "—"}
             </span>
           )}
+        </div>
+
+        {/* Status dropdown portalled */}
+        <div className="flex items-center justify-between py-3">
+          <span className="text-xs font-medium text-slate-500">Status</span>
+          {isEditing ? (
+            currentStatus === 'Converted' ? (
+              <span className="text-xs font-semibold text-green-800 bg-green-100 px-2.5 py-0.5 rounded-full border border-green-200">Converted</span>
+            ) : (
+              <select
+                value={currentStatus}
+                onChange={(e) => setCurrentStatus(e.target.value)}
+                className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10"
+              >
+                {Object.keys(statusConfig).filter(st => st !== 'Converted').map(st => (
+                  <option key={st} value={st}>{st}</option>
+                ))}
+              </select>
+            )
+          ) : (
+            currentStatus === 'Converted' ? (
+              <span className="text-xs font-semibold text-green-800 bg-green-100 px-2.5 py-0.5 rounded-full border border-green-200 select-none">Converted</span>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <span
+                    className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border cursor-pointer flex items-center gap-1.5 transition ${statusConfig[currentStatus]?.bg || 'bg-slate-100'} ${statusConfig[currentStatus]?.text || 'text-slate-800'} ${statusConfig[currentStatus]?.border || 'border-slate-200'}`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${statusConfig[currentStatus]?.dot || 'bg-slate-500'}`} />
+                    <span>{currentStatus}</span>
+                    <ChevronDown size={11} className="text-slate-400" strokeWidth={2} />
+                  </span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="z-[9999] bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px]">
+                  {Object.keys(statusConfig).map((st) => (
+                    <DropdownMenuItem
+                      key={st}
+                      onClick={() => {
+                        handleUpdateStatus(st)
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 cursor-pointer text-slate-700 focus:bg-slate-50 focus:outline-none"
+                    >
+                      <span className={`w-2 h-2 rounded-full ${statusConfig[st]?.dot || 'bg-slate-500'}`} />
+                      <span>{st}</span>
+                      {currentStatus === st && <Check size={14} className="ml-auto text-slate-400" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )
+          )}
+        </div>
+
+        {/* Created date */}
+        <div className="flex items-center justify-between py-3">
+          <span className="text-xs font-medium text-slate-500">Created</span>
+          <span className="text-xs font-semibold text-slate-700">{lead?.createdAt ? new Date(lead.createdAt).toLocaleString('en-IN') : '—'}</span>
+        </div>
+
+        {/* Last updated date */}
+        <div className="flex items-center justify-between py-3">
+          <span className="text-xs font-medium text-slate-500">Updated</span>
+          <span className="text-xs font-semibold text-slate-700">{lead?.updatedAt ? new Date(lead.updatedAt).toLocaleString('en-IN') : '—'}</span>
         </div>
       </div>
     </Card>
@@ -1299,17 +1357,16 @@ export default function LeadDetailPage() {
         {scheduleFollowUp && (
           <div className="grid grid-cols-2 gap-3 mt-3">
             <div>
-              <input
-                type="date"
-                onChange={(e) => setFollowUpDate(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:border-[#1565D8] focus:outline-none"
+              <DateSelector
+                value={followUpDate}
+                onChange={(dateStr) => setFollowUpDate(dateStr)}
               />
             </div>
             <div>
               <select
                 value={followUpTime}
                 onChange={(e) => setFollowUpTime(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:border-[#1565D8] focus:outline-none"
+                className="w-full border border-slate-200 rounded-lg h-10 px-3 text-sm text-slate-700 bg-white focus:border-[#1565D8] focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10"
               >
                 {timeSlots.map((ts) => (
                   <option key={ts} value={ts}>{ts}</option>
@@ -1333,65 +1390,46 @@ export default function LeadDetailPage() {
     )
   }
 
-  const MoveStageCard = ({}: { isMobile?: boolean }) => (
-    <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 text-left">
-      <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
-        MOVE STAGE
-      </h4>
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-xs text-slate-400">Current:</span>
-        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${statusConfig[currentStatus].bg} ${statusConfig[currentStatus].text} ${statusConfig[currentStatus].border}`}>
-          {currentStatus}
-        </span>
-      </div>
+  const QuickActionsCard = ({}: { isMobile?: boolean }) => {
+    if (currentStatus === 'Converted' || currentStatus === 'Rejected') {
+      return null
+    }
 
-      <div className="space-y-2">
-        {/* Mark as Contacted */}
-        {(currentStatus === 'New' || currentStatus === 'Follow-up') && (
-          <button
-            onClick={() => {
-              setCurrentStatus('Contacted')
-              showToast("Lead status updated to Contacted")
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 font-semibold text-sm cursor-pointer hover:opacity-90 transition"
-          >
-            <MessageCircle size={16} className="text-amber-500" strokeWidth={1.5} />
-            <span>Mark as Contacted</span>
-            <ChevronRight size={14} className="ml-auto" />
-          </button>
-        )}
+    return (
+      <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 text-left">
+        <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">
+          QUICK ACTIONS
+        </h4>
+        <div className="space-y-2">
+          {/* Mark as Contacted */}
+          {(currentStatus === 'New' || currentStatus === 'Follow-up') && (
+            <button
+              onClick={() => {
+                handleUpdateStatus('Contacted')
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 font-semibold text-sm cursor-pointer hover:opacity-90 transition"
+            >
+              <MessageCircle size={16} className="text-amber-500" strokeWidth={1.5} />
+              <span>Mark as Contacted</span>
+              <ChevronRight size={14} className="ml-auto" />
+            </button>
+          )}
 
-        {/* Schedule Follow-up */}
-        {currentStatus !== 'Follow-up' && currentStatus !== 'Converted' && currentStatus !== 'Rejected' && (
-          <button
-            onClick={() => {
-              setCurrentStatus('Follow-up')
-              showToast("Status updated to Follow-up")
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-orange-200 bg-orange-50 text-orange-800 font-semibold text-sm cursor-pointer hover:opacity-90 transition"
-          >
-            <Calendar size={16} className="text-orange-500" strokeWidth={1.5} />
-            <span>Schedule Follow-up</span>
-            <ChevronRight size={14} className="ml-auto" />
-          </button>
-        )}
-
-
-
-        {/* Reject Lead */}
-        {currentStatus !== 'Rejected' && currentStatus !== 'Converted' && (
-          <button
-            onClick={() => setShowRejectModal(true)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-red-100 bg-white text-red-500 font-semibold text-sm cursor-pointer hover:opacity-90 transition"
-          >
-            <XCircle size={16} className="text-red-400" strokeWidth={1.5} />
-            <span>Reject Lead</span>
-            <ChevronRight size={14} className="ml-auto" />
-          </button>
-        )}
-      </div>
-    </Card>
-  )
+          {/* Reject Lead */}
+          {currentStatus !== 'Rejected' && (
+            <button
+              onClick={() => setShowRejectModal(true)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-red-100 bg-white text-red-500 font-semibold text-sm cursor-pointer hover:opacity-90 transition"
+            >
+              <XCircle size={16} className="text-red-400" strokeWidth={1.5} />
+              <span>Reject Lead</span>
+              <ChevronRight size={14} className="ml-auto" />
+            </button>
+          )}
+        </div>
+      </Card>
+    )
+  }
 
   const FollowUpCard = ({}: { isMobile?: boolean }) => (
     <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 text-left">
@@ -1399,18 +1437,16 @@ export default function LeadDetailPage() {
         FOLLOW-UP
       </h4>
       <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 space-y-2.5 text-left">
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5 animate-none">
           <div className="flex items-center gap-3">
             <Calendar size={16} className="text-amber-500" strokeWidth={1.5} />
             <span className="text-xs text-slate-500">Scheduled:</span>
-            {!isEditing && <span className="text-sm font-bold text-slate-800 ml-auto">{followUpDate}</span>}
+            {!isEditing && <span className="text-sm font-bold text-slate-800 ml-auto">{getFormattedDate(followUpDate)}</span>}
           </div>
           {isEditing && (
-            <input
-              type="date"
+            <DateSelector
               value={followUpDate}
-              onChange={(e) => setFollowUpDate(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10"
+              onChange={(dateStr) => setFollowUpDate(dateStr)}
             />
           )}
         </div>
@@ -1425,7 +1461,7 @@ export default function LeadDetailPage() {
             <select
               value={followUpTime}
               onChange={(e) => setFollowUpTime(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10"
+              className="w-full border border-slate-200 rounded-lg h-10 px-3 text-sm text-slate-700 bg-white focus:border-[#1565D8] focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10"
             >
               {timeSlots.map((ts) => (
                 <option key={ts} value={ts}>{ts}</option>
@@ -1448,7 +1484,7 @@ export default function LeadDetailPage() {
           </button>
           <button
             onClick={() => {
-              setCurrentStatus('Contacted')
+              handleUpdateStatus('Contacted')
               showToast("Follow-up marked done")
             }}
             className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold py-2.5 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
@@ -1698,34 +1734,42 @@ export default function LeadDetailPage() {
 
             {/* ROW 2 */}
             <div className="mt-4 pt-4 border-t border-slate-200 flex flex-wrap items-center gap-2">
-              {/* CHIP 1 — STATUS (interactive) */}
-              <div className="relative" ref={statusRef}>
-                <button
-                  onClick={() => setStatusDropdown(!statusDropdown)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition ${statusConfig[currentStatus].bg} ${statusConfig[currentStatus].text} ${statusConfig[currentStatus].border}`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${statusConfig[currentStatus].dot}`} />
-                  <span>{currentStatus}</span>
-                  <ChevronDown size={13} className="ml-0.5" strokeWidth={1.5} />
-                </button>
-                {statusDropdown && (
-                  <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px]">
-                    {Object.keys(statusConfig).map((st) => (
-                      <div
-                        key={st}
-                        onClick={() => {
-                          setCurrentStatus(st)
-                          setStatusDropdown(false)
-                          showToast(`Status updated to ${st}`)
-                        }}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 cursor-pointer text-slate-700"
-                      >
-                        <span className={`w-2 h-2 rounded-full ${statusConfig[st].dot}`} />
-                        <span>{st}</span>
-                        {currentStatus === st && <Check size={14} className="ml-auto text-slate-400" />}
-                      </div>
-                    ))}
+              {/* CHIP 1 — STATUS */}
+              <div>
+                {currentStatus === 'Converted' ? (
+                  <div
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold select-none bg-green-100 text-green-800 border-green-200`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                    <span>Converted</span>
                   </div>
+                ) : (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger>
+                      <button
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition ${statusConfig[currentStatus]?.bg || 'bg-slate-100'} ${statusConfig[currentStatus]?.text || 'text-slate-800'} ${statusConfig[currentStatus]?.border || 'border-slate-200'}`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${statusConfig[currentStatus]?.dot || 'bg-slate-500'}`} />
+                        <span>{currentStatus}</span>
+                        <ChevronDown size={13} className="ml-0.5" strokeWidth={1.5} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="z-[9999] bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px]">
+                      {Object.keys(statusConfig).map((st) => (
+                        <DropdownMenuItem
+                          key={st}
+                          onClick={() => {
+                            handleUpdateStatus(st)
+                          }}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 cursor-pointer text-slate-700 focus:bg-slate-50 focus:outline-none"
+                        >
+                          <span className={`w-2 h-2 rounded-full ${statusConfig[st]?.dot || 'bg-slate-500'}`} />
+                          <span>{st}</span>
+                          {currentStatus === st && <Check size={14} className="ml-auto text-slate-400" />}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
 
@@ -1738,59 +1782,55 @@ export default function LeadDetailPage() {
               {/* CHIP 3 — FOLLOW-UP */}
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-700">
                 <Calendar size={12} className="text-amber-500" strokeWidth={1.5} />
-                <span>Follow-up: {followUpDate} · {followUpTime}</span>
+                <span>Follow-up: {getFormattedDate(followUpDate)} · {followUpTime}</span>
               </div>
 
-              {/* CHIP 4 — COUNSELLOR (interactive) */}
-              <div className="relative" ref={counsellorRef}>
-                <button
-                  onClick={() => setCounsellorDropdown(!counsellorDropdown)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-50 transition"
-                >
-                  <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[9px] font-bold flex items-center justify-center">
-                    {currentCounsellorAvatar}
-                  </div>
-                  <span>{currentCounsellor}</span>
-                  <ChevronDown size={11} className="text-slate-400" strokeWidth={1.5} />
-                </button>
-                {counsellorDropdown && (
-                  <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[200px]">
-                    {counsellors.map((c) => (
-                      <div
+              {/* CHIP 4 — COUNSELLOR */}
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <button
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-50 transition"
+                  >
+                    <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[9px] font-bold flex items-center justify-center">
+                      {currentCounsellorAvatar}
+                    </div>
+                    <span>{currentCounsellor}</span>
+                    <ChevronDown size={11} className="text-slate-400" strokeWidth={1.5} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="z-[9999] bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[200px]">
+                  {counsellorsList.map((c) => {
+                    const avatar = c.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+                    return (
+                      <DropdownMenuItem
                         key={c.id}
                         onClick={() => {
-                          setCurrentCounsellor(c.name)
-                          setCurrentCounsellorAvatar(c.avatar)
-                          setCounsellorDropdown(false)
-                          showToast(`Reassigned to ${c.name}`)
+                          handleUpdateCounsellor(c.name)
                         }}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 cursor-pointer text-slate-700"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 cursor-pointer text-slate-700 focus:bg-slate-50 focus:outline-none"
                       >
                         <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold flex items-center justify-center shrink-0">
-                          {c.avatar}
+                          {avatar}
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-xs leading-none">{c.name}</p>
-                          <p className="text-[10px] text-slate-400 mt-0.5">{c.role}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">Counsellor</p>
                         </div>
                         {currentCounsellor === c.name && <Check size={14} className="ml-auto text-slate-400" />}
-                      </div>
-                    ))}
-                    <div className="border-t border-slate-200 my-1" />
-                    <button
-                      onClick={() => {
-                        setCurrentCounsellor("Unassigned")
-                        setCurrentCounsellorAvatar("UA")
-                        setCounsellorDropdown(false)
-                        showToast("Counsellor assignment removed", "info")
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
-                    >
-                      Remove assignment
-                    </button>
-                  </div>
-                )}
-              </div>
+                      </DropdownMenuItem>
+                    )
+                  })}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      handleUpdateCounsellor("Unassigned")
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg cursor-pointer focus:bg-red-50 focus:outline-none"
+                  >
+                    Remove assignment
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </Card>
 
@@ -1832,38 +1872,36 @@ export default function LeadDetailPage() {
 
           {/* MOBILE VIEW (< md) */}
           <div className="block md:hidden space-y-4">
-            <MoveStageCard isMobile />
-            <FollowUpCard isMobile />
-            <ContactDetailsCard isMobile />
-            <LeadDetailsCard isMobile />
-            <EnquiryInfoCard isMobile />
-            <TimelineCard isMobile />
-            <LogActivityCard isMobile />
-            <CounsellorCard isMobile />
-            {relatedLeads.length > 0 && <RelatedLeadsCard isMobile />}
+            {ContactDetailsCard({})}
+            {LeadDetailsCard({})}
+            {CounsellorCard({})}
+            {TimelineCard({})}
+            {LogActivityCard({})}
+            {FollowUpCard({})}
+            {QuickActionsCard({})}
+            {relatedLeads.length > 0 && RelatedLeadsCard({})}
           </div>
 
           {/* TABLET / DESKTOP VIEW (>= md) */}
-          <div className="hidden md:grid grid-cols-1 gap-5 md:grid-cols-[260px_1fr] lg:grid-cols-[280px_1fr_260px] xl:grid-cols-[300px_1fr_280px]">
+          <div className="hidden md:grid grid-cols-1 gap-6 md:grid-cols-[35%_40%_25%]">
             {/* Left Column */}
             <div className="space-y-5 lg:sticky lg:top-24 col-span-1">
-              <ContactDetailsCard />
-              <LeadDetailsCard />
-              <EnquiryInfoCard />
+              {ContactDetailsCard({})}
+              {LeadDetailsCard({})}
+              {CounsellorCard({})}
             </div>
 
             {/* Center Column */}
             <div className="space-y-5 col-span-1">
-              <TimelineCard />
-              <LogActivityCard />
+              {TimelineCard({})}
+              {LogActivityCard({})}
             </div>
 
             {/* Right Column */}
-            <div className="space-y-5 lg:sticky lg:top-24 col-span-1 md:col-span-2 lg:col-span-1">
-              <MoveStageCard />
-              <FollowUpCard />
-              <CounsellorCard />
-              {relatedLeads.length > 0 && <RelatedLeadsCard />}
+            <div className="space-y-5 lg:sticky lg:top-24 col-span-1">
+              {FollowUpCard({})}
+              {QuickActionsCard({})}
+              {relatedLeads.length > 0 && RelatedLeadsCard({})}
             </div>
           </div>
         </div>

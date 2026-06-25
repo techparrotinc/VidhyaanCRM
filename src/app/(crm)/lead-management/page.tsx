@@ -1374,7 +1374,7 @@ export default function LeadManagementPage() {
                                   <UserPlus size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
                                   <span>Assign Counsellor</span>
                                 </DropdownMenuItem>
-                                {institutionType === 'school' && (
+                                {institutionType === 'school' && lead.status !== 'CONVERTED' && (
                                   <DropdownMenuItem 
                                     className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
                                     onClick={() => openConvertModal(lead)}
@@ -1703,7 +1703,7 @@ export default function LeadManagementPage() {
                                   <UserPlus size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
                                   <span>Assign Counsellor</span>
                                 </DropdownMenuItem>
-                                {institutionType === 'school' && (
+                                {institutionType === 'school' && lead.status !== 'CONVERTED' && (
                                   <DropdownMenuItem 
                                     className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
                                     onClick={() => openConvertModal(lead)}
@@ -2142,13 +2142,23 @@ export default function LeadManagementPage() {
                 {/* DRAWER FOOTER */}
                 <div className="px-6 py-4 border-t border-slate-200 bg-slate-50">
                   {institutionType === 'school' ? (
-                    <Button 
-                      onClick={() => openConvertModal(selectedLead)}
-                      className="w-full bg-[#1565D8] text-white text-sm font-bold py-3 h-auto rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition"
-                    >
-                      <span>Convert to Admission</span>
-                      <ArrowRight className="size-4" strokeWidth={2.5} />
-                    </Button>
+                    selectedLead?.status === 'CONVERTED' ? (
+                      <Button 
+                        disabled
+                        className="w-full bg-slate-100 text-slate-400 border border-slate-200 text-sm font-bold py-3 h-auto rounded-xl flex items-center justify-center gap-2 cursor-not-allowed opacity-60"
+                      >
+                        <span>Already Converted</span>
+                        <Check className="size-4 text-green-500" strokeWidth={2.5} />
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={() => openConvertModal(selectedLead)}
+                        className="w-full bg-[#1565D8] text-white text-sm font-bold py-3 h-auto rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition"
+                      >
+                        <span>Convert to Admission</span>
+                        <ArrowRight className="size-4" strokeWidth={2.5} />
+                      </Button>
+                    )
                   ) : (
                     <Button className="w-full bg-green-600 text-white text-sm font-bold py-3 h-auto rounded-xl flex items-center justify-center gap-2 hover:bg-green-700 transition">
                       <span>Mark as Enrolled</span>

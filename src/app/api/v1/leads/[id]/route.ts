@@ -34,26 +34,57 @@ export const GET = route({
 })
 
 const updateLeadSchema = z.object({
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  phone: z.preprocess(cleanPhoneNumber, z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number').optional()),
-  email: z.string().email().optional().nullable(),
-  source: z.nativeEnum(LeadSource).optional(),
-  status: z.nativeEnum(LeadStatus).optional(),
-  priority: z.nativeEnum(LeadPriority).optional(),
-  gradeSought: z.string().optional().nullable(),
-  kidName: z.string().optional().nullable(),
-  assignedToId: z.string().optional().nullable(),
-  academicYearId: z.string().optional().nullable(),
-  nextFollowUpAt: z.string().optional().nullable(),
-  childAge: z.string().optional().nullable(),
-  currentSchool: z.string().optional().nullable(),
-  expectedJoinDate: z.string().optional().nullable(),
-  siblingInSchool: z.boolean().optional().nullable(),
-  course: z.string().optional().nullable(),
-  batch: z.string().optional().nullable(),
-  studentAge: z.string().optional().nullable(),
-  startDate: z.string().optional().nullable()
+  parentName: z.string().min(2,
+    'Name is required'),
+  phone: z.string().min(10).max(10),
+  email: z.string().email()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  kidName: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  childAge: z.union([
+    z.number(),
+    z.string().transform(v =>
+      v === '' ? null
+      : parseInt(v) || null
+    )
+  ]).optional().nullable(),
+  source: z.string()
+    .default('WALK_IN'),
+  priority: z.string()
+    .default('MEDIUM'),
+  status: z.string()
+    .default('NEW'),
+  gradeSought: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  academicYearId: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  assignedToId: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  notes: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  nextFollowUpAt: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
 })
 
 export const PUT = route({
@@ -71,42 +102,36 @@ export const PUT = route({
 
     const body = updateLeadSchema.parse(await req.json())
 
-    const updateData: any = {}
-    if (body.phone) updateData.phone = body.phone
-    if (body.email !== undefined) updateData.email = body.email
-    if (body.source) updateData.source = body.source
-    if (body.status) updateData.status = body.status
-    if (body.priority) updateData.priority = body.priority
-    if (body.gradeSought !== undefined) updateData.gradeSought = body.gradeSought
-    if (body.kidName !== undefined) updateData.kidName = body.kidName
-    if (body.assignedToId !== undefined) updateData.assignedToId = body.assignedToId
-    if (body.academicYearId !== undefined) updateData.academicYearId = body.academicYearId
-    if (body.nextFollowUpAt !== undefined) {
-      updateData.nextFollowUpAt = body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null
-    }
-    if (body.childAge !== undefined) updateData.childAge = body.childAge
-    if (body.currentSchool !== undefined) updateData.currentSchool = body.currentSchool
-    if (body.expectedJoinDate !== undefined) {
-      updateData.expectedJoinDate = body.expectedJoinDate ? new Date(body.expectedJoinDate) : null
-    }
-    if (body.siblingInSchool !== undefined) updateData.siblingInSchool = body.siblingInSchool
-    if (body.course !== undefined) updateData.course = body.course
-    if (body.batch !== undefined) updateData.batch = body.batch
-    if (body.studentAge !== undefined) updateData.studentAge = body.studentAge
-    if (body.startDate !== undefined) {
-      updateData.startDate = body.startDate ? new Date(body.startDate) : null
-    }
+    let finalAssignedToId: string | null = null
 
-    if (body.firstName !== undefined || body.lastName !== undefined) {
-      const parts = existing.parentName.split(' ')
-      const currentFirstName = body.firstName ?? parts[0]
-      const currentLastName = body.lastName ?? parts.slice(1).join(' ')
-      updateData.parentName = currentLastName ? `${currentFirstName} ${currentLastName}` : currentFirstName
+    if (body.assignedToId) {
+      const validUser = await db.user.findFirst({
+        where: {
+          id: body.assignedToId,
+          orgId: user.orgId,
+          status: 'ACTIVE',
+        },
+        select: { id: true }
+      })
+      finalAssignedToId = validUser?.id || null
     }
 
     const updated = await db.lead.update({
       where: { id: params?.id },
-      data: updateData
+      data: {
+        parentName: body.parentName,
+        phone: body.phone,
+        email: body.email || null,
+        kidName: body.kidName || null,
+        childAge: body.childAge || null,
+        source: (body.source || 'WALK_IN') as LeadSource,
+        priority: (body.priority || 'MEDIUM') as LeadPriority,
+        status: body.status as LeadStatus,
+        gradeSought: body.gradeSought || null,
+        academicYearId: body.academicYearId || null,
+        nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
+        assignedToId: finalAssignedToId,
+      }
     })
 
     // Track first contact

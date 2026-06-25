@@ -37,67 +37,43 @@ import { mapGradeValue } from '@/lib/utils/gradeMapping'
 
 const institutionType = 'school'
 
+const format = (date: Date, formatStr: string): string => {
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  if (formatStr === 'yyyy-MM-dd') {
+    return `${yyyy}-${mm}-${dd}`
+  }
+  return date.toLocaleDateString()
+}
+
 const sources = [
-  { id: 'vidhyaan',
-    label: 'Vidhyaan',
-    dot: 'bg-blue-500' },
-  { id: 'walkin',
-    label: 'Walk-in',
-    dot: 'bg-teal-500' },
-  { id: 'phone_enquiry',
-    label: 'Phone Enquiry',
-    dot: 'bg-purple-500' },
-  { id: 'whatsapp',
-    label: 'WhatsApp',
-    dot: 'bg-green-500' },
-  { id: 'school_website',
-    label: 'School Website',
-    dot: 'bg-slate-400' },
-  { id: 'social_media',
-    label: 'Social Media',
-    dot: 'bg-pink-500' },
-  { id: 'referral',
-    label: 'Referral',
-    dot: 'bg-amber-500' },
-  { id: 'education_fair',
-    label: 'Education Fair',
-    dot: 'bg-indigo-500' },
-  { id: 'newspaper_ad',
-    label: 'Newspaper Ad',
-    dot: 'bg-orange-500' },
-  { id: 'google_ad',
-    label: 'Google Ad',
-    dot: 'bg-red-500' },
-  { id: 'other',
-    label: 'Other',
-    dot: 'bg-slate-300' },
+  { id: 'VIDHYAAN', label: 'Vidhyaan', dot: 'bg-blue-500' },
+  { id: 'WALK_IN', label: 'Walk-in', dot: 'bg-teal-500' },
+  { id: 'PHONE', label: 'Phone Enquiry', dot: 'bg-purple-500' },
+  { id: 'WHATSAPP', label: 'WhatsApp', dot: 'bg-green-500' },
+  { id: 'WEBSITE', label: 'School Website', dot: 'bg-slate-400' },
+  { id: 'SOCIAL_MEDIA', label: 'Social Media', dot: 'bg-pink-500' },
+  { id: 'REFERRAL', label: 'Referral', dot: 'bg-amber-500' },
+  { id: 'EVENT', label: 'Education Fair', dot: 'bg-indigo-500' },
+  { id: 'NEWSPAPER', label: 'Newspaper Ad', dot: 'bg-orange-500' },
+  { id: 'GOOGLE_ADS', label: 'Google Ad', dot: 'bg-red-500' },
+  { id: 'OTHER', label: 'Other', dot: 'bg-slate-300' },
 ]
 
 const statusOptions = [
-  'New',
-  'Contacted',
-  'Interested',
-  'Follow-up Pending',
-  'Converted',
-  'Not Interested',
+  { value: 'NEW', label: 'New' },
+  { value: 'CONTACTED', label: 'Contacted' },
+  { value: 'INTERESTED', label: 'Interested' },
+  { value: 'FOLLOW_UP_PENDING', label: 'Follow-up Pending' },
+  { value: 'CONVERTED', label: 'Converted' },
+  { value: 'NOT_INTERESTED', label: 'Not Interested' },
 ]
 
 const priorityOptions = [
-  { value: 'Normal',
-    icon: 'Circle',
-    bg: 'bg-blue-50',
-    text: 'text-blue-700',
-    border: 'border-blue-200' },
-  { value: 'High',
-    icon: 'TrendingUp',
-    bg: 'bg-amber-50',
-    text: 'text-amber-700',
-    border: 'border-amber-200' },
-  { value: 'Urgent',
-    icon: 'Zap',
-    bg: 'bg-red-50',
-    text: 'text-red-600',
-    border: 'border-red-200' },
+  { value: 'MEDIUM', label: 'Normal', icon: 'Circle', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+  { value: 'HIGH', label: 'High', icon: 'TrendingUp', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  { value: 'URGENT', label: 'Urgent', icon: 'Zap', bg: 'bg-red-50', text: 'text-red-650', border: 'border-red-200' },
 ]
 
 const courses = [
@@ -115,73 +91,27 @@ const courses = [
 ]
 
 const timeSlots = [
-  '9:00 AM', '9:30 AM', '10:00 AM',
-  '10:30 AM', '11:00 AM', '11:30 AM',
-  '12:00 PM', '12:30 PM', '1:00 PM',
-  '1:30 PM', '2:00 PM', '2:30 PM',
-  '3:00 PM', '3:30 PM', '4:00 PM',
-  '4:30 PM', '5:00 PM', '5:30 PM',
-  '6:00 PM', '6:30 PM',
+  { value: '09:00', label: '9:00 AM' },
+  { value: '09:30', label: '9:30 AM' },
+  { value: '10:00', label: '10:00 AM' },
+  { value: '10:30', label: '10:30 AM' },
+  { value: '11:00', label: '11:00 AM' },
+  { value: '11:30', label: '11:30 AM' },
+  { value: '12:00', label: '12:00 PM' },
+  { value: '12:30', label: '12:30 PM' },
+  { value: '13:00', label: '1:00 PM' },
+  { value: '13:30', label: '1:30 PM' },
+  { value: '14:00', label: '2:00 PM' },
+  { value: '14:30', label: '2:30 PM' },
+  { value: '15:00', label: '3:00 PM' },
+  { value: '15:30', label: '3:30 PM' },
+  { value: '16:00', label: '4:00 PM' },
+  { value: '16:30', label: '4:30 PM' },
+  { value: '17:00', label: '5:00 PM' },
+  { value: '17:30', label: '5:30 PM' },
+  { value: '18:00', label: '6:00 PM' },
+  { value: '18:30', label: '6:30 PM' },
 ]
-
-const sourceUiToDb: Record<string, string> = {
-  'Vidhyaan': 'VIDHYAAN',
-  'Walk-in': 'WALK_IN',
-  'Phone Enquiry': 'PHONE',
-  'WhatsApp': 'WHATSAPP',
-  'School Website': 'WEBSITE',
-  'Social Media': 'SOCIAL_MEDIA',
-  'Referral': 'REFERRAL',
-  'Education Fair': 'EVENT',
-  'Newspaper Ad': 'NEWSPAPER',
-  'Google Ad': 'GOOGLE_ADS',
-  'Other': 'OTHER'
-}
-
-const sourceDbToUi: Record<string, string> = {
-  'VIDHYAAN': 'Vidhyaan',
-  'WALK_IN': 'Walk-in',
-  'PHONE': 'Phone Enquiry',
-  'WHATSAPP': 'WhatsApp',
-  'WEBSITE': 'School Website',
-  'SOCIAL_MEDIA': 'Social Media',
-  'REFERRAL': 'Referral',
-  'EVENT': 'Education Fair',
-  'NEWSPAPER': 'Newspaper Ad',
-  'GOOGLE_ADS': 'Google Ad',
-  'OTHER': 'Other'
-}
-
-const statusUiToDb: Record<string, string> = {
-  'New': 'NEW',
-  'Contacted': 'CONTACTED',
-  'Interested': 'INTERESTED',
-  'Follow-up Pending': 'FOLLOW_UP_PENDING',
-  'Converted': 'CONVERTED',
-  'Not Interested': 'NOT_INTERESTED'
-}
-
-const statusDbToUi: Record<string, string> = {
-  'NEW': 'New',
-  'CONTACTED': 'Contacted',
-  'INTERESTED': 'Interested',
-  'FOLLOW_UP_PENDING': 'Follow-up Pending',
-  'CONVERTED': 'Converted',
-  'NOT_INTERESTED': 'Not Interested'
-}
-
-const priorityUiToDb: Record<string, string> = {
-  'Normal': 'MEDIUM',
-  'High': 'HIGH',
-  'Urgent': 'URGENT'
-}
-
-const priorityDbToUi: Record<string, string> = {
-  'LOW': 'Normal',
-  'MEDIUM': 'Normal',
-  'HIGH': 'High',
-  'URGENT': 'Urgent'
-}
 
 const campaigns = [
   { id: '1', name: 'Summer Admission 2026' },
@@ -202,30 +132,30 @@ export default function EditLeadPage() {
   const [dbAcademicYears, setDbAcademicYears] = useState<{ id: string; name: string }[]>([])
 
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    parentName: '',
     phone: '',
     email: '',
-    source: '',
-    applyingFor: '',
-    academicYearId: '',
-    childName: '',
+    kidName: '',
     childAge: '',
     currentSchool: '',
+    source: 'WALK_IN',
+    priority: 'MEDIUM',
+    status: 'NEW',
+    gradeSought: '',
+    academicYearId: '',
+    assignedToId: '',
+    notes: '',
+    siblingInSchool: false,
+    expectedJoinDate: '',
+    campaignId: '',
     course: '',
     batch: '',
     studentAge: '',
     startDate: '',
-    siblingInSchool: false,
-    expectedJoinDate: '',
-    campaignId: '',
-    counsellorId: '',
-    status: 'New',
-    followUpDate: '',
-    followUpTime: '',
-    priority: 'Normal',
-    notes: '',
   })
+
+  const [followUpDate, setFollowUpDate] = useState<Date | undefined>(undefined)
+  const [followUpTime, setFollowUpTime] = useState('09:00')
 
   const [duplicateFound, setDuplicateFound] = useState<any>(null)
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
@@ -300,60 +230,36 @@ export default function EditLeadPage() {
   // Sync lead details to local states
   useEffect(() => {
     if (lead) {
-      const parts = (lead.parentName || '').trim().split(/\s+/)
-      const firstName = parts[0] || ''
-      const lastName = parts.slice(1).join(' ') || ''
-
       setFormData({
-        firstName,
-        lastName,
+        parentName: lead.parentName || '',
         phone: lead.phone || '',
         email: lead.email || '',
-        source: sourceDbToUi[lead.source] || 'Other',
-        applyingFor: mapGradeValue(lead.gradeSought) || '',
-        academicYearId: lead.academicYearId || '',
-        childName: lead.kidName || '',
-        childAge: lead.childAge || '',
+        kidName: lead.kidName || '',
+        childAge: lead.childAge?.toString() || '',
         currentSchool: lead.currentSchool || '',
+        source: lead.source || 'WALK_IN',
+        priority: lead.priority || 'MEDIUM',
+        status: lead.status || 'NEW',
+        gradeSought: mapGradeValue(lead.gradeSought) || '',
+        academicYearId: lead.academicYearId || '',
+        assignedToId: lead.assignedToId || '',
+        notes: lead.notes || '',
+        siblingInSchool: lead.siblingInSchool ?? false,
+        expectedJoinDate: lead.expectedJoinDate ? new Date(lead.expectedJoinDate).toISOString().split('T')[0] : '',
+        campaignId: '',
         course: lead.course || '',
         batch: lead.batch || '',
         studentAge: lead.studentAge || '',
         startDate: lead.startDate ? new Date(lead.startDate).toISOString().split('T')[0] : '',
-        siblingInSchool: lead.siblingInSchool ?? false,
-        expectedJoinDate: lead.expectedJoinDate ? new Date(lead.expectedJoinDate).toISOString().split('T')[0] : '',
-        campaignId: '',
-        counsellorId: lead.assignedToId || '',
-        status: statusDbToUi[lead.status] || 'New',
-        followUpDate: '',
-        followUpTime: '',
-        priority: priorityDbToUi[lead.priority] || 'Normal',
-        notes: lead.notes || '',
       })
 
       if (lead.nextFollowUpAt) {
         const dateObj = new Date(lead.nextFollowUpAt)
-        setFormData(prev => ({
-          ...prev,
-          followUpDate: dateObj.toISOString().split('T')[0]
-        }))
+        setFollowUpDate(dateObj)
 
-        let hours = dateObj.getHours()
+        const hours = String(dateObj.getHours()).padStart(2, '0')
         const minutes = String(dateObj.getMinutes()).padStart(2, '0')
-        const ampm = hours >= 12 ? 'PM' : 'AM'
-        hours = hours % 12
-        hours = hours ? hours : 12
-        const timeStr = `${hours}:${minutes} ${ampm}`
-        
-        const matchingSlot = timeSlots.find(slot => {
-          const normalizedSlot = slot.replace(/^0/, '')
-          const normalizedTimeStr = timeStr.replace(/^0/, '')
-          return normalizedSlot === normalizedTimeStr
-        })
-
-        setFormData(prev => ({
-          ...prev,
-          followUpTime: matchingSlot || '10:00 AM'
-        }))
+        setFollowUpTime(`${hours}:${minutes}`)
       }
     }
   }, [lead])
@@ -430,8 +336,7 @@ export default function EditLeadPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!formData.firstName.trim()) newErrors.firstName = "First name is required"
-    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required"
+    if (!formData.parentName.trim()) newErrors.parentName = "Parent name is required"
     
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required"
@@ -446,14 +351,14 @@ export default function EditLeadPage() {
     if (!formData.source) newErrors.source = "Lead source is required"
 
     if (institutionType === 'school') {
-      if (!formData.applyingFor) newErrors.applyingFor = "Applying grade is required"
+      if (!formData.gradeSought) newErrors.gradeSought = "Applying grade is required"
     } else {
       if (!formData.course) newErrors.course = "Course selection is required"
     }
 
-    if (!formData.counsellorId) newErrors.counsellorId = "Assigning a counsellor is required"
-    if (!formData.followUpDate) newErrors.followUpDate = "Follow-up date is required"
-    if (!formData.followUpTime) newErrors.followUpTime = "Follow-up time is required"
+    if (!formData.assignedToId) newErrors.counsellorId = "Assigning a counsellor is required"
+    if (!followUpDate) newErrors.followUpDate = "Follow-up date is required"
+    if (!followUpTime) newErrors.followUpTime = "Follow-up time is required"
     if (!formData.priority) newErrors.priority = "Priority setting is required"
 
     setErrors(newErrors)
@@ -473,20 +378,19 @@ export default function EditLeadPage() {
   }
 
   // Handle Save
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const isValid = validateForm()
     if (!isValid) {
       const newErrors: Record<string, string> = {}
-      if (!formData.firstName.trim()) newErrors.firstName = "firstName"
-      if (!formData.lastName.trim()) newErrors.lastName = "lastName"
+      if (!formData.parentName.trim()) newErrors.parentName = "parentName"
       if (!formData.phone.trim() || !/^[0-9]{10}$/.test(formData.phone)) newErrors.phone = "phone"
       if (!formData.source) newErrors.source = "source"
-      if (institutionType === 'school' && !formData.applyingFor) newErrors.applyingFor = "applyingFor"
+      if (institutionType === 'school' && !formData.gradeSought) newErrors.gradeSought = "gradeSought"
       if (institutionType !== 'school' && !formData.course) newErrors.course = "course"
-      if (!formData.counsellorId) newErrors.counsellorId = "counsellorId"
-      if (!formData.followUpDate) newErrors.followUpDate = "followUpDate"
-      if (!formData.followUpTime) newErrors.followUpTime = "followUpTime"
+      if (!formData.assignedToId) newErrors.counsellorId = "counsellorId"
+      if (!followUpDate) newErrors.followUpDate = "followUpDate"
+      if (!followUpTime) newErrors.followUpTime = "followUpTime"
       scrollToFirstError(newErrors)
       return
     }
@@ -494,71 +398,55 @@ export default function EditLeadPage() {
     setSubmitting(true)
     try {
       let nextFollowUpAt: string | null = null
-      if (formData.followUpDate) {
-        let nextFollowUpDate = new Date(formData.followUpDate)
-        if (formData.followUpTime) {
-          const [hoursStr, minutesStrWithAmPm] = formData.followUpTime.split(':')
-          const [minutesStr, ampm] = minutesStrWithAmPm.split(' ')
-          let hours = parseInt(hoursStr)
-          const minutes = parseInt(minutesStr)
-          if (ampm === 'PM' && hours < 12) hours += 12
-          if (ampm === 'AM' && hours === 12) hours = 0
-          nextFollowUpDate.setHours(hours, minutes, 0, 0)
-        }
-        nextFollowUpAt = nextFollowUpDate.toISOString()
+
+      if (followUpDate) {
+        const dateStr = format(followUpDate, 'yyyy-MM-dd')
+        const timeStr = followUpTime || '09:00'
+        nextFollowUpAt = new Date(`${dateStr}T${timeStr}:00`).toISOString()
       }
 
-      const res = await fetch(
-        `/api/v1/leads/${leadId}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            phone: formData.phone,
-            email: formData.email || null,
-            source: sourceUiToDb[formData.source] || 'OTHER',
-            status: statusUiToDb[formData.status] || 'NEW',
-            priority: priorityUiToDb[formData.priority] || 'MEDIUM',
-            gradeSought: formData.applyingFor || null,
-            kidName: formData.childName || null,
-            assignedToId: formData.counsellorId || null,
-            nextFollowUpAt,
-            notes: formData.notes || null,
-            academicYearId: formData.academicYearId || null,
-            childAge: formData.childAge || null,
-            currentSchool: formData.currentSchool || null,
-            expectedJoinDate: formData.expectedJoinDate ? new Date(formData.expectedJoinDate).toISOString() : null,
-            siblingInSchool: formData.siblingInSchool,
-            course: formData.course || null,
-            batch: formData.batch || null,
-            studentAge: formData.studentAge || null,
-            startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null
-          })
-        }
-      )
+      const payload = {
+        parentName: formData.parentName.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim() || null,
+        kidName: formData.kidName.trim() || null,
+        childAge: formData.childAge ? parseInt(formData.childAge) : null,
+        source: formData.source || 'WALK_IN',
+        priority: formData.priority || 'MEDIUM',
+        status: formData.status || 'NEW',
+        gradeSought: formData.gradeSought || null,
+        academicYearId: formData.academicYearId || null,
+        assignedToId: formData.assignedToId || null,
+        notes: formData.notes.trim() || null,
+        nextFollowUpAt,
+      }
 
-      const json = await res.json()
+      const url = `/api/v1/leads/${lead.id}`
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
 
       if (!res.ok) {
-        throw new Error(json.error ?? 'Failed to update lead')
+        const err = await res.json()
+        throw new Error(err.message || 'Save failed')
       }
 
       showToast('Lead updated successfully')
-      router.push(`/lead-management/${leadId}`)
+      router.push(`/lead-management/${lead.id}`)
 
     } catch (err: any) {
-      showToast(err.message ?? 'Failed to update lead', 'error')
+      showToast(err.message || 'Failed to save lead', 'error')
     } finally {
       setSubmitting(false)
     }
   }
 
   const isFormValid = Boolean(
-    formData.firstName?.trim() &&
+    formData.parentName?.trim() &&
     formData.phone?.trim() &&
     formData.phone.length === 10 &&
     formData.source
@@ -567,8 +455,9 @@ export default function EditLeadPage() {
   const buttonDisabled = !isFormValid || submitting
 
   const getInitials = () => {
-    const f = formData.firstName.trim().charAt(0).toUpperCase()
-    const l = formData.lastName.trim().charAt(0).toUpperCase()
+    const parts = formData.parentName.trim().split(/\s+/)
+    const f = parts[0]?.charAt(0).toUpperCase() || ''
+    const l = parts[1]?.charAt(0).toUpperCase() || ''
     return (f || l) ? `${f}${l}` : '?'
   }
 
@@ -582,7 +471,7 @@ export default function EditLeadPage() {
 
   return (
     <>
-      <form onSubmit={handleSave} className="p-4 md:p-6 lg:p-8 pb-28 space-y-6 max-w-7xl mx-auto w-full">
+      <form onSubmit={handleSubmit} className="p-4 md:p-6 lg:p-8 pb-28 space-y-6 max-w-7xl mx-auto w-full">
           
           {/* PAGE TITLE ROW */}
           <section className="flex items-center justify-between mb-2">
@@ -651,44 +540,23 @@ export default function EditLeadPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   
-                  {/* First Name */}
-                  <div>
+                  {/* Parent Name */}
+                  <div className="md:col-span-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                      First Name <span className="text-red-500 ml-0.5">*</span>
+                      Parent / Guardian Name <span className="text-red-500 ml-0.5">*</span>
                     </label>
                     <input
                       type="text"
-                      name="firstName"
-                      value={formData.firstName}
+                      name="parentName"
+                      value={formData.parentName}
                       onChange={handleInputChange}
-                      placeholder="Enter first name"
-                      className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.firstName ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-100' : 'border-slate-200'}`}
+                      placeholder="Enter parent/guardian name"
+                      className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.parentName ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-100' : 'border-slate-200'}`}
                     />
-                    {errors.firstName && (
+                    {errors.parentName && (
                       <span className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
                         <AlertCircle className="size-3" />
-                        <span>{errors.firstName}</span>
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Last Name */}
-                  <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                      Last Name <span className="text-red-500 ml-0.5">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      placeholder="Enter last name"
-                      className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.lastName ? 'border-red-300 bg-red-50 focus:border-red-400 focus:ring-red-100' : 'border-slate-200'}`}
-                    />
-                    {errors.lastName && (
-                      <span className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
-                        <AlertCircle className="size-3" />
-                        <span>{errors.lastName}</span>
+                        <span>{errors.parentName}</span>
                       </span>
                     )}
                   </div>
@@ -755,11 +623,11 @@ export default function EditLeadPage() {
                     
                     <div className="flex flex-wrap gap-2">
                       {sources.map(source => {
-                        const isSelected = formData.source === source.label
+                        const isSelected = formData.source === source.id
                         return (
                           <div
                             key={source.id}
-                            onClick={() => handleSourceSelect(source.label)}
+                            onClick={() => handleSourceSelect(source.id)}
                             className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold cursor-pointer transition-all duration-150 ${isSelected ? 'border-[#1565D8] bg-blue-50 text-[#1565D8] ring-1 ring-[#1565D8]/20' : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white'}`}
                           >
                             <div className={`w-1.5 h-1.5 rounded-full ${source.dot}`} />
@@ -798,20 +666,20 @@ export default function EditLeadPage() {
                         Applying For (Grade) <span className="text-red-500 ml-0.5">*</span>
                       </label>
                       <select
-                        name="applyingFor"
-                        value={formData.applyingFor}
+                        name="gradeSought"
+                        value={formData.gradeSought}
                         onChange={handleInputChange}
-                        className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.applyingFor ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-slate-200'}`}
+                        className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.gradeSought ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-slate-200'}`}
                       >
                         <option value="">Select grade</option>
                         {GRADE_OPTIONS.map(grade => (
                           <option key={grade.value} value={grade.value}>{grade.label}</option>
                         ))}
                       </select>
-                      {errors.applyingFor && (
+                      {errors.gradeSought && (
                         <span className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
                           <AlertCircle className="size-3" />
-                          <span>{errors.applyingFor}</span>
+                          <span>{errors.gradeSought}</span>
                         </span>
                       )}
                     </div>
@@ -841,8 +709,8 @@ export default function EditLeadPage() {
                       </label>
                       <input
                         type="text"
-                        name="childName"
-                        value={formData.childName}
+                        name="kidName"
+                        value={formData.kidName}
                         onChange={handleInputChange}
                         placeholder="Child's full name"
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition"
@@ -857,8 +725,8 @@ export default function EditLeadPage() {
                       <input
                         type="number"
                         name="childAge"
-                        min={3}
-                        max={18}
+                        min={1}
+                        max={25}
                         value={formData.childAge}
                         onChange={handleInputChange}
                         placeholder="Age in years"
@@ -1019,8 +887,8 @@ export default function EditLeadPage() {
                     </label>
                     <select
                       name="counsellorId"
-                      value={formData.counsellorId}
-                      onChange={handleInputChange}
+                      value={formData.assignedToId}
+                      onChange={(e) => setFormData(prev => ({ ...prev, assignedToId: e.target.value }))}
                       className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.counsellorId ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-slate-200'}`}
                     >
                       <option value="">Select counsellor</option>
@@ -1050,7 +918,7 @@ export default function EditLeadPage() {
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition"
                     >
                       {statusOptions.map(status => (
-                        <option key={status} value={status}>{status}</option>
+                        <option key={status.value} value={status.value}>{status.label}</option>
                       ))}
                     </select>
                   </div>
@@ -1064,14 +932,14 @@ export default function EditLeadPage() {
                       type="date"
                       name="followUpDate"
                       min={new Date().toISOString().split('T')[0]}
-                      value={formData.followUpDate}
-                      onChange={handleInputChange}
+                      value={followUpDate ? format(followUpDate, 'yyyy-MM-dd') : ''}
+                      onChange={(e) => setFollowUpDate(e.target.value ? new Date(e.target.value) : undefined)}
                       className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.followUpDate ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-slate-200'}`}
                     />
                     <span className="text-[11px] text-slate-400 mt-1 block">When should this lead be followed up?</span>
-                    {formData.followUpDate && (
+                    {followUpDate && (
                       (() => {
-                        const day = new Date(formData.followUpDate).getDay()
+                        const day = new Date(followUpDate).getDay()
                         const isWeekend = day === 0 || day === 6
                         return isWeekend && (
                           <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-1.5 flex items-center gap-2">
@@ -1096,13 +964,13 @@ export default function EditLeadPage() {
                     </label>
                     <select
                       name="followUpTime"
-                      value={formData.followUpTime}
-                      onChange={handleInputChange}
+                      value={followUpTime}
+                      onChange={(e) => setFollowUpTime(e.target.value)}
                       className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.followUpTime ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-slate-200'}`}
                     >
                       <option value="">Select time</option>
                       {timeSlots.map(slot => (
-                        <option key={slot} value={slot}>{slot}</option>
+                        <option key={slot.value} value={slot.value}>{slot.label}</option>
                       ))}
                     </select>
                     {errors.followUpTime && (
@@ -1123,7 +991,7 @@ export default function EditLeadPage() {
                       {priorityOptions.map(item => {
                         const isSelected = formData.priority === item.value
                         const Icon = item.icon === 'Circle' ? Circle : (item.icon === 'TrendingUp' ? TrendingUp : Zap)
-                        const iconColor = item.value === 'High' ? 'text-amber-500' : item.value === 'Urgent' ? 'text-red-500' : 'text-blue-500'
+                        const iconColor = item.value === 'HIGH' ? 'text-amber-500' : item.value === 'URGENT' ? 'text-red-500' : 'text-blue-500'
                         return (
                           <div
                             key={item.value}
@@ -1131,7 +999,7 @@ export default function EditLeadPage() {
                             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-semibold cursor-pointer transition-all duration-150 ${isSelected ? `${item.border} ${item.bg} ${item.text} ring-1` : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white'}`}
                           >
                             <Icon className={`size-3.5 ${isSelected ? iconColor : 'text-slate-400'}`} />
-                            <span>{item.value}</span>
+                            <span>{item.label}</span>
                           </div>
                         )
                       })}
@@ -1211,7 +1079,6 @@ export default function EditLeadPage() {
                   <span className="text-xs text-slate-400">{formData.notes.length} / 500</span>
                 </div>
               </Card>
-
             </div>
 
             {/* RIGHT COLUMN: PREVIEW PANEL */}
@@ -1232,10 +1099,10 @@ export default function EditLeadPage() {
                     </div>
                     <div className="min-w-0">
                       <h4 className="text-sm font-bold text-slate-800 truncate">
-                        {formData.firstName || formData.lastName ? `${formData.firstName} ${formData.lastName}`.trim() : "New Lead"}
+                        {formData.parentName.trim() || "New Lead"}
                       </h4>
                       <p className="text-xs text-slate-400 truncate mt-0.5">
-                        {institutionType === 'school' ? `Parent: ${formData.childName ? `Parent of ${formData.childName}` : '—'}` : (formData.phone || '—')}
+                        {institutionType === 'school' ? `Parent: ${formData.kidName ? `Parent of ${formData.kidName}` : '—'}` : (formData.phone || '—')}
                       </p>
                     </div>
                   </div>
@@ -1258,7 +1125,7 @@ export default function EditLeadPage() {
                         {institutionType === 'school' ? 'Grade' : 'Course'}
                       </span>
                       <span className="text-slate-700 font-semibold ml-auto truncate max-w-[120px]">
-                        {(institutionType === 'school' ? formData.applyingFor : formData.course) || '—'}
+                        {GRADE_OPTIONS.find(g => g.value === formData.gradeSought)?.label || '—'}
                       </span>
                     </div>
 
@@ -1268,9 +1135,9 @@ export default function EditLeadPage() {
                       <span className="text-slate-500 font-medium">Source</span>
                       <div className="ml-auto flex items-center gap-1.5">
                         {formData.source && (
-                          <div className={`w-1.5 h-1.5 rounded-full ${sources.find(s => s.label === formData.source)?.dot || 'bg-slate-400'}`} />
+                          <div className={`w-1.5 h-1.5 rounded-full ${sources.find(s => s.id === formData.source)?.dot || 'bg-slate-400'}`} />
                         )}
-                        <span className="text-slate-700 font-semibold">{formData.source || '—'}</span>
+                        <span className="text-slate-700 font-semibold">{sources.find(s => s.id === formData.source)?.label || '—'}</span>
                       </div>
                     </div>
 
@@ -1279,7 +1146,7 @@ export default function EditLeadPage() {
                       <User className="size-3.5 text-slate-400 shrink-0" />
                       <span className="text-slate-500 font-medium">Counsellor</span>
                       <span className="text-slate-700 font-semibold ml-auto truncate max-w-[120px]">
-                        {dbCounsellors.find(c => c.id === formData.counsellorId)?.name || '—'}
+                        {dbCounsellors.find((c: { id: string; name: string }) => c.id === formData.assignedToId)?.name || '—'}
                       </span>
                     </div>
 
@@ -1288,7 +1155,7 @@ export default function EditLeadPage() {
                       <Calendar className="size-3.5 text-slate-400 shrink-0" />
                       <span className="text-slate-500 font-medium">Follow-up</span>
                       <span className="text-slate-700 font-semibold ml-auto">
-                        {formData.followUpDate ? `${formData.followUpDate} ${formData.followUpTime ? `@ ${formData.followUpTime}` : ''}` : '—'}
+                        {followUpDate ? `${format(followUpDate, 'yyyy-MM-dd')} ${followUpTime ? `@ ${timeSlots.find(t => t.value === followUpTime)?.label || ''}` : ''}` : '—'}
                       </span>
                     </div>
                   </div>
@@ -1299,26 +1166,31 @@ export default function EditLeadPage() {
                       <span className="text-slate-400">Status:</span>
                       {(() => {
                         const statusConfig = {
-                          'New': { bg: 'bg-blue-50', text: 'text-blue-700' },
-                          'Contacted': { bg: 'bg-amber-50', text: 'text-amber-700' },
-                          'Interested': { bg: 'bg-purple-50', text: 'text-purple-700' },
-                          'Follow-up Pending': { bg: 'bg-orange-50', text: 'text-orange-700' },
-                          'Converted': { bg: 'bg-green-50', text: 'text-green-700' },
-                          'Not Interested': { bg: 'bg-red-50', text: 'text-red-600' },
+                          'NEW': { bg: 'bg-blue-50', text: 'text-blue-700' },
+                          'CONTACTED': { bg: 'bg-amber-50', text: 'text-amber-700' },
+                          'INTERESTED': { bg: 'bg-purple-50', text: 'text-purple-700' },
+                          'FOLLOW_UP_PENDING': { bg: 'bg-orange-50', text: 'text-orange-700' },
+                          'CONVERTED': { bg: 'bg-green-50', text: 'text-green-700' },
+                          'NOT_INTERESTED': { bg: 'bg-red-50', text: 'text-red-650' },
                         }
                         const config = statusConfig[formData.status as keyof typeof statusConfig] || { bg: 'bg-slate-50', text: 'text-slate-600' }
                         return (
                           <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${config.bg} ${config.text}`}>
-                            <span>{formData.status}</span>
+                            <span>{statusOptions.find(s => s.value === formData.status)?.label || formData.status}</span>
                           </div>
                         )
                       })()}
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-400">Priority:</span>
-                      <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${formData.priority === 'High' ? 'bg-amber-50 text-amber-700' : formData.priority === 'Urgent' ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'}`}>
-                        <span>{formData.priority}</span>
-                      </div>
+                      {(() => {
+                        const config = priorityOptions.find(p => p.value === formData.priority) || priorityOptions[0]
+                        return (
+                          <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${config.bg} ${config.text}`}>
+                            <span>{config.label}</span>
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
 
@@ -1394,7 +1266,7 @@ export default function EditLeadPage() {
               {formData.siblingInSchool && (
                 <div className="bg-green-50 border border-green-100 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <Users className="size-[15px] text-green-600" strokeWidth={1.5} />
+                    <Users className="size-[15px] text-green-650" strokeWidth={1.5} />
                     <span className="text-sm font-bold text-green-700">Sibling Enrolled</span>
                   </div>
                   <p className="text-xs text-green-600 leading-relaxed">

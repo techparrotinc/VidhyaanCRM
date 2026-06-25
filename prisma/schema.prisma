@@ -1463,7 +1463,7 @@ model Lead {
   updatedAt      DateTime   @updatedAt @map("updated_at")
   deletedAt      DateTime?  @map("deleted_at")
 
-  childAge       String?    @map("child_age")
+  childAge       Int?       @map("child_age")
   currentSchool  String?    @map("current_school")
   expectedJoinDate DateTime? @map("expected_join_date")
   siblingInSchool Boolean?  @default(false) @map("sibling_in_school")

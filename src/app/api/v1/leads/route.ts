@@ -73,28 +73,57 @@ export const GET = route({
 })
 
 const createLeadSchema = z.object({
-  firstName: z.string().min(1),
-  lastName: z.string().min(1).optional(),
-  phone: z.preprocess(cleanPhoneNumber, z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number')),
-
-  email: z.string().email().optional().nullable(),
-  source: z.nativeEnum(LeadSource).default(LeadSource.WALK_IN),
-  status: z.nativeEnum(LeadStatus).default(LeadStatus.NEW),
-  priority: z.nativeEnum(LeadPriority).default(LeadPriority.MEDIUM),
-  gradeSought: z.string().optional().nullable(),
-  kidName: z.string().optional().nullable(),
-  assignedToId: z.string().optional().nullable(),
-  nextFollowUpAt: z.string().optional().nullable(),
-  academicYearId: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  childAge: z.string().optional().nullable(),
-  currentSchool: z.string().optional().nullable(),
-  expectedJoinDate: z.string().optional().nullable(),
-  siblingInSchool: z.boolean().optional().nullable(),
-  course: z.string().optional().nullable(),
-  batch: z.string().optional().nullable(),
-  studentAge: z.string().optional().nullable(),
-  startDate: z.string().optional().nullable()
+  parentName: z.string().min(2,
+    'Name is required'),
+  phone: z.string().min(10).max(10),
+  email: z.string().email()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  kidName: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  childAge: z.union([
+    z.number(),
+    z.string().transform(v =>
+      v === '' ? null
+      : parseInt(v) || null
+    )
+  ]).optional().nullable(),
+  source: z.string()
+    .default('WALK_IN'),
+  priority: z.string()
+    .default('MEDIUM'),
+  status: z.string()
+    .default('NEW'),
+  gradeSought: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  academicYearId: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  assignedToId: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  notes: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  nextFollowUpAt: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
 })
 
 export const POST = route({
@@ -108,7 +137,7 @@ export const POST = route({
   handler: async ({ req, db, user, org, academicYearId }) => {
     const body = createLeadSchema.parse(await req.json())
 
-    const parentName = body.lastName ? `${body.firstName} ${body.lastName}` : body.firstName
+    const parentName = body.parentName
 
     // 1. Check lead cap
     const leadCount = await prisma.lead.count({
@@ -119,25 +148,19 @@ export const POST = route({
       const leadCode = await generateLeadCode(user.orgId)
       const lead = await db.lead.create({
         data: {
-          parentName,
+          parentName: body.parentName,
           phone: body.phone,
-          email: body.email ?? null,
-          source: body.source ?? 'WALK_IN',
+          email: body.email || null,
+          kidName: body.kidName || null,
+          childAge: body.childAge || null,
+          source: (body.source || 'WALK_IN') as LeadSource,
+          priority: (body.priority || 'MEDIUM') as LeadPriority,
           status: 'NEW',
-          priority: body.priority ?? 'MEDIUM',
-          gradeSought: body.gradeSought ?? null,
-          kidName: body.kidName ?? null,
+          gradeSought: body.gradeSought || null,
           leadCode,
           orgId: user.orgId,
-          academicYearId: body.academicYearId ?? academicYearId ?? null,
-          childAge: body.childAge ?? null,
-          currentSchool: body.currentSchool ?? null,
-          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
-          siblingInSchool: body.siblingInSchool ?? false,
-          course: body.course ?? null,
-          batch: body.batch ?? null,
-          studentAge: body.studentAge ?? null,
-          startDate: body.startDate ? new Date(body.startDate) : null
+          academicYearId: body.academicYearId || null,
+          nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
         }
       })
 
@@ -159,20 +182,17 @@ export const POST = route({
 
     // 3. Resolve assignedToId safely
     let finalAssignedToId: string | null = null
-    const cleanedAssignedToId = body.assignedToId && body.assignedToId.trim() !== '' ? body.assignedToId : null
 
-    if (cleanedAssignedToId) {
-      const verifyUser = await prisma.user.findFirst({
+    if (body.assignedToId) {
+      const validUser = await prisma.user.findFirst({
         where: {
-          id: cleanedAssignedToId,
+          id: body.assignedToId,
           orgId: user.orgId,
           status: 'ACTIVE',
-          deletedAt: null
-        }
+        },
+        select: { id: true }
       })
-      if (verifyUser) {
-        finalAssignedToId = cleanedAssignedToId
-      }
+      finalAssignedToId = validUser?.id || null
     }
 
     if (!finalAssignedToId) {
@@ -201,35 +221,25 @@ export const POST = route({
     const leadCode = await generateLeadCode(user.orgId)
 
     // 5. Create lead
-    const data: any = {
-      parentName,
-      phone: body.phone,
-      email: body.email ?? null,
-      source: body.source ?? 'WALK_IN',
-      status: body.status ?? 'NEW',
-      priority: body.priority ?? 'MEDIUM',
-      gradeSought: body.gradeSought ?? null,
-      kidName: body.kidName ?? null,
-      leadCode,
-      orgId: user.orgId,
-      academicYearId: body.academicYearId ?? academicYearId ?? null,
-      nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
-      childAge: body.childAge ?? null,
-      currentSchool: body.currentSchool ?? null,
-      expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
-      siblingInSchool: body.siblingInSchool ?? false,
-      course: body.course ?? null,
-      batch: body.batch ?? null,
-      studentAge: body.studentAge ?? null,
-      startDate: body.startDate ? new Date(body.startDate) : null
-    }
-
-    if (finalAssignedToId) {
-      data.assignedToId = finalAssignedToId
-    }
-
     const lead = await db.lead.create({
-      data
+      data: {
+        parentName: body.parentName,
+        phone: body.phone,
+        email: body.email || null,
+        kidName: body.kidName || null,
+        childAge: body.childAge || null,
+        source: (body.source || 'WALK_IN') as LeadSource,
+        priority: (body.priority || 'MEDIUM') as LeadPriority,
+        status: 'NEW',
+        gradeSought: body.gradeSought || null,
+        leadCode,
+        orgId: user.orgId,
+        academicYearId: body.academicYearId || null,
+        nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
+        ...(finalAssignedToId && {
+          assignedToId: finalAssignedToId
+        }),
+      }
     })
 
     // 6. Create activity log

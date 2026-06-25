@@ -73,6 +73,12 @@ export const GET = route({
               name: true
             }
           },
+          academicYear: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
           _count: {
             select: { documents: true }
           }

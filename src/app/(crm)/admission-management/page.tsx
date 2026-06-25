@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Skeleton } from '@/components/ui/skeleton'
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 import {
@@ -422,6 +422,8 @@ export default function AdmissionManagementPage() {
             stageId: stageData ? stageData.id : (adm.stageId ?? 'new'),
             stageIndex,
             createdDate,
+            createdAt: adm.createdAt,
+            academicYear: adm.academicYear?.name ?? '',
             status: daysInStage > 14 ? 'overdue' : daysInStage > 7 ? 'warning' : 'active',
             daysInStage,
             pendingAction: null,
@@ -502,6 +504,57 @@ export default function AdmissionManagementPage() {
   const [showBulkCounsellorDropdown, setShowBulkCounsellorDropdown] = useState(false)
 
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams && searchParams.get('success') === 'created') {
+      showToast('Admission record created successfully')
+      const newUrl = window.location.pathname
+      window.history.replaceState({}, '', newUrl)
+    }
+  }, [searchParams])
+
+  const getStatusBadge = (dbStatus: string) => {
+    switch (dbStatus) {
+      case 'ADMITTED':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Admitted
+          </span>
+        )
+      case 'REJECTED':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+            Rejected
+          </span>
+        )
+      case 'WAITLISTED':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+            Waitlisted
+          </span>
+        )
+      case 'WITHDRAWN':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200">
+            Withdrawn
+          </span>
+        )
+      case 'IN_PROGRESS':
+      default:
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            In Progress
+          </span>
+        )
+    }
+  }
+
+  const formatDate = (dateString: any) => {
+    if (!dateString) return '—'
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+  }
 
   const handleNavigate = (path: string) => {
     router.push(path)
@@ -913,7 +966,7 @@ export default function AdmissionManagementPage() {
 
             {/* STAGE BOXES ROW */}
             <div className="relative">
-              <div className="grid grid-cols-4 gap-2 md:flex md:items-stretch md:gap-2 md:overflow-x-auto pb-2 scroll-smooth [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-slate-400">
+              <div className="flex flex-wrap md:flex-nowrap overflow-x-auto md:overflow-x-visible gap-2 px-4 py-3 pb-2 scroll-smooth [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-slate-400">
                 {configPipeline.map((stage, idx) => {
                   const IconComponent = getIcon(stage.iconName)
                   const isActive = activeStageFilter === stage.id
@@ -1336,428 +1389,231 @@ export default function AdmissionManagementPage() {
               =================================================================== */}
           {activeView === 'list' && (
             loading && applicants.length === 0 ? (
-              <TableSkeleton rows={5} columns={9} />
+              <TableSkeleton rows={5} columns={7} />
             ) : (loading || filteredApplicants.length > 0) && (
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              {/* TABLE HEADER */}
-              <div className="hidden md:flex items-center px-4 py-3 gap-3 bg-slate-100 border-b border-slate-200 select-none text-[11px] font-semibold uppercase tracking-wider text-slate-700">
-                <div className="w-8 flex-shrink-0">
-                  <input
-                    type="checkbox"
-                    checked={selectedItems.length === filteredApplicants.length && filteredApplicants.length > 0}
-                    onChange={handleSelectAll}
-                    className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
-                  />
-                </div>
-                <div className="flex-1 min-w-[200px] font-sans">
-                  {config.applicantLabel[type].toUpperCase()}
-                </div>
-                <div className="hidden md:flex w-32 flex-shrink-0 font-sans">
-                  {config.applyingForLabel[type].toUpperCase()}
-                </div>
-                <div className="hidden md:flex w-28 flex-shrink-0 font-sans">
-                  SOURCE
-                </div>
-                <div className="hidden xl:flex w-24 flex-shrink-0 font-sans">
-                  CONNECT
-                </div>
-                <div className="hidden xl:flex w-36 flex-shrink-0 font-sans">
-                  COUNSELLOR
-                </div>
-                <div className="w-36 flex-shrink-0 font-sans">
-                  STAGE
-                </div>
-                <div className="hidden md:flex w-20 flex-shrink-0 font-sans">
-                  DOCS
-                </div>
-                <div className="hidden xl:flex w-24 flex-shrink-0 font-sans">
-                  DATE
-                </div>
-                <div className="w-12 flex-shrink-0 font-sans">
-                  ACTION
-                </div>
-              </div>
-
-              {/* TABLE BODY */}
-              <div className="divide-y divide-slate-100">
-                {loading ? (
-                  Array.from({ length: 5 }).map((_, idx) => (
-                    <div
-                      key={`skeleton-${idx}`}
-                      className={`relative flex items-center px-4 py-3.5 gap-3 ${
-                        idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                      }`}
-                    >
-                      <div className="w-8 flex-shrink-0">
-                        <Skeleton className="w-4 h-4 rounded" />
-                      </div>
-                      <div className="flex-1 min-w-[200px] flex items-center gap-3">
-                        <Skeleton className="w-9 h-9 rounded-full" />
-                        <div className="space-y-1.5 flex-1 max-w-[150px]">
-                          <Skeleton className="h-4 w-full" />
-                          <Skeleton className="h-3 w-2/3" />
-                        </div>
-                      </div>
-                      <div className="hidden md:flex w-32 flex-shrink-0">
-                        <Skeleton className="h-6 w-16 rounded-lg" />
-                      </div>
-                      <div className="hidden md:flex w-28 flex-shrink-0">
-                        <Skeleton className="h-5 w-20 rounded-full" />
-                      </div>
-                      <div className="hidden xl:flex w-24 flex-shrink-0 gap-1.5">
-                        <Skeleton className="w-7 h-7 rounded-lg" />
-                        <Skeleton className="w-7 h-7 rounded-lg" />
-                        <Skeleton className="w-7 h-7 rounded-lg" />
-                      </div>
-                      <div className="hidden xl:flex w-36 flex-shrink-0">
-                        <Skeleton className="h-5 w-24 rounded" />
-                      </div>
-                      <div className="w-36 flex-shrink-0">
-                        <Skeleton className="h-6 w-20 rounded-full" />
-                      </div>
-                      <div className="hidden md:flex w-20 flex-shrink-0">
-                        <Skeleton className="h-4 w-12" />
-                      </div>
-                      <div className="hidden xl:flex w-24 flex-shrink-0">
-                        <Skeleton className="h-4 w-16" />
-                      </div>
-                      <div className="w-12 flex-shrink-0 flex justify-center">
-                        <Skeleton className="w-8 h-8 rounded-lg" />
-                      </div>
+              <div className="w-full overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
+                <div className="flex flex-col">
+                  {/* TABLE HEADER */}
+                  <div className="flex items-center px-4 py-3 bg-slate-50 border-b border-slate-100 select-none text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    <div className="w-8 flex-shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.length === filteredApplicants.length && filteredApplicants.length > 0}
+                        onChange={handleSelectAll}
+                        className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
+                      />
                     </div>
-                  ))
-                ) : (
-                  filteredApplicants.map((a, idx) => {
-                    const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
-                    const leftBorderColor = getLeftBorderBg(a)
+                    <div className="flex-1 font-sans">
+                      APPLICANT
+                    </div>
+                    <div className="w-40 flex-shrink-0 font-sans">
+                      GRADE / STAGE
+                    </div>
+                    <div className="w-28 flex-shrink-0 font-sans text-center">
+                      STATUS
+                    </div>
+                    <div className="w-36 flex-shrink-0 font-sans">
+                      COUNSELLOR
+                    </div>
+                    <div className="w-24 flex-shrink-0 font-sans">
+                      DATE
+                    </div>
+                    <div className="w-16 flex-shrink-0 font-sans text-right">
+                      ACTIONS
+                    </div>
+                  </div>
 
-                    return (
-                      <div
-                        key={a.id}
-                        onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                        className={`relative flex items-center px-4 py-3.5 gap-3 transition-colors duration-100 cursor-pointer hover:bg-blue-50 ${
-                          idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                        }`}
-                      >
-                        {/* Left border highlight */}
-                        <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-r ${leftBorderColor}`} />
-
-                        {/* Checkbox */}
-                        <div className="w-8 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={selectedItems.includes(a.id)}
-                            onChange={() => handleSelectApplicant(a.id)}
-                            className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
-                          />
-                        </div>
-
-                        {/* Applicant details */}
-                        <div className="flex-1 min-w-[200px] flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
-                            {a.avatar}
+                  {/* TABLE BODY */}
+                  <div className="divide-y divide-slate-100">
+                    {loading ? (
+                      Array.from({ length: 5 }).map((_, idx) => (
+                        <div
+                          key={`skeleton-${idx}`}
+                          className="relative flex items-center px-4 py-3.5 gap-3 bg-white border-b border-slate-100 min-h-[56px]"
+                        >
+                          <div className="w-8 flex-shrink-0">
+                            <Skeleton className="w-4 h-4 rounded" />
                           </div>
-                          <div className="min-w-0">
-                            <Link
-                              href={`/admission-management/${a.id}`}
-                              onClick={e => {
-                                e.stopPropagation()
-                              }}
-                              className="text-base font-semibold text-slate-900 hover:text-[#1565D8] hover:underline truncate block font-sans"
-                            >
-                              {a.fullName}
-                            </Link>
-                            <span className="text-xs text-slate-400 mt-0.5 truncate block font-sans">
-                              {type === 'school' ? `Parent: ${a.parentName}` : a.phone}
-                            </span>
-                            
-                            {/* Pending action badge */}
-                            {a.pendingAction && (
-                              <div className="flex items-center gap-1 w-fit bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5 mt-1">
-                                <AlertCircle size={10} className="text-amber-500" strokeWidth={2.5} />
-                                <span className="text-[10px] font-semibold text-amber-700 font-sans">
-                                  {a.pendingAction}
+                          <div className="flex-1 flex items-center gap-3">
+                            <Skeleton className="w-9 h-9 rounded-full" />
+                            <div className="space-y-1.5 flex-1 max-w-[150px]">
+                              <Skeleton className="h-4 w-full" />
+                              <Skeleton className="h-3 w-2/3" />
+                            </div>
+                          </div>
+                          <div className="w-40 flex-shrink-0 space-y-1">
+                            <Skeleton className="h-4 w-16 rounded-full" />
+                            <Skeleton className="h-4 w-20 rounded-full" />
+                          </div>
+                          <div className="w-28 flex-shrink-0 flex justify-center">
+                            <Skeleton className="h-5 w-16 rounded-full" />
+                          </div>
+                          <div className="w-36 flex-shrink-0">
+                            <Skeleton className="h-4 w-24 rounded" />
+                          </div>
+                          <div className="w-24 flex-shrink-0">
+                            <Skeleton className="h-4 w-12" />
+                          </div>
+                          <div className="w-16 flex-shrink-0 flex justify-end">
+                            <Skeleton className="w-8 h-8 rounded-lg" />
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      filteredApplicants.map((a, idx) => {
+                        const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
+                        const leftBorderColor = getLeftBorderBg(a)
+
+                        return (
+                          <div
+                            key={a.id}
+                            onClick={() => handleNavigate(`/admission-management/${a.id}`)}
+                            className="relative flex items-center px-4 py-3 gap-3 hover:bg-slate-50 border-b border-slate-100 min-h-[56px] h-auto transition-colors duration-100 cursor-pointer bg-white"
+                          >
+                            {/* Left border highlight */}
+                            {leftBorderColor !== 'bg-transparent' && (
+                              <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-r ${leftBorderColor}`} />
+                            )}
+
+                            {/* Checkbox */}
+                            <div className="w-8 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={selectedItems.includes(a.id)}
+                                onChange={() => handleSelectApplicant(a.id)}
+                                className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
+                              />
+                            </div>
+
+                            {/* Applicant Details */}
+                            <div className="flex-1 flex items-center gap-3 min-w-0">
+                              <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0 font-sans">
+                                {a.avatar}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <Link
+                                  href={`/admission-management/${a.id}`}
+                                  onClick={e => {
+                                    e.stopPropagation()
+                                  }}
+                                  className="font-semibold text-slate-800 text-sm hover:text-[#1565D8] hover:underline block truncate font-sans"
+                                >
+                                  {a.fullName}
+                                </Link>
+                                <span className="text-xs text-slate-400 mt-0.5 truncate block font-sans">
+                                  <span className="font-mono">{a.admissionCode}</span>
+                                  {a.parentName && ` · ${a.parentName}`}
+                                  {a.phone && ` · ${a.phone}`}
+                                  {a.academicYear && ` · ${a.academicYear}`}
                                 </span>
                               </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Applying For */}
-                        <div className="hidden md:flex w-32 flex-shrink-0">
-                          <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1.5 rounded-lg w-fit font-sans">
-                            {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
-                          </span>
-                        </div>
-
-                        {/* Source */}
-                        <div className="hidden md:flex w-28 flex-shrink-0">
-                          {a.source ? (
-                            <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full w-fit ${
-                              sourceConfig[a.source]?.bg || 'bg-slate-100'
-                            } ${sourceConfig[a.source]?.text || 'text-slate-650'}`}>
-                              <span className={`w-2 h-2 rounded-full ${sourceConfig[a.source]?.dot || 'bg-slate-400'}`} />
-                              <span>{a.source}</span>
                             </div>
-                          ) : (
-                            <span className="text-slate-400 font-sans text-xs">—</span>
-                          )}
-                        </div>
 
-                        {/* Connect icons */}
-                        <div className="hidden xl:flex w-24 flex-shrink-0 items-center gap-1.5" onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={() => showToast("Email initiated", "info")}
-                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 transition"
-                            title="Send Email"
-                          >
-                            <Mail size={13} className="text-slate-400" strokeWidth={1.5} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              window.open(`https://wa.me/91${a.phone}`)
-                              showToast("WhatsApp opened", "success")
-                            }}
-                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-green-50 hover:border-green-200 transition"
-                            title="WhatsApp chat"
-                          >
-                            <MessageCircle size={13} className="text-green-500" strokeWidth={1.5} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              window.open(`tel:${a.phone}`)
-                              showToast("Call initiated", "success")
-                            }}
-                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 transition"
-                            title="Phone Call"
-                          >
-                            <Phone size={13} className="text-blue-500" strokeWidth={1.5} />
-                          </button>
-                        </div>
-
-                        {/* Counsellor selection */}
-                        <div className="hidden xl:flex w-36 flex-shrink-0 relative" onClick={e => e.stopPropagation()}>
-                          {a.counsellor ? (
-                            <div
-                              onClick={() => setCounsellorDropdownId(counsellorDropdownId === a.id ? null : a.id)}
-                              className="flex items-center gap-2 cursor-pointer group hover:opacity-85"
-                            >
-                              <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold flex items-center justify-center shrink-0">
-                                {a.counsellorAvatar}
-                              </div>
-                              <span className="text-xs font-semibold text-slate-700 group-hover:text-[#1565D8] truncate font-sans">
-                                {a.counsellor}
+                            {/* Grade / Stage */}
+                            <div className="w-40 flex-shrink-0 flex flex-col items-start gap-1">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 font-sans">
+                                {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
                               </span>
-                              <Pencil size={11} className="text-slate-300 group-hover:text-slate-400 shrink-0" strokeWidth={2} />
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${stageData.bgClass} ${stageData.textClass} ${stageData.borderClass} font-sans`}>
+                                {stageData.label}
+                              </span>
                             </div>
-                          ) : (
-                            <button
-                              onClick={() => setCounsellorDropdownId(a.id)}
-                              className="text-[11px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800 px-2.5 py-1.5 rounded-lg border border-amber-200 cursor-pointer font-sans"
-                            >
-                              Assign
-                            </button>
-                          )}
 
-                          {counsellorDropdownId === a.id && (
-                            <div className="absolute bottom-full left-0 mb-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[200px]">
-                              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1.5 border-b border-slate-100 mb-1 font-sans">
-                                Assign Counsellor
-                              </div>
-                              {counsellors.map(c => (
-                                <div
-                                  key={c.id}
-                                  onClick={() => handleAssignCounsellor(a.id, c.id)}
-                                  className="px-3 py-2 rounded-lg cursor-pointer text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-sans"
-                                >
-                                  <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 text-[9px] font-bold flex items-center justify-center shrink-0">
-                                    {c.name ? c.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : ''}
+                            {/* Status */}
+                            <div className="w-28 flex-shrink-0 flex justify-center">
+                              {getStatusBadge(a.dbStatus)}
+                            </div>
+
+                            {/* Counsellor */}
+                            <div className="w-36 flex-shrink-0 flex items-center gap-2 min-w-0" onClick={e => e.stopPropagation()}>
+                              {a.counsellor ? (
+                                <>
+                                  <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[8px] font-bold flex items-center justify-center shrink-0">
+                                    {a.counsellorAvatar}
                                   </div>
-                                  <span>{c.name}</span>
-                                </div>
-                              ))}
-                              <DropdownMenuSeparator />
-                              <div
-                                onClick={() => handleAssignCounsellor(a.id, null)}
-                                className="px-3 py-2 rounded-lg cursor-pointer text-xs font-bold text-red-500 hover:bg-red-50 font-sans"
-                              >
-                                Unassign
-                              </div>
+                                  <span className="text-sm text-slate-650 truncate font-sans">
+                                    {a.counsellor}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-sm text-slate-405 font-sans">Unassigned</span>
+                              )}
                             </div>
-                          )}
-                        </div>
 
-                        {/* Stage selection */}
-                        <div className="w-36 flex-shrink-0 relative" onClick={e => e.stopPropagation()}>
-                          <div
-                            onClick={() => setStageDropdownId(stageDropdownId === a.id ? null : a.id)}
-                            className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-full border cursor-pointer hover:opacity-85 justify-between w-fit ${
-                              stageData.bgClass
-                            } ${stageData.textClass} ${stageData.borderClass}`}
-                          >
-                            <span className="truncate">{stageData.label}</span>
-                            <ChevronDown size={10} className="ml-0.5 shrink-0" strokeWidth={2.5} />
-                          </div>
-
-                          {/* Stage dots */}
-                          <div className="flex items-center gap-1 mt-1.5 select-none">
-                            {configPipeline.filter(s => s.id !== 'rejected').map((s, sIdx) => (
-                              <span
-                                key={s.id}
-                                className={`w-2 h-2 rounded-full ${
-                                  sIdx <= a.stageIndex ? `${s.dotClass} opacity-100` : 'bg-slate-200'
-                                }`}
-                              />
-                            ))}
-                            <span className="text-[9px] text-slate-400 ml-1.5 font-sans font-medium">
-                              {a.stageIndex + 1}/{configPipeline.length - 1}
-                            </span>
-                          </div>
-
-                          {/* Days in stage warning */}
-                          {a.daysInStage > 7 && (
-                            <div className="text-[10px] text-red-400 font-medium mt-1 flex items-center gap-0.5 font-sans">
-                              <span>⚠</span>
-                              <span>{a.daysInStage}d in stage</span>
+                            {/* Date */}
+                            <div className="w-24 flex-shrink-0 text-xs text-slate-500 font-medium font-sans">
+                              {formatDate(a.createdAt)}
                             </div>
-                          )}
 
-                          {stageDropdownId === a.id && (
-                            <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[180px] max-h-56 overflow-y-auto">
-                              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1.5 border-b border-slate-100 mb-1 font-sans">
-                                MOVE TO STAGE
-                              </div>
-                              {configPipeline.map(s => (
-                                <div
-                                  key={s.id}
-                                  onClick={() => handleMoveStage(a.id, s.id)}
-                                  className={`px-3 py-2 rounded-lg cursor-pointer text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between font-sans ${
-                                    a.stageId === s.id ? 'bg-slate-50 font-bold' : ''
-                                  }`}
+                            {/* Actions */}
+                            <div className="w-16 flex-shrink-0 flex justify-end" onClick={e => e.stopPropagation()}>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger>
+                                  <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none cursor-pointer">
+                                    <MoreVertical size={16} strokeWidth={1.5} />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="w-56 min-w-[224px] bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 z-40"
                                 >
-                                  <div className="flex items-center gap-2">
-                                    <span className={`w-2 h-2 rounded-full ${s.dotClass}`} />
-                                    <span>{s.label}</span>
-                                  </div>
-                                  {a.stageId === s.id && <Check size={12} className="text-[#1565D8]" />}
-                                </div>
-                              ))}
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      router.push('/admission-management/' + a.id)
+                                    }}
+                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                                  >
+                                    <Eye size={14} strokeWidth={1.5} className="text-slate-400" />
+                                    View Applicant
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      router.push('/admission-management/' + a.id + '/edit')
+                                    }}
+                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                                  >
+                                    <Pencil size={14} strokeWidth={1.5} className="text-slate-400" />
+                                    Edit Applicant
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuSeparator />
+
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setShowConvertModal(a)
+                                    }}
+                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
+                                  >
+                                    <CheckCircle2 size={14} strokeWidth={1.5} className="text-[#1565D8]" />
+                                    {config.convertToStudentLabel[type]}
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuSeparator />
+
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setShowRejectModal(a)
+                                    }}
+                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer"
+                                  >
+                                    <XCircle size={14} strokeWidth={1.5} className="text-red-500" />
+                                    Reject Application
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
-                          )}
-                        </div>
-
-                        {/* Documents Upload status */}
-                        <div className="hidden md:flex w-20 flex-shrink-0 flex-col gap-1">
-                          <span className={`text-xs font-bold font-sans ${
-                            a.docsUploaded === a.docsRequired ? 'text-green-600 font-bold' :
-                            a.docsUploaded > 0 ? 'text-amber-600 font-bold' : 'text-red-600 font-bold'
-                          }`}>
-                            {a.docsUploaded}/{a.docsRequired}
-                          </span>
-                          <div className="w-12 h-1.5 bg-slate-100 rounded overflow-hidden">
-                            <div
-                              className={`h-1.5 rounded ${
-                                a.docsUploaded === a.docsRequired ? 'bg-green-500' :
-                                a.docsUploaded > 0 ? 'bg-amber-400' : 'bg-red-400'
-                              }`}
-                              style={{ width: `${(a.docsUploaded / a.docsRequired) * 100}%` }}
-                            />
                           </div>
-                        </div>
-
-                        {/* Created Date */}
-                        <div className="hidden xl:flex w-24 flex-shrink-0 text-sm text-slate-500 font-medium font-sans">
-                          {a.createdDate || '—'}
-                        </div>
-
-                        {/* Dropdown Menu actions */}
-                        <div className="w-12 flex-shrink-0 flex justify-center" onClick={e => e.stopPropagation()}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger>
-                              <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none">
-                                <MoreVertical size={16} strokeWidth={1.5}/>
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="end"
-                              className="w-56 min-w-[224px] rounded-xl border border-slate-100 shadow-lg p-1.5"
-                            >
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  router.push('/admission-management/' + a.id)
-                                }}
-                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                              >
-                                <Eye size={14} strokeWidth={1.5} className="text-slate-400"/>
-                                View Applicant
-                              </DropdownMenuItem>
-
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  router.push('/admission-management/' + a.id + '/edit')
-                                }}
-                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                              >
-                                <Pencil size={14} strokeWidth={1.5} className="text-slate-400"/>
-                                Edit Applicant
-                              </DropdownMenuItem>
-
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                }}
-                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                              >
-                                <FileText size={14} strokeWidth={1.5} className="text-slate-400"/>
-                                View Documents
-                              </DropdownMenuItem>
-
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                }}
-                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                              >
-                                <CreditCard size={14} strokeWidth={1.5} className="text-slate-400"/>
-                                View Fee Plans
-                              </DropdownMenuItem>
-
-                              <DropdownMenuSeparator />
-
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setShowConvertModal(a)
-                                }}
-                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
-                              >
-                                <CheckCircle2 size={14} strokeWidth={1.5} className="text-[#1565D8]"/>
-                                {config.convertToStudentLabel[type]}
-                              </DropdownMenuItem>
-
-                              <DropdownMenuSeparator />
-
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setShowRejectModal(a)
-                                }}
-                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer"
-                              >
-                                <XCircle size={14} strokeWidth={1.5} className="text-red-500"/>
-                                Reject Application
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    )
-                  })
-                )}
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
             )
           )}
 
@@ -1765,7 +1621,7 @@ export default function AdmissionManagementPage() {
               SECTION 6 — GRID VIEW
               =================================================================== */}
           {activeView === 'grid' && (loading || filteredApplicants.length > 0) && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
               {loading ? (
                 Array.from({ length: 6 }).map((_, idx) => (
                   <div
@@ -1778,35 +1634,16 @@ export default function AdmissionManagementPage() {
                         <div className="space-y-1.5 flex-1 min-w-[120px]">
                           <Skeleton className="h-3 w-16" />
                           <Skeleton className="h-4 w-28" />
-                          <Skeleton className="h-3 w-20" />
                         </div>
                       </div>
-                      <Skeleton className="w-8 h-8 rounded-lg" />
                     </div>
                     <div className="flex justify-between items-center mt-3">
                       <Skeleton className="h-6 w-16 rounded-lg" />
                       <Skeleton className="h-5 w-20 rounded-full" />
                     </div>
                     <div className="border-t border-slate-200 my-3" />
-                    <div className="flex items-center justify-between">
-                      <Skeleton className="h-6 w-20 rounded-full" />
-                      <Skeleton className="h-4 w-12" />
-                    </div>
-                    <div className="flex items-center gap-1 mt-2.5">
-                      {Array.from({ length: 7 }).map((_, sIdx) => (
-                        <Skeleton key={sIdx} className="w-2 h-2 rounded-full" />
-                      ))}
-                    </div>
                     <div className="flex items-center justify-between mt-3.5">
                       <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-4 w-16" />
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Skeleton className="w-7 h-7 rounded-lg" />
-                        <Skeleton className="w-7 h-7 rounded-lg" />
-                        <Skeleton className="w-7 h-7 rounded-lg" />
-                      </div>
                       <Skeleton className="h-4 w-16" />
                     </div>
                   </div>
@@ -1814,212 +1651,61 @@ export default function AdmissionManagementPage() {
               ) : (
                 filteredApplicants.map(a => {
                   const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
-                  const leftBorderColor = getLeftBorderBg(a)
                   
                   return (
                     <div
                       key={a.id}
                       onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                      className="bg-white rounded-xl border border-slate-200 shadow-md p-5 hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer relative overflow-hidden"
+                      className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md hover:border-[#1565D8] cursor-pointer transition-all flex flex-col gap-3 justify-between"
                     >
-                      {/* Left border highlight */}
-                      {leftBorderColor !== 'bg-transparent' && (
-                        <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${leftBorderColor}`} />
-                      )}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center shrink-0">
+                      {/* TOP ROW */}
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0">
                             {a.avatar}
                           </div>
-                          <div className="min-w-0">
-                            <span className="text-[10px] font-bold text-slate-400 font-mono block">
-                              {a.admissionCode}
-                            </span>
-                            <span className="text-sm font-bold text-slate-800 hover:text-[#1565D8] truncate block font-sans">
-                              {a.fullName}
-                            </span>
-                            <span className="text-xs text-slate-400 mt-0.5 truncate block font-sans">
-                              {type === 'school' ? `Parent: ${a.parentName}` : a.phone}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Grid Trigger Actions */}
-                        <div onClick={e => e.stopPropagation()}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger>
-                              <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none cursor-pointer">
-                                <MoreVertical size={16} strokeWidth={1.5} />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56 min-w-[224px] rounded-xl border border-slate-200 shadow-lg p-1.5">
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  router.push('/admission-management/' + a.id)
-                                }}
-                              >
-                                <Eye size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                                <span>View {config.applicantLabel[type]}</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  router.push('/admission-management/' + a.id + '/edit')
-                                }}
-                              >
-                                <Pencil size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                                <span>Edit {config.applicantLabel[type]}</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  showToast("Showing Documents", "info")
-                                }}
-                              >
-                                <FileText size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                                <span>View Documents</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setShowConvertModal(a)
-                                }}
-                                className="text-[#1565D8] font-semibold"
-                              >
-                                <CheckCircle2 size={14} className="mr-2 text-[#1565D8]" strokeWidth={1.5} />
-                                <span>{config.convertToStudentLabel[type]}</span>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setShowRejectModal(a)
-                                }}
-                                className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                              >
-                                <XCircle size={14} className="mr-2 text-red-500" strokeWidth={1.5} />
-                                <span>Reject Application</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-between items-center mt-3">
-                        <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-lg font-sans">
-                          {getGradeLabel(a.applyingFor)}
-                        </span>
-                        <div className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-0.5 rounded-full ${
-                          sourceConfig[a.source]?.bg || 'bg-slate-100'
-                        } ${sourceConfig[a.source]?.text || 'text-slate-660'}`}>
-                          <span className={`w-2 h-2 rounded-full ${sourceConfig[a.source]?.dot || 'bg-slate-400'}`} />
-                          <span>{a.source}</span>
-                        </div>
-                      </div>
-
-                      <div className="border-t border-slate-200 my-3" />
-
-                      <div className="flex items-center justify-between">
-                        <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
-                          stageData.bgClass} ${stageData.textClass} ${stageData.borderClass}`}
-                        >
-                          {stageData.label}
-                        </div>
-
-                        <span className={`text-xs font-bold font-sans ${
-                          a.docsUploaded === a.docsRequired ? 'text-green-600 font-bold' :
-                          a.docsUploaded > 0 ? 'text-amber-600 font-bold' : 'text-red-600 font-bold'
-                        }`}>
-                          {a.docsUploaded}/{a.docsRequired} docs
-                        </span>
-                      </div>
-
-                      {/* Progress dots in Grid */}
-                      <div className="flex items-center gap-1 mt-2.5 select-none">
-                        {configPipeline.filter(s => s.id !== 'rejected').map((s, sIdx) => (
-                          <span
-                            key={s.id}
-                            className={`w-2 h-2 rounded-full ${
-                              sIdx <= a.stageIndex ? `${s.dotClass} opacity-100` : 'bg-slate-200'
-                            }`}
-                          />
-                        ))}
-                        <span className="text-[9px] text-slate-400 ml-1.5 font-sans font-medium">
-                          {a.stageIndex + 1}/{configPipeline.length - 1}
-                        </span>
-                      </div>
-
-                      {/* Pending Action details */}
-                      {a.pendingAction && (
-                        <div className="flex items-start bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-2">
-                          <AlertCircle size={12} className="text-amber-500 mr-1.5 mt-0.5 shrink-0" strokeWidth={2.5} />
-                          <span className="text-[10px] font-semibold text-amber-700 leading-tight font-sans">
-                            {a.pendingAction}
+                          <span className="text-sm font-semibold text-slate-800 truncate block font-sans">
+                            {a.fullName}
                           </span>
                         </div>
-                      )}
+                        {/* Status Badge */}
+                        <div className="shrink-0">
+                          {getStatusBadge(a.dbStatus)}
+                        </div>
+                      </div>
 
-                      {/* Counsellor + Date */}
-                      <div className="flex items-center justify-between mt-3.5">
-                        <div className="flex items-center gap-2">
+                      {/* MIDDLE ROW */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-mono text-slate-400">
+                          {a.admissionCode}
+                        </span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                          {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
+                        </span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${stageData.bgClass} ${stageData.textClass} border ${stageData.borderClass}`}>
+                          {stageData.label}
+                        </span>
+                      </div>
+
+                      {/* BOTTOM ROW */}
+                      <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           {a.counsellor ? (
                             <>
-                              <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 text-[9px] font-bold flex items-center justify-center shrink-0">
+                              <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-750 text-[8px] font-bold flex items-center justify-center shrink-0">
                                 {a.counsellorAvatar}
                               </div>
-                              <span className="text-xs font-semibold text-slate-650 truncate max-w-[120px] font-sans">
+                              <span className="text-xs text-slate-655 truncate max-w-[100px] font-sans">
                                 {a.counsellor}
                               </span>
                             </>
                           ) : (
-                            <span className="text-xs font-medium text-slate-400 font-sans">Unassigned</span>
+                            <span className="text-xs text-slate-400 font-sans">Unassigned</span>
                           )}
                         </div>
-
-                        <span className="text-xs text-slate-400 font-sans">{a.createdDate}</span>
-                      </div>
-
-                      {/* Connect Actions strip */}
-                      <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => showToast("Email initiated", "info")}
-                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 transition"
-                          >
-                            <Mail size={13} className="text-slate-400" strokeWidth={1.5} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              window.open(`https://wa.me/91${a.phone}`)
-                              showToast("WhatsApp opened", "success")
-                            }}
-                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-green-50 transition"
-                          >
-                            <MessageCircle size={13} className="text-green-500" strokeWidth={1.5} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              window.open(`tel:${a.phone}`)
-                              showToast("Call initiated", "success")
-                            }}
-                            className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 transition"
-                          >
-                            <Phone size={13} className="text-blue-500" strokeWidth={1.5} />
-                          </button>
-                        </div>
-
-                        <Link 
-                          href={`/admission-management/${a.id}`} 
-                          onClick={e => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            handleNavigate(`/admission-management/${a.id}`)
-                          }}
-                          className="text-xs font-bold text-[#1565D8] hover:underline font-sans flex items-center gap-0.5"
-                        >
-                          <span>View Details</span>
-                          <span>→</span>
-                        </Link>
+                        <span className="text-xs text-slate-400 font-sans">
+                          {formatDate(a.createdAt)}
+                        </span>
                       </div>
                     </div>
                   )
@@ -2038,25 +1724,21 @@ export default function AdmissionManagementPage() {
                   const stageApplicants = filteredApplicants.filter(a => a.stageId === stage.id)
 
                   return (
-                    <div key={stage.id} className="w-[280px] flex-shrink-0">
+                    <div key={stage.id} className="w-[280px] flex-shrink-0 bg-slate-50 rounded-xl p-3 flex flex-col gap-3">
                       {/* COLUMN HEADER */}
-                      <div className="flex items-center justify-between mb-3 bg-white p-3 rounded-lg border border-slate-200 shadow-md select-none">
+                      <div className="flex items-center justify-between select-none">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${stage.dotClass}`} />
-                          <span className="text-xs font-bold text-slate-700 truncate font-sans">
+                          <span className="text-sm font-bold text-slate-800 truncate font-sans">
                             {stage.label}
                           </span>
-                          {loading ? (
-                            <Skeleton className="w-6 h-4 rounded-full shrink-0" />
-                          ) : (
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${stage.bgClass} ${stage.textClass}`}>
-                              {stageApplicants.length}
-                            </span>
-                          )}
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${stage.bgClass} ${stage.textClass}`}>
+                            {stageApplicants.length}
+                          </span>
                         </div>
                         <button
                           onClick={() => router.push(`/admission-management/create?stage=${stage.id}`)}
-                          className="p-1 rounded text-slate-400 hover:text-slate-650 hover:bg-slate-50 cursor-pointer"
+                          className="p-1 rounded text-slate-400 hover:text-slate-650 hover:bg-slate-200 cursor-pointer"
                           title={`Add to ${stage.label}`}
                         >
                           <Plus size={14} strokeWidth={2} />
@@ -2064,46 +1746,21 @@ export default function AdmissionManagementPage() {
                       </div>
 
                       {/* COLUMN BODY */}
-                      <div className="space-y-3 min-h-[300px] bg-slate-50/50 p-2 rounded-xl border border-dashed border-slate-150">
+                      <div className="space-y-3 min-h-[300px] flex-1 overflow-y-auto">
                         {loading ? (
                           Array.from({ length: 2 }).map((_, idx) => (
                             <div
                               key={`skeleton-kanban-${stage.id}-${idx}`}
-                              className="bg-white rounded-xl border border-slate-200 shadow-md p-4 relative overflow-hidden"
+                              className="bg-white rounded-xl border border-slate-200 p-4 relative overflow-hidden"
                             >
-                              <div className="flex justify-between items-start">
-                                <div className="space-y-1 flex-1">
-                                  <Skeleton className="h-2.5 w-12" />
-                                  <Skeleton className="h-4 w-28" />
-                                </div>
-                                <Skeleton className="w-6 h-6 rounded" />
-                              </div>
-                              <Skeleton className="h-3.5 w-20 mt-1.5" />
-                              <div className="flex justify-between items-center mt-3">
-                                <Skeleton className="h-4 w-12" />
-                                <Skeleton className="h-4 w-16 rounded-full" />
-                              </div>
-                              <div className="flex items-center gap-1 mt-2.5">
-                                {Array.from({ length: 7 }).map((_, sIdx) => (
-                                  <Skeleton key={sIdx} className="w-1.5 h-1.5 rounded-full" />
-                                ))}
-                              </div>
-                              <div className="flex items-center justify-between mt-2.5">
-                                <Skeleton className="h-3 w-12" />
-                              </div>
-                              <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-50">
-                                <Skeleton className="h-4 w-16" />
-                                <Skeleton className="h-3 w-10" />
-                              </div>
-                              <div className="mt-2.5 flex items-center gap-1">
-                                <Skeleton className="w-6 h-6 rounded" />
-                                <Skeleton className="w-6 h-6 rounded" />
-                                <Skeleton className="w-6 h-6 rounded" />
+                              <div className="space-y-1.5">
+                                <Skeleton className="h-4 w-28" />
+                                <Skeleton className="h-3 w-16" />
                               </div>
                             </div>
                           ))
                         ) : stageApplicants.length === 0 ? (
-                          <div className="bg-slate-50/20 rounded-xl border border-dashed border-slate-200 py-8 text-center flex flex-col items-center justify-center">
+                          <div className="bg-white/50 rounded-xl border border-dashed border-slate-200 py-8 text-center flex flex-col items-center justify-center">
                             <Inbox size={24} className="text-slate-350" strokeWidth={1.5} />
                             <span className="text-[11px] text-slate-400 font-bold mt-2 font-sans">
                               No {config.applicantLabel[type]}s
@@ -2111,166 +1768,60 @@ export default function AdmissionManagementPage() {
                           </div>
                         ) : (
                           stageApplicants.map(a => {
-                            const leftBorderColor = getLeftBorderBg(a)
-
-
                             return (
                               <div
                                 key={a.id}
                                 onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                                className="bg-white rounded-xl border border-slate-200 shadow-md p-4 hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer relative overflow-hidden"
+                                className="bg-white border border-slate-200 rounded-xl p-3 mb-2 hover:shadow-sm cursor-pointer transition-all flex flex-col gap-2.5"
                               >
-                                {/* Left border highlight */}
-                                {leftBorderColor !== 'bg-transparent' && (
-                                  <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${leftBorderColor}`} />
-                                )}
-                                <div className="flex justify-between items-start">
-                                  <div className="min-w-0">
-                                    <span className="text-[9px] font-bold text-slate-400 font-mono block">
-                                      {a.admissionCode}
-                                    </span>
-                                    <span className="text-xs font-bold text-slate-800 hover:text-[#1565D8] truncate block mt-0.5 font-sans">
-                                      {a.fullName}
-                                    </span>
-                                  </div>
-
-                                  <div onClick={e => e.stopPropagation()}>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger>
-                                        <button className="w-6 h-6 rounded flex items-center justify-center text-slate-400 hover:bg-slate-50 cursor-pointer focus:outline-none">
-                                          <MoreVertical size={13} strokeWidth={1.5} />
-                                        </button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent className="w-48 rounded-lg border border-slate-200 shadow-lg p-1">
-                                        <DropdownMenuItem
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            router.push('/admission-management/' + a.id)
-                                          }}
-                                        >
-                                          View Info
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            router.push('/admission-management/' + a.id + '/edit')
-                                          }}
-                                        >
-                                          Edit Info
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            setShowConvertModal(a)
-                                          }}
-                                          className="text-[#1565D8] font-bold"
-                                        >
-                                          Convert
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            setShowRejectModal(a)
-                                          }}
-                                          className="text-red-500"
-                                        >
-                                          Reject
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-                                </div>
-
-                                <p className="text-[10px] text-slate-400 mt-1 truncate font-sans">
-                                  {type === 'school' ? `Parent: ${a.parentName}` : a.phone}
-                                </p>
-
-                                <div className="flex justify-between items-center mt-3">
-                                  <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded font-sans">
-                                    {getGradeLabel(a.applyingFor)}
+                                <div>
+                                  <span className="text-sm font-semibold text-slate-800 block font-sans truncate">
+                                    {a.fullName}
                                   </span>
-                                  <div className={`flex items-center gap-1.5 text-[9px] font-semibold px-2 py-0.5 rounded-full ${
-                                    sourceConfig[a.source]?.bg || 'bg-slate-100'
-                                  } ${sourceConfig[a.source]?.text || 'text-slate-650'}`}>
-                                    <span className={`w-2 h-2 rounded-full ${sourceConfig[a.source]?.dot || 'bg-slate-400'}`} />
-                                    <span>{a.source}</span>
-                                  </div>
-                                </div>
-
-                                {/* Progress dots in Kanban card */}
-                                <div className="flex items-center gap-1 mt-2.5 select-none">
-                                  {configPipeline.filter(s => s.id !== 'rejected').map((s, sIdx) => (
-                                    <span
-                                      key={s.id}
-                                      className={`w-1.5 h-1.5 rounded-full ${
-                                        sIdx <= a.stageIndex ? `${s.dotClass} opacity-100` : 'bg-slate-200'
-                                      }`}
-                                    />
-                                  ))}
-                                </div>
-
-                                <div className="flex items-center justify-between mt-2.5">
-                                  <span className={`text-[10px] font-bold font-sans ${
-                                    a.docsUploaded === a.docsRequired ? 'text-green-600 font-bold' :
-                                    a.docsUploaded > 0 ? 'text-amber-600 font-bold' : 'text-red-600 font-bold'
-                                  }`}>
-                                    {a.docsUploaded}/{a.docsRequired} docs
+                                  <span className="text-xs font-mono text-slate-400 block mt-0.5">
+                                    {a.admissionCode}
                                   </span>
                                 </div>
 
-                                {a.pendingAction && (
-                                  <div className="flex items-start bg-amber-50 border border-amber-100 rounded px-2 py-1.5 mt-2">
-                                    <AlertCircle size={10} className="text-amber-500 mr-1.5 mt-0.5 shrink-0" strokeWidth={2.5} />
-                                    <span className="text-[9px] font-semibold text-amber-700 leading-tight font-sans">
-                                      {a.pendingAction}
-                                    </span>
-                                  </div>
-                                )}
+                                <div className="flex flex-wrap gap-1.5">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                    {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
+                                  </span>
+                                </div>
 
-                                <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-50">
-                                  <div className="flex items-center gap-1.5">
+                                <div className="flex items-center justify-between mt-1 pt-2 border-t border-slate-100">
+                                  <div className="flex items-center gap-1.5 min-w-0">
                                     {a.counsellor ? (
                                       <>
                                         <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 text-[8px] font-bold flex items-center justify-center shrink-0">
                                           {a.counsellorAvatar}
                                         </div>
-                                        <span className="text-[10px] font-medium text-slate-500 truncate max-w-[80px] font-sans">
+                                        <span className="text-xs text-slate-650 truncate max-w-[80px] font-sans">
                                           {a.counsellor.split(' ')[0]}
                                         </span>
                                       </>
                                     ) : (
-                                      <span className="text-[9px] font-medium text-slate-400 font-sans">Unassigned</span>
+                                      <span className="text-xs text-slate-400 font-sans">Unassigned</span>
                                     )}
                                   </div>
-                                  <span className="text-[9px] text-slate-400 font-sans">{a.createdDate}</span>
+                                  <span className="text-xs text-slate-400 font-sans">
+                                    {formatDate(a.createdAt)}
+                                  </span>
                                 </div>
 
-                                {/* Quick connects strip */}
-                                <div className="mt-2.5 flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                                  <button
-                                    onClick={() => showToast("Email initiated", "info")}
-                                    className="w-6 h-6 rounded border border-slate-200 flex items-center justify-center hover:bg-blue-50 transition"
+                                <div className="mt-1 pt-2 border-t border-slate-100 flex items-center justify-between" onClick={e => e.stopPropagation()}>
+                                  <span className="text-[10px] text-slate-400 uppercase font-bold">Stage</span>
+                                  <select
+                                    value={a.stageId}
+                                    onChange={(e) => handleMoveStage(a.id, e.target.value)}
+                                    className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 text-[11px] focus:outline-none focus:border-blue-500 font-medium cursor-pointer"
                                   >
-                                    <Mail size={11} className="text-slate-400" strokeWidth={1.5} />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      window.open(`https://wa.me/91${a.phone}`)
-                                      showToast("WhatsApp opened", "success")
-                                    }}
-                                    className="w-6 h-6 rounded border border-slate-200 flex items-center justify-center hover:bg-green-50 transition"
-                                  >
-                                    <MessageCircle size={11} className="text-green-500" strokeWidth={1.5} />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      window.open(`tel:${a.phone}`)
-                                      showToast("Call initiated", "success")
-                                    }}
-                                    className="w-6 h-6 rounded border border-slate-200 flex items-center justify-center hover:bg-blue-50 transition"
-                                  >
-                                    <Phone size={11} className="text-blue-500" strokeWidth={1.5} />
-                                  </button>
+                                    {configPipeline.map((s) => (
+                                      <option key={s.id} value={s.id}>
+                                        {s.label}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </div>
                               </div>
                             )

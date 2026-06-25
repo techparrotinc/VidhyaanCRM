@@ -1273,7 +1273,7 @@ export default function LeadDetailPage() {
           onSuccess={(admissionId) => {
             setCurrentStatus('Converted')
             showToast("Lead converted to admission!")
-            router.push(`/admission-management/${admissionId}`)
+            router.push('/admission-management')
           }}
         />
       )}

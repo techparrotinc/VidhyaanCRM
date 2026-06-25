@@ -178,7 +178,7 @@ export default function CreateAdmissionPage() {
         throw new Error(json.error || json.message || 'Failed to create admission record')
       }
 
-      router.push(`/admission-management/${json.data.id}`)
+      router.push('/admission-management?success=created')
     } catch (err: any) {
       console.error('Submit error:', err)
       setErrorMessage(err.message || 'Failed to create admission')

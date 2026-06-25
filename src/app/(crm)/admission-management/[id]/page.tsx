@@ -24,11 +24,19 @@ import {
   FolderOpen,
   Loader2,
   FileX,
-  Trash2
+  Trash2,
+  MoreVertical
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 
 import { Card } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 import { Skeleton } from "@/components/ui/skeleton"
@@ -50,6 +58,44 @@ export default function AdmissionDetailPage() {
 
   const [loading, setLoading] = useState(true)
   const [admission, setAdmission] = useState<any>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this admission record? This action cannot be undone.'
+    )
+    if (!confirmed) return
+
+    try {
+      setIsDeleting(true)
+      const res = await fetch(
+        `/api/v1/admissions/${admissionId}`,
+        { method: 'DELETE' }
+      )
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(
+          err.message ||
+          'Failed to delete admission'
+        )
+      }
+
+      showToast(
+        'Admission record deleted',
+        'success'
+      )
+      router.push('/admission-management')
+
+    } catch (err: any) {
+      showToast(err.message ||
+        'Failed to delete',
+        'error'
+      )
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   const { data: session } = useSession()
   const isOrgAdmin = session?.user?.role === 'ORG_ADMIN'
@@ -339,6 +385,24 @@ export default function AdmissionDetailPage() {
               >
                 Edit Admission
               </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <button className="border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 p-2 rounded-lg flex items-center justify-center cursor-pointer transition shadow-sm h-[32px] w-[32px] md:h-[34px] md:w-[34px]">
+                    <MoreVertical size={16} className="text-slate-500" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-48 rounded-lg border border-slate-200 shadow-lg p-1.5 bg-white z-50">
+                  {(admission.status !== 'ADMITTED' || !admission.student) && (
+                    <DropdownMenuItem
+                      onClick={handleDelete}
+                      className="text-red-650 hover:bg-red-50 focus:bg-red-50 flex items-center gap-2"
+                    >
+                      <Trash2 size={14} className="text-red-500" />
+                      Delete Admission
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-800`}>
                 Stage: {admission.stage?.name || 'New Lead'}
               </span>

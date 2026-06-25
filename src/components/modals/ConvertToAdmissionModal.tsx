@@ -1,11 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { ClipboardList, Info, ArrowRight, X, Hash, User, Phone, GraduationCap, Tag, Activity } from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-} from '@/components/ui/dialog'
+import { ClipboardList, Info, ArrowRight, X, Phone, GraduationCap, Tag, Circle } from 'lucide-react'
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 
 interface LeadRecord {
@@ -40,56 +36,57 @@ const statusLabels: Record<string, string> = {
   NOT_INTERESTED: 'Rejected'
 }
 
-export function mapGradeToValue(grade: string | null | undefined): string {
+function mapGradeValue(
+  grade: string | null | undefined
+): string {
   if (!grade) return ''
 
-  const normalized = grade.toLowerCase().trim()
+  const g = grade.toLowerCase()
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/-/g, '_')
 
-  if (normalized.includes('pre-kg') || normalized.includes('pre kg') || normalized.includes('pre_kg')) {
-    return 'pre_kg'
-  }
-  if (normalized.includes('nursery')) {
-    return 'nursery'
-  }
-  if (normalized.includes('lkg') || normalized.includes('l.k.g')) {
-    return 'lkg'
-  }
-  if (normalized.includes('ukg') || normalized.includes('u.k.g')) {
-    return 'ukg'
-  }
-
-  const gradeMap: Record<string, string> = {
-    'class 1': 'class_1',
-    'class 2': 'class_2',
-    'class 3': 'class_3',
-    'class 4': 'class_4',
-    'class 5': 'class_5',
-    'class 6': 'class_6',
-    'class 7': 'class_7',
-    'class 8': 'class_8',
-    'class 9': 'class_9',
-    'class 10': 'class_10',
-    'class 11': 'class_11_science',
-    'class 12': 'class_12_science',
-    '1': 'class_1',
-    '2': 'class_2',
-    '3': 'class_3',
-    '4': 'class_4',
-    '5': 'class_5',
-    '6': 'class_6',
-    '7': 'class_7',
-    '8': 'class_8',
-    '9': 'class_9',
-    '10': 'class_10',
+  const directMatches: Record<string, string> = {
+    'pre_kg': 'pre_kg',
+    'pre-kg': 'pre_kg',
+    'nursery': 'nursery',
+    'lkg': 'lkg',
+    'ukg': 'ukg',
+    'class_1': 'class_1',
+    'class_2': 'class_2',
+    'class_3': 'class_3',
+    'class_4': 'class_4',
+    'class_5': 'class_5',
+    'class_6': 'class_6',
+    'class_7': 'class_7',
+    'class_8': 'class_8',
+    'class_9': 'class_9',
+    'class_10': 'class_10',
+    'grade_1': 'class_1',
+    'grade_2': 'class_2',
+    'grade_3': 'class_3',
+    'grade_4': 'class_4',
+    'grade_5': 'class_5',
+    'grade_6': 'class_6',
+    'grade_7': 'class_7',
+    'grade_8': 'class_8',
+    'grade_9': 'class_9',
+    'grade_10': 'class_10',
   }
 
-  for (const [key, val] of Object.entries(gradeMap)) {
-    if (normalized.includes(key)) {
-      return val
+  if (directMatches[g]) {
+    return directMatches[g]
+  }
+
+  const gradeNumber = grade.match(/\d+/)
+  if (gradeNumber) {
+    const num = parseInt(gradeNumber[0])
+    if (num >= 1 && num <= 12) {
+      return 'class_' + num
     }
   }
 
-  return gradeMap[normalized] || grade
+  return grade
 }
 
 export default function ConvertToAdmissionModal({
@@ -98,29 +95,51 @@ export default function ConvertToAdmissionModal({
   onClose,
   onSuccess,
 }: ConvertToAdmissionModalProps) {
-  // Form fields state object
-  const [formData, setFormData] = useState({
-    applicantName: '',
-    gradeSought: '',
+  // Form state
+  const [form, setForm] = useState(() => ({
+    applicantName:
+      lead?.kidName ||
+      lead?.parentName || '',
+    gradeSought:
+      mapGradeValue(lead?.gradeSought),
     academicYearId: '',
     stageId: '',
-    assignedToId: '',
-    notes: ''
-  })
+    assignedToId:
+      lead?.assignedToId || '',
+    notes: lead?.notes || '',
+  }))
 
-  // Validation / interaction states
-  const [touched, setTouched] = useState<Record<string, boolean>>({})
-  const [submitAttempted, setSubmitAttempted] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
-
-  // API list states
+  // Option list states
   const [academicYears, setAcademicYears] = useState<any[]>([])
   const [pipelineStages, setPipelineStages] = useState<any[]>([])
   const [counsellors, setCounsellors] = useState<any[]>([])
   const [loadingOptions, setLoadingOptions] = useState(true)
 
-  // Fetch API options on mount in parallel
+  // Interaction/submission states
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [submitAttempted, setSubmitAttempted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  // Update form fields when lead changes
+  useEffect(() => {
+    setForm(prev => ({
+      ...prev,
+      applicantName:
+        lead?.kidName ||
+        lead?.parentName || '',
+      gradeSought:
+        mapGradeValue(lead?.gradeSought),
+      assignedToId:
+        lead?.assignedToId || '',
+      notes: lead?.notes || '',
+    }))
+    setTouched({})
+    setSubmitAttempted(false)
+    setError('')
+  }, [lead?.id])
+
+  // Fetch options when modal is opened
   useEffect(() => {
     if (!isOpen) return
 
@@ -144,7 +163,7 @@ export default function ConvertToAdmissionModal({
               (y: any) => y.status === 'ACTIVE' || y.isCurrent === true
             )
             if (activeYear) {
-              setFormData((prev) => ({
+              setForm((prev) => ({
                 ...prev,
                 academicYearId: prev.academicYearId || activeYear.id
               }))
@@ -163,7 +182,7 @@ export default function ConvertToAdmissionModal({
               .filter((s: any) => !s.isWon && !s.isLost)
               .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0))[0]
             if (firstNonTerminal) {
-              setFormData((prev) => ({
+              setForm((prev) => ({
                 ...prev,
                 stageId: prev.stageId || firstNonTerminal.id
               }))
@@ -178,7 +197,7 @@ export default function ConvertToAdmissionModal({
           }
         }
       } catch (err) {
-        console.error('Error fetching conversion config data:', err)
+        console.error('Error fetching modal options:', err)
       } finally {
         setLoadingOptions(false)
       }
@@ -187,69 +206,37 @@ export default function ConvertToAdmissionModal({
     fetchData()
   }, [isOpen])
 
-  // Prefill fields when lead updates
-  useEffect(() => {
-    if (!isOpen || !lead) return
-
-    setFormData({
-      applicantName: lead.kidName || lead.parentName || '',
-      gradeSought: mapGradeToValue(lead.gradeSought),
-      academicYearId: lead.academicYearId || '',
-      stageId: '', // Set by the pipeline stages load
-      assignedToId: lead.assignedToId || '',
-      notes: lead.notes || ''
-    })
-    
-    // Clear validation states
-    setTouched({})
-    setSubmitAttempted(false)
-    setError('')
-  }, [lead, isOpen])
-
-  // Prefill grade sought when lead updates (Cause 2 Fix)
-  useEffect(() => {
-    if (lead?.gradeSought) {
-      setFormData(prev => ({
-        ...prev,
-        gradeSought: mapGradeToValue(lead.gradeSought)
-      }))
-    }
-  }, [lead?.gradeSought])
-
-  // Touch handlers
+  // Inline Validation Helpers
   const handleBlur = (field: string) => {
-    setTouched((prev) => ({ ...prev, [field]: true }))
+    setTouched(prev => ({ ...prev, [field]: true }))
   }
 
-  // Inline validations
-  const getError = (field: string, value: string) => {
-    if (field === 'applicantName' && !value.trim()) {
+  const getFieldError = (field: string): string => {
+    if (field === 'applicantName' && !form.applicantName.trim()) {
       return 'Applicant name is required'
     }
-    if (field === 'gradeSought' && !value) {
-      return 'Grade is required'
+    if (field === 'gradeSought' && !form.gradeSought) {
+      return 'Applying grade is required'
     }
-    if (field === 'academicYearId' && !value) {
+    if (field === 'academicYearId' && !form.academicYearId) {
       return 'Academic year is required'
     }
-    if (field === 'stageId' && !value) {
+    if (field === 'stageId' && !form.stageId) {
       return 'Initial stage is required'
     }
     return ''
   }
 
-  const isFieldInvalid = (field: string) => {
-    const value = formData[field as keyof typeof formData] || ''
-    const err = getError(field, value)
-    return err ? (touched[field] || submitAttempted) : false
+  const isFieldInvalid = (field: string): boolean => {
+    const err = getFieldError(field)
+    return !!err && (touched[field] || submitAttempted)
   }
 
-  // Form validity
   const isFormValid =
-    !getError('applicantName', formData.applicantName) &&
-    !getError('gradeSought', formData.gradeSought) &&
-    !getError('academicYearId', formData.academicYearId) &&
-    !getError('stageId', formData.stageId)
+    !getFieldError('applicantName') &&
+    !getFieldError('gradeSought') &&
+    !getFieldError('academicYearId') &&
+    !getFieldError('stageId')
 
   const handleSubmit = async () => {
     setSubmitAttempted(true)
@@ -263,17 +250,17 @@ export default function ConvertToAdmissionModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          applicantName: formData.applicantName,
+          applicantName: form.applicantName,
           parentName: lead.parentName,
           phone: lead.phone,
-          email: lead.email || undefined,
-          gradeSought: formData.gradeSought,
+          email: lead.email || null,
+          gradeSought: form.gradeSought,
+          academicYearId: form.academicYearId,
+          stageId: form.stageId,
+          assignedToId: form.assignedToId || null,
+          notes: form.notes || null,
           leadId: lead.id,
-          assignedToId: formData.assignedToId || undefined,
-          academicYearId: formData.academicYearId || undefined,
-          stageId: formData.stageId || undefined,
-          notes: formData.notes || undefined,
-          priority: lead.priority || 'MEDIUM'
+          priority: lead.priority || 'MEDIUM',
         }),
       })
 
@@ -292,350 +279,336 @@ export default function ConvertToAdmissionModal({
     }
   }
 
-  // Dynamic Grade Options
-  const mappedValue = mapGradeToValue(lead?.gradeSought)
-  const gradeOptions = [
-    ...GRADE_OPTIONS,
-    ...(lead?.gradeSought && !GRADE_OPTIONS.find(g => g.value === mappedValue)
-      ? [{ value: lead.gradeSought, label: lead.gradeSought }]
-      : []
-    )
-  ]
+  if (!isOpen || !lead) return null
+
+  // Dynamic Grade Options (unshift if not in standard list)
+  const mappedValue = mapGradeValue(lead.gradeSought)
+  const gradeOptions: { value: string; label: string }[] = [...GRADE_OPTIONS]
+  if (lead.gradeSought && !GRADE_OPTIONS.some(opt => opt.value === mappedValue)) {
+    gradeOptions.unshift({
+      value: lead.gradeSought,
+      label: lead.gradeSought
+    })
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="max-w-[780px] w-[95vw] h-auto md:h-[600px] max-h-[90vh] rounded-2xl p-0 overflow-hidden bg-white shadow-[0_25px_50px_rgba(0,0,0,0.25)] border border-slate-100 flex flex-col md:flex-row">
-        <style dangerouslySetInnerHTML={{ __html: `
-          .max-w-\\[780px\\] > button {
+    <div className="fixed inset-0 bg-[rgba(0,0,0,0.5)] z-50 flex items-center justify-center p-4">
+      {/* CSS overrides for responsive states & scrollbar */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: #E2E8F0;
+          border-radius: 9999px;
+        }
+        .form-input-style {
+          width: 100%;
+          height: 40px;
+          padding: 0 12px;
+          border: 1.5px solid #E2E8F0;
+          border-radius: 8px;
+          font-size: 14px;
+          color: #1E293B;
+          background: white;
+          transition: border 150ms, box-shadow 150ms;
+          outline: none;
+        }
+        .form-input-style:focus {
+          border-color: #1565D8 !important;
+          box-shadow: 0 0 0 3px rgba(21,101,216,0.1) !important;
+        }
+        .form-input-style.has-value {
+          border-color: #CBD5E1;
+        }
+        .form-input-style.has-error {
+          border-color: #EF4444;
+        }
+        textarea.form-input-style {
+          height: auto;
+          padding: 8px 12px;
+          resize: none;
+        }
+        @media (max-width: 479px) {
+          .modal-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .modal-footer {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .modal-footer-info {
             display: none !important;
           }
-          @media (max-height: 700px) {
-            .modal-compact-form {
-              padding-top: 12px !important;
-              padding-bottom: 12px !important;
-              gap: 12px !important;
-            }
-            .modal-compact-gap {
-              gap: 12px !important;
-            }
-            .modal-compact-header {
-              padding-top: 12px !important;
-              padding-bottom: 10px !important;
-            }
-            .modal-compact-footer {
-              padding-top: 10px !important;
-              padding-bottom: 10px !important;
-            }
+          .modal-footer-buttons {
+            width: 100% !important;
+            flex-direction: column !important;
           }
-        ` }} />
+          .modal-footer-buttons button {
+            width: 100% !important;
+          }
+        }
+      ` }} />
 
-        {/* LEFT PANEL */}
-        <div className="w-full md:w-[260px] md:flex-shrink-0 bg-[#1565D8] rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none p-5 md:pt-7 md:px-6 md:pb-7 flex flex-col text-white overflow-hidden select-none">
-          {/* Top Section */}
-          <div className="bg-white/15 rounded-xl p-3 w-fit text-white">
-            <ClipboardList size={24} />
-          </div>
-          <h3 className="text-xl font-bold text-white leading-tight mt-4">
-            Convert to Admission
-          </h3>
-          <p className="text-sm text-blue-200 mt-1">
-            Review and confirm the admission details
-          </p>
-
-          <div className="w-10 h-0.5 bg-white/30 mt-6 mb-6" />
-
-          {/* Lead Info Section */}
-          <div className="flex-1">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-blue-300 mb-3">
-              FROM LEAD
+      <div className="bg-white rounded-[20px] w-full max-w-[560px] max-h-[90vh] flex flex-col shadow-[0_20px_60px_rgba(0,0,0,0.3)] overflow-hidden relative">
+        
+        {/* SECTION 1 — COMPACT COLORED HEADER */}
+        <div className="bg-gradient-to-r from-[#1565D8] to-[#1E40AF] px-6 py-5 shrink-0 flex flex-col">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-[rgba(255,255,255,0.2)] rounded-xl p-2 flex items-center justify-center">
+                <ClipboardList className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-base leading-snug">
+                  Convert to Admission
+                </h3>
+                <p className="text-blue-200 text-xs mt-0.5">
+                  Lead #{lead.leadCode} · {lead.parentName}
+                </p>
+              </div>
             </div>
             
-            <div className="space-y-3">
-              {/* Row 1: Lead ID */}
-              <div className="flex items-start gap-2">
-                <Hash size={16} className="text-white/70 mt-0.5 shrink-0" />
-                <div>
-                  <div className="text-[10px] text-blue-300 uppercase font-semibold">Lead ID</div>
-                  <div className="font-mono text-sm text-white font-semibold">{lead?.leadCode}</div>
-                </div>
-              </div>
-
-              {/* Row 2: Parent */}
-              <div className="flex items-start gap-2">
-                <User size={16} className="text-white/70 mt-0.5 shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] text-blue-300 uppercase font-semibold">Parent</div>
-                  <div className="text-sm text-white font-medium truncate">{lead?.parentName}</div>
-                </div>
-              </div>
-
-              {/* Row 3: Phone (hidden on mobile) */}
-              <div className="hidden md:flex items-start gap-2">
-                <Phone size={16} className="text-white/70 mt-0.5 shrink-0" />
-                <div>
-                  <div className="text-[10px] text-blue-300 uppercase font-semibold">Phone</div>
-                  <div className="text-sm text-white">{lead?.phone}</div>
-                </div>
-              </div>
-
-              {/* Row 4: Grade */}
-              <div className="flex items-start gap-2">
-                <GraduationCap size={16} className="text-white/70 mt-0.5 shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] text-blue-300 uppercase font-semibold">Applying For</div>
-                  <div className="text-sm text-white truncate">
-                    {lead?.gradeSought ? getGradeLabel(lead.gradeSought) : 'Not specified'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 5: Source (hidden on mobile) */}
-              <div className="hidden md:flex items-start gap-2">
-                <Tag size={16} className="text-white/70 mt-0.5 shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] text-blue-300 uppercase font-semibold">Source</div>
-                  <div className="text-sm text-blue-200 capitalize truncate">{lead?.source || '—'}</div>
-                </div>
-              </div>
-
-              {/* Row 6: Status (hidden on mobile) */}
-              <div className="hidden md:flex items-start gap-2">
-                <Activity size={16} className="text-white/70 mt-0.5 shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="text-[10px] text-blue-300 uppercase font-semibold">Status</div>
-                  <div className="text-sm text-blue-200 truncate">
-                    {lead?.status ? (statusLabels[lead.status] || lead.status) : '—'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Section */}
-          <div className="hidden md:block mt-auto bg-white/10 rounded-xl p-3 border border-white/20">
-            <p className="text-xs text-blue-200 leading-relaxed">
-              ℹ Lead status will automatically update to Converted after successful admission creation.
-            </p>
-          </div>
-        </div>
-
-        {/* RIGHT PANEL */}
-        <div className="flex-1 bg-white rounded-b-2xl md:rounded-r-2xl md:rounded-bl-none flex flex-col overflow-hidden">
-          
-          {/* HEADER */}
-          <div className="px-6 pt-5 pb-4 border-b border-slate-100 flex items-center justify-between">
-            <h4 className="text-base font-bold text-slate-800">
-              Admission Details
-            </h4>
             <button
-              type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 flex items-center justify-center cursor-pointer transition-colors shrink-0"
+              className="bg-[rgba(255,255,255,0.15)] hover:bg-[rgba(255,255,255,0.25)] rounded-lg p-1.5 cursor-pointer flex items-center justify-center transition-colors"
             >
-              <X size={18} />
+              <X className="w-4 h-4 text-white" />
             </button>
           </div>
 
-          {/* BODY */}
-          <div className="modal-compact-form p-6 space-y-4 flex-1 overflow-y-auto min-h-0 bg-white">
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-600">
-                {error}
-              </div>
-            )}
+          {/* Info Pills Row */}
+          <div className="mt-3 flex gap-2 flex-wrap">
+            <div className="bg-[rgba(255,255,255,0.15)] border border-[rgba(255,255,255,0.2)] rounded-full px-3 py-1 text-xs text-white flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5" />
+              <span>{lead.phone}</span>
+            </div>
+            <div className="bg-[rgba(255,255,255,0.15)] border border-[rgba(255,255,255,0.2)] rounded-full px-3 py-1 text-xs text-white flex items-center gap-1.5">
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>{lead.gradeSought ? getGradeLabel(lead.gradeSought) : 'No grade'}</span>
+            </div>
+            <div className="bg-[rgba(255,255,255,0.15)] border border-[rgba(255,255,255,0.2)] rounded-full px-3 py-1 text-xs text-white flex items-center gap-1.5">
+              <Tag className="w-3.5 h-3.5" />
+              <span>{lead.source || 'No source'}</span>
+            </div>
+            <div className="bg-[rgba(255,255,255,0.15)] border border-[rgba(255,255,255,0.2)] rounded-full px-3 py-1 text-xs text-white flex items-center gap-1.5">
+              <Circle className="w-2 h-2 fill-current" />
+              <span>{lead.status ? (statusLabels[lead.status] || lead.status) : 'No status'}</span>
+            </div>
+          </div>
+        </div>
 
+        {/* SECTION 2 — FORM BODY */}
+        <div className="bg-white px-6 py-5 flex-1 overflow-y-auto custom-scrollbar">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-medium text-red-600">
+              {error}
+            </div>
+          )}
+
+          <div className="modal-grid grid grid-cols-2 gap-x-4 gap-y-3">
             {/* FIELD 1: APPLICANT NAME */}
-            <div className="flex flex-col">
-              <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1 block">
-                Applicant Name <span className="text-red-500">*</span>
+            <div className="col-span-2">
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">
+                APPLICANT NAME *
               </label>
               <input
                 type="text"
                 required
-                value={formData.applicantName}
-                onChange={(e) => setFormData(prev => ({ ...prev, applicantName: e.target.value }))}
+                placeholder="Child's full name"
+                value={form.applicantName}
+                onChange={(e) => setForm(prev => ({ ...prev, applicantName: e.target.value }))}
                 onBlur={() => handleBlur('applicantName')}
-                placeholder="Enter child's full name"
-                className={`w-full h-10 px-3 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors ${
-                  isFieldInvalid('applicantName')
-                    ? 'border-red-500 focus:ring-red-500/20'
-                    : 'border-slate-200'
-                }`}
+                className={`form-input-style ${form.applicantName ? 'has-value' : ''} ${isFieldInvalid('applicantName') ? 'has-error' : ''}`}
               />
-              <span className="text-xs text-slate-400 mt-1">Child who will be enrolled</span>
+              <span className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                <Info className="w-[10px] h-[10px] text-slate-400" />
+                The child who will be admitted
+              </span>
               {isFieldInvalid('applicantName') && (
-                <p className="text-xs text-red-500 mt-1">{getError('applicantName', formData.applicantName)}</p>
+                <span className="text-xs text-red-500 block mt-1">
+                  {getFieldError('applicantName')}
+                </span>
               )}
             </div>
 
-            {/* TWO COLUMN ROW: APPLYING FOR (GRADE) & ACADEMIC YEAR */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Grade select */}
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1 block">
-                  Applying For <span className="text-red-500">*</span>
-                </label>
+            {/* FIELD 2: APPLYING FOR (GRADE) */}
+            <div className="col-span-1">
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">
+                APPLYING FOR *
+              </label>
+              <select
+                required
+                value={form.gradeSought}
+                onChange={(e) => setForm(prev => ({ ...prev, gradeSought: e.target.value }))}
+                onBlur={() => handleBlur('gradeSought')}
+                className={`form-input-style ${form.gradeSought ? 'has-value' : ''} ${isFieldInvalid('gradeSought') ? 'has-error' : ''}`}
+              >
+                <option value="">Select Grade</option>
+                {gradeOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              {isFieldInvalid('gradeSought') && (
+                <span className="text-xs text-red-500 block mt-1">
+                  {getFieldError('gradeSought')}
+                </span>
+              )}
+            </div>
+
+            {/* FIELD 3: ACADEMIC YEAR */}
+            <div className="col-span-1">
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">
+                ACADEMIC YEAR *
+              </label>
+              {loadingOptions ? (
+                <select disabled className="form-input-style opacity-60">
+                  <option>Loading...</option>
+                </select>
+              ) : (
                 <select
-                  value={formData.gradeSought}
-                  onChange={(e) => setFormData(prev => ({ ...prev, gradeSought: e.target.value }))}
-                  onBlur={() => handleBlur('gradeSought')}
-                  className={`w-full h-10 px-3 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors ${
-                    isFieldInvalid('gradeSought')
-                      ? 'border-red-500 focus:ring-red-500/20'
-                      : 'border-slate-200'
-                  }`}
+                  required
+                  value={form.academicYearId}
+                  onChange={(e) => setForm(prev => ({ ...prev, academicYearId: e.target.value }))}
+                  onBlur={() => handleBlur('academicYearId')}
+                  className={`form-input-style ${form.academicYearId ? 'has-value' : ''} ${isFieldInvalid('academicYearId') ? 'has-error' : ''}`}
                 >
-                  <option value="">Select Grade</option>
-                  {gradeOptions.map((g) => (
-                    <option key={g.value} value={g.value}>
-                      {g.label}
+                  <option value="">Select Year</option>
+                  {academicYears.map((ay) => (
+                    <option key={ay.id} value={ay.id}>
+                      {ay.name} {ay.status === 'ACTIVE' ? '(Current)' : ''}
                     </option>
                   ))}
                 </select>
-                {isFieldInvalid('gradeSought') && (
-                  <p className="text-xs text-red-500 mt-1">{getError('gradeSought', formData.gradeSought)}</p>
-                )}
-              </div>
-
-              {/* Academic Year select */}
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1 block">
-                  Academic Year <span className="text-red-500">*</span>
-                </label>
-                {loadingOptions ? (
-                  <div className="h-10 w-full bg-slate-100 animate-pulse rounded-lg" />
-                ) : (
-                  <select
-                    value={formData.academicYearId}
-                    onChange={(e) => setFormData(prev => ({ ...prev, academicYearId: e.target.value }))}
-                    onBlur={() => handleBlur('academicYearId')}
-                    className={`w-full h-10 px-3 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors ${
-                      isFieldInvalid('academicYearId')
-                        ? 'border-red-500 focus:ring-red-500/20'
-                        : 'border-slate-200'
-                    }`}
-                  >
-                    <option value="">Select Year</option>
-                    {academicYears.map((ay) => (
-                      <option key={ay.id} value={ay.id}>
-                        {ay.name} {ay.status === 'ACTIVE' ? '(Current)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {isFieldInvalid('academicYearId') && (
-                  <p className="text-xs text-red-500 mt-1">{getError('academicYearId', formData.academicYearId)}</p>
-                )}
-              </div>
+              )}
+              {isFieldInvalid('academicYearId') && (
+                <span className="text-xs text-red-500 block mt-1">
+                  {getFieldError('academicYearId')}
+                </span>
+              )}
             </div>
 
-            {/* TWO COLUMN ROW: INITIAL STAGE & ASSIGN TO */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Stage select */}
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1 block">
-                  Initial Stage <span className="text-red-500">*</span>
-                </label>
-                {loadingOptions ? (
-                  <div className="h-10 w-full bg-slate-100 animate-pulse rounded-lg" />
-                ) : (
-                  <select
-                    value={formData.stageId}
-                    onChange={(e) => setFormData(prev => ({ ...prev, stageId: e.target.value }))}
-                    onBlur={() => handleBlur('stageId')}
-                    className={`w-full h-10 px-3 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors ${
-                      isFieldInvalid('stageId')
-                        ? 'border-red-500 focus:ring-red-500/20'
-                        : 'border-slate-200'
-                    }`}
-                  >
-                    <option value="">Select Stage</option>
-                    {pipelineStages.map((stage) => (
-                      <option key={stage.id} value={stage.id}>
-                        {stage.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {isFieldInvalid('stageId') && (
-                  <p className="text-xs text-red-500 mt-1">{getError('stageId', formData.stageId)}</p>
-                )}
-              </div>
-
-              {/* Assign To select */}
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1 block">
-                  Assign To
-                </label>
-                {loadingOptions ? (
-                  <div className="h-10 w-full bg-slate-100 animate-pulse rounded-lg" />
-                ) : (
-                  <select
-                    value={formData.assignedToId}
-                    onChange={(e) => setFormData(prev => ({ ...prev, assignedToId: e.target.value }))}
-                    className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors"
-                  >
-                    <option value="">Unassigned</option>
-                    {counsellors.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
+            {/* FIELD 4: INITIAL STAGE */}
+            <div className="col-span-1">
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">
+                INITIAL STAGE *
+              </label>
+              {loadingOptions ? (
+                <select disabled className="form-input-style opacity-60">
+                  <option>Loading...</option>
+                </select>
+              ) : (
+                <select
+                  required
+                  value={form.stageId}
+                  onChange={(e) => setForm(prev => ({ ...prev, stageId: e.target.value }))}
+                  onBlur={() => handleBlur('stageId')}
+                  className={`form-input-style ${form.stageId ? 'has-value' : ''} ${isFieldInvalid('stageId') ? 'has-error' : ''}`}
+                >
+                  <option value="">Select Stage</option>
+                  {pipelineStages.map((stage) => (
+                    <option key={stage.id} value={stage.id}>
+                      {stage.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {isFieldInvalid('stageId') && (
+                <span className="text-xs text-red-500 block mt-1">
+                  {getFieldError('stageId')}
+                </span>
+              )}
             </div>
 
-            {/* NOTES */}
-            <div className="flex flex-col">
-              <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1 block">
-                Notes
+            {/* FIELD 5: ASSIGN TO */}
+            <div className="col-span-1">
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">
+                ASSIGN TO
+              </label>
+              {loadingOptions ? (
+                <select disabled className="form-input-style opacity-60">
+                  <option>Loading...</option>
+                </select>
+              ) : (
+                <select
+                  value={form.assignedToId}
+                  onChange={(e) => setForm(prev => ({ ...prev, assignedToId: e.target.value }))}
+                  className={`form-input-style ${form.assignedToId ? 'has-value' : ''}`}
+                >
+                  <option value="">Unassigned</option>
+                  {counsellors.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* FIELD 6: NOTES */}
+            <div className="col-span-2">
+              <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">
+                NOTES
               </label>
               <textarea
                 rows={2}
-                value={formData.notes}
-                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="Any additional notes or remarks..."
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors resize-none"
+                placeholder="Any additional notes..."
+                value={form.notes}
+                onChange={(e) => setForm(prev => ({ ...prev, notes: e.target.value }))}
+                className={`form-input-style ${form.notes ? 'has-value' : ''}`}
               />
             </div>
           </div>
+        </div>
 
-          {/* FOOTER */}
-          <div className="px-6 py-4 bg-[#FAFAFA] border-t border-slate-100 flex items-center justify-end gap-3 rounded-b-2xl md:rounded-br-2xl md:rounded-bl-none">
+        {/* SECTION 3 — FIXED FOOTER */}
+        <div className="modal-footer bg-[#F8FAFC] border-t-[1.5px] border-[#F1F5F9] px-6 py-3.5 shrink-0 flex items-center justify-between">
+          <div className="modal-footer-info flex items-center gap-2 text-slate-400">
+            <Info className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-xs">Lead will be marked as Converted</span>
+          </div>
+
+          <div className="modal-footer-buttons flex items-center gap-3">
             <button
               type="button"
               onClick={onClose}
-              disabled={submitting}
-              className="px-5 py-2.5 border border-slate-200 bg-white rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-5 py-2.5 border-[1.5px] border-[#E2E8F0] rounded-lg text-slate-600 text-sm font-medium bg-white hover:bg-slate-50 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={submitting || !isFormValid || loadingOptions}
-              className="px-5 py-2.5 bg-[#1565D8] hover:bg-blue-700 active:bg-blue-800 rounded-lg text-sm font-semibold text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:bg-blue-600/50 disabled:cursor-not-allowed"
+              disabled={submitting || !isFormValid}
+              className={`px-6 py-2.5 bg-[#1565D8] hover:bg-[#1250B0] rounded-lg text-white text-sm font-semibold flex items-center gap-2 transition-colors cursor-pointer ${
+                submitting
+                  ? 'opacity-70 cursor-not-allowed'
+                  : !isFormValid
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''
+              }`}
             >
               {submitting ? (
                 <>
-                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg className="animate-spin h-4 w-4 text-white shrink-0" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
                   <span>Converting...</span>
                 </>
               ) : (
                 <>
-                  <span>Convert to Admission</span>
-                  <ArrowRight size={14} />
+                  <span>Convert</span>
+                  <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           </div>
-
         </div>
-      </DialogContent>
-    </Dialog>
+
+      </div>
+    </div>
   )
 }

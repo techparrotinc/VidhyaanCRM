@@ -266,7 +266,8 @@ export default function AdmissionManagementPage() {
   const [pipelineStats, setPipelineStats] =
     useState({
       total: 0,
-      conversionRate: 0
+      conversionRate: 0,
+      avgDaysToAdmit: 0
     })
   const [pagination, setPagination] =
     useState({
@@ -333,8 +334,8 @@ export default function AdmissionManagementPage() {
         setPipeline(json.data?.pipeline ?? [])
         setPipelineStats({
           total: json.data?.total ?? 0,
-          conversionRate:
-            json.data?.conversionRate ?? 0
+          conversionRate: json.data?.conversionRate ?? 0,
+          avgDaysToAdmit: json.data?.avgDaysToAdmit ?? 0
         })
       } catch (err) {
         console.error('Pipeline error:', err)
@@ -798,10 +799,38 @@ export default function AdmissionManagementPage() {
     setSelectedItems([])
   }
 
-  const handleBulkDelete = () => {
-    setApplicants(prev => prev.filter(a => !selectedItems.includes(a.id)))
-    setSelectedItems([])
-    showToast('Deleted selected applicants', 'error')
+  const handleBulkDelete = async () => {
+    if (selectedItems.length === 0) return
+
+    const confirmed = window.confirm(
+      `Delete ${selectedItems.length} admission(s)? This cannot be undone.`
+    )
+    if (!confirmed) return
+
+    try {
+      const results = await Promise.all(
+        selectedItems.map(id =>
+          fetch(
+            `/api/v1/admissions/${id}`,
+            { method: 'DELETE' }
+          )
+        )
+      )
+      
+      const failed = results.filter(r => !r.ok)
+      if (failed.length > 0) {
+        // If some failed, show error message
+        showToast('Failed to delete some admissions', 'error')
+      } else {
+        showToast(`${selectedItems.length} admission(s) deleted`, 'success')
+      }
+      setSelectedItems([])
+      fetchAdmissions()
+      fetchPipeline()
+    } catch (err) {
+      console.error(err)
+      showToast('Failed to delete some admissions', 'error')
+    }
   }
 
   const getLeftBorderBg = (a: any) => {
@@ -870,7 +899,7 @@ export default function AdmissionManagementPage() {
                 </div>
                 <div className="w-px h-4 bg-slate-300" />
                 <div className="flex items-center gap-1.5 font-sans">
-                  <span className="text-sm font-bold text-[#1565D8]">14 days</span>
+                  <span className="text-sm font-bold text-[#1565D8]">{pipelineStats.avgDaysToAdmit || 0} days</span>
                   <span className="text-xs text-slate-500">Avg. to admit</span>
                 </div>
                 <div className="w-px h-4 bg-slate-300" />

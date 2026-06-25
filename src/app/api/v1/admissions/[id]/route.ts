@@ -1,6 +1,6 @@
 import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
-import { Errors } from '@/lib/api/errors'
+import { Errors, AppError } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { createNotification } from '@/lib/services/notifications'
@@ -73,7 +73,26 @@ export const PUT = route({
     }
 
     // Filter out relation and read-only fields to prevent Prisma errors
-    const { id, orgId, branchId, createdAt, updatedAt, stage, assignedTo, activities, documents, ...updateData } = body
+    const {
+      id,
+      orgId,
+      branchId,
+      createdAt,
+      updatedAt,
+      stage,
+      assignedTo,
+      activities,
+      documents,
+      student,
+      lead,
+      notes,
+      expectedJoinDate,
+      currentSchool,
+      counsellor,
+      counsellorAvatar,
+      counsellorName,
+      ...updateData
+    } = body
 
     const updated = await db.admission.update({
       where: { id: params?.id },
@@ -83,15 +102,19 @@ export const PUT = route({
 
     // Log stage change
     if (updateData.stageId && updateData.stageId !== existing.stageId) {
+      const newStage = await db.admissionStage.findUnique({
+        where: { id: updateData.stageId },
+        select: { name: true }
+      })
+
+      const oldStage = existing.stage?.name || 'Unknown'
+
       await db.admissionActivity.create({
         data: {
           orgId: user.orgId,
           admissionId: existing.id,
           type: 'STAGE_CHANGE',
-          summary:
-            'Stage changed from ' +
-            (existing.stage?.name ?? 'Unknown') +
-            ' to new stage',
+          summary: `Stage changed from ${oldStage} to ${newStage?.name || 'Unknown'}`,
           performedById: user.id
         }
       })
@@ -135,6 +158,69 @@ export const PUT = route({
       }
     }
 
+    // Log note if provided
+    if (body.notes) {
+      await db.admissionActivity.create({
+        data: {
+          orgId: user.orgId,
+          admissionId: existing.id,
+          type: 'NOTE',
+          summary: body.notes,
+          performedById: user.id
+        }
+      })
+    }
+
     return ok(updated)
+  }
+})
+
+export const DELETE = route({
+  module: MODULES.ADMISSION_MANAGEMENT,
+  roles: [ROLES.ORG_ADMIN, ROLES.BRANCH_ADMIN],
+  handler: async ({ db, params, user }) => {
+    const admission = await db.admission.findFirst({
+      where: { id: params?.id, orgId: user.orgId, deletedAt: null },
+      include: { student: true }
+    })
+
+    if (!admission) {
+      throw Errors.notFound('Admission')
+    }
+
+    if (admission.status === 'ADMITTED') {
+      throw new AppError(
+        'BUSINESS_RULE',
+        'Cannot delete an admitted applicant. Archive instead.',
+        400
+      )
+    }
+
+    if (admission.student) {
+      throw new AppError(
+        'BUSINESS_RULE',
+        'Cannot delete admission with linked student record.',
+        400
+      )
+    }
+
+    // Soft delete
+    await db.admission.update({
+      where: { id: params?.id },
+      data: { deletedAt: new Date() }
+    })
+
+    // Log activity
+    await db.admissionActivity.create({
+      data: {
+        orgId: user.orgId,
+        admissionId: admission.id,
+        type: 'SYSTEM',
+        summary: 'Admission record deleted',
+        performedById: user.id
+      }
+    })
+
+    return ok({ success: true })
   }
 })

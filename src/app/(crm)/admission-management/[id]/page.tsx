@@ -22,8 +22,11 @@ import {
   Building,
   UserCheck,
   FolderOpen,
-  Loader2
+  Loader2,
+  FileX,
+  Trash2
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -47,6 +50,18 @@ export default function AdmissionDetailPage() {
 
   const [loading, setLoading] = useState(true)
   const [admission, setAdmission] = useState<any>(null)
+
+  const { data: session } = useSession()
+  const isOrgAdmin = session?.user?.role === 'ORG_ADMIN'
+
+  // Documents state
+  const [documents, setDocuments] = useState<any[]>([])
+  const [loadingDocs, setLoadingDocs] = useState(true)
+  const [showUploadModal, setShowUploadModal] = useState(false)
+  const [uploadDocName, setUploadDocName] = useState('')
+  const [uploadDocType, setUploadDocType] = useState('Admission Form')
+  const [uploadDocUrl, setUploadDocUrl] = useState('')
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false)
   
   // Convert to Student state
   const [showConvertModal, setShowConvertModal] = useState(false)
@@ -112,10 +127,104 @@ export default function AdmissionDetailPage() {
     }
   }
 
+  const fetchDocuments = async () => {
+    try {
+      const res = await fetch(`/api/v1/admissions/${admissionId}/documents`)
+      if (res.ok) {
+        const json = await res.json()
+        setDocuments(json.data || [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch documents', err)
+    } finally {
+      setLoadingDocs(false)
+    }
+  }
+
+  const handleDeleteDoc = async (docId: string) => {
+    if (!confirm('Are you sure you want to delete this document?')) return
+    try {
+      const res = await fetch(`/api/v1/admissions/${admissionId}/documents/${docId}`, {
+        method: 'DELETE'
+      })
+      if (res.ok) {
+        showToast('Document deleted successfully')
+        fetchDocuments()
+        fetchAdmissionData()
+      } else {
+        throw new Error('Failed to delete')
+      }
+    } catch (err) {
+      console.error(err)
+      showToast('Failed to delete document', 'error')
+    }
+  }
+
+  const handleUploadDoc = async () => {
+    if (!uploadDocName.trim() || !uploadDocUrl.trim()) {
+      showToast('Document Name and URL are required', 'error')
+      return
+    }
+    try {
+      setIsUploadingDoc(true)
+      const res = await fetch(`/api/v1/admissions/${admissionId}/documents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: uploadDocName.trim(),
+          type: uploadDocType,
+          url: uploadDocUrl.trim()
+        })
+      })
+      if (res.ok) {
+        showToast('Document uploaded successfully')
+        setShowUploadModal(false)
+        setUploadDocName('')
+        setUploadDocUrl('')
+        fetchDocuments()
+        fetchAdmissionData()
+      } else {
+        const json = await res.json()
+        throw new Error(json.error || 'Failed to upload document')
+      }
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to upload document', 'error')
+    } finally {
+      setIsUploadingDoc(false)
+    }
+  }
+
+  const handleUpdateDocStatus = async (docId: string, status: 'APPROVED' | 'REJECTED') => {
+    let rejectionReason = null
+    if (status === 'REJECTED') {
+      rejectionReason = prompt('Enter reason for rejection (optional):')
+      if (rejectionReason === null) return
+    }
+    try {
+      const res = await fetch(`/api/v1/admissions/${admissionId}/documents/${docId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scanStatus: status, rejectionReason })
+      })
+      if (res.ok) {
+        showToast(`Document marked as ${status.toLowerCase()}`)
+        fetchDocuments()
+        fetchAdmissionData()
+      } else {
+        throw new Error('Failed to update status')
+      }
+    } catch (err) {
+      console.error(err)
+      showToast('Failed to update document status', 'error')
+    }
+  }
+
   useEffect(() => {
     if (admissionId) {
       fetchAdmissionData()
       fetchStages()
+      fetchDocuments()
     }
   }, [admissionId])
 
@@ -224,6 +333,12 @@ export default function AdmissionDetailPage() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
+              <button
+                onClick={() => router.push(`/admission-management/${admissionId}/edit`)}
+                className="border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer transition shadow-sm font-sans"
+              >
+                Edit Admission
+              </button>
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-800`}>
                 Stage: {admission.stage?.name || 'New Lead'}
               </span>
@@ -300,6 +415,110 @@ export default function AdmissionDetailPage() {
                 </div>
               ) : (
                 <p className="text-sm text-slate-400 text-center py-6">No activity logged yet.</p>
+              )}
+            </Card>
+
+            {/* Documents Section */}
+            <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-left">
+              <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
+                <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">Documents</h4>
+                <button
+                  onClick={() => setShowUploadModal(true)}
+                  className="bg-[#1565D8] text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-blue-700 transition cursor-pointer font-sans"
+                >
+                  <Plus size={13} />
+                  Upload
+                </button>
+              </div>
+
+              {loadingDocs ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="animate-spin text-slate-400 size-6" />
+                </div>
+              ) : documents.length === 0 ? (
+                <div className="text-center py-10 flex flex-col items-center justify-center">
+                  <FileX size={40} className="text-slate-200 mb-2" />
+                  <p className="text-sm font-bold text-slate-500 font-sans">No documents uploaded yet</p>
+                  <p className="text-xs text-slate-400 font-sans mt-0.5">Upload required files for verification</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {documents.map((doc) => {
+                    const sizeText = doc.sizeBytes 
+                      ? `${(doc.sizeBytes / 1024).toFixed(1)} KB` 
+                      : 'N/A'
+                    
+                    return (
+                      <div key={doc.id} className="py-3 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center shrink-0">
+                            <FileText size={16} className="text-slate-500" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-700 truncate font-sans">{doc.name}</p>
+                            <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400 font-sans">
+                              <span className="capitalize">{doc.type}</span>
+                              <span>·</span>
+                              <span>{sizeText}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {/* Scan Status Badge */}
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            doc.scanStatus === 'APPROVED'
+                              ? 'bg-green-50 text-green-700 border-green-200'
+                              : doc.scanStatus === 'REJECTED'
+                                ? 'bg-red-50 text-red-700 border-red-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
+                            {doc.scanStatus === 'APPROVED' ? 'Approved' : doc.scanStatus === 'REJECTED' ? 'Rejected' : 'Pending Review'}
+                          </span>
+
+                          {/* ORG_ADMIN action buttons */}
+                          {isOrgAdmin && doc.scanStatus === 'PENDING' && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleUpdateDocStatus(doc.id, 'APPROVED')}
+                                className="p-1 text-green-600 hover:bg-green-50 rounded"
+                                title="Approve Document"
+                              >
+                                <Check size={14} strokeWidth={2.5} />
+                              </button>
+                              <button
+                                onClick={() => handleUpdateDocStatus(doc.id, 'REJECTED')}
+                                className="p-1 text-red-650 hover:bg-red-50 rounded"
+                                title="Reject Document"
+                              >
+                                <XCircle size={14} />
+                              </button>
+                            </div>
+                          )}
+
+                          {/* View link */}
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-bold text-[#1565D8] hover:underline px-2 py-1 font-sans"
+                          >
+                            View
+                          </a>
+
+                          {/* Delete button */}
+                          <button
+                            onClick={() => handleDeleteDoc(doc.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition"
+                            title="Delete Document"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               )}
             </Card>
           </div>
@@ -458,6 +677,80 @@ export default function AdmissionDetailPage() {
                 </>
               ) : (
                 <span>Create Student Record →</span>
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* DOCUMENT UPLOAD MODAL */}
+      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <DialogContent className="max-w-md w-full rounded-2xl p-6 text-left">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="text-lg font-bold text-slate-900 font-sans">Upload Document</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block uppercase tracking-wider font-sans">Document Name</label>
+              <input
+                type="text"
+                value={uploadDocName}
+                onChange={(e) => setUploadDocName(e.target.value)}
+                placeholder="e.g. Birth Certificate"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block uppercase tracking-wider font-sans">Document Type</label>
+              <select
+                value={uploadDocType}
+                onChange={(e) => setUploadDocType(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+              >
+                <option value="Admission Form">Admission Form</option>
+                <option value="Birth Certificate">Birth Certificate</option>
+                <option value="Transfer Certificate">Transfer Certificate</option>
+                <option value="Photo">Photo</option>
+                <option value="Address Proof">Address Proof</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-500 mb-1.5 block uppercase tracking-wider font-sans">Document URL</label>
+              <input
+                type="url"
+                value={uploadDocUrl}
+                onChange={(e) => setUploadDocUrl(e.target.value)}
+                placeholder="https://example.com/document.pdf"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+              />
+              <p className="text-[11px] text-slate-400 mt-1 font-sans">Paste the link of the uploaded file</p>
+            </div>
+          </div>
+
+          <div className="mt-6 flex gap-3">
+            <button
+              disabled={isUploadingDoc}
+              onClick={() => setShowUploadModal(false)}
+              className="flex-1 border border-slate-200 text-slate-650 text-sm font-semibold py-3 rounded-xl hover:bg-slate-50 transition cursor-pointer font-sans"
+            >
+              Cancel
+            </button>
+            <button
+              disabled={isUploadingDoc || !uploadDocName.trim() || !uploadDocUrl.trim()}
+              onClick={handleUploadDoc}
+              className={`flex-1 bg-[#1565D8] hover:bg-blue-700 text-white text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer ${isUploadingDoc ? 'opacity-70 cursor-not-allowed' : ''}`}
+            >
+              {isUploadingDoc ? (
+                <>
+                  <Loader2 className="animate-spin size-4 mr-2" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Save Document</span>
               )}
             </button>
           </div>

@@ -49,10 +49,37 @@ export const GET = route({
     const conversionRate =
       total > 0 ? Math.round((admittedCount / total) * 100) : 0
 
+    // Find all ADMITTED admissions for this org
+    const admitted = await db.admission.findMany({
+      where: {
+        orgId: user.orgId,
+        status: 'ADMITTED',
+        decidedAt: { not: null },
+        deletedAt: null,
+      },
+      select: {
+        createdAt: true,
+        decidedAt: true,
+      }
+    })
+
+    // Calculate average days
+    const avgDays = admitted.length > 0
+      ? Math.round(
+          admitted.reduce((sum, a) => {
+            const days = Math.floor(
+              (new Date(a.decidedAt!).getTime() - new Date(a.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+            )
+            return sum + days
+          }, 0) / admitted.length
+        )
+      : 0
+
     return ok({
       pipeline,
       total,
-      conversionRate
+      conversionRate,
+      avgDaysToAdmit: avgDays
     })
   }
 })

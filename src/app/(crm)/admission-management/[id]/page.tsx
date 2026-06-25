@@ -21,13 +21,15 @@ import {
   Check,
   Building,
   UserCheck,
-  FolderOpen
+  FolderOpen,
+  Loader2
 } from 'lucide-react'
 
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 import { Skeleton } from "@/components/ui/skeleton"
+import RecordSkeleton from "@/components/shared/RecordSkeleton"
 import {
   Dialog,
   DialogContent,
@@ -167,29 +169,7 @@ export default function AdmissionDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full flex-1">
-        <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-          <div className="flex items-center gap-4">
-            <Skeleton className="h-10 w-10 rounded-lg" />
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-48 rounded" />
-              <Skeleton className="h-4 w-32 rounded" />
-            </div>
-          </div>
-        </Card>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="col-span-1 lg:col-span-2 bg-white p-6 border border-slate-200 rounded-xl space-y-4">
-            <Skeleton className="h-8 w-1/3 rounded" />
-            <Skeleton className="h-24 w-full rounded" />
-          </Card>
-          <Card className="bg-white p-6 border border-slate-200 rounded-xl space-y-4">
-            <Skeleton className="h-8 w-1/2 rounded" />
-            <Skeleton className="h-10 w-full rounded" />
-          </Card>
-        </div>
-      </div>
-    )
+    return <RecordSkeleton />
   }
 
   if (!admission) {
@@ -469,9 +449,16 @@ export default function AdmissionDetailPage() {
             <button
               disabled={isSubmittingConvert}
               onClick={handleConvert}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
+              className={`flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer ${isSubmittingConvert ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              {isSubmittingConvert ? 'Creating Record...' : 'Create Student Record →'}
+              {isSubmittingConvert ? (
+                <>
+                  <Loader2 className="animate-spin size-4 mr-2" />
+                  <span>Creating...</span>
+                </>
+              ) : (
+                <span>Create Student Record →</span>
+              )}
             </button>
           </div>
         </DialogContent>

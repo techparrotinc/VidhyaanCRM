@@ -1,5 +1,5 @@
-import LoadingScreen from "@/components/LoadingScreen"
+import PageLoader from '@/components/shared/PageLoader'
 
 export default function Loading() {
-  return <LoadingScreen />
+  return <PageLoader />
 }

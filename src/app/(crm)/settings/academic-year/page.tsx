@@ -287,9 +287,16 @@ export default function AcademicYearSettingsPage() {
                 <Button
                   type="submit"
                   disabled={adding || !name.trim() || !startDate || !endDate}
-                  className="bg-[#1565D8] text-white hover:bg-blue-700 disabled:opacity-50"
+                  className={`bg-[#1565D8] text-white hover:bg-blue-700 disabled:opacity-50 ${adding ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {adding ? 'Creating...' : 'Create Academic Year'}
+                  {adding ? (
+                    <>
+                      <Loader2 className="animate-spin size-4 mr-2" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <span>Create Academic Year</span>
+                  )}
                 </Button>
               </div>
             </form>

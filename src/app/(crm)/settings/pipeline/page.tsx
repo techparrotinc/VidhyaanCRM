@@ -394,9 +394,16 @@ export default function PipelineSettingsPage() {
                 <Button
                   type="submit"
                   disabled={adding || !newStageName.trim()}
-                  className="bg-[#1565D8] text-white hover:bg-blue-700 disabled:opacity-50"
+                  className={`bg-[#1565D8] text-white hover:bg-blue-700 disabled:opacity-50 ${adding ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {adding ? 'Adding...' : 'Add Stage'}
+                  {adding ? (
+                    <>
+                      <Loader2 className="animate-spin size-4 mr-2" />
+                      <span>Adding...</span>
+                    </>
+                  ) : (
+                    <span>Add Stage</span>
+                  )}
                 </Button>
               </div>
             </form>

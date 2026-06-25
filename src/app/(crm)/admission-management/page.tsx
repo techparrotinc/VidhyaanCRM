@@ -40,8 +40,10 @@ import {
   Upload,
   Columns,
   Inbox,
-  FileText
+  FileText,
+  Loader2
 } from 'lucide-react'
+import TableSkeleton from '@/components/shared/TableSkeleton'
 import {
   Dialog,
   DialogContent,
@@ -1310,8 +1312,11 @@ export default function AdmissionManagementPage() {
           {/* ===================================================================
               SECTION 5 — LIST VIEW
               =================================================================== */}
-          {activeView === 'list' && (loading || filteredApplicants.length > 0) && (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          {activeView === 'list' && (
+            loading && applicants.length === 0 ? (
+              <TableSkeleton rows={5} columns={9} />
+            ) : (loading || filteredApplicants.length > 0) && (
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               {/* TABLE HEADER */}
               <div className="hidden md:flex items-center px-4 py-3 gap-3 bg-slate-100 border-b border-slate-200 select-none text-[11px] font-semibold uppercase tracking-wider text-slate-700">
                 <div className="w-8 flex-shrink-0">
@@ -1731,6 +1736,7 @@ export default function AdmissionManagementPage() {
                 )}
               </div>
             </div>
+            )
           )}
 
           {/* ===================================================================
@@ -2405,9 +2411,16 @@ export default function AdmissionManagementPage() {
                 <button
                   disabled={isSubmittingConvert}
                   onClick={handleConfirmConvert}
-                  className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold cursor-pointer font-sans text-center transition"
+                  className={`flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold cursor-pointer font-sans text-center transition flex items-center justify-center ${isSubmittingConvert ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {isSubmittingConvert ? 'Creating...' : 'Create Student Record →'}
+                  {isSubmittingConvert ? (
+                    <>
+                      <Loader2 className="animate-spin size-4 mr-2" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <span>Create Student Record →</span>
+                  )}
                 </button>
               </div>
             </div>

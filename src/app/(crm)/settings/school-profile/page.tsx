@@ -1011,10 +1011,16 @@ export default function SchoolProfilePage() {
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2"
+                  className={`bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Save Basic Info
+                  {saving ? (
+                    <>
+                      <Loader2 className="animate-spin size-4 mr-2" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save Basic Info</span>
+                  )}
                 </Button>
               </div>
             </form>
@@ -1145,10 +1151,16 @@ export default function SchoolProfilePage() {
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2"
+                  className={`bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Save Location & Contacts
+                  {saving ? (
+                    <>
+                      <Loader2 className="animate-spin size-4 mr-2" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save Location & Contacts</span>
+                  )}
                 </Button>
               </div>
             </form>
@@ -1268,10 +1280,16 @@ export default function SchoolProfilePage() {
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2"
+                  className={`bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Save Academics Settings
+                  {saving ? (
+                    <>
+                      <Loader2 className="animate-spin size-4 mr-2" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save Academics Settings</span>
+                  )}
                 </Button>
               </div>
             </form>
@@ -1319,10 +1337,16 @@ export default function SchoolProfilePage() {
                 <Button
                   onClick={handleSaveFacilities}
                   disabled={saving}
-                  className="bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2"
+                  className={`bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Save Facilities
+                  {saving ? (
+                    <>
+                      <Loader2 className="animate-spin size-4 mr-2" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save Facilities</span>
+                  )}
                 </Button>
               </div>
             </div>
@@ -1545,10 +1569,16 @@ export default function SchoolProfilePage() {
                 <Button
                   onClick={handleSaveMediaOrder}
                   disabled={saving}
-                  className="bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2"
+                  className={`bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Save Order
+                  {saving ? (
+                    <>
+                      <Loader2 className="animate-spin size-4 mr-2" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save Order</span>
+                  )}
                 </Button>
               </div>
             </div>
@@ -1781,10 +1811,16 @@ export default function SchoolProfilePage() {
                 <Button
                   onClick={handleSaveHours}
                   disabled={saving}
-                  className="bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2"
+                  className={`bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Save Operating Hours
+                  {saving ? (
+                    <>
+                      <Loader2 className="animate-spin size-4 mr-2" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save Operating Hours</span>
+                  )}
                 </Button>
               </div>
             </div>
@@ -1856,10 +1892,16 @@ export default function SchoolProfilePage() {
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2"
+                  className={`bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Save Admission Settings
+                  {saving ? (
+                    <>
+                      <Loader2 className="animate-spin size-4 mr-2" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save Admission Settings</span>
+                  )}
                 </Button>
               </div>
             </form>

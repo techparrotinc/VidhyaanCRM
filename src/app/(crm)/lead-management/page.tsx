@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import LoadingScreen from '@/components/LoadingScreen'
 import { Skeleton } from '@/components/ui/skeleton'
+import TableSkeleton from '@/components/shared/TableSkeleton'
 import {
   ClipboardList,
   Shield,
@@ -1062,7 +1063,7 @@ export default function LeadManagementPage() {
           </section>
 
           {/* EMPTY STATE */}
-          {filteredLeads.length === 0 && (
+          {filteredLeads.length === 0 && !loading && (
             <section className="bg-white rounded-xl border border-slate-200 shadow-sm py-20 text-center">
               <ClipboardList className="size-12 text-slate-200 mx-auto mb-4" />
               <h3 className="text-lg font-bold text-slate-500" style={{ fontFamily: "'Poppins', sans-serif" }}>
@@ -1081,9 +1082,11 @@ export default function LeadManagementPage() {
           )}
 
           {activeView === 'list' && (
-            
-            /* SECTION 6 — LEADS TABLE */
-            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            loading && leads.length === 0 ? (
+              <TableSkeleton rows={5} columns={8} />
+            ) : (
+              /* SECTION 6 — LEADS TABLE */
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               
               {/* TABLE HEADER */}
               <div className="bg-slate-50 border-b border-slate-200 hidden md:flex items-center px-5 py-3 gap-4 text-[11px] font-semibold uppercase tracking-wider text-slate-700">
@@ -1741,6 +1744,7 @@ export default function LeadManagementPage() {
                 )}
               </div>
             </section>
+            )
           )}
 
           {activeView === 'grid' && filteredLeads.length > 0 && (

@@ -37,8 +37,10 @@ import {
   Pencil,
   Copy,
   Download,
-  ArrowLeft
+  ArrowLeft,
+  Loader2
 } from 'lucide-react'
+import RecordSkeleton from '@/components/shared/RecordSkeleton'
 
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -405,6 +407,7 @@ export default function LeadDetailPage() {
 
   // Reject Modal state
   const [rejectReason, setRejectReason] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
   const currentAvatar = ((firstName[0] || '') + (lastName[0] || '')).toUpperCase() || 'LD'
 
@@ -629,6 +632,7 @@ export default function LeadDetailPage() {
   }
 
   const saveEditing = async () => {
+    setIsSaving(true)
     try {
       const payload: any = {
         firstName,
@@ -680,6 +684,8 @@ export default function LeadDetailPage() {
     } catch (err: any) {
       console.error(err)
       showToast(err.message || "Failed to save changes", "error")
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -900,6 +906,26 @@ export default function LeadDetailPage() {
               />
             ) : (
               <p className="text-sm font-semibold text-slate-700 mt-0.5">{parentName}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Child Name / Student Name */}
+        <div className="flex items-center gap-3 py-3">
+          <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center flex-shrink-0 text-slate-500">
+            <User size={16} strokeWidth={1.5} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Child Name</p>
+            {isEditing ? (
+              <input
+                type="text"
+                value={childName}
+                onChange={(e) => setChildName(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 mt-1"
+              />
+            ) : (
+              <p className="text-sm font-semibold text-slate-700 mt-0.5">{childName || '—'}</p>
             )}
           </div>
         </div>
@@ -1141,19 +1167,7 @@ export default function LeadDetailPage() {
             <span className="text-sm font-semibold text-slate-700">{academicYear}</span>
           )}
         </div>
-        <div className="flex items-center justify-between py-3">
-          <span className="text-xs font-medium text-slate-400">Child Name</span>
-          {isEditing ? (
-            <input
-              type="text"
-              value={childName}
-              onChange={(e) => setChildName(e.target.value)}
-              className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10"
-            />
-          ) : (
-            <span className="text-sm font-semibold text-slate-700">{childName}</span>
-          )}
-        </div>
+
         <div className="flex items-center justify-between py-3">
           <span className="text-xs font-medium text-slate-400">Child Age</span>
           {isEditing ? (
@@ -1362,17 +1376,7 @@ export default function LeadDetailPage() {
           </button>
         )}
 
-        {/* Convert to Admission */}
-        {currentStatus !== 'Converted' && currentStatus !== 'Rejected' && enabledModules.includes('admission_management') && (
-          <button
-            onClick={() => setShowConvertModal(true)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-transparent bg-green-600 text-white font-bold text-sm cursor-pointer hover:bg-green-700 transition shadow-sm"
-          >
-            <ArrowRight size={16} className="text-white" strokeWidth={1.5} />
-            <span>Convert to Admission →</span>
-            <ChevronRight size={14} className="ml-auto" />
-          </button>
-        )}
+
 
         {/* Reject Lead */}
         {currentStatus !== 'Rejected' && currentStatus !== 'Converted' && (
@@ -1545,45 +1549,7 @@ export default function LeadDetailPage() {
   )
 
   if (loading) {
-    return (
-      <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full flex-1">
-        <Card className="bg-white p-6 border border-slate-200 rounded-xl space-y-4">
-          <div className="flex items-center gap-4">
-            <Skeleton className="h-14 w-14 rounded-full" />
-            <div className="space-y-2">
-              <Skeleton className="h-6 w-48 rounded" />
-              <Skeleton className="h-4 w-64 rounded" />
-            </div>
-          </div>
-        </Card>
-        <div className="grid grid-cols-1 md:grid-cols-[300px_1fr_280px] gap-6">
-          <div className="space-y-4">
-            <Card className="bg-white p-6 border border-slate-200 rounded-xl space-y-3">
-              <Skeleton className="h-4 w-24 rounded" />
-              <Skeleton className="h-8 w-full rounded" />
-              <Skeleton className="h-8 w-full rounded" />
-            </Card>
-            <Card className="bg-white p-6 border border-slate-200 rounded-xl space-y-3">
-              <Skeleton className="h-4 w-24 rounded" />
-              <Skeleton className="h-8 w-full rounded" />
-              <Skeleton className="h-8 w-full rounded" />
-            </Card>
-          </div>
-          <div className="space-y-4">
-            <Card className="bg-white p-6 border border-slate-200 rounded-xl space-y-4">
-              <Skeleton className="h-6 w-full rounded" />
-              <Skeleton className="h-24 w-full rounded" />
-            </Card>
-          </div>
-          <div className="space-y-4">
-            <Card className="bg-white p-6 border border-slate-200 rounded-xl space-y-4">
-            <Skeleton className="h-10 w-full rounded" />
-              <Skeleton className="h-10 w-full rounded" />
-            </Card>
-          </div>
-        </div>
-      </div>
-    )
+    return <RecordSkeleton />
   }
 
   return (
@@ -1656,6 +1622,15 @@ export default function LeadDetailPage() {
 
               {/* RIGHT */}
               <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
+                {!isEditing && currentStatus !== 'Converted' && currentStatus !== 'Rejected' && enabledModules.includes('admission_management') && (
+                  <button
+                    onClick={() => setShowConvertModal(true)}
+                    className="flex items-center gap-1.5 px-4 py-2 border-[1.5px] border-[#1565D8] rounded-lg text-[#1565D8] text-sm font-medium bg-white hover:bg-blue-50 transition cursor-pointer"
+                  >
+                    <span>Convert to Admission</span>
+                    <ArrowRight size={14} className="text-[#1565D8]" strokeWidth={1.5} />
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     if (isEditing) cancelEditing()
@@ -1836,10 +1811,20 @@ export default function LeadDetailPage() {
                 </button>
                 <button
                   onClick={() => saveEditing()}
-                  className="bg-[#1565D8] text-white text-sm font-semibold px-5 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
+                  disabled={isSaving}
+                  className={`bg-[#1565D8] text-white text-sm font-semibold px-5 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  <Check size={14} strokeWidth={1.5} />
-                  <span>Save Changes</span>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="animate-spin size-4 mr-2" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={14} strokeWidth={1.5} />
+                      <span>Save Changes</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

@@ -427,8 +427,7 @@ export default function AdmissionManagementPage() {
             docsUploaded,
             docsRequired,
             feePaid: adm.stage?.isWon ?? false,
-            priority: adm.priority === 'URGENT' ? 'Urgent' : adm.priority === 'HIGH' ? 'High' : 'Normal',
-            dbStatus: adm.status
+            priority: adm.priority === 'URGENT' ? 'Urgent' : adm.priority === 'HIGH' ? 'High' : 'Normal'
           }
         })
 
@@ -1313,7 +1312,7 @@ export default function AdmissionManagementPage() {
           {activeView === 'list' && (loading || filteredApplicants.length > 0) && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               {/* TABLE HEADER */}
-              <div className="hidden md:flex items-center px-4 py-3 gap-3 bg-slate-100 border-b border-slate-200 select-none text-[11px] font-semibold uppercase tracking-wider text-slate-700">
+              <div className="hidden md:flex items-center px-4 py-3 gap-3 bg-slate-100 border-b border-slate-200 select-none">
                 <div className="w-8 flex-shrink-0">
                   <input
                     type="checkbox"
@@ -1322,31 +1321,31 @@ export default function AdmissionManagementPage() {
                     className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
                   />
                 </div>
-                <div className="flex-1 min-w-[200px] font-sans">
+                <div className="flex-1 min-w-[200px] text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
                   {config.applicantLabel[type].toUpperCase()}
                 </div>
-                <div className="hidden md:flex w-32 flex-shrink-0 font-sans">
+                <div className="hidden md:flex w-32 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
                   {config.applyingForLabel[type].toUpperCase()}
                 </div>
-                <div className="hidden md:flex w-28 flex-shrink-0 font-sans">
+                <div className="hidden md:flex w-28 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
                   SOURCE
                 </div>
-                <div className="hidden xl:flex w-24 flex-shrink-0 font-sans">
+                <div className="hidden xl:flex w-24 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
                   CONNECT
                 </div>
-                <div className="hidden xl:flex w-36 flex-shrink-0 font-sans">
+                <div className="hidden xl:flex w-36 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
                   COUNSELLOR
                 </div>
-                <div className="w-36 flex-shrink-0 font-sans">
+                <div className="w-36 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
                   STAGE
                 </div>
-                <div className="hidden md:flex w-20 flex-shrink-0 font-sans">
+                <div className="hidden md:flex w-20 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
                   DOCS
                 </div>
-                <div className="hidden xl:flex w-24 flex-shrink-0 font-sans">
+                <div className="hidden xl:flex w-24 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
                   DATE
                 </div>
-                <div className="w-12 flex-shrink-0 font-sans">
+                <div className="w-12 flex-shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-600 font-sans">
                   ACTION
                 </div>
               </div>
@@ -1436,7 +1435,7 @@ export default function AdmissionManagementPage() {
                               onClick={e => {
                                 e.stopPropagation()
                               }}
-                              className="text-base font-semibold text-slate-900 hover:text-[#1565D8] hover:underline truncate block font-sans"
+                              className="text-base font-semibold text-[#1565D8] hover:underline truncate block font-sans"
                             >
                               {a.fullName}
                             </Link>
@@ -1459,22 +1458,18 @@ export default function AdmissionManagementPage() {
                         {/* Applying For */}
                         <div className="hidden md:flex w-32 flex-shrink-0">
                           <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1.5 rounded-lg w-fit font-sans">
-                            {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
+                            {getGradeLabel(a.applyingFor)}
                           </span>
                         </div>
 
                         {/* Source */}
                         <div className="hidden md:flex w-28 flex-shrink-0">
-                          {a.source ? (
-                            <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full w-fit ${
-                              sourceConfig[a.source]?.bg || 'bg-slate-100'
-                            } ${sourceConfig[a.source]?.text || 'text-slate-650'}`}>
-                              <span className={`w-2 h-2 rounded-full ${sourceConfig[a.source]?.dot || 'bg-slate-400'}`} />
-                              <span>{a.source}</span>
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 font-sans text-xs">—</span>
-                          )}
+                          <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full w-fit ${
+                            sourceConfig[a.source]?.bg || 'bg-slate-100'
+                          } ${sourceConfig[a.source]?.text || 'text-slate-650'}`}>
+                            <span className={`w-2 h-2 rounded-full ${sourceConfig[a.source]?.dot || 'bg-slate-400'}`} />
+                            <span>{a.source}</span>
+                          </div>
                         </div>
 
                         {/* Connect icons */}
@@ -1640,7 +1635,7 @@ export default function AdmissionManagementPage() {
 
                         {/* Created Date */}
                         <div className="hidden xl:flex w-24 flex-shrink-0 text-sm text-slate-500 font-medium font-sans">
-                          {a.createdDate || '—'}
+                          {a.createdDate}
                         </div>
 
                         {/* Dropdown Menu actions */}

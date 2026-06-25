@@ -1,12 +1,10 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { ClipboardList, Info, ArrowRight, X } from 'lucide-react'
+import { ClipboardList, Info, ArrowRight, X, Hash, User, Phone, GraduationCap, Tag, Activity } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog'
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 
@@ -23,6 +21,7 @@ interface LeadRecord {
   priority?: string | null
   notes?: string | null
   status?: string | null
+  source?: string | null
 }
 
 interface ConvertToAdmissionModalProps {
@@ -41,22 +40,73 @@ const statusLabels: Record<string, string> = {
   NOT_INTERESTED: 'Rejected'
 }
 
+export function mapGradeToValue(grade: string | null | undefined): string {
+  if (!grade) return ''
+
+  const normalized = grade.toLowerCase().trim()
+
+  if (normalized.includes('pre-kg') || normalized.includes('pre kg') || normalized.includes('pre_kg')) {
+    return 'pre_kg'
+  }
+  if (normalized.includes('nursery')) {
+    return 'nursery'
+  }
+  if (normalized.includes('lkg') || normalized.includes('l.k.g')) {
+    return 'lkg'
+  }
+  if (normalized.includes('ukg') || normalized.includes('u.k.g')) {
+    return 'ukg'
+  }
+
+  const gradeMap: Record<string, string> = {
+    'class 1': 'class_1',
+    'class 2': 'class_2',
+    'class 3': 'class_3',
+    'class 4': 'class_4',
+    'class 5': 'class_5',
+    'class 6': 'class_6',
+    'class 7': 'class_7',
+    'class 8': 'class_8',
+    'class 9': 'class_9',
+    'class 10': 'class_10',
+    'class 11': 'class_11_science',
+    'class 12': 'class_12_science',
+    '1': 'class_1',
+    '2': 'class_2',
+    '3': 'class_3',
+    '4': 'class_4',
+    '5': 'class_5',
+    '6': 'class_6',
+    '7': 'class_7',
+    '8': 'class_8',
+    '9': 'class_9',
+    '10': 'class_10',
+  }
+
+  for (const [key, val] of Object.entries(gradeMap)) {
+    if (normalized.includes(key)) {
+      return val
+    }
+  }
+
+  return gradeMap[normalized] || grade
+}
+
 export default function ConvertToAdmissionModal({
   lead,
   isOpen,
   onClose,
   onSuccess,
 }: ConvertToAdmissionModalProps) {
-  // Form fields
-  const [applicantName, setApplicantName] = useState('')
-  const [parentName, setParentName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
-  const [gradeSought, setGradeSought] = useState('')
-  const [academicYearId, setAcademicYearId] = useState('')
-  const [stageId, setStageId] = useState('')
-  const [assignedToId, setAssignedToId] = useState('')
-  const [notes, setNotes] = useState('')
+  // Form fields state object
+  const [formData, setFormData] = useState({
+    applicantName: '',
+    gradeSought: '',
+    academicYearId: '',
+    stageId: '',
+    assignedToId: '',
+    notes: ''
+  })
 
   // Validation / interaction states
   const [touched, setTouched] = useState<Record<string, boolean>>({})
@@ -94,7 +144,10 @@ export default function ConvertToAdmissionModal({
               (y: any) => y.status === 'ACTIVE' || y.isCurrent === true
             )
             if (activeYear) {
-              setAcademicYearId((prev) => prev || activeYear.id)
+              setFormData((prev) => ({
+                ...prev,
+                academicYearId: prev.academicYearId || activeYear.id
+              }))
             }
           }
         }
@@ -110,7 +163,10 @@ export default function ConvertToAdmissionModal({
               .filter((s: any) => !s.isWon && !s.isLost)
               .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0))[0]
             if (firstNonTerminal) {
-              setStageId((prev) => prev || firstNonTerminal.id)
+              setFormData((prev) => ({
+                ...prev,
+                stageId: prev.stageId || firstNonTerminal.id
+              }))
             }
           }
         }
@@ -135,20 +191,30 @@ export default function ConvertToAdmissionModal({
   useEffect(() => {
     if (!isOpen || !lead) return
 
-    setApplicantName(lead.kidName || lead.parentName || '')
-    setParentName(lead.parentName || '')
-    setPhone(lead.phone || '')
-    setEmail(lead.email || '')
-    setGradeSought(lead.gradeSought || '')
-    setAssignedToId(lead.assignedToId || '')
-    setNotes(lead.notes || '')
-    setAcademicYearId(lead.academicYearId || '')
+    setFormData({
+      applicantName: lead.kidName || lead.parentName || '',
+      gradeSought: mapGradeToValue(lead.gradeSought),
+      academicYearId: lead.academicYearId || '',
+      stageId: '', // Set by the pipeline stages load
+      assignedToId: lead.assignedToId || '',
+      notes: lead.notes || ''
+    })
     
     // Clear validation states
     setTouched({})
     setSubmitAttempted(false)
     setError('')
   }, [lead, isOpen])
+
+  // Prefill grade sought when lead updates (Cause 2 Fix)
+  useEffect(() => {
+    if (lead?.gradeSought) {
+      setFormData(prev => ({
+        ...prev,
+        gradeSought: mapGradeToValue(lead.gradeSought)
+      }))
+    }
+  }, [lead?.gradeSought])
 
   // Touch handlers
   const handleBlur = (field: string) => {
@@ -172,17 +238,18 @@ export default function ConvertToAdmissionModal({
     return ''
   }
 
-  const isFieldInvalid = (field: string, value: string) => {
+  const isFieldInvalid = (field: string) => {
+    const value = formData[field as keyof typeof formData] || ''
     const err = getError(field, value)
     return err ? (touched[field] || submitAttempted) : false
   }
 
   // Form validity
   const isFormValid =
-    !getError('applicantName', applicantName) &&
-    !getError('gradeSought', gradeSought) &&
-    !getError('academicYearId', academicYearId) &&
-    !getError('stageId', stageId)
+    !getError('applicantName', formData.applicantName) &&
+    !getError('gradeSought', formData.gradeSought) &&
+    !getError('academicYearId', formData.academicYearId) &&
+    !getError('stageId', formData.stageId)
 
   const handleSubmit = async () => {
     setSubmitAttempted(true)
@@ -196,17 +263,17 @@ export default function ConvertToAdmissionModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          applicantName,
-          parentName,
-          phone,
-          email: email || undefined,
-          gradeSought,
+          applicantName: formData.applicantName,
+          parentName: lead.parentName,
+          phone: lead.phone,
+          email: lead.email || undefined,
+          gradeSought: formData.gradeSought,
           leadId: lead.id,
-          assignedToId: assignedToId || undefined,
-          academicYearId: academicYearId || undefined,
-          stageId: stageId || undefined,
-          notes: notes || undefined,
-          priority: lead.priority || undefined
+          assignedToId: formData.assignedToId || undefined,
+          academicYearId: formData.academicYearId || undefined,
+          stageId: formData.stageId || undefined,
+          notes: formData.notes || undefined,
+          priority: lead.priority || 'MEDIUM'
         }),
       })
 
@@ -225,10 +292,23 @@ export default function ConvertToAdmissionModal({
     }
   }
 
+  // Dynamic Grade Options
+  const mappedValue = mapGradeToValue(lead?.gradeSought)
+  const gradeOptions = [
+    ...GRADE_OPTIONS,
+    ...(lead?.gradeSought && !GRADE_OPTIONS.find(g => g.value === mappedValue)
+      ? [{ value: lead.gradeSought, label: lead.gradeSought }]
+      : []
+    )
+  ]
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="max-w-2xl w-full rounded-2xl p-0 overflow-hidden bg-white shadow-2xl border border-slate-200">
+      <DialogContent className="max-w-[780px] w-[95vw] h-auto md:h-[600px] max-h-[90vh] rounded-2xl p-0 overflow-hidden bg-white shadow-[0_25px_50px_rgba(0,0,0,0.25)] border border-slate-100 flex flex-col md:flex-row">
         <style dangerouslySetInnerHTML={{ __html: `
+          .max-w-\\[780px\\] > button {
+            display: none !important;
+          }
           @media (max-height: 700px) {
             .modal-compact-form {
               padding-top: 12px !important;
@@ -249,240 +329,285 @@ export default function ConvertToAdmissionModal({
           }
         ` }} />
 
-        {/* HEADER */}
-        <div className="modal-compact-header px-6 pt-5 pb-4 border-b border-slate-200 flex items-center justify-between bg-white relative">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-[#1565D8] flex-shrink-0">
-              <ClipboardList size={20} />
+        {/* LEFT PANEL */}
+        <div className="w-full md:w-[260px] md:flex-shrink-0 bg-[#1565D8] rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none p-5 md:pt-7 md:px-6 md:pb-7 flex flex-col text-white overflow-hidden select-none">
+          {/* Top Section */}
+          <div className="bg-white/15 rounded-xl p-3 w-fit text-white">
+            <ClipboardList size={24} />
+          </div>
+          <h3 className="text-xl font-bold text-white leading-tight mt-4">
+            Convert to Admission
+          </h3>
+          <p className="text-sm text-blue-200 mt-1">
+            Review and confirm the admission details
+          </p>
+
+          <div className="w-10 h-0.5 bg-white/30 mt-6 mb-6" />
+
+          {/* Lead Info Section */}
+          <div className="flex-1">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-blue-300 mb-3">
+              FROM LEAD
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 leading-tight">
-                Convert to Admission
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Lead #{lead?.leadCode}
-              </p>
+            
+            <div className="space-y-3">
+              {/* Row 1: Lead ID */}
+              <div className="flex items-start gap-2">
+                <Hash size={16} className="text-white/70 mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-[10px] text-blue-300 uppercase font-semibold">Lead ID</div>
+                  <div className="font-mono text-sm text-white font-semibold">{lead?.leadCode}</div>
+                </div>
+              </div>
+
+              {/* Row 2: Parent */}
+              <div className="flex items-start gap-2">
+                <User size={16} className="text-white/70 mt-0.5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] text-blue-300 uppercase font-semibold">Parent</div>
+                  <div className="text-sm text-white font-medium truncate">{lead?.parentName}</div>
+                </div>
+              </div>
+
+              {/* Row 3: Phone (hidden on mobile) */}
+              <div className="hidden md:flex items-start gap-2">
+                <Phone size={16} className="text-white/70 mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-[10px] text-blue-300 uppercase font-semibold">Phone</div>
+                  <div className="text-sm text-white">{lead?.phone}</div>
+                </div>
+              </div>
+
+              {/* Row 4: Grade */}
+              <div className="flex items-start gap-2">
+                <GraduationCap size={16} className="text-white/70 mt-0.5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] text-blue-300 uppercase font-semibold">Applying For</div>
+                  <div className="text-sm text-white truncate">
+                    {lead?.gradeSought ? getGradeLabel(lead.gradeSought) : 'Not specified'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 5: Source (hidden on mobile) */}
+              <div className="hidden md:flex items-start gap-2">
+                <Tag size={16} className="text-white/70 mt-0.5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] text-blue-300 uppercase font-semibold">Source</div>
+                  <div className="text-sm text-blue-200 capitalize truncate">{lead?.source || '—'}</div>
+                </div>
+              </div>
+
+              {/* Row 6: Status (hidden on mobile) */}
+              <div className="hidden md:flex items-start gap-2">
+                <Activity size={16} className="text-white/70 mt-0.5 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] text-blue-300 uppercase font-semibold">Status</div>
+                  <div className="text-sm text-blue-200 truncate">
+                    {lead?.status ? (statusLabels[lead.status] || lead.status) : '—'}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="absolute top-5 right-6 text-slate-400 hover:text-slate-600 transition cursor-pointer"
-          >
-            <X size={20} />
-          </button>
+
+          {/* Bottom Section */}
+          <div className="hidden md:block mt-auto bg-white/10 rounded-xl p-3 border border-white/20">
+            <p className="text-xs text-blue-200 leading-relaxed">
+              ℹ Lead status will automatically update to Converted after successful admission creation.
+            </p>
+          </div>
         </div>
 
-        {/* LEAD SUMMARY STRIP */}
-        <div className="px-6 py-2.5 bg-[#EFF6FF] border-b border-[#DBEAFE] flex items-center justify-between text-xs">
-          <div className="flex-1 min-w-0">
-            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Parent</div>
-            <div className="text-slate-700 font-medium truncate mt-0.5">{lead?.parentName || '—'}</div>
+        {/* RIGHT PANEL */}
+        <div className="flex-1 bg-white rounded-b-2xl md:rounded-r-2xl md:rounded-bl-none flex flex-col overflow-hidden">
+          
+          {/* HEADER */}
+          <div className="px-6 pt-5 pb-4 border-b border-slate-100 flex items-center justify-between">
+            <h4 className="text-base font-bold text-slate-800">
+              Admission Details
+            </h4>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 flex items-center justify-center cursor-pointer transition-colors shrink-0"
+            >
+              <X size={18} />
+            </button>
           </div>
-          <div className="w-px h-8 bg-[#DBEAFE] mx-4 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Phone</div>
-            <div className="text-slate-700 font-medium truncate mt-0.5">{lead?.phone || '—'}</div>
-          </div>
-          <div className="w-px h-8 bg-[#DBEAFE] mx-4 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Grade</div>
-            <div className="text-slate-700 font-medium truncate mt-0.5">
-              {lead?.gradeSought ? getGradeLabel(lead.gradeSought) : '—'}
-            </div>
-          </div>
-          <div className="w-px h-8 bg-[#DBEAFE] mx-4 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Status</div>
-            <div className="text-slate-700 font-medium truncate mt-0.5">
-              {lead?.status ? (statusLabels[lead.status] || lead.status) : '—'}
-            </div>
-          </div>
-        </div>
 
-        {/* FORM AREA */}
-        <div className="modal-compact-form p-6 space-y-4 max-h-[50vh] overflow-y-auto min-h-0 bg-white">
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-600">
-              {error}
-            </div>
-          )}
-
-          {/* ROW 1: APPLICANT NAME */}
-          <div className="flex flex-col">
-            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-              Applicant Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={applicantName}
-              onChange={(e) => setApplicantName(e.target.value)}
-              onBlur={() => handleBlur('applicantName')}
-              placeholder="Child who will be admitted"
-              className={`w-full h-[38px] px-3 bg-white border rounded-lg text-sm font-sans focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors ${
-                isFieldInvalid('applicantName', applicantName)
-                  ? 'border-red-500 focus:ring-red-500/20'
-                  : 'border-slate-200'
-              }`}
-            />
-            {isFieldInvalid('applicantName', applicantName) && (
-              <p className="text-xs text-red-500 mt-1">{getError('applicantName', applicantName)}</p>
+          {/* BODY */}
+          <div className="modal-compact-form p-6 space-y-4 flex-1 overflow-y-auto min-h-0 bg-white">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-600">
+                {error}
+              </div>
             )}
-          </div>
 
-          {/* ROW 2: TWO COLUMNS (GRADE & ACADEMIC YEAR) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 modal-compact-gap">
-            {/* Grade */}
+            {/* FIELD 1: APPLICANT NAME */}
             <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-                Applying For <span className="text-red-500">*</span>
+              <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1 block">
+                Applicant Name <span className="text-red-500">*</span>
               </label>
-              {loadingOptions ? (
-                <div className="h-[38px] w-full bg-slate-100 animate-pulse rounded-lg" />
-              ) : (
+              <input
+                type="text"
+                required
+                value={formData.applicantName}
+                onChange={(e) => setFormData(prev => ({ ...prev, applicantName: e.target.value }))}
+                onBlur={() => handleBlur('applicantName')}
+                placeholder="Enter child's full name"
+                className={`w-full h-10 px-3 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors ${
+                  isFieldInvalid('applicantName')
+                    ? 'border-red-500 focus:ring-red-500/20'
+                    : 'border-slate-200'
+                }`}
+              />
+              <span className="text-xs text-slate-400 mt-1">Child who will be enrolled</span>
+              {isFieldInvalid('applicantName') && (
+                <p className="text-xs text-red-500 mt-1">{getError('applicantName', formData.applicantName)}</p>
+              )}
+            </div>
+
+            {/* TWO COLUMN ROW: APPLYING FOR (GRADE) & ACADEMIC YEAR */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Grade select */}
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1 block">
+                  Applying For <span className="text-red-500">*</span>
+                </label>
                 <select
-                  value={gradeSought}
-                  onChange={(e) => setGradeSought(e.target.value)}
+                  value={formData.gradeSought}
+                  onChange={(e) => setFormData(prev => ({ ...prev, gradeSought: e.target.value }))}
                   onBlur={() => handleBlur('gradeSought')}
-                  className={`w-full h-[38px] px-3 bg-white border rounded-lg text-sm font-sans focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors ${
-                    isFieldInvalid('gradeSought', gradeSought)
+                  className={`w-full h-10 px-3 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors ${
+                    isFieldInvalid('gradeSought')
                       ? 'border-red-500 focus:ring-red-500/20'
                       : 'border-slate-200'
                   }`}
                 >
                   <option value="">Select Grade</option>
-                  {GRADE_OPTIONS.map((g) => (
+                  {gradeOptions.map((g) => (
                     <option key={g.value} value={g.value}>
                       {g.label}
                     </option>
                   ))}
-                  {gradeSought && !GRADE_OPTIONS.some((opt) => opt.value === gradeSought) && (
-                    <option value={gradeSought}>{getGradeLabel(gradeSought)}</option>
-                  )}
                 </select>
-              )}
-              {isFieldInvalid('gradeSought', gradeSought) && (
-                <p className="text-xs text-red-500 mt-1">{getError('gradeSought', gradeSought)}</p>
-              )}
+                {isFieldInvalid('gradeSought') && (
+                  <p className="text-xs text-red-500 mt-1">{getError('gradeSought', formData.gradeSought)}</p>
+                )}
+              </div>
+
+              {/* Academic Year select */}
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1 block">
+                  Academic Year <span className="text-red-500">*</span>
+                </label>
+                {loadingOptions ? (
+                  <div className="h-10 w-full bg-slate-100 animate-pulse rounded-lg" />
+                ) : (
+                  <select
+                    value={formData.academicYearId}
+                    onChange={(e) => setFormData(prev => ({ ...prev, academicYearId: e.target.value }))}
+                    onBlur={() => handleBlur('academicYearId')}
+                    className={`w-full h-10 px-3 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors ${
+                      isFieldInvalid('academicYearId')
+                        ? 'border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-200'
+                    }`}
+                  >
+                    <option value="">Select Year</option>
+                    {academicYears.map((ay) => (
+                      <option key={ay.id} value={ay.id}>
+                        {ay.name} {ay.status === 'ACTIVE' ? '(Current)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {isFieldInvalid('academicYearId') && (
+                  <p className="text-xs text-red-500 mt-1">{getError('academicYearId', formData.academicYearId)}</p>
+                )}
+              </div>
             </div>
 
-            {/* Academic Year */}
+            {/* TWO COLUMN ROW: INITIAL STAGE & ASSIGN TO */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Stage select */}
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1 block">
+                  Initial Stage <span className="text-red-500">*</span>
+                </label>
+                {loadingOptions ? (
+                  <div className="h-10 w-full bg-slate-100 animate-pulse rounded-lg" />
+                ) : (
+                  <select
+                    value={formData.stageId}
+                    onChange={(e) => setFormData(prev => ({ ...prev, stageId: e.target.value }))}
+                    onBlur={() => handleBlur('stageId')}
+                    className={`w-full h-10 px-3 bg-white border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors ${
+                      isFieldInvalid('stageId')
+                        ? 'border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-200'
+                    }`}
+                  >
+                    <option value="">Select Stage</option>
+                    {pipelineStages.map((stage) => (
+                      <option key={stage.id} value={stage.id}>
+                        {stage.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {isFieldInvalid('stageId') && (
+                  <p className="text-xs text-red-500 mt-1">{getError('stageId', formData.stageId)}</p>
+                )}
+              </div>
+
+              {/* Assign To select */}
+              <div className="flex flex-col">
+                <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1 block">
+                  Assign To
+                </label>
+                {loadingOptions ? (
+                  <div className="h-10 w-full bg-slate-100 animate-pulse rounded-lg" />
+                ) : (
+                  <select
+                    value={formData.assignedToId}
+                    onChange={(e) => setFormData(prev => ({ ...prev, assignedToId: e.target.value }))}
+                    className="w-full h-10 px-3 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors"
+                  >
+                    <option value="">Unassigned</option>
+                    {counsellors.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+
+            {/* NOTES */}
             <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-                Academic Year <span className="text-red-500">*</span>
+              <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1 block">
+                Notes
               </label>
-              {loadingOptions ? (
-                <div className="h-[38px] w-full bg-slate-100 animate-pulse rounded-lg" />
-              ) : (
-                <select
-                  value={academicYearId}
-                  onChange={(e) => setAcademicYearId(e.target.value)}
-                  onBlur={() => handleBlur('academicYearId')}
-                  className={`w-full h-[38px] px-3 bg-white border rounded-lg text-sm font-sans focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors ${
-                    isFieldInvalid('academicYearId', academicYearId)
-                      ? 'border-red-500 focus:ring-red-500/20'
-                      : 'border-slate-200'
-                  }`}
-                >
-                  <option value="">Select Year</option>
-                  {academicYears.map((ay) => (
-                    <option key={ay.id} value={ay.id}>
-                      {ay.name} {ay.status === 'ACTIVE' ? '(Current)' : ''}
-                    </option>
-                  ))}
-                </select>
-              )}
-              {isFieldInvalid('academicYearId', academicYearId) && (
-                <p className="text-xs text-red-500 mt-1">{getError('academicYearId', academicYearId)}</p>
-              )}
+              <textarea
+                rows={2}
+                value={formData.notes}
+                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Any additional notes or remarks..."
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors resize-none"
+              />
             </div>
           </div>
 
-          {/* ROW 3: TWO COLUMNS (STAGE & COUNSELLOR) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 modal-compact-gap">
-            {/* Stage */}
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-                Initial Stage <span className="text-red-500">*</span>
-              </label>
-              {loadingOptions ? (
-                <div className="h-[38px] w-full bg-slate-100 animate-pulse rounded-lg" />
-              ) : (
-                <select
-                  value={stageId}
-                  onChange={(e) => setStageId(e.target.value)}
-                  onBlur={() => handleBlur('stageId')}
-                  className={`w-full h-[38px] px-3 bg-white border rounded-lg text-sm font-sans focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors ${
-                    isFieldInvalid('stageId', stageId)
-                      ? 'border-red-500 focus:ring-red-500/20'
-                      : 'border-slate-200'
-                  }`}
-                >
-                  <option value="">Select Stage</option>
-                  {pipelineStages.map((stage) => (
-                    <option key={stage.id} value={stage.id}>
-                      {stage.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-              {isFieldInvalid('stageId', stageId) && (
-                <p className="text-xs text-red-500 mt-1">{getError('stageId', stageId)}</p>
-              )}
-            </div>
-
-            {/* Counsellor */}
-            <div className="flex flex-col">
-              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-                Assign To
-              </label>
-              {loadingOptions ? (
-                <div className="h-[38px] w-full bg-slate-100 animate-pulse rounded-lg" />
-              ) : (
-                <select
-                  value={assignedToId}
-                  onChange={(e) => setAssignedToId(e.target.value)}
-                  className="w-full h-[38px] px-3 bg-white border border-slate-200 rounded-lg text-sm font-sans focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors"
-                >
-                  <option value="">Unassigned</option>
-                  {counsellors.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-          </div>
-
-          {/* ROW 4: NOTES */}
-          <div className="flex flex-col">
-            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-              Notes (Optional)
-            </label>
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any additional notes..."
-              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-sans focus:outline-none focus:ring-2 focus:ring-[#1565D8]/10 focus:border-[#1565D8] transition-colors resize-none"
-            />
-          </div>
-        </div>
-
-        {/* FOOTER */}
-        <div className="modal-compact-footer px-6 py-4 bg-[#F8FAFC] border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3 rounded-b-2xl">
-          <div className="flex items-center gap-1.5 text-xs text-slate-400">
-            <Info size={14} className="shrink-0 text-slate-400" />
-            <span>Leads status will be updated to Converted automatically</span>
-          </div>
-          
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          {/* FOOTER */}
+          <div className="px-6 py-4 bg-[#FAFAFA] border-t border-slate-100 flex items-center justify-end gap-3 rounded-b-2xl md:rounded-br-2xl md:rounded-bl-none">
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="flex-1 sm:flex-none px-5 py-2.5 border border-slate-200 bg-white rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-5 py-2.5 border border-slate-200 bg-white rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
@@ -490,7 +615,7 @@ export default function ConvertToAdmissionModal({
               type="button"
               onClick={handleSubmit}
               disabled={submitting || !isFormValid || loadingOptions}
-              className="flex-1 sm:flex-none px-5 py-2.5 bg-[#1565D8] hover:bg-blue-700 active:bg-blue-800 rounded-lg text-sm font-bold text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:bg-blue-600/50 disabled:cursor-not-allowed"
+              className="px-5 py-2.5 bg-[#1565D8] hover:bg-blue-700 active:bg-blue-800 rounded-lg text-sm font-semibold text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:bg-blue-600/50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <>
@@ -508,6 +633,7 @@ export default function ConvertToAdmissionModal({
               )}
             </button>
           </div>
+
         </div>
       </DialogContent>
     </Dialog>

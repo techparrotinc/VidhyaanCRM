@@ -34,66 +34,83 @@ export const GET = route({
 })
 
 const updateLeadSchema = z.object({
-  parentName: z.string().min(2,
-    'Name is required'),
-  phone: z.string().min(10).max(10),
+  parentName: z.string().min(2)
+    .optional(),
+  phone: z.string().min(10).max(10)
+    .optional(),
   email: z.string().email()
     .optional().nullable()
-    .or(z.literal('')).transform(
-      v => v === '' ? null : v
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
     ),
   kidName: z.string()
     .optional().nullable()
-    .or(z.literal('')).transform(
-      v => v === '' ? null : v
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
     ),
   childAge: z.union([
-    z.number(),
+    z.number().optional().nullable(),
     z.string().transform(v =>
-      v === '' ? null
-      : parseInt(v) || null
+      !v || v === ''
+        ? null
+        : parseInt(v) || null
     )
   ]).optional().nullable(),
   currentSchool: z.string()
     .optional().nullable()
-    .or(z.literal('')).transform(
-      v => v === '' ? null : v
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
     ),
   expectedJoinDate: z.string()
     .optional().nullable()
-    .or(z.literal('')).transform(
-      v => v === '' ? null : v
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
     ),
   source: z.string()
-    .default('WALK_IN'),
+    .optional(),
   priority: z.string()
-    .default('MEDIUM'),
+    .optional(),
   status: z.string()
-    .default('NEW'),
+    .optional(),
   gradeSought: z.string()
     .optional().nullable()
-    .or(z.literal('')).transform(
-      v => v === '' ? null : v
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
     ),
   academicYearId: z.string()
     .optional().nullable()
-    .or(z.literal('')).transform(
-      v => v === '' ? null : v
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
     ),
   assignedToId: z.string()
     .optional().nullable()
-    .or(z.literal('')).transform(
-      v => v === '' ? null : v
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
     ),
   notes: z.string()
     .optional().nullable()
-    .or(z.literal('')).transform(
-      v => v === '' ? null : v
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
     ),
   nextFollowUpAt: z.string()
     .optional().nullable()
-    .or(z.literal('')).transform(
-      v => v === '' ? null : v
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  lostReason: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
     ),
 })
 
@@ -112,38 +129,76 @@ export const PUT = route({
 
     const body = updateLeadSchema.parse(await req.json())
 
-    let finalAssignedToId: string | null = null
+    const updateData: any = {}
 
-    if (body.assignedToId) {
-      const validUser = await db.user.findFirst({
-        where: {
-          id: body.assignedToId,
-          orgId: user.orgId,
-          status: 'ACTIVE',
-        },
-        select: { id: true }
-      })
-      finalAssignedToId = validUser?.id || null
+    if (body.parentName !== undefined)
+      updateData.parentName = body.parentName
+
+    if (body.phone !== undefined)
+      updateData.phone = body.phone
+
+    if (body.email !== undefined)
+      updateData.email = body.email || null
+
+    if (body.kidName !== undefined)
+      updateData.kidName = body.kidName || null
+
+    if (body.childAge !== undefined)
+      updateData.childAge = body.childAge || null
+
+    if (body.currentSchool !== undefined)
+      updateData.currentSchool = body.currentSchool || null
+
+    if (body.source !== undefined)
+      updateData.source = body.source as LeadSource
+
+    if (body.priority !== undefined)
+      updateData.priority = body.priority as LeadPriority
+
+    if (body.status !== undefined)
+      updateData.status = body.status as LeadStatus
+
+    if (body.gradeSought !== undefined)
+      updateData.gradeSought = body.gradeSought || null
+
+    if (body.academicYearId !== undefined)
+      updateData.academicYearId = body.academicYearId || null
+
+    if (body.notes !== undefined)
+      updateData.notes = body.notes || null
+
+    if (body.nextFollowUpAt !== undefined)
+      updateData.nextFollowUpAt = body.nextFollowUpAt
+        ? new Date(body.nextFollowUpAt)
+        : null
+
+    if (body.expectedJoinDate !== undefined)
+      updateData.expectedJoinDate = body.expectedJoinDate
+        ? new Date(body.expectedJoinDate)
+        : null
+
+    if (body.lostReason !== undefined)
+      updateData.lostReason = body.lostReason || null
+
+    if (body.assignedToId !== undefined) {
+      if (body.assignedToId) {
+        const validUser = await db.user.findFirst({
+          where: {
+            id: body.assignedToId,
+            orgId: user.orgId,
+            status: 'ACTIVE',
+          },
+          select: { id: true }
+        })
+        updateData.assignedToId = validUser?.id || null
+      } else {
+        updateData.assignedToId = null
+      }
     }
 
     const updated = await db.lead.update({
       where: { id: params?.id },
-      data: {
-        parentName: body.parentName,
-        phone: body.phone,
-        email: body.email || null,
-        kidName: body.kidName || null,
-        childAge: body.childAge || null,
-        currentSchool: body.currentSchool || null,
-        source: (body.source || 'WALK_IN') as LeadSource,
-        priority: (body.priority || 'MEDIUM') as LeadPriority,
-        status: body.status as LeadStatus,
-        gradeSought: body.gradeSought || null,
-        academicYearId: body.academicYearId || null,
-        nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
-        expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
-        assignedToId: finalAssignedToId,
-      }
+      data: updateData
     })
 
     // Track first contact

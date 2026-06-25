@@ -14,7 +14,7 @@ export function DropdownMenu({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function DropdownMenuTrigger({ children }: { children: React.ReactNode }) {
+export function DropdownMenuTrigger({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) {
   const context = React.useContext(DropdownMenuContext)
   if (!context) return null
   const child = React.Children.only(children) as React.ReactElement<{ onClick?: React.MouseEventHandler }>

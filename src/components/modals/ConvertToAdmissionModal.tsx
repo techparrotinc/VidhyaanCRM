@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { ClipboardList, Info, ArrowRight, X, Phone, GraduationCap, Tag, Circle, Loader2 } from 'lucide-react'
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
+import { mapGradeValue } from '@/lib/utils/gradeMapping'
 
 interface LeadRecord {
   id: string
@@ -34,59 +35,6 @@ const statusLabels: Record<string, string> = {
   FOLLOW_UP_PENDING: 'Follow-up',
   CONVERTED: 'Converted',
   NOT_INTERESTED: 'Rejected'
-}
-
-function mapGradeValue(
-  grade: string | null | undefined
-): string {
-  if (!grade) return ''
-
-  const g = grade.toLowerCase()
-    .trim()
-    .replace(/\s+/g, '_')
-    .replace(/-/g, '_')
-
-  const directMatches: Record<string, string> = {
-    'pre_kg': 'pre_kg',
-    'pre-kg': 'pre_kg',
-    'nursery': 'nursery',
-    'lkg': 'lkg',
-    'ukg': 'ukg',
-    'class_1': 'class_1',
-    'class_2': 'class_2',
-    'class_3': 'class_3',
-    'class_4': 'class_4',
-    'class_5': 'class_5',
-    'class_6': 'class_6',
-    'class_7': 'class_7',
-    'class_8': 'class_8',
-    'class_9': 'class_9',
-    'class_10': 'class_10',
-    'grade_1': 'class_1',
-    'grade_2': 'class_2',
-    'grade_3': 'class_3',
-    'grade_4': 'class_4',
-    'grade_5': 'class_5',
-    'grade_6': 'class_6',
-    'grade_7': 'class_7',
-    'grade_8': 'class_8',
-    'grade_9': 'class_9',
-    'grade_10': 'class_10',
-  }
-
-  if (directMatches[g]) {
-    return directMatches[g]
-  }
-
-  const gradeNumber = grade.match(/\d+/)
-  if (gradeNumber) {
-    const num = parseInt(gradeNumber[0])
-    if (num >= 1 && num <= 12) {
-      return 'class_' + num
-    }
-  }
-
-  return grade
 }
 
 export default function ConvertToAdmissionModal({

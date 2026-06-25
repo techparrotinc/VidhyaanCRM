@@ -44,8 +44,16 @@ const updateLeadSchema = z.object({
   gradeSought: z.string().optional().nullable(),
   kidName: z.string().optional().nullable(),
   assignedToId: z.string().optional().nullable(),
+  academicYearId: z.string().optional().nullable(),
   nextFollowUpAt: z.string().optional().nullable(),
-  academicYearId: z.string().optional().nullable()
+  childAge: z.string().optional().nullable(),
+  currentSchool: z.string().optional().nullable(),
+  expectedJoinDate: z.string().optional().nullable(),
+  siblingInSchool: z.boolean().optional().nullable(),
+  course: z.string().optional().nullable(),
+  batch: z.string().optional().nullable(),
+  studentAge: z.string().optional().nullable(),
+  startDate: z.string().optional().nullable()
 })
 
 export const PUT = route({
@@ -75,6 +83,18 @@ export const PUT = route({
     if (body.academicYearId !== undefined) updateData.academicYearId = body.academicYearId
     if (body.nextFollowUpAt !== undefined) {
       updateData.nextFollowUpAt = body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null
+    }
+    if (body.childAge !== undefined) updateData.childAge = body.childAge
+    if (body.currentSchool !== undefined) updateData.currentSchool = body.currentSchool
+    if (body.expectedJoinDate !== undefined) {
+      updateData.expectedJoinDate = body.expectedJoinDate ? new Date(body.expectedJoinDate) : null
+    }
+    if (body.siblingInSchool !== undefined) updateData.siblingInSchool = body.siblingInSchool
+    if (body.course !== undefined) updateData.course = body.course
+    if (body.batch !== undefined) updateData.batch = body.batch
+    if (body.studentAge !== undefined) updateData.studentAge = body.studentAge
+    if (body.startDate !== undefined) {
+      updateData.startDate = body.startDate ? new Date(body.startDate) : null
     }
 
     if (body.firstName !== undefined || body.lastName !== undefined) {

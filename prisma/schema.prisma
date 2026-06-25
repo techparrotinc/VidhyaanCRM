@@ -1463,6 +1463,15 @@ model Lead {
   updatedAt      DateTime   @updatedAt @map("updated_at")
   deletedAt      DateTime?  @map("deleted_at")
 
+  childAge       String?    @map("child_age")
+  currentSchool  String?    @map("current_school")
+  expectedJoinDate DateTime? @map("expected_join_date")
+  siblingInSchool Boolean?  @default(false) @map("sibling_in_school")
+  course         String?
+  batch          String?
+  studentAge     String?    @map("student_age")
+  startDate      DateTime?  @map("start_date")
+
   organization  Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch        Branch?        @relation(fields: [branchId], references: [id])
   academicYear  AcademicYear?  @relation(fields: [academicYearId], references: [id])

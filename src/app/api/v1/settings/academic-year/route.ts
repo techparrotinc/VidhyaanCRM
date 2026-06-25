@@ -7,7 +7,9 @@ import { AcademicYearType } from '@prisma/client'
 export const GET = route({
   roles: [
     ROLES.ORG_ADMIN,
-    ROLES.BRANCH_ADMIN
+    ROLES.BRANCH_ADMIN,
+    ROLES.COUNSELLOR,
+    ROLES.RECEPTIONIST
   ],
   handler: async ({ db, user }) => {
     const years = await db.academicYear.findMany({

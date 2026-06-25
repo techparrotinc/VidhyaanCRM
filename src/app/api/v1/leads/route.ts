@@ -85,8 +85,16 @@ const createLeadSchema = z.object({
   kidName: z.string().optional().nullable(),
   assignedToId: z.string().optional().nullable(),
   nextFollowUpAt: z.string().optional().nullable(),
+  academicYearId: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
-  academicYearId: z.string().optional().nullable()
+  childAge: z.string().optional().nullable(),
+  currentSchool: z.string().optional().nullable(),
+  expectedJoinDate: z.string().optional().nullable(),
+  siblingInSchool: z.boolean().optional().nullable(),
+  course: z.string().optional().nullable(),
+  batch: z.string().optional().nullable(),
+  studentAge: z.string().optional().nullable(),
+  startDate: z.string().optional().nullable()
 })
 
 export const POST = route({
@@ -121,7 +129,15 @@ export const POST = route({
           kidName: body.kidName ?? null,
           leadCode,
           orgId: user.orgId,
-          academicYearId: body.academicYearId ?? academicYearId ?? null
+          academicYearId: body.academicYearId ?? academicYearId ?? null,
+          childAge: body.childAge ?? null,
+          currentSchool: body.currentSchool ?? null,
+          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+          siblingInSchool: body.siblingInSchool ?? false,
+          course: body.course ?? null,
+          batch: body.batch ?? null,
+          studentAge: body.studentAge ?? null,
+          startDate: body.startDate ? new Date(body.startDate) : null
         }
       })
 
@@ -198,6 +214,14 @@ export const POST = route({
       orgId: user.orgId,
       academicYearId: body.academicYearId ?? academicYearId ?? null,
       nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
+      childAge: body.childAge ?? null,
+      currentSchool: body.currentSchool ?? null,
+      expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+      siblingInSchool: body.siblingInSchool ?? false,
+      course: body.course ?? null,
+      batch: body.batch ?? null,
+      studentAge: body.studentAge ?? null,
+      startDate: body.startDate ? new Date(body.startDate) : null
     }
 
     if (finalAssignedToId) {

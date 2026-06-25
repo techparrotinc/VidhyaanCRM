@@ -377,3 +377,11 @@
   50% { width: 60%; }
   100% { transform: translateX(250%); width: 40%; }
 }
+
+@utility scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

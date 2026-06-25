@@ -1,13 +1,12 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import {
   ChevronDown,
   CalendarDays,
   AlertCircle,
   TriangleAlert,
-  Plus,
   Loader2,
   CheckCircle2,
   XCircle,
@@ -31,38 +30,10 @@ import { Card } from "@/components/ui/card"
 import { GRADE_OPTIONS } from '@/constants/grades'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
+import RecordSkeleton from '@/components/shared/RecordSkeleton'
 
 import LeadPageHeader from '@/components/leads/LeadPageHeader'
 import { mapGradeValue } from '@/lib/utils/gradeMapping'
-
-const sourceUiToDb: Record<string, string> = {
-  'Vidhyaan': 'VIDHYAAN',
-  'Walk-in': 'WALK_IN',
-  'Phone Enquiry': 'PHONE',
-  'WhatsApp': 'WHATSAPP',
-  'School Website': 'WEBSITE',
-  'Social Media': 'SOCIAL_MEDIA',
-  'Referral': 'REFERRAL',
-  'Education Fair': 'EVENT',
-  'Newspaper Ad': 'NEWSPAPER',
-  'Google Ad': 'GOOGLE_ADS',
-  'Other': 'OTHER'
-}
-
-const statusUiToDb: Record<string, string> = {
-  'New': 'NEW',
-  'Contacted': 'CONTACTED',
-  'Interested': 'INTERESTED',
-  'Follow-up Pending': 'FOLLOW_UP_PENDING',
-  'Converted': 'CONVERTED',
-  'Not Interested': 'NOT_INTERESTED'
-}
-
-const priorityUiToDb: Record<string, string> = {
-  'Normal': 'MEDIUM',
-  'High': 'HIGH',
-  'Urgent': 'URGENT'
-}
 
 const sourceOptions = [
   { value: 'WALK_IN', label: 'Walk-in' },
@@ -79,6 +50,14 @@ const priorityOptions = [
   { value: 'MEDIUM', label: 'Medium' },
   { value: 'HIGH', label: 'High' },
   { value: 'URGENT', label: 'Urgent' }
+]
+
+const statusOptions = [
+  { value: 'NEW', label: 'New' },
+  { value: 'CONTACTED', label: 'Contacted' },
+  { value: 'INTERESTED', label: 'Interested' },
+  { value: 'FOLLOW_UP_PENDING', label: 'Follow-up' },
+  { value: 'NOT_INTERESTED', label: 'Rejected' },
 ]
 
 const timeOptions = [
@@ -104,8 +83,17 @@ const timeOptions = [
   { value: "06:30 PM", label: "6:30 PM" },
 ]
 
-export default function AddLeadPage() {
+export default function EditLeadPage() {
   const router = useRouter()
+  const params = useParams()
+  const leadId = params?.id as string
+
+  const [lead, setLead] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [dbCounsellors, setDbCounsellors] = useState<{ id: string; name: string }[]>([])
+  const [dbAcademicYears, setDbAcademicYears] = useState<{ id: string; name: string; status: string }[]>([])
 
   const [formData, setFormData] = useState({
     parentName: '',
@@ -126,13 +114,6 @@ export default function AddLeadPage() {
   const [followUpDate, setFollowUpDate] = useState<Date | undefined>(undefined)
   const [followUpTime, setFollowUpTime] = useState('10:00 AM')
 
-  const [duplicateFound, setDuplicateFound] = useState<any>(null)
-  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [dbCounsellors, setDbCounsellors] = useState<{ id: string; name: string }[]>([])
-  const [dbAcademicYears, setDbAcademicYears] = useState<{ id: string; name: string; status: string }[]>([])
-
   const [toast, setToast] = useState<{
     message: string
     type: 'success' | 'error' | 'info'
@@ -147,9 +128,25 @@ export default function AddLeadPage() {
     setTimeout(() => setToast(t => ({ ...t, show: false })), 3000)
   }
 
+  // Fetch lead details and counsellors on mount
   useEffect(() => {
-    const loadInitialData = async () => {
-      // Fetch counsellors
+    if (!leadId) return
+
+    async function fetchLead() {
+      try {
+        const res = await fetch(`/api/v1/leads/${leadId}`)
+        if (!res.ok) throw new Error('Lead not found')
+        const json = await res.json()
+        setLead(json.data)
+      } catch (err) {
+        console.error('Failed to fetch lead', err)
+        showToast('Failed to fetch lead details', 'error')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    async function fetchCounsellors() {
       try {
         const res = await fetch('/api/v1/counsellors')
         const json = await res.json()
@@ -159,24 +156,57 @@ export default function AddLeadPage() {
       } catch (err) {
         console.error('Failed to fetch counsellors', err)
       }
+    }
 
-      // Fetch academic years
+    async function fetchAcademicYears() {
       try {
         const res = await fetch('/api/v1/settings/academic-year')
         const json = await res.json()
         if (json.data && Array.isArray(json.data)) {
           setDbAcademicYears(json.data)
-          const currentYear = json.data.find((y: any) => y.status === 'ACTIVE') || json.data[0]
-          if (currentYear) {
-            setFormData(prev => ({ ...prev, academicYearId: currentYear.id }))
-          }
         }
       } catch (err) {
         console.error('Failed to fetch academic years', err)
       }
     }
-    loadInitialData()
-  }, [])
+
+    fetchLead()
+    fetchCounsellors()
+    fetchAcademicYears()
+  }, [leadId])
+
+  // Sync lead details to local states
+  useEffect(() => {
+    if (lead) {
+      setFormData({
+        parentName: lead.parentName || lead.studentName || '',
+        phone: lead.phone || '',
+        email: lead.email || '',
+        kidName: lead.kidName || '',
+        childAge: lead.childAge || '',
+        currentSchool: lead.currentSchool || '',
+        source: lead.source || 'WALK_IN',
+        priority: lead.priority || 'MEDIUM',
+        status: lead.status || 'NEW',
+        gradeSought: mapGradeValue(lead.gradeSought),
+        academicYearId: lead.academicYearId || '',
+        assignedToId: lead.assignedToId || '',
+        notes: lead.notes || '',
+      })
+
+      if (lead.nextFollowUpAt) {
+        const dateObj = new Date(lead.nextFollowUpAt)
+        setFollowUpDate(dateObj)
+
+        let hours = dateObj.getHours()
+        const minutes = String(dateObj.getMinutes()).padStart(2, '0')
+        const ampm = hours >= 12 ? 'PM' : 'AM'
+        hours = hours % 12
+        hours = hours ? hours : 12
+        setFollowUpTime(`${String(hours).padStart(2, '0')}:${minutes} ${ampm}`)
+      }
+    }
+  }, [lead])
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -186,39 +216,6 @@ export default function AddLeadPage() {
         delete copy[field]
         return copy
       })
-    }
-  }
-
-  // Check duplicate phone logic
-  const checkDuplicate = async (phone: string) => {
-    if (phone.length !== 10) return
-    try {
-      const res = await fetch('/api/v1/leads?search=' + phone)
-      const json = await res.json()
-      if (json.data && json.data.length > 0) {
-        const lead = json.data[0]
-        setDuplicateWarning(
-          'A lead with this phone number already exists: ' +
-          lead.parentName
-        )
-        setDuplicateFound({
-          name: lead.parentName || '—',
-          phone: lead.phone || '—',
-          applyingFor: lead.gradeSought || '—',
-          date: lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-          }) : '—',
-          status: lead.status || 'NEW',
-          id: lead.id
-        })
-      } else {
-        setDuplicateWarning(null)
-        setDuplicateFound(null)
-      }
-    } catch (err) {
-      console.error('Duplicate check failed', err)
     }
   }
 
@@ -259,7 +256,6 @@ export default function AddLeadPage() {
 
     setSubmitting(true)
     try {
-      // Resolve Academic Year CUID
       const academicYearId = formData.academicYearId || null
 
       // Parse and combine follow-up date and time
@@ -284,9 +280,9 @@ export default function AddLeadPage() {
       const lastName = parts.slice(1).join(' ') || ''
 
       const res = await fetch(
-        '/api/v1/leads',
+        `/api/v1/leads/${leadId}`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
           },
@@ -306,7 +302,7 @@ export default function AddLeadPage() {
             academicYearId,
             childAge: formData.childAge || null,
             currentSchool: formData.currentSchool || null,
-            siblingInSchool: false,
+            siblingInSchool: lead?.siblingInSchool ?? false,
           })
         }
       )
@@ -314,34 +310,31 @@ export default function AddLeadPage() {
       const json = await res.json()
 
       if (!res.ok) {
-        throw new Error(json.error ?? 'Failed to create lead')
+        throw new Error(json.error ?? 'Failed to update lead')
       }
 
-      if (json.data?.queued) {
-        showToast(
-          'Lead saved to queue. Upgrade to access queued leads.',
-          'info'
-        )
-      } else {
-        showToast('Lead is created successfully')
-      }
-
-      router.push('/lead-management')
+      showToast('Lead is updated successfully')
+      router.push(`/lead-management/${leadId}`)
 
     } catch (err: any) {
-      showToast(err.message ?? 'Failed to create lead', 'error')
+      showToast(err.message ?? 'Failed to update lead', 'error')
     } finally {
       setSubmitting(false)
     }
   }
 
+  if (loading) {
+    return <RecordSkeleton />
+  }
+
   return (
     <div className="relative min-h-screen w-full bg-slate-50/30 text-slate-800 flex flex-col">
       <LeadPageHeader
-        mode="add"
+        mode="edit"
+        lead={lead}
         isSubmitting={submitting}
         onSave={handleSave}
-        onCancel={() => router.push('/lead-management')}
+        onCancel={() => router.back()}
       />
 
       {/* THREE COLUMN GRID */}
@@ -384,12 +377,7 @@ export default function AddLeadPage() {
                   type="tel"
                   maxLength={10}
                   value={formData.phone}
-                  onChange={(e) => {
-                    handleChange('phone', e.target.value)
-                    if (e.target.value.length === 10) {
-                      checkDuplicate(e.target.value)
-                    }
-                  }}
+                  onChange={(e) => handleChange('phone', e.target.value)}
                   placeholder="10-digit mobile"
                   className="w-full h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10"
                 />
@@ -690,27 +678,30 @@ export default function AddLeadPage() {
         {/* RIGHT COLUMN */}
         <div className="overflow-y-auto overflow-x-hidden space-y-3 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent pb-4 md:col-span-2 xl:col-span-1">
           
-          {/* CARD 1 — DUPLICATE WARNING */}
-          {duplicateFound && (
-            <Card className="bg-amber-50 border border-amber-250 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <TriangleAlert className="size-4 text-amber-500 shrink-0" />
-                <span className="text-xs font-bold text-amber-800">Possible duplicate found</span>
+          {/* CARD 1 — ASSIGNMENT */}
+          <Card className="bg-white border border-slate-200 rounded-xl p-4">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3 pb-2 border-b border-slate-100">
+              ASSIGNMENT
+            </div>
+
+            <div>
+              <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                Lead Status
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.status}
+                  onChange={(e) => handleChange('status', e.target.value)}
+                  className="w-full h-9 px-3 pr-8 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] appearance-none cursor-pointer"
+                >
+                  {statusOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none flex-shrink-0" size={13}/>
               </div>
-              <div className="bg-white border border-amber-100 rounded-lg p-3">
-                <h6 className="text-sm font-bold text-slate-800">{duplicateFound.name}</h6>
-                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 mt-1">
-                  <span>{duplicateFound.applyingFor}</span>
-                  <span>·</span>
-                  <span>{duplicateFound.date}</span>
-                  <span>·</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.2 bg-red-50 text-red-650 rounded">
-                    {duplicateFound.status}
-                  </span>
-                </div>
-              </div>
-            </Card>
-          )}
+            </div>
+          </Card>
 
           {/* CARD 2 — SAVE ACTIONS */}
           <Card className="bg-white border border-slate-200 rounded-xl p-4">
@@ -726,14 +717,14 @@ export default function AddLeadPage() {
                   <span>Saving...</span>
                 </>
               ) : (
-                <span>Save Lead</span>
+                <span>Save Changes</span>
               )}
             </button>
 
             <button
               type="button"
-              onClick={() => router.push('/lead-management')}
-              className="w-full h-9 text-sm font-medium border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 mt-2 transition cursor-pointer"
+              onClick={() => router.back()}
+              className="w-full h-9 text-sm font-medium border border-slate-200 text-slate-650 rounded-xl hover:bg-slate-50 mt-2 transition cursor-pointer"
             >
               Cancel
             </button>

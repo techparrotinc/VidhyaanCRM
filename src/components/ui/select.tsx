@@ -130,11 +130,15 @@ export function SelectItem({
   className?: string
 }) {
   const context = React.useContext(SelectContext)
-  if (!context) return null
 
+  const registerLabel = context?.registerLabel
   React.useEffect(() => {
-    context.registerLabel(value, children)
-  }, [value, children, context.registerLabel])
+    if (registerLabel) {
+      registerLabel(value, children)
+    }
+  }, [value, children, registerLabel])
+
+  if (!context) return null
 
   const isSelected = context.value === value
   return (

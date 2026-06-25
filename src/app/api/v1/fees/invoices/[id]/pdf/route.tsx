@@ -6,7 +6,6 @@ import { ROLES } from '@/constants/roles'
 import React from 'react'
 
 // Define elements from @react-pdf/renderer
-// @ts-ignore
 import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer'
 
 const styles = StyleSheet.create({
@@ -341,7 +340,7 @@ export const GET = route({
       />
     ).toBuffer()
 
-    return new NextResponse(pdfStream, {
+    return new NextResponse(pdfStream as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${invoice.invoiceNumber}.pdf"`

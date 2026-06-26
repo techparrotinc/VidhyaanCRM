@@ -21,6 +21,7 @@ export const GET = route({
     const limit = Number(searchParams.get('limit') ?? 25)
     const stageId = searchParams.get('stageId') ?? undefined
     const counsellorId = searchParams.get('counsellorId') ?? undefined
+    const status = searchParams.get('status') ?? undefined
     const search = searchParams.get('search') ?? undefined
     const academicYearId = searchParams.get('academicYearId') ?? undefined
 
@@ -32,6 +33,9 @@ export const GET = route({
     if (stageId) where.stageId = stageId
     if (counsellorId) {
       where.assignedToId = counsellorId
+    }
+    if (status) {
+      where.status = status
     }
     if (academicYearId) {
       where.academicYearId = academicYearId

@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Skeleton } from '@/components/ui/skeleton'
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
+import { format } from 'date-fns'
 import {
   ClipboardList,
   Users,
@@ -44,7 +45,8 @@ import {
   Inbox,
   FileText,
   Loader2,
-  BarChart2
+  BarChart2,
+  UserPlus
 } from 'lucide-react'
 import TableSkeleton from '@/components/shared/TableSkeleton'
 import {
@@ -273,6 +275,7 @@ export default function AdmissionManagementPage() {
     counsellorId: '',
     priority: '',
     search: '',
+    status: '',
   })
   const [isNavigating, setIsNavigating] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -326,7 +329,6 @@ export default function AdmissionManagementPage() {
     avgDaysToAdmit: pipelineData?.data?.avgDaysToAdmit ?? 0
   }), [pipelineData])
 
-  // SWR for admissions list
   const params = useMemo(() => {
     return new URLSearchParams({
       page: String(pagination.page),
@@ -334,8 +336,9 @@ export default function AdmissionManagementPage() {
       ...(filters.stageId && { stageId: filters.stageId }),
       ...(filters.counsellorId && { counsellorId: filters.counsellorId }),
       ...(filters.search && { search: filters.search }),
+      ...(filters.status && { status: filters.status }),
     })
-  }, [pagination.page, filters.stageId, filters.counsellorId, filters.search])
+  }, [pagination.page, filters.stageId, filters.counsellorId, filters.search, filters.status])
 
   const { data: admissionsData, error: swrError, isLoading: loading, mutate } = useSWR<any>(
     `/api/v1/admissions?${params.toString()}`,
@@ -407,6 +410,7 @@ export default function AdmissionManagementPage() {
         source: adm.source ?? 'Other',
         counsellor: counsellorName,
         counsellorAvatar,
+        counsellorId: adm.assignedTo?.id ?? null,
         stage: adm.stage?.name ?? 'New',
         stageId: stageData ? stageData.id : (adm.stageId ?? 'new'),
         stageIndex,
@@ -526,10 +530,36 @@ export default function AdmissionManagementPage() {
     }
   }
 
+  const getStatusSelectClass = (status: string) => {
+    const base = "text-[10px] font-semibold px-2 py-0.5 rounded-full border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 "
+    switch (status) {
+      case 'ADMITTED':
+        return base + "bg-emerald-50 text-emerald-700 border-emerald-200"
+      case 'REJECTED':
+        return base + "bg-rose-50 text-rose-700 border-rose-200"
+      case 'WAITLISTED':
+        return base + "bg-amber-50 text-amber-700 border-amber-200"
+      case 'WITHDRAWN':
+        return base + "bg-slate-50 text-slate-600 border-slate-200"
+      case 'IN_PROGRESS':
+      default:
+        return base + "bg-blue-50 text-blue-700 border-blue-200"
+    }
+  }
+
+  const getTabCount = (statusVal: string) => {
+    if (!statusVal) return pagination.total
+    if (filters.status === statusVal) return pagination.total
+    return applicants.filter((a: any) => a.dbStatus === statusVal).length
+  }
+
   const formatDate = (dateString: any) => {
     if (!dateString) return '—'
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+    try {
+      return format(new Date(dateString), 'd MMM')
+    } catch (e) {
+      return '—'
+    }
   }
 
   const handleNavigate = (path: string) => {
@@ -670,6 +700,30 @@ export default function AdmissionManagementPage() {
       console.error('Assign failed', err)
     }
     setCounsellorDropdownId(null)
+  }
+
+  const handleStatusChange = async (applicantId: string, targetStatus: string) => {
+    try {
+      const res = await fetch(
+        '/api/v1/admissions/' + applicantId,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            status: targetStatus
+          })
+        }
+      )
+      if (!res.ok) throw new Error('Failed to update status')
+      fetchAdmissions()
+      fetchPipeline()
+      showToast(`Status updated to ${targetStatus}`)
+    } catch (err: any) {
+      console.error('Status update failed', err)
+      showToast(err.message || 'Failed to update status', 'error')
+    }
   }
 
   // STEP 9: Wire inline stage change
@@ -886,12 +940,23 @@ export default function AdmissionManagementPage() {
     return 'bg-slate-100 text-slate-600'
   }
 
+  const stageTextColor = (name?: string): string => {
+    if (!name) return 'text-slate-400'
+    const n = name.toLowerCase()
+    if (n.includes('admit')) return 'text-green-600'
+    if (n.includes('reject')) return 'text-red-500'
+    if (n.includes('interview')) return 'text-purple-600'
+    if (n.includes('payment')) return 'text-amber-600'
+    if (n.includes('document') || n.includes('doc')) return 'text-blue-600'
+    return 'text-slate-500'
+  }
+
   return (
     <>
-      <div className="p-3 sm:p-4 lg:p-6 space-y-4 max-w-7xl mx-auto w-full select-none">
+      <div className="p-3 sm:p-4 lg:p-6 space-y-3 max-w-7xl mx-auto w-full select-none bg-white min-h-screen">
           
           {/* SECTION 1 — PAGE HEADER SECTION */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 mb-3">
             <h1 className="text-xl font-bold text-slate-900">
               Admission Management
             </h1>
@@ -958,7 +1023,8 @@ export default function AdmissionManagementPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-md px-5 py-4 border-t-4 border-t-[#1565D8] space-y-4">
+            <div className="mx-4 mb-3">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-md px-5 py-4 border-t-4 border-t-[#1565D8] space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-bold uppercase text-slate-500">
@@ -1064,6 +1130,7 @@ export default function AdmissionManagementPage() {
                 </div>
               )}
             </div>
+          </div>
           )}
           {/* SECTION 3 — FILTER BAR / SEARCH / TABLE / PAGINATION CARD */}
           {activeView === 'list' && (loading || filteredApplicants.length > 0) ? (
@@ -1371,207 +1438,373 @@ export default function AdmissionManagementPage() {
                   </div>
                 </div>
 
+                {/* STATUS TAB STRIP */}
+                <div 
+                  className="border-b border-slate-100 pb-0 flex items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden scrollbar-none px-4 bg-white"
+                  style={{ scrollbarWidth: 'none' }}
+                >
+                  {[
+                    { id: '', label: 'All', badgeClass: 'bg-slate-200 text-slate-600' },
+                    { id: 'IN_PROGRESS', label: 'In Progress', badgeClass: 'bg-blue-100 text-blue-700' },
+                    { id: 'ADMITTED', label: 'Admitted', badgeClass: 'bg-emerald-100 text-emerald-700' },
+                    { id: 'REJECTED', label: 'Rejected', badgeClass: 'bg-rose-100 text-rose-700' },
+                    { id: 'WAITLISTED', label: 'Waitlisted', badgeClass: 'bg-amber-100 text-amber-700' },
+                    { id: 'WITHDRAWN', label: 'Withdrawn', badgeClass: 'bg-slate-150 text-slate-600' },
+                  ].map(tab => {
+                    const isActive = filters.status === tab.id
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => {
+                          setFilters(f => ({ ...f, status: tab.id }))
+                          setPagination(p => ({ ...p, page: 1 }))
+                        }}
+                        className={`px-3 py-2.5 text-sm font-medium cursor-pointer relative transition-all duration-200 shrink-0 ${isActive ? 'text-[#1565D8] border-b-2 border-[#1565D8] mb-[-1px]' : 'text-slate-500 hover:text-slate-800'}`}
+                      >
+                        <span>{tab.label}</span>
+                        <span className={`ml-2 text-[10px] md:text-[11px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'bg-[#1565D8] text-white' : tab.badgeClass}`}>
+                          {getTabCount(tab.id)}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+
                 {/* Desktop/Tablet Table View */}
-                <div className="hidden sm:block w-full overflow-x-auto sm:overflow-x-visible">
-                  <div className="flex flex-col w-full min-w-0 sm:min-w-[600px]">
+                <div className="hidden sm:block w-full overflow-x-auto">
+                  <table className="w-full table-fixed min-w-[900px] border-collapse text-left">
                     {/* TABLE HEADER */}
-                    <div className="flex items-center px-4 py-2 bg-slate-50 border-b border-slate-100 select-none text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                      <div className="w-8 flex-shrink-0">
-                        <input
-                          type="checkbox"
-                          checked={selectedItems.length === filteredApplicants.length && filteredApplicants.length > 0}
-                          onChange={handleSelectAll}
-                          className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-[160px] font-sans">
-                        APPLICANT
-                      </div>
-                      <div className="w-32 flex-shrink-0 font-sans hidden sm:block">
-                        GRADE / STAGE
-                      </div>
-                      <div className="w-24 flex-shrink-0 font-sans text-center">
-                        STATUS
-                      </div>
-                      <div className="w-32 flex-shrink-0 font-sans hidden lg:block">
-                        COUNSELLOR
-                      </div>
-                      <div className="w-20 flex-shrink-0 font-sans hidden md:block">
-                        DATE
-                      </div>
-                      <div className="w-12 flex-shrink-0 font-sans text-right">
-                        ACTIONS
-                      </div>
-                    </div>
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 select-none text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th className="px-3 py-2.5 text-left w-10 flex-shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={selectedItems.length === filteredApplicants.length && filteredApplicants.length > 0}
+                            onChange={handleSelectAll}
+                            className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
+                          />
+                        </th>
+                        <th className="px-3 py-2.5 text-left w-[280px] min-w-[200px]">
+                          APPLICANT
+                        </th>
+                        <th className="px-3 py-2.5 text-left w-[140px] min-w-[120px]">
+                          GRADE / STAGE
+                        </th>
+                        <th className="px-3 py-2.5 text-left w-[100px] min-w-[90px] hidden lg:table-cell">
+                          CONNECT
+                        </th>
+                        <th className="px-3 py-2.5 text-left w-[140px] min-w-[120px]">
+                          STATUS
+                        </th>
+                        <th className="px-3 py-2.5 text-left w-[160px] min-w-[140px] hidden lg:table-cell">
+                          COUNSELLOR
+                        </th>
+                        <th className="px-3 py-2.5 text-left w-[80px] min-w-[70px] hidden md:table-cell">
+                          DATE
+                        </th>
+                        <th className="px-3 py-2.5 text-left w-[50px] min-w-[50px]">
+                          ACTIONS
+                        </th>
+                      </tr>
+                    </thead>
 
                     {/* TABLE BODY */}
-                    <div className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100">
                       {filteredApplicants.map((a: any, idx: number) => {
                         const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
 
                         return (
-                          <div
+                          <tr
                             key={a.id}
                             onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
                             onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                            className={`border-l-2 ${rowBorderColor(a.dbStatus)} hover:bg-slate-50/80 transition-colors relative flex items-center px-4 py-2.5 gap-3 border-b border-slate-100 min-h-[44px] h-auto cursor-pointer bg-white`}
+                            className={`border-l-2 ${rowBorderColor(a.dbStatus)} hover:bg-slate-50/80 transition-colors cursor-pointer bg-white`}
                           >
                             {/* Checkbox */}
-                            <div className="w-8 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                            <td className="px-3 py-2.5 text-left w-10 flex-shrink-0" onClick={e => e.stopPropagation()}>
                               <input
                                 type="checkbox"
                                 checked={selectedItems.includes(a.id)}
                                 onChange={() => handleSelectApplicant(a.id)}
                                 className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
                               />
-                            </div>
+                            </td>
 
                             {/* Applicant Details */}
-                            <div className="flex-1 flex items-center gap-3 min-w-0">
-                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0 font-sans">
-                                {a.avatar}
+                            <td className="px-3 py-2.5 text-left w-[280px] min-w-[200px]">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0 font-sans">
+                                  {a.avatar}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <Link
+                                    href={`/admission-management/${a.id}`}
+                                    onClick={e => {
+                                      e.stopPropagation()
+                                    }}
+                                    className="font-semibold text-slate-800 text-sm hover:text-[#1565D8] hover:underline block truncate font-sans"
+                                  >
+                                    {a.fullName}
+                                  </Link>
+                                  <span className="text-xs text-slate-400 mt-0.5 truncate block font-sans">
+                                    <span className="font-mono">{a.admissionCode}</span>
+                                    {a.parentName && ` · ${a.parentName}`}
+                                    {a.phone && ` · ${a.phone}`}
+                                  </span>
+                                </div>
                               </div>
-                              <div className="min-w-0 flex-1">
-                                <Link
-                                  href={`/admission-management/${a.id}`}
-                                  onClick={e => {
-                                    e.stopPropagation()
-                                  }}
-                                  className="font-semibold text-slate-800 text-sm hover:text-[#1565D8] hover:underline block truncate font-sans"
-                                >
-                                  {a.fullName}
-                                </Link>
-                                <span className="text-xs text-slate-400 mt-0.5 truncate block font-sans">
-                                  <span className="font-mono">{a.admissionCode}</span>
-                                  {a.parentName && ` · ${a.parentName}`}
-                                  {a.phone && ` · ${a.phone}`}
-                                </span>
-                              </div>
-                            </div>
+                            </td>
 
                             {/* Grade / Stage */}
-                            <div className="w-32 flex-shrink-0 hidden sm:flex flex-col items-start gap-1">
-                              <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded w-fit font-sans">
-                                {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
-                              </span>
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded w-fit font-sans ${stageColor(a.stage)}`}>
-                                {a.stage || '—'}
-                              </span>
-                            </div>
+                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-xs text-slate-600 font-medium leading-tight">
+                                  {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
+                                </span>
+                                <span className={`text-[10px] font-semibold leading-tight ${stageTextColor(a.stage)}`}>
+                                  {a.stage || '—'}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Connect */}
+                            <td className="px-3 py-2.5 text-left w-[100px] min-w-[90px] hidden lg:table-cell" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-1.5">
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    showToast(`Email initiated for ${a.fullName}`)
+                                    window.open(`mailto:${a.email}`)
+                                  }}
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                                >
+                                  <Mail size={13} strokeWidth={1.5} />
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    showToast(`WhatsApp opened for ${a.fullName}`)
+                                    window.open(`https://wa.me/91${a.phone}`, '_blank')
+                                  }}
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 transition-colors hover:bg-green-50 hover:text-green-600"
+                                >
+                                  <MessageCircle size={13} strokeWidth={1.5} />
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    showToast(`Call initiated for ${a.fullName}`)
+                                    window.open(`tel:${a.phone}`)
+                                  }}
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 transition-colors hover:bg-green-50 hover:text-green-600"
+                                >
+                                  <Phone size={13} strokeWidth={1.5} />
+                                </button>
+                              </div>
+                            </td>
 
                             {/* Status */}
-                            <div className="w-24 flex-shrink-0 flex justify-center">
-                              {getStatusBadge(a.dbStatus)}
-                            </div>
+                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]" onClick={(e) => e.stopPropagation()}>
+                              <select
+                                value={a.dbStatus}
+                                onChange={(e) => handleStatusChange(a.id, e.target.value)}
+                                className={getStatusSelectClass(a.dbStatus)}
+                              >
+                                <option value="IN_PROGRESS">In Progress</option>
+                                <option value="ADMITTED">Admitted</option>
+                                <option value="REJECTED">Rejected</option>
+                                <option value="WAITLISTED">Waitlisted</option>
+                                <option value="WITHDRAWN">Withdrawn</option>
+                              </select>
+                            </td>
 
                             {/* Counsellor */}
-                            <div className="w-32 flex-shrink-0 hidden lg:flex items-center gap-2 min-w-0" onClick={e => e.stopPropagation()}>
-                              {a.counsellor ? (
-                                <>
-                                  <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[8px] font-bold flex items-center justify-center shrink-0">
-                                    {a.counsellorAvatar}
-                                  </div>
-                                  <span className="text-xs text-slate-600 truncate font-sans">
-                                    {a.counsellor}
-                                  </span>
-                                </>
-                              ) : (
-                                <span className="text-xs text-slate-400 font-sans">Unassigned</span>
-                              )}
-                            </div>
+                            <td className="px-3 py-2.5 text-left w-[160px] min-w-[140px] hidden lg:table-cell" onClick={e => e.stopPropagation()}>
+                              <div className="relative flex items-center min-w-0">
+                                {a.counsellor ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setCounsellorDropdownId(counsellorDropdownId === a.id ? null : a.id)
+                                    }}
+                                    className="flex items-center gap-2 hover:opacity-80 cursor-pointer group min-w-0"
+                                  >
+                                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                                      {a.counsellorAvatar || a.counsellor.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
+                                    </div>
+                                    <span 
+                                      title={a.counsellor}
+                                      className="text-sm font-medium text-slate-700 max-w-[100px] truncate block"
+                                    >
+                                      {a.counsellor}
+                                    </span>
+                                    <Pencil size={11} className="text-slate-300 group-hover:text-slate-400 flex-shrink-0 ml-0.5" strokeWidth={1.5} />
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setCounsellorDropdownId(counsellorDropdownId === a.id ? null : a.id)
+                                    }}
+                                    className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-lg hover:bg-amber-100 cursor-pointer"
+                                  >
+                                    <UserPlus size={12} className="text-amber-600 shrink-0" strokeWidth={1.5} />
+                                    <span>Select</span>
+                                  </button>
+                                )}
+
+                                {counsellorDropdownId === a.id && (
+                                  <>
+                                    <div
+                                      className="fixed inset-0 z-10"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setCounsellorDropdownId(null)
+                                      }}
+                                    />
+                                    <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[180px]">
+                                      <div className="px-3 py-1.5 border-b border-slate-50 mb-1">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                          Assign Counsellor
+                                        </span>
+                                      </div>
+                                      {counsellors.map((c: any) => (
+                                        <button
+                                          key={c.id}
+                                          onClick={async (e) => {
+                                            e.stopPropagation()
+                                            await handleAssignCounsellor(a.id, c.id)
+                                          }}
+                                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all duration-150 ${
+                                            a.counsellorId === c.id
+                                              ? 'bg-blue-50 text-blue-700 font-semibold'
+                                              : 'text-slate-600 hover:bg-slate-50'
+                                          }`}
+                                        >
+                                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                                            {c.name.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
+                                          </div>
+                                          <span className="flex-1 text-left">{c.name}</span>
+                                          {a.counsellorId === c.id && (
+                                            <Check size={13} className="text-blue-500" strokeWidth={2} />
+                                          )}
+                                        </button>
+                                      ))}
+                                      {a.counsellorId && (
+                                        <div className="border-t border-slate-50 mt-1 pt-1">
+                                          <button
+                                            onClick={async (e) => {
+                                              e.stopPropagation()
+                                              await handleAssignCounsellor(a.id, null)
+                                            }}
+                                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer"
+                                          >
+                                            <X size={13} className="text-red-400" strokeWidth={1.5} />
+                                            Remove Assignment
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </td>
 
                             {/* Date */}
-                            <div className="w-20 flex-shrink-0 hidden md:block text-xs text-slate-400 font-medium font-sans">
+                            <td className="px-3 py-2.5 text-left w-[80px] min-w-[70px] hidden md:table-cell text-xs text-slate-400 font-medium font-sans">
                               {formatDate(a.createdAt)}
-                            </div>
+                            </td>
 
                             {/* Actions */}
-                            <div className="w-12 flex-shrink-0 flex justify-end" onClick={e => e.stopPropagation()}>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger>
-                                  <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none cursor-pointer">
-                                    <MoreVertical size={16} strokeWidth={1.5} />
-                                  </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                  align="end"
-                                  className="w-56 min-w-[224px] bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 z-40"
-                                >
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      router.push('/admission-management/' + a.id)
-                                    }}
-                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                            <td className="px-3 py-2.5 text-left w-[50px] min-w-[50px]" onClick={e => e.stopPropagation()}>
+                              <div className="flex justify-start">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger>
+                                    <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none cursor-pointer">
+                                      <MoreVertical size={16} strokeWidth={1.5} />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent
+                                    align="end"
+                                    className="w-56 min-w-[224px] bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 z-40"
                                   >
-                                    <Eye size={14} strokeWidth={1.5} className="text-slate-400" />
-                                    View Applicant
-                                  </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        router.push('/admission-management/' + a.id)
+                                      }}
+                                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                                    >
+                                      <Eye size={14} strokeWidth={1.5} className="text-slate-400" />
+                                      View Applicant
+                                    </DropdownMenuItem>
 
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      router.push('/admission-management/' + a.id + '/edit')
-                                    }}
-                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                                  >
-                                    <Pencil size={14} strokeWidth={1.5} className="text-slate-400" />
-                                    Edit Applicant
-                                  </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        router.push('/admission-management/' + a.id + '/edit')
+                                      }}
+                                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                                    >
+                                      <Pencil size={14} strokeWidth={1.5} className="text-slate-400" />
+                                      Edit Applicant
+                                    </DropdownMenuItem>
 
-                                  <DropdownMenuSeparator />
+                                    <DropdownMenuSeparator />
 
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setShowConvertModal(a)
-                                    }}
-                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
-                                  >
-                                    <CheckCircle2 size={14} strokeWidth={1.5} className="text-[#1565D8]" />
-                                    {config.convertToStudentLabel[type]}
-                                  </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setShowConvertModal(a)
+                                      }}
+                                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
+                                    >
+                                      <CheckCircle2 size={14} strokeWidth={1.5} className="text-[#1565D8]" />
+                                      {config.convertToStudentLabel[type]}
+                                    </DropdownMenuItem>
 
-                                  <DropdownMenuSeparator />
+                                    <DropdownMenuSeparator />
 
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setShowRejectModal(a)
-                                    }}
-                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer"
-                                  >
-                                    <XCircle size={14} strokeWidth={1.5} className="text-red-500" />
-                                    Reject Application
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </div>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setShowRejectModal(a)
+                                      }}
+                                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer"
+                                    >
+                                      <XCircle size={14} strokeWidth={1.5} className="text-red-500" />
+                                      Reject Application
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </td>
+                          </tr>
                         )
                       })}
 
                       {/* Empty Row Placeholders to keep minimum 8 rows */}
                       {Math.max(0, 8 - filteredApplicants.length) > 0 && 
                         Array.from({ length: Math.max(0, 8 - filteredApplicants.length) }).map((_, i) => (
-                          <div
+                          <tr
                             key={`placeholder-${i}`}
-                            className="relative flex items-center px-4 py-2.5 gap-3 border-b border-slate-50 last:border-0 min-h-[44px] h-auto bg-white"
+                            className="border-b border-slate-50 bg-white"
                           >
-                            <div className="w-8 flex-shrink-0" />
-                            <div className="flex-1 min-w-[160px]">
+                            <td className="px-3 py-2.5 text-left w-10 flex-shrink-0" />
+                            <td className="px-3 py-2.5 text-left w-[280px] min-w-[200px]">
                               <div className="h-4" />
-                            </div>
-                            <div className="w-32 flex-shrink-0 hidden sm:block" />
-                            <div className="w-24 flex-shrink-0" />
-                            <div className="w-32 flex-shrink-0 hidden lg:block" />
-                            <div className="w-20 flex-shrink-0 hidden md:block" />
-                            <div className="w-12 flex-shrink-0" />
-                          </div>
+                            </td>
+                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]" />
+                            <td className="px-3 py-2.5 text-left w-[100px] min-w-[90px] hidden lg:table-cell" />
+                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]" />
+                            <td className="px-3 py-2.5 text-left w-[160px] min-w-[140px] hidden lg:table-cell" />
+                            <td className="px-3 py-2.5 text-left w-[80px] min-w-[70px] hidden md:table-cell" />
+                            <td className="px-3 py-2.5 text-left w-[50px] min-w-[50px]" />
+                          </tr>
                         ))
                       }
-                    </div>
-                  </div>
+                    </tbody>
+                  </table>
                 </div>
 
                 {/* Mobile Card View (visible on < 640px) */}

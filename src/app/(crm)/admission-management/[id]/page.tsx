@@ -577,32 +577,32 @@ export default function AdmissionDetailPage() {
           
           {/* 1. Applicant Info Card */}
           <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 text-left order-1 col-span-1 sm:col-span-1 lg:col-span-1">
-            <h4 className="text-sm sm:text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Applicant Information</h4>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 border-b border-slate-100 pb-2">Applicant Information</h4>
             <div className="space-y-4">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Applicant Name</span>
-                <span className="text-sm font-semibold text-slate-700">{admission.applicantName}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 block">Applicant Name</span>
+                <span className="text-sm font-medium text-slate-800">{admission.applicantName}</span>
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Phone</span>
-                <span className="text-sm font-semibold text-slate-700">{admission.phone || '—'}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 block">Phone</span>
+                <span className="text-sm font-medium text-slate-800">{admission.phone || '—'}</span>
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Email</span>
-                <span className="text-sm font-semibold text-slate-700">{admission.email || '—'}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 block">Email</span>
+                <span className="text-sm font-medium text-slate-800">{admission.email || '—'}</span>
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Applying For (Grade)</span>
-                <span className="text-sm font-semibold text-slate-700">{getGradeLabel(admission.gradeSought || '—')}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 block">Applying For (Grade)</span>
+                <span className="text-sm font-medium text-slate-800">{getGradeLabel(admission.gradeSought || '—')}</span>
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Assigned Counsellor</span>
-                <span className="text-sm font-semibold text-slate-700">{admission.assignedTo?.name || 'Unassigned'}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 block">Assigned Counsellor</span>
+                <span className="text-sm font-medium text-slate-800">{admission.assignedTo?.name || 'Unassigned'}</span>
               </div>
               {admission.lead?.parentName && (
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Parent/Guardian Name</span>
-                  <span className="text-sm font-semibold text-slate-700">{admission.lead.parentName}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 block">Parent/Guardian Name</span>
+                  <span className="text-sm font-medium text-slate-800">{admission.lead.parentName}</span>
                 </div>
               )}
             </div>
@@ -610,7 +610,7 @@ export default function AdmissionDetailPage() {
 
           {/* 2. Admission Stage Card */}
           <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 text-left space-y-4 order-2 col-span-1 sm:col-span-1 lg:col-span-1">
-            <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">
               ADMISSION STAGE
             </h4>
             

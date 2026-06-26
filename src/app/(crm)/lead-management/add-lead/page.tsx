@@ -516,7 +516,7 @@ export default function AddLeadPage() {
                   
                   {/* Parent Name */}
                   <div className="md:col-span-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       Parent / Guardian Name <span className="text-red-500 ml-0.5">*</span>
                     </label>
                     <input
@@ -537,7 +537,7 @@ export default function AddLeadPage() {
 
                   {/* Phone */}
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       Phone Number <span className="text-red-500 ml-0.5">*</span>
                     </label>
                     <div className="relative">
@@ -565,7 +565,7 @@ export default function AddLeadPage() {
 
                   {/* Email */}
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       Email Address
                     </label>
                     <div className="relative">
@@ -591,7 +591,7 @@ export default function AddLeadPage() {
 
                   {/* Source selector (Full width) */}
                   <div className="md:col-span-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       Source <span className="text-red-500 ml-0.5">*</span>
                     </label>
                     
@@ -636,7 +636,7 @@ export default function AddLeadPage() {
                     
                     {/* Applying For Grade */}
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         Applying For (Grade) <span className="text-red-500 ml-0.5">*</span>
                       </label>
                       <select
@@ -660,7 +660,7 @@ export default function AddLeadPage() {
 
                     {/* Academic Year */}
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         Academic Year
                       </label>
                       <select
@@ -678,7 +678,7 @@ export default function AddLeadPage() {
 
                     {/* Child's Name */}
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         Child&apos;s Name
                       </label>
                       <input
@@ -693,7 +693,7 @@ export default function AddLeadPage() {
 
                     {/* Child's Age */}
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         Child&apos;s Age
                       </label>
                       <input
@@ -710,7 +710,7 @@ export default function AddLeadPage() {
 
                     {/* Current School */}
                     <div className="md:col-span-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         Current School (if any)
                       </label>
                       <input
@@ -725,7 +725,7 @@ export default function AddLeadPage() {
 
                     {/* Expected Join Date */}
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         EXPECTED JOIN DATE
                       </label>
                       <Popover>
@@ -764,7 +764,7 @@ export default function AddLeadPage() {
 
                     {/* Sibling enrolled in school */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         SIBLING ALREADY ENROLLED
                       </label>
                       <div
@@ -790,7 +790,7 @@ export default function AddLeadPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Course */}
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         Course / Program <span className="text-red-500 ml-0.5">*</span>
                       </label>
                       <select
@@ -814,7 +814,7 @@ export default function AddLeadPage() {
 
                     {/* Batch */}
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         Batch / Timing
                       </label>
                       <select
@@ -832,7 +832,7 @@ export default function AddLeadPage() {
 
                     {/* Student Age */}
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         Student Age / Level
                       </label>
                       <input
@@ -847,7 +847,7 @@ export default function AddLeadPage() {
 
                     {/* Preferred Start Date */}
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         Preferred Start Date
                       </label>
                       <input
@@ -877,7 +877,7 @@ export default function AddLeadPage() {
                   
                   {/* Assign Counsellor */}
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       Assign Counsellor <span className="text-red-500 ml-0.5">*</span>
                     </label>
                     <select
@@ -903,7 +903,7 @@ export default function AddLeadPage() {
 
                   {/* Lead Status */}
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       Lead Status
                     </label>
                     <select
@@ -920,7 +920,7 @@ export default function AddLeadPage() {
 
                   {/* Follow-up Date */}
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       Follow-up Date <span className="text-red-500 ml-0.5">*</span>
                     </label>
                     <Popover>
@@ -975,7 +975,7 @@ export default function AddLeadPage() {
 
                   {/* Follow-up Time */}
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       Follow-up Time <span className="text-red-500 ml-0.5">*</span>
                     </label>
                     <select
@@ -999,7 +999,7 @@ export default function AddLeadPage() {
 
                   {/* Priority Field */}
                   <div className="md:col-span-2 mt-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 block">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       Priority <span className="text-red-500 ml-0.5">*</span>
                     </label>
 
@@ -1024,7 +1024,7 @@ export default function AddLeadPage() {
 
                   {/* Campaign dropdown selector */}
                   <div className="md:col-span-2 mt-4">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       CAMPAIGN (OPTIONAL)
                     </label>
                     <select
@@ -1062,7 +1062,7 @@ export default function AddLeadPage() {
 
                 {/* Note Type tags */}
                 <div className="mb-4">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2 block">
+                  <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                     NOTE TYPE
                   </label>
                   <div className="flex flex-wrap gap-2 mb-3">

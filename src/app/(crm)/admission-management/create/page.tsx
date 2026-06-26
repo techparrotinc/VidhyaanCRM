@@ -261,13 +261,13 @@ export default function CreateAdmissionPage() {
         <div className="space-y-3 sm:space-y-4">
           {/* CARD 1 — APPLICANT INFORMATION */}
           <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 space-y-3 sm:space-y-4">
-            <h3 className="text-sm sm:text-base font-bold text-slate-800 border-b border-slate-100 pb-2 font-sans uppercase tracking-wider">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 mb-3">
               Applicant Information
             </h3>
 
             <div className="space-y-3">
               <div>
-                <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Applicant Name (Child) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -282,7 +282,7 @@ export default function CreateAdmissionPage() {
               </div>
 
               <div>
-                <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Parent / Guardian Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -297,7 +297,7 @@ export default function CreateAdmissionPage() {
               </div>
 
               <div>
-                <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -313,7 +313,7 @@ export default function CreateAdmissionPage() {
               </div>
 
               <div>
-                <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Email Address
                 </label>
                 <input
@@ -330,13 +330,13 @@ export default function CreateAdmissionPage() {
 
           {/* CARD 2 — ENROLLMENT DETAILS */}
           <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 space-y-3 sm:space-y-4">
-            <h3 className="text-sm sm:text-base font-bold text-slate-800 border-b border-slate-100 pb-2 font-sans uppercase tracking-wider">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 mb-3">
               Enrollment Details
             </h3>
 
             <div className="space-y-3">
               <div>
-                <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Applying For Grade <span className="text-red-500">*</span>
                 </label>
                 <div className="relative w-full">
@@ -357,7 +357,7 @@ export default function CreateAdmissionPage() {
               </div>
 
               <div>
-                <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Academic Year <span className="text-red-500">*</span>
                 </label>
                 <div className="relative w-full">
@@ -378,7 +378,7 @@ export default function CreateAdmissionPage() {
               </div>
 
               <div>
-                <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Current School (if any)
                 </label>
                 <input
@@ -433,13 +433,13 @@ export default function CreateAdmissionPage() {
         <div className="space-y-3 sm:space-y-4">
           {/* CARD 1 — PIPELINE & ASSIGNMENT */}
           <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 space-y-3 sm:space-y-4">
-            <h3 className="text-sm sm:text-base font-bold text-slate-800 border-b border-slate-100 pb-2 font-sans uppercase tracking-wider">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 mb-3">
               Pipeline & Assignment
             </h3>
 
             <div className="space-y-3">
               <div>
-                <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Initial Stage <span className="text-red-500">*</span>
                 </label>
                 <div className="relative w-full">
@@ -460,7 +460,7 @@ export default function CreateAdmissionPage() {
               </div>
 
               <div>
-                <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Assigned Counsellor
                 </label>
                 <div className="relative w-full">
@@ -480,7 +480,7 @@ export default function CreateAdmissionPage() {
               </div>
 
               <div>
-                <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Priority
                 </label>
                 <div className="relative w-full">
@@ -503,7 +503,7 @@ export default function CreateAdmissionPage() {
 
           {/* CARD 2 — NOTES */}
           <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 space-y-3 sm:space-y-4">
-            <h3 className="text-sm sm:text-base font-bold text-slate-800 border-b border-slate-100 pb-2 font-sans uppercase tracking-wider">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 mb-3">
               Notes
             </h3>
             <div>
@@ -522,7 +522,7 @@ export default function CreateAdmissionPage() {
         {/* RIGHT COLUMN — Actions */}
         <div className="space-y-3 sm:space-y-4 col-span-1 md:col-span-2 lg:col-span-1">
           <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 space-y-3 sm:space-y-4">
-            <h3 className="text-sm sm:text-base font-bold text-slate-800 border-b border-slate-100 pb-2 font-sans uppercase tracking-wider">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 mb-3">
               Actions
             </h3>
 

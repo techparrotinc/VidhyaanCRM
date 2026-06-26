@@ -252,7 +252,7 @@ export default function EditAdmissionPage() {
           </button>
           <div className="h-6 w-px bg-slate-200" />
           <div className="flex flex-col">
-            <span className="text-base font-bold text-slate-900">
+            <span className="text-lg font-bold text-slate-900">
               Edit Admission
             </span>
             <span className="text-xs text-slate-400">
@@ -307,13 +307,13 @@ export default function EditAdmissionPage() {
           
           {/* CARD 1 — APPLICANT INFORMATION */}
           <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left">
-            <h3 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3 uppercase tracking-wider font-sans">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 mb-3">
               Applicant Information
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="col-span-2">
-                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Applicant Name (Child) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -328,7 +328,7 @@ export default function EditAdmissionPage() {
               </div>
 
               <div className="col-span-2">
-                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Parent / Guardian <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -343,7 +343,7 @@ export default function EditAdmissionPage() {
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -359,7 +359,7 @@ export default function EditAdmissionPage() {
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Email Address
                 </label>
                 <input
@@ -376,13 +376,13 @@ export default function EditAdmissionPage() {
 
           {/* CARD 2 — ENROLLMENT DETAILS */}
           <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left">
-            <h3 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3 uppercase tracking-wider font-sans">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 mb-3">
               Enrollment Details
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Applying For Grade <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -403,7 +403,7 @@ export default function EditAdmissionPage() {
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Academic Year
                 </label>
                 <div className="relative">
@@ -423,7 +423,7 @@ export default function EditAdmissionPage() {
               </div>
 
               <div className="col-span-2">
-                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Current School
                 </label>
                 <input
@@ -476,12 +476,12 @@ export default function EditAdmissionPage() {
           
           {/* CARD 1 — PIPELINE & ASSIGNMENT */}
           <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left space-y-3">
-            <h3 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3 uppercase tracking-wider font-sans">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 mb-3">
               Pipeline & Assignment
             </h3>
 
             <div>
-              <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                 Stage
               </label>
               <div className="relative">
@@ -501,7 +501,7 @@ export default function EditAdmissionPage() {
             </div>
 
             <div>
-              <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                 Assigned Counsellor
               </label>
               <div className="relative">
@@ -521,7 +521,7 @@ export default function EditAdmissionPage() {
             </div>
 
             <div>
-              <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                 Priority
               </label>
               <div className="relative">
@@ -541,7 +541,7 @@ export default function EditAdmissionPage() {
             </div>
 
             <div className="pt-2 border-t border-slate-100">
-              <span className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                 CURRENT STATUS
               </span>
               <div className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider border ${
@@ -556,7 +556,7 @@ export default function EditAdmissionPage() {
 
           {/* CARD 2 — NOTES */}
           <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left">
-            <h3 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3 uppercase tracking-wider font-sans">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 mb-3">
               Notes
             </h3>
             <div>

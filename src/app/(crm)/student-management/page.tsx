@@ -117,13 +117,13 @@ export default function StudentListingPage() {
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-6 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Student ID</th>
-                  <th className="px-6 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Student</th>
-                  <th className="px-6 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Roll No</th>
-                  <th className="px-6 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Grade/Class</th>
-                  <th className="px-6 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Guardian</th>
-                  <th className="px-6 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                  <th className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Student ID</th>
+                  <th className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Student</th>
+                  <th className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Roll No</th>
+                  <th className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Grade/Class</th>
+                  <th className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Guardian</th>
+                  <th className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                  <th className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -134,35 +134,35 @@ export default function StudentListingPage() {
                     onClick={() => router.push(`/student-management/${student.id}`)}
                     className="hover:bg-slate-50/70 transition cursor-pointer"
                   >
-                    <td className="px-6 py-4 text-sm font-semibold text-slate-600">
+                    <td className="px-3 py-2.5 text-xs text-slate-400 font-mono">
                       {student.studentCode}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-2.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-50 text-[#1565D8] flex items-center justify-center font-bold text-xs uppercase shadow-sm">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs uppercase shadow-sm">
                           {student.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-slate-800">{student.name}</span>
+                          <span className="text-sm font-semibold text-slate-800">{student.name}</span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-500">
+                    <td className="px-3 py-2.5 text-xs text-slate-500">
                       {student.rollNumber || '-'}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 font-medium">
+                    <td className="px-3 py-2.5 text-xs text-slate-500 font-medium">
                       {getGradeLabel(student.gradeLabel || '') || student.gradeLabel || '-'}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-2.5">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-slate-700">{student.guardianName || '-'}</span>
+                        <span className="text-xs font-semibold text-slate-700">{student.guardianName || '-'}</span>
                         {student.guardianPhone && (
                           <span className="text-xs text-slate-400">{student.guardianPhone}</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${
+                    <td className="px-3 py-2.5">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
                         student.status === 'ACTIVE' ? 'bg-green-50 text-green-700 border-green-100' :
                         student.status === 'ALUMNI' ? 'bg-blue-50 text-blue-700 border-blue-100' :
                         'bg-slate-100 text-slate-600 border-slate-200'
@@ -170,7 +170,7 @@ export default function StudentListingPage() {
                         {student.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-3 py-2.5 text-right">
                       <Link
                         href={`/student-management/${student.id}`}
                         onClick={(e) => e.stopPropagation()}

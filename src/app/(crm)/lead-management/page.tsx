@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
+import { format } from 'date-fns'
 import { useCounsellors } from '@/hooks/useCounsellors'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -94,12 +95,7 @@ const currentUser = {
   firstName: 'Saran',
 }
 
-const getGreeting = (): string => {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 17) return 'Good afternoon'
-  return 'Good evening'
-}
+
 
 const statusConfig = {
   NEW: {
@@ -249,12 +245,7 @@ const sources = [
 
 const formatDate = (dateStr?: string) => {
   if (!dateStr) return '—'
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  })
+  return format(new Date(dateStr), 'd MMM')
 }
 
 
@@ -718,18 +709,12 @@ export default function LeadManagementPage() {
     <>
       <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-5 lg:space-y-6 max-w-7xl mx-auto w-full select-none">
           
-          {/* SECTION 1 — GREETING + BREADCRUMB ROW */}
+          {/* SECTION 1 — PAGE HEADER ROW */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-slate-800 leading-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                {getGreeting()}, {currentUser.firstName}
-                <span className="ml-2 text-xl">👋</span>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                Lead Management
               </h1>
-              <p className="text-sm text-slate-400 mt-0.5 flex items-center gap-1.5">
-                <span>Sales &amp; Marketing</span>
-                <ChevronRight size={12} className="text-slate-300" />
-                <span>Lead Management</span>
-              </p>
             </div>
             <Link href="/lead-management/add-lead">
               <button className="bg-[#1565D8] text-white text-sm font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition cursor-pointer">

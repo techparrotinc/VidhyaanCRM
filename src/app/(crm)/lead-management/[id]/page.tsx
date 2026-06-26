@@ -780,7 +780,7 @@ export default function LeadDetailPage() {
               <div className="flex items-center gap-3 py-1.5">
                 <Phone size={13} className="text-slate-400 flex-shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wide text-slate-400 font-semibold">Phone</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Phone</span>
                   <a href={`tel:${lead.phone}`} className="text-sm text-[#1565D8] hover:underline font-medium">
                     {lead.phone}
                   </a>
@@ -790,7 +790,7 @@ export default function LeadDetailPage() {
               <div className="flex items-center gap-3 py-1.5">
                 <Mail size={13} className="text-slate-400 flex-shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wide text-slate-400 font-semibold">Email</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Email</span>
                   <a href={`mailto:${lead.email}`} className="text-sm text-[#1565D8] hover:underline font-medium">
                     {lead.email || '—'}
                   </a>
@@ -800,7 +800,7 @@ export default function LeadDetailPage() {
               <div className="flex items-center gap-3 py-1.5">
                 <Plus size={13} className="text-slate-400 flex-shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wide text-slate-400 font-semibold">Source</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Source</span>
                   <div>
                     <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
                       {formatSource(lead.source)}
@@ -812,8 +812,8 @@ export default function LeadDetailPage() {
               <div className="flex items-center gap-3 py-1.5">
                 <Calendar size={13} className="text-slate-400 flex-shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wide text-slate-400 font-semibold">Created</span>
-                  <span className="text-sm text-slate-850 font-medium">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Created</span>
+                  <span className="text-sm text-slate-800 font-medium">
                     {format(lead.createdAt, 'd MMM yyyy')}
                   </span>
                 </div>
@@ -823,7 +823,7 @@ export default function LeadDetailPage() {
 
           {/* CARD 2 — STUDENT PROFILE */}
           <Card className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3 pb-2 border-b border-slate-100">
+            <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 pb-2 border-b border-slate-100">
               STUDENT PROFILE
             </div>
             
@@ -831,7 +831,7 @@ export default function LeadDetailPage() {
               <div className="flex items-center gap-3 py-1.5">
                 <Baby size={13} className="text-slate-400 flex-shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wide text-slate-400 font-semibold">Child Name</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Child Name</span>
                   <span className="text-sm text-slate-800 font-medium">{lead.kidName || '—'}</span>
                 </div>
               </div>
@@ -839,7 +839,7 @@ export default function LeadDetailPage() {
               <div className="flex items-center gap-3 py-1.5">
                 <Clock size={13} className="text-slate-400 flex-shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wide text-slate-400 font-semibold">Child Age</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Child Age</span>
                   <span className="text-sm text-slate-800 font-medium">{lead.childAge ? `${lead.childAge} years` : '—'}</span>
                 </div>
               </div>
@@ -847,7 +847,7 @@ export default function LeadDetailPage() {
               <div className="flex items-center gap-3 py-1.5">
                 <GraduationCap size={13} className="text-slate-400 flex-shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wide text-slate-400 font-semibold">Applying For</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Applying For</span>
                   <span className="text-sm text-slate-800 font-medium">
                     {lead.gradeSought ? getGradeLabel(lead.gradeSought) : '—'}
                   </span>
@@ -857,8 +857,8 @@ export default function LeadDetailPage() {
               <div className="flex items-center gap-3 py-1.5">
                 <School size={13} className="text-slate-400 flex-shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wide text-slate-400 font-semibold">Current School</span>
-                  <span className="text-sm text-slate-850 font-medium">{lead.currentSchool || '—'}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Current School</span>
+                  <span className="text-sm text-slate-800 font-medium">{lead.currentSchool || '—'}</span>
                 </div>
               </div>
             </div>
@@ -866,7 +866,7 @@ export default function LeadDetailPage() {
 
           {/* CARD 3 — LEAD INFO */}
           <Card className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3 pb-2 border-b border-slate-100">
+            <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 pb-2 border-b border-slate-100">
               LEAD INFORMATION
             </div>
             
@@ -874,12 +874,12 @@ export default function LeadDetailPage() {
               <div className="flex items-center gap-3 py-1.5">
                 <User size={13} className="text-slate-400 flex-shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wide text-slate-400 font-semibold">Counsellor</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Counsellor</span>
                   <div className="flex items-center gap-2 mt-0.5">
                     <div className="w-5 h-5 bg-slate-700 text-white text-[8px] font-bold rounded-full flex items-center justify-center flex-shrink-0">
                       {currentCounsellorAvatar}
                     </div>
-                    <span className="text-sm text-slate-800 font-semibold">
+                    <span className="text-sm text-slate-800 font-medium">
                       {currentCounsellor}
                     </span>
                   </div>
@@ -889,8 +889,8 @@ export default function LeadDetailPage() {
               <div className="flex items-center gap-3 py-1.5">
                 <BookOpen size={13} className="text-slate-400 flex-shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wide text-slate-400 font-semibold">Academic Year</span>
-                  <span className="text-sm text-slate-800 font-semibold">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Academic Year</span>
+                  <span className="text-sm text-slate-800 font-medium">
                     {lead.academicYear?.name || lead.academicYear || '—'}
                   </span>
                 </div>
@@ -899,7 +899,7 @@ export default function LeadDetailPage() {
               <div className="flex items-center gap-3 py-1.5">
                 <Tag size={13} className="text-slate-400 flex-shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wide text-slate-400 font-semibold">Priority</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Priority</span>
                   <div className="mt-1">
                     <span className={`h-6 px-2.5 rounded-full text-xs font-semibold flex items-center justify-center border w-fit ${priorityColors[lead.priority] || 'bg-slate-100 text-slate-650'}`}>
                       {priorityLabels[lead.priority] || lead.priority}

@@ -133,23 +133,23 @@ export default function StudentDetailPage() {
               <div className="flex items-start gap-3">
                 <GraduationCap className="h-4.5 w-4.5 text-slate-400 mt-0.5" />
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Class/Grade</span>
-                  <span className="text-sm font-medium text-slate-750">{getGradeLabel(student.gradeLabel || '') || student.gradeLabel || '-'}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Class/Grade</span>
+                  <span className="text-sm font-medium text-slate-800">{getGradeLabel(student.gradeLabel || '') || student.gradeLabel || '-'}</span>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <User className="h-4.5 w-4.5 text-slate-400 mt-0.5" />
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Guardian</span>
-                  <span className="text-sm font-medium text-slate-750">{student.guardianName || '-'}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Guardian</span>
+                  <span className="text-sm font-medium text-slate-800">{student.guardianName || '-'}</span>
                 </div>
               </div>
               {student.guardianPhone && (
                 <div className="flex items-start gap-3">
                   <Phone className="h-4.5 w-4.5 text-slate-400 mt-0.5" />
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Guardian Phone</span>
-                    <span className="text-sm font-medium text-slate-755">{student.guardianPhone}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Guardian Phone</span>
+                    <span className="text-sm font-medium text-slate-800">{student.guardianPhone}</span>
                   </div>
                 </div>
               )}
@@ -157,8 +157,8 @@ export default function StudentDetailPage() {
                 <div className="flex items-start gap-3">
                   <Mail className="h-4.5 w-4.5 text-slate-400 mt-0.5" />
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Guardian Email</span>
-                    <span className="text-sm font-medium text-slate-755 break-all">{student.guardianEmail}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Guardian Email</span>
+                    <span className="text-sm font-medium text-slate-800 break-all">{student.guardianEmail}</span>
                   </div>
                 </div>
               )}
@@ -166,8 +166,8 @@ export default function StudentDetailPage() {
                 <div className="flex items-start gap-3">
                   <Calendar className="h-4.5 w-4.5 text-slate-400 mt-0.5" />
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Date of Birth</span>
-                    <span className="text-sm font-medium text-slate-755">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Date of Birth</span>
+                    <span className="text-sm font-medium text-slate-800">
                       {new Date(student.dateOfBirth).toLocaleDateString('en-IN', {
                         day: '2-digit',
                         month: 'short',

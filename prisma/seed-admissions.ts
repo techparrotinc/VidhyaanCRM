@@ -1,162 +1,310 @@
 import { prisma } from '../src/lib/db/client'
 
 async function main() {
-  console.log('Seeding sample admissions...')
+  console.log('STEP 1 — CHECK EXISTING DATA')
 
   const org = await prisma.organization.findFirst({
-    where: { slug: 'prince-matriculation-school' }
+    where: {
+      name: { contains: 'Prince' }
+    },
+    select: { id: true }
   })
+
+  console.log(`org.id found? ${org ? 'Yes' : 'No'}`)
   if (!org) {
-    throw new Error('Test organization not found. Please seed the main DB first.')
+    console.log('Stopping: organization not found.')
+    return
   }
 
   const branch = await prisma.branch.findFirst({
-    where: { orgId: org.id }
+    where: { orgId: org.id },
+    select: { id: true }
   })
-  if (!branch) {
-    throw new Error('Default branch not found.')
-  }
 
-  const ay = await prisma.academicYear.findFirst({
-    where: { orgId: org.id, name: 'AY 2026-27' }
+  const academicYear = await prisma.academicYear.findFirst({
+    where: { orgId: org.id },
+    select: { id: true, name: true }
   })
-  if (!ay) {
-    throw new Error('Academic year not found.')
+  console.log(`academicYear found? ${academicYear ? 'Yes' : 'No'}`)
+  if (!academicYear) {
+    console.log('Stopping: academicYear not found.')
+    return
   }
 
   const stages = await prisma.admissionStage.findMany({
     where: { orgId: org.id },
-    orderBy: { sortOrder: 'asc' }
+    orderBy: { sortOrder: 'asc' },
+    select: {
+      id: true,
+      name: true,
+      isWon: true,
+      isLost: true,
+    }
   })
-  if (stages.length === 0) {
-    throw new Error('Admission stages not found.')
-  }
+  console.log(`stages count? ${stages.length}`)
+  console.log('Stages found:', stages.map(s => s.name).join(', '))
 
   const counsellors = await prisma.user.findMany({
-    where: { orgId: org.id, role: 'COUNSELLOR' }
-  })
-
-  // Clean existing admissions
-  await prisma.admissionDocument.deleteMany({
-    where: { orgId: org.id }
-  })
-  await prisma.admissionActivity.deleteMany({
-    where: { orgId: org.id }
-  })
-  await prisma.student.deleteMany({
-    where: { orgId: org.id }
-  })
-  await prisma.admission.deleteMany({
-    where: { orgId: org.id }
-  })
-
-  const newStage = stages.find(s => s.name === 'New') || stages[0]
-  const contactedStage = stages.find(s => s.name === 'Contacted') || stages[1]
-  const appStage = stages.find(s => s.name === 'Application Submitted') || stages[2]
-  const docsStage = stages.find(s => s.name === 'Docs Uploaded') || stages[3]
-  const admittedStage = stages.find(s => s.name === 'Admitted') || stages[6]
-
-  const pradeep = counsellors.find(c => c.name === 'Pradeep Kumar')
-  const vimal = counsellors.find(c => c.name === 'Vimal Das')
-
-  const admissions = [
-    {
+    where: {
       orgId: org.id,
-      branchId: branch.id,
-      academicYearId: ay.id,
-      admissionCode: 'ADM-2026-00001',
-      applicantName: 'Aditya Swamy',
-      gradeSought: 'Class 1',
-      phone: '9840111111',
-      email: 'aditya@gmail.com',
-      stageId: newStage.id,
-      assignedToId: pradeep?.id,
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) // 2 days ago
+      status: 'ACTIVE',
+    },
+    select: { id: true, name: true }
+  })
+  console.log(`counsellors count? ${counsellors.length}`)
+
+  console.log('\nSTEP 2 — MAPPING STAGES')
+  const findStage = (nameSubstring: string, checkWonLost?: { isWon?: boolean, isLost?: boolean }) => {
+    return stages.find(s => {
+      const nameMatch = s.name.toLowerCase().includes(nameSubstring.toLowerCase());
+      if (!nameMatch) return false;
+      if (checkWonLost) {
+        if (checkWonLost.isWon !== undefined && s.isWon !== checkWonLost.isWon) return false;
+        if (checkWonLost.isLost !== undefined && s.isLost !== checkWonLost.isLost) return false;
+      }
+      return true;
+    });
+  };
+
+  const newStage = findStage('new') || stages[0];
+  const contactedStage = findStage('contact') || newStage;
+  const appStage = findStage('application') || newStage;
+  const docsStage = findStage('doc') || newStage;
+  const interviewStage = findStage('interview') || newStage;
+  const paymentStage = findStage('payment') || newStage;
+  const admittedStage = stages.find(s => s.name.toLowerCase().includes('admit') && s.isWon) || findStage('admit') || newStage;
+  const rejectedStage = stages.find(s => s.name.toLowerCase().includes('reject') && s.isLost) || findStage('reject') || newStage;
+
+  console.log(`Mapped stages:
+  New: ${newStage?.name} (${newStage?.id})
+  Contacted: ${contactedStage?.name} (${contactedStage?.id})
+  Application: ${appStage?.name} (${appStage?.id})
+  Docs: ${docsStage?.name} (${docsStage?.id})
+  Interview: ${interviewStage?.name} (${interviewStage?.id})
+  Payment: ${paymentStage?.name} (${paymentStage?.id})
+  Admitted: ${admittedStage?.name} (${admittedStage?.id})
+  Rejected: ${rejectedStage?.name} (${rejectedStage?.id})`)
+
+  const admissionsToCreate = [
+    {
+      applicantName: 'Arjun Sharma',
+      parentName: 'Rajesh Sharma',
+      phone: '9876543210',
+      email: 'rajesh.sharma@gmail.com',
+      gradeSought: 'class_1',
+      stageId: newStage?.id,
+      status: 'IN_PROGRESS' as const,
+      priority: 'HIGH' as const,
+      assignedToId: counsellors[0]?.id,
     },
     {
-      orgId: org.id,
-      branchId: branch.id,
-      academicYearId: ay.id,
-      admissionCode: 'ADM-2026-00002',
-      applicantName: 'Sanjay Krishnan',
-      gradeSought: 'Class 3',
-      phone: '9840222222',
-      email: 'sanjay@gmail.com',
-      stageId: contactedStage.id,
-      assignedToId: vimal?.id,
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) // 5 days ago
+      applicantName: 'Priya Patel',
+      parentName: 'Suresh Patel',
+      phone: '9876543211',
+      email: 'suresh.patel@gmail.com',
+      gradeSought: 'lkg',
+      stageId: contactedStage?.id || newStage?.id,
+      status: 'IN_PROGRESS' as const,
+      priority: 'MEDIUM' as const,
+      assignedToId: counsellors[0]?.id,
     },
     {
-      orgId: org.id,
-      branchId: branch.id,
-      academicYearId: ay.id,
-      admissionCode: 'ADM-2026-00003',
-      applicantName: 'Rahul Kumar',
-      gradeSought: 'Class 5',
-      phone: '9840333333',
-      email: 'rahul@gmail.com',
-      stageId: appStage.id,
-      assignedToId: pradeep?.id,
-      createdAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000) // 9 days ago (warning)
+      applicantName: 'Ravi Kumar',
+      parentName: 'Sunil Kumar',
+      phone: '9876543212',
+      email: 'sunil.kumar@gmail.com',
+      gradeSought: 'ukg',
+      stageId: appStage?.id || newStage?.id,
+      status: 'IN_PROGRESS' as const,
+      priority: 'MEDIUM' as const,
+      assignedToId: counsellors[1]?.id || counsellors[0]?.id,
     },
     {
-      orgId: org.id,
-      branchId: branch.id,
-      academicYearId: ay.id,
-      admissionCode: 'ADM-2026-00004',
-      applicantName: 'Nisha Bala',
-      gradeSought: 'Class 2',
-      phone: '9840444444',
-      email: 'nisha@gmail.com',
-      stageId: docsStage.id,
-      assignedToId: vimal?.id,
-      createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000) // 15 days ago (overdue)
+      applicantName: 'Ananya Singh',
+      parentName: 'Vikram Singh',
+      phone: '9876543213',
+      email: 'vikram.singh@gmail.com',
+      gradeSought: 'nursery',
+      stageId: docsStage?.id || newStage?.id,
+      status: 'IN_PROGRESS' as const,
+      priority: 'HIGH' as const,
+      assignedToId: counsellors[0]?.id,
     },
     {
-      orgId: org.id,
-      branchId: branch.id,
-      academicYearId: ay.id,
-      admissionCode: 'ADM-2026-00005',
-      applicantName: 'Ananya Raghavan',
-      gradeSought: 'UKG',
-      phone: '9840555555',
-      email: 'ananya@gmail.com',
-      stageId: admittedStage.id,
-      assignedToId: pradeep?.id,
-      createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000)
+      applicantName: 'Karthik Nair',
+      parentName: 'Mohan Nair',
+      phone: '9876543214',
+      email: 'mohan.nair@gmail.com',
+      gradeSought: 'class_2',
+      stageId: interviewStage?.id || newStage?.id,
+      status: 'IN_PROGRESS' as const,
+      priority: 'URGENT' as const,
+      assignedToId: counsellors[1]?.id || counsellors[0]?.id,
+    },
+    {
+      applicantName: 'Deepa Krishnan',
+      parentName: 'Ramesh Krishnan',
+      phone: '9876543215',
+      email: 'ramesh.krishnan@gmail.com',
+      gradeSought: 'class_3',
+      stageId: paymentStage?.id || newStage?.id,
+      status: 'IN_PROGRESS' as const,
+      priority: 'HIGH' as const,
+      assignedToId: counsellors[0]?.id,
+    },
+    {
+      applicantName: 'Sneha Reddy',
+      parentName: 'Venkat Reddy',
+      phone: '9876543216',
+      email: 'venkat.reddy@gmail.com',
+      gradeSought: 'pre_kg',
+      stageId: admittedStage?.id || newStage?.id,
+      status: admittedStage?.isWon ? ('ADMITTED' as const) : ('IN_PROGRESS' as const),
+      priority: 'MEDIUM' as const,
+      assignedToId: counsellors[1]?.id || counsellors[0]?.id,
+      decidedAt: new Date(),
+    },
+    {
+      applicantName: 'Aditya Menon',
+      parentName: 'Sanjay Menon',
+      phone: '9876543217',
+      email: 'sanjay.menon@gmail.com',
+      gradeSought: 'class_4',
+      stageId: rejectedStage?.id || newStage?.id,
+      status: rejectedStage?.isLost ? ('REJECTED' as const) : ('IN_PROGRESS' as const),
+      rejectionReason: 'Seats not available for requested grade',
+      priority: 'LOW' as const,
+      assignedToId: counsellors[0]?.id,
+      decidedAt: new Date(),
+    },
+    {
+      applicantName: 'Meera Iyer',
+      parentName: 'Ganesh Iyer',
+      phone: '9876543218',
+      email: 'ganesh.iyer@gmail.com',
+      gradeSought: 'class_5',
+      stageId: newStage?.id,
+      status: 'IN_PROGRESS' as const,
+      priority: 'MEDIUM' as const,
+      assignedToId: counsellors[1]?.id || counsellors[0]?.id,
+    },
+    {
+      applicantName: 'Rahul Verma',
+      parentName: 'Ashok Verma',
+      phone: '9876543219',
+      email: 'ashok.verma@gmail.com',
+      gradeSought: 'class_6',
+      stageId: docsStage?.id || newStage?.id,
+      status: 'WAITLISTED' as const,
+      priority: 'LOW' as const,
+      assignedToId: counsellors[0]?.id,
     }
   ]
 
-  for (const adm of admissions) {
-    const created = await prisma.admission.create({ data: adm })
-    console.log(`Created admission: ${created.applicantName} (${created.admissionCode})`)
+  console.log('\nSTEP 3 & 4 — CREATING RECORDS & ACTIVITY LOGS')
+  let nextNumber = 2;
+  for (let i = 0; i < admissionsToCreate.length; i++) {
+    const a = admissionsToCreate[i];
+    
+    // Get a unique code
+    const uniqueResult = await getUniqueAdmissionCode(org.id, nextNumber);
+    const code = uniqueResult.code;
+    nextNumber = uniqueResult.nextNumber;
 
-    // Seed some documents for Nisha Bala
-    if (created.applicantName === 'Nisha Bala') {
-      await prisma.admissionDocument.createMany({
-        data: [
-          {
-            orgId: org.id,
-            admissionId: created.id,
-            name: 'Birth Certificate.pdf',
-            type: 'PDF',
-            url: 'https://example.com/birth.pdf',
-            scanStatus: 'APPROVED'
-          },
-          {
-            orgId: org.id,
-            admissionId: created.id,
-            name: 'Aadhar Card.jpg',
-            type: 'JPG',
-            url: 'https://example.com/aadhar.jpg',
-            scanStatus: 'APPROVED'
-          }
-        ]
-      })
+    const createdAt = new Date(Date.now() - (i * 24 * 60 * 60 * 1000));
+
+    const admission = await prisma.admission.create({
+      data: {
+        orgId: org.id,
+        branchId: branch?.id || null,
+        academicYearId: academicYear.id,
+        admissionCode: code,
+        applicantName: a.applicantName,
+        parentName: a.parentName,
+        phone: a.phone,
+        email: a.email,
+        gradeSought: a.gradeSought,
+        stageId: a.stageId,
+        status: a.status,
+        assignedToId: a.assignedToId || null,
+        rejectionReason: 'rejectionReason' in a ? (a as any).rejectionReason : null,
+        decidedAt: 'decidedAt' in a ? (a as any).decidedAt : null,
+        createdAt: createdAt,
+      }
+    });
+
+    console.log(`Created: ${admission.applicantName} (${admission.admissionCode})`);
+
+    // Add activity log
+    await prisma.admissionActivity.create({
+      data: {
+        orgId: org.id,
+        branchId: branch?.id || null,
+        academicYearId: academicYear.id,
+        admissionId: admission.id,
+        type: 'SYSTEM',
+        summary: 'Admission record created',
+        performedById: counsellors[0]?.id || null,
+        createdAt: createdAt,
+      }
+    });
+
+    // For admitted record (Sneha Reddy / Admission 7), add STAGE_CHANGE activity
+    if (a.applicantName === 'Sneha Reddy') {
+      await prisma.admissionActivity.create({
+        data: {
+          orgId: org.id,
+          branchId: branch?.id || null,
+          academicYearId: academicYear.id,
+          admissionId: admission.id,
+          type: 'STAGE_CHANGE',
+          summary: 'Stage changed from New to Admitted',
+          performedById: counsellors[0]?.id || null,
+          createdAt: createdAt,
+        }
+      });
+      console.log('  -> Added extra STAGE_CHANGE activity');
     }
   }
 
-  console.log('Admissions seed complete!')
+  console.log('\nSTEP 5 — SUMMARY')
+  const count = await prisma.admission.count({
+    where: { orgId: org.id }
+  });
+  console.log(`Total admissions now: ${count}`);
+  console.log(`New records added: 10`);
+
+  // Print list of unique stages covered and statuses
+  const finalAdmissions = await prisma.admission.findMany({
+    where: { orgId: org.id },
+    select: {
+      status: true,
+      stage: { select: { name: true } }
+    }
+  });
+
+  const stagesCovered = Array.from(new Set(finalAdmissions.map(a => a.stage?.name || 'Unknown')));
+  const statusesCovered = Array.from(new Set(finalAdmissions.map(a => a.status)));
+
+  console.log('Different stages covered:', stagesCovered.join(', '));
+  console.log('Different statuses:', statusesCovered.join(', '));
+}
+
+async function getUniqueAdmissionCode(orgId: string, baseNumber: number): Promise<{ code: string, nextNumber: number }> {
+  let num = baseNumber;
+  while (true) {
+    const code = `AT-2026-${String(num).padStart(5, '0')}`;
+    const exists = await prisma.admission.findFirst({
+      where: {
+        orgId,
+        admissionCode: code
+      }
+    });
+    if (!exists) {
+      return { code, nextNumber: num + 1 };
+    }
+    num++;
+  }
 }
 
 main()

@@ -1102,7 +1102,7 @@ export default function LeadManagementPage() {
               <>
                 {/* Desktop/Tablet Table View */}
                 <div className="hidden sm:block w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent bg-white rounded-xl border border-slate-200 shadow-sm">
-                  <table className="w-full table-fixed min-w-[800px] border-collapse text-left">
+                  <table className="w-full table-fixed min-w-[1100px] border-collapse text-left">
                     {/* TABLE HEADER */}
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 select-none">
@@ -1135,7 +1135,7 @@ export default function LeadManagementPage() {
                         <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[140px] min-w-[120px]">
                           STATUS
                         </th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[50px] min-w-[50px]">
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[80px] min-w-[80px]">
                           ACTION
                         </th>
                       </tr>
@@ -1591,7 +1591,7 @@ export default function LeadManagementPage() {
                             </td>
 
                             {/* Action */}
-                            <td className="px-3 py-2.5 text-left w-[50px] min-w-[50px]" onClick={(e) => e.stopPropagation()}>
+                            <td className="px-3 py-2.5 text-left w-[80px] min-w-[80px]" onClick={(e) => e.stopPropagation()}>
                               <div className="flex justify-start">
                                 <button
                                   onClick={(e) => {
@@ -1630,7 +1630,7 @@ export default function LeadManagementPage() {
                             <td className="px-3 py-2.5 text-left w-[160px] min-w-[140px] hidden md:table-cell" />
                             <td className="px-3 py-2.5 text-left w-[80px] min-w-[70px] hidden lg:table-cell" />
                             <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]" />
-                            <td className="px-3 py-2.5 text-left w-[50px] min-w-[50px]" />
+                            <td className="px-3 py-2.5 text-left w-[80px] min-w-[80px]" />
                           </tr>
                         ))
                       }

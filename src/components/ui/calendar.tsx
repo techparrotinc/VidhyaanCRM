@@ -17,6 +17,12 @@ export function Calendar({
   const selectedDate = selected ? new Date(selected) : null
   const [viewDate, setViewDate] = React.useState(() => selectedDate || new Date())
 
+  React.useEffect(() => {
+    if (selected) {
+      setViewDate(new Date(selected))
+    }
+  }, [selected])
+
   const year = viewDate.getFullYear()
   const month = viewDate.getMonth()
 

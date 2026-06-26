@@ -23,7 +23,12 @@ export const GET = route({
           select: { id: true, name: true }
         },
         lead: {
-          select: { parentName: true }
+          select: {
+            parentName: true,
+            expectedJoinDate: true,
+            currentSchool: true,
+            priority: true
+          }
         },
         student: {
           select: { id: true, studentCode: true }
@@ -48,6 +53,9 @@ export const GET = route({
 
     const admissionWithIsTerminal = {
       ...admission,
+      expectedJoinDate: admission.lead?.expectedJoinDate || null,
+      currentSchool: admission.lead?.currentSchool || null,
+      priority: admission.lead?.priority || 'MEDIUM',
       activities,
       documents,
       stage: admission.stage
@@ -109,6 +117,56 @@ export const PUT = route({
       data: updateData,
       include: { stage: true }
     })
+
+    let leadId = existing.leadId
+    if (!leadId) {
+      const year = new Date().getFullYear()
+      const count = await db.lead.count({
+        where: { orgId: user.orgId }
+      })
+      const leadCode = 'LD-' + year + '-' + String(count + 1).padStart(5, '0')
+
+      const newLead = await db.lead.create({
+        data: {
+          orgId: user.orgId,
+          branchId: existing.branchId,
+          academicYearId: existing.academicYearId || body.academicYearId || null,
+          leadCode,
+          kidName: body.applicantName || existing.applicantName,
+          parentName: body.parentName || existing.parentName || '',
+          phone: body.phone || existing.phone || '',
+          email: body.email || existing.email,
+          status: 'CONVERTED',
+          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+          currentSchool: body.currentSchool || null,
+          priority: body.priority || 'MEDIUM',
+          gradeSought: existing.gradeSought
+        }
+      })
+      leadId = newLead.id
+
+      // Update the admission record with the new leadId
+      await db.admission.update({
+        where: { id: params?.id },
+        data: { leadId }
+      })
+    } else {
+      // Update the existing Lead record
+      await db.lead.update({
+        where: { id: leadId },
+        data: {
+          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+          currentSchool: body.currentSchool || null,
+          priority: body.priority || 'MEDIUM',
+          kidName: body.applicantName !== undefined ? body.applicantName : undefined,
+          parentName: body.parentName !== undefined ? (body.parentName || '') : undefined,
+          phone: body.phone !== undefined ? (body.phone || '') : undefined,
+          email: body.email !== undefined ? body.email : undefined,
+          academicYearId: body.academicYearId !== undefined ? body.academicYearId : undefined,
+          gradeSought: body.gradeSought !== undefined ? body.gradeSought : undefined
+        }
+      })
+    }
 
     // Log stage change
     if (updateData.stageId && updateData.stageId !== existing.stageId) {

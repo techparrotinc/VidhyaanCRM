@@ -228,6 +228,44 @@ export const POST = route({
     const admissionCode =
       prefix + '-' + year + '-' + String(count + 1).padStart(5, '0')
 
+    let leadId = body.leadId
+    if (!leadId) {
+      const year = new Date().getFullYear()
+      const count = await db.lead.count({
+        where: { orgId: user.orgId }
+      })
+      const leadCode = 'LD-' + year + '-' + String(count + 1).padStart(5, '0')
+
+      const newLead = await db.lead.create({
+        data: {
+          orgId: user.orgId,
+          branchId: null,
+          academicYearId: body.academicYearId || academicYearId || null,
+          leadCode,
+          kidName: body.applicantName,
+          parentName: body.parentName ?? "",
+          phone: body.phone ?? "",
+          email: body.email ?? null,
+          status: 'CONVERTED',
+          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+          currentSchool: body.currentSchool ?? null,
+          priority: (body.priority ?? 'MEDIUM') as any,
+          gradeSought: body.gradeSought ?? null
+        }
+      })
+      leadId = newLead.id
+    } else {
+      await db.lead.update({
+        where: { id: leadId },
+        data: {
+          status: 'CONVERTED',
+          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+          currentSchool: body.currentSchool ?? null,
+          priority: (body.priority ?? 'MEDIUM') as any
+        }
+      })
+    }
+
     // Create admission
     const admission = await db.admission.create({
       data: {
@@ -241,7 +279,7 @@ export const POST = route({
         stageId: stageId ?? null,
         assignedToId: body.assignedToId ?? null,
         academicYearId: body.academicYearId ?? academicYearId ?? null,
-        leadId: body.leadId ?? null,
+        leadId,
         status: 'IN_PROGRESS'
       },
       include: {
@@ -259,14 +297,6 @@ export const POST = route({
         performedById: user.id
       }
     })
-
-    // If created from lead update lead
-    if (body.leadId) {
-      await db.lead.update({
-        where: { id: body.leadId },
-        data: { status: 'CONVERTED' }
-      })
-    }
 
     return created(admission)
   }

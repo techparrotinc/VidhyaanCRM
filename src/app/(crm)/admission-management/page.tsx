@@ -313,17 +313,17 @@ export default function AdmissionManagementPage() {
       const res = await fetch(
         '/api/v1/admissions/pipeline'
       )
-      const data = await res.json()
+      const resJson = await res.json()
+      const data = resJson.data || {}
 
       const counts: Record<string, number> = {}
-      let total = 0
+      const pipeline = data.pipeline || []
 
-      if (data.stages) {
-        data.stages.forEach((s: any) => {
-          counts[s.id] = s.count || 0
-          total += s.count || 0
-        })
-      }
+      pipeline.forEach((s: any) => {
+        counts[s.id] = s.count || 0
+      })
+
+      const total = data.total || Object.values(counts).reduce((a: number, b: number) => a + b, 0)
 
       setStageCounts(counts)
       setTotalCount(total)
@@ -1183,6 +1183,31 @@ export default function AdmissionManagementPage() {
       border: 'border-l-slate-300' }
   }
 
+  const getStageBorderColor = (
+    stageName?: string
+  ): string => {
+    if (!stageName)
+      return 'border-l-slate-200'
+    const n = stageName.toLowerCase()
+    if (n.includes('new'))
+      return 'border-l-slate-400'
+    if (n.includes('contact'))
+      return 'border-l-sky-400'
+    if (n.includes('application'))
+      return 'border-l-blue-400'
+    if (n.includes('doc'))
+      return 'border-l-indigo-400'
+    if (n.includes('interview'))
+      return 'border-l-purple-400'
+    if (n.includes('payment'))
+      return 'border-l-amber-400'
+    if (n.includes('admit'))
+      return 'border-l-green-500'
+    if (n.includes('reject'))
+      return 'border-l-red-400'
+    return 'border-l-slate-300'
+  }
+
   const getAvatarColor = (
     name: string
 ): string => {
@@ -1335,7 +1360,7 @@ export default function AdmissionManagementPage() {
           )}
           {/* STAGE TABS */}
           <div 
-            className="border-b border-slate-200 pb-0 flex items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden scrollbar-none mx-4 mb-4"
+            className="flex items-center gap-0.5 px-4 pt-1 pb-0 border-b border-slate-100 overflow-x-auto scrollbar-none -webkit-overflow-scrolling: touch mx-4 mb-4"
             style={{ scrollbarWidth: 'none' }}
           >
             <button
@@ -1343,7 +1368,7 @@ export default function AdmissionManagementPage() {
                 setActiveStageId('all')
                 setCurrentPage(1)
               }}
-              className={`px-3 py-2.5 text-sm font-medium cursor-pointer relative transition-all duration-200 shrink-0 ${
+              className={`px-3 py-2.5 text-sm font-medium cursor-pointer relative transition-all duration-200 flex-shrink-0 ${
                 activeStageId === 'all'
                   ? 'text-[#1565D8] border-b-2 border-[#1565D8] mb-[-1px]'
                   : 'text-slate-500 hover:text-slate-700 border-b-2 border-transparent'
@@ -1366,7 +1391,7 @@ export default function AdmissionManagementPage() {
                   setActiveStageId(stage.id)
                   setCurrentPage(1)
                 }}
-                className={`px-3 py-2.5 text-sm font-medium cursor-pointer relative transition-all duration-200 shrink-0 ${
+                className={`px-3 py-2.5 text-sm font-medium cursor-pointer relative transition-all duration-200 flex-shrink-0 ${
                   activeStageId === stage.id
                     ? 'text-[#1565D8] border-b-2 border-[#1565D8] mb-[-1px]'
                     : 'text-slate-500 hover:text-slate-700 border-b-2 border-transparent'
@@ -1705,7 +1730,7 @@ export default function AdmissionManagementPage() {
                           <tr
                             key={admission.id}
                             className={`border-b border-slate-100 border-l-2 cursor-pointer hover:bg-slate-50/80 transition-colors duration-100 ${
-                              getStageColor(admission.stage?.name || admission.stage).border || 'border-l-slate-200'
+                              getStageBorderColor(admission.stage?.name)
                             }`}
                             onMouseEnter={() => router.prefetch(`/admission-management/${admission.id}`)}
                             onClick={() => router.push(`/admission-management/${admission.id}`)}
@@ -1806,8 +1831,10 @@ export default function AdmissionManagementPage() {
                                   onChange={async (e) => {
                                     e.stopPropagation()
                                     const newStageId = e.target.value
+                                    if (!newStageId) return
+
                                     try {
-                                      await fetch(
+                                      const res = await fetch(
                                         `/api/v1/admissions/${admission.id}`,
                                         {
                                           method: 'PUT',
@@ -1819,10 +1846,27 @@ export default function AdmissionManagementPage() {
                                           })
                                         }
                                       )
+
+                                      if (!res.ok) {
+                                        const err = await res.json()
+                                        throw new Error(
+                                          err.message || 'Update failed'
+                                        )
+                                      }
+
+                                      await Promise.all([
+                                        fetchAdmissions(),
+                                        fetchPipelineData(),
+                                      ])
+
+                                      showToast('Stage updated', 'success')
+
+                                    } catch (err: any) {
+                                      showToast(
+                                        err.message || 'Failed to update stage',
+                                        'error'
+                                      )
                                       fetchAdmissions()
-                                      fetchPipelineData()
-                                    } catch {
-                                      showToast('Failed to update stage', 'error')
                                     }
                                   }}
                                   className="text-[11px] font-semibold pl-2 pr-6 py-1 rounded-full border-0 cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20"
@@ -2008,7 +2052,7 @@ export default function AdmissionManagementPage() {
                         key={admission.id}
                         onClick={() => router.push(`/admission-management/${admission.id}`)}
                         className={`p-4 cursor-pointer hover:bg-slate-50 border-l-4 ${
-                          getStageColor(admission.stage?.name || admission.stage).border || 'border-l-slate-200'
+                          getStageBorderColor(admission.stage?.name)
                         }`}
                       >
                         {/* ROW 1: Avatar + Name + Stage inline dropdown */}
@@ -2030,8 +2074,10 @@ export default function AdmissionManagementPage() {
                               onChange={async (e) => {
                                 e.stopPropagation()
                                 const newStageId = e.target.value
+                                if (!newStageId) return
+
                                 try {
-                                  await fetch(
+                                  const res = await fetch(
                                     `/api/v1/admissions/${admission.id}`,
                                     {
                                       method: 'PUT',
@@ -2043,10 +2089,27 @@ export default function AdmissionManagementPage() {
                                       })
                                     }
                                   )
+
+                                  if (!res.ok) {
+                                    const err = await res.json()
+                                    throw new Error(
+                                      err.message || 'Update failed'
+                                    )
+                                  }
+
+                                  await Promise.all([
+                                    fetchAdmissions(),
+                                    fetchPipelineData(),
+                                  ])
+
+                                  showToast('Stage updated', 'success')
+
+                                } catch (err: any) {
+                                  showToast(
+                                    err.message || 'Failed to update stage',
+                                    'error'
+                                  )
                                   fetchAdmissions()
-                                  fetchPipelineData()
-                                } catch {
-                                  showToast('Failed to update stage', 'error')
                                 }
                               }}
                               className="text-[11px] font-semibold pl-2 pr-6 py-1 rounded-full border-0 cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20"

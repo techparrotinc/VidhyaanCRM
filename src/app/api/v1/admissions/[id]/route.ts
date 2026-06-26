@@ -104,6 +104,18 @@ export const PUT = route({
       throw Errors.notFound('Admission')
     }
 
+    const currentAdmission = await db.admission.findFirst({
+      where: {
+        id: params?.id,
+        orgId: user.orgId
+      },
+      include: {
+        stage: {
+          select: { name: true }
+        }
+      }
+    })
+
     // Filter out relation and read-only fields to prevent Prisma errors
     const {
       id,
@@ -184,28 +196,19 @@ export const PUT = route({
     }
 
     // Log stage change
-    if (updateData.stageId && updateData.stageId !== existing.stageId) {
-      const currentAdmission = await db.admission.findFirst({
-        where: { id: params?.id },
-        include: {
-          stage: { select: { name: true } }
-        }
-      })
-      const oldStageName = currentAdmission?.stage?.name || 'Unknown'
-
-      const newStage = await db.admissionStage.findUnique({
-        where: { id: updateData.stageId },
+    if (body.stageId && currentAdmission && body.stageId !== currentAdmission.stageId) {
+      const newStage = await db.admissionStage.findFirst({
+        where: { id: body.stageId },
         select: { name: true }
       })
-      const newStageName = newStage?.name || 'Unknown'
 
       await db.admissionActivity.create({
         data: {
           admissionId: params?.id ?? '',
           orgId: user.orgId,
           type: 'STAGE_CHANGE',
-          summary: `Stage changed from ${oldStageName} to ${newStageName}`,
-          performedById: user.id
+          summary: `Stage changed from ${currentAdmission.stage?.name || 'Unknown'} to ${newStage?.name || 'Unknown'}`,
+          performedById: user.id || null,
         }
       })
 

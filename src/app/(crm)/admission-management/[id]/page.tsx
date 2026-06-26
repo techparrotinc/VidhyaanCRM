@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter, useParams } from 'next/navigation'
-import { format } from 'date-fns'
+import { format, formatDistanceToNow } from 'date-fns'
 import {
   ChevronLeft,
   ChevronRight,
@@ -78,6 +78,48 @@ const statusColors: Record<string, string> = {
   REJECTED: 'bg-red-50 text-red-700 border border-red-200',
   WAITLISTED: 'bg-amber-50 text-amber-700 border border-amber-200',
   WITHDRAWN: 'bg-slate-100 text-slate-600 border border-slate-200',
+}
+
+const getStageColor = (
+  name?: string
+): {
+  bg: string
+  text: string
+  border: string
+} => {
+  if (!name) return {
+    bg: '#F8FAFC',
+    text: '#64748B',
+    border: 'border-l-slate-200'
+  }
+  const n = name.toLowerCase()
+  if (n.includes('admit'))
+    return { bg: '#F0FDF4',
+      text: '#16A34A',
+      border: 'border-l-green-500' }
+  if (n.includes('reject'))
+    return { bg: '#FEF2F2',
+      text: '#DC2626',
+      border: 'border-l-red-400' }
+  if (n.includes('interview'))
+    return { bg: '#F5F3FF',
+      text: '#7C3AED',
+      border: 'border-l-purple-400' }
+  if (n.includes('payment'))
+    return { bg: '#FFFBEB',
+      text: '#D97706',
+      border: 'border-l-amber-400' }
+  if (n.includes('doc'))
+    return { bg: '#EFF6FF',
+      text: '#2563EB',
+      border: 'border-l-blue-400' }
+  if (n.includes('contact'))
+    return { bg: '#F0F9FF',
+      text: '#0284C7',
+      border: 'border-l-sky-400' }
+  return { bg: '#F8FAFC',
+    text: '#64748B',
+    border: 'border-l-slate-300' }
 }
 
 export default function AdmissionDetailPage() {
@@ -618,33 +660,55 @@ export default function AdmissionDetailPage() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
-              <button
-                onClick={() => router.push(`/admission-management/${admissionId}/edit`)}
-                className="border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition shadow-sm font-sans h-10 sm:h-9"
-              >
-                <Pencil size={14} className="text-slate-500" />
-                <span className="hidden sm:inline">Edit Admission</span>
-              </button>
-              <div className="relative">
-                <button
-                  ref={buttonRef}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    const rect = buttonRef.current?.getBoundingClientRect()
-                    if (rect) {
-                      setMenuPos({
-                        top: rect.bottom + 4,
-                        left: rect.right - 160,
-                      })
+              {/* Stage dropdown */}
+              <div className="relative" onClick={(e) => e.stopPropagation()}>
+                <select
+                  value={admission.stageId || ''}
+                  onChange={async (e) => {
+                    const newStageId = e.target.value
+                    if (newStageId === admission.stageId) return
+                    try {
+                      const res = await fetch(
+                        `/api/v1/admissions/${admission.id}`,
+                        {
+                          method: 'PUT',
+                          headers: {
+                            'Content-Type': 'application/json'
+                          },
+                          body: JSON.stringify({
+                            stageId: newStageId
+                          })
+                        }
+                      )
+                      if (!res.ok) throw new Error()
+                      fetchAdmissionData()
+                      toast.success('Stage updated')
+                    } catch {
+                      toast.error('Failed to update stage')
                     }
-                    setMenuOpen(!menuOpen)
                   }}
-                  className="w-9 h-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm cursor-pointer animate-fade-in"
+                  className="h-7 pl-3 pr-7 rounded-full text-xs font-semibold border-0 cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20"
+                  style={{
+                    backgroundColor: getStageColor(admission.stage?.name).bg,
+                    color: getStageColor(admission.stage?.name).text,
+                  }}
                 >
-                  <MoreVertical size={16} className="text-slate-600" />
-                </button>
+                  {pipelineStages.map(stage => (
+                    <option key={stage.id} value={stage.id}>
+                      {stage.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                  size={10}
+                  style={{
+                    color: getStageColor(admission.stage?.name).text
+                  }}
+                />
               </div>
 
+              {/* Status badge */}
               {isConverted ? (
                 <span className="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 border border-green-200 bg-green-50 text-green-800">
                   <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
@@ -656,6 +720,36 @@ export default function AdmissionDetailPage() {
                   {formatStatus(admission.status)}
                 </span>
               )}
+
+              {/* Edit Admission button */}
+              <button
+                onClick={() => router.push(`/admission-management/${admissionId}/edit`)}
+                className="border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition shadow-sm font-sans h-10 sm:h-9"
+              >
+                <Pencil size={14} className="text-slate-500" />
+                <span className="hidden sm:inline">Edit Admission</span>
+              </button>
+
+              {/* ⋮ three dot button */}
+              <div className="relative">
+                <button
+                  ref={buttonRef}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const rect = buttonRef.current?.getBoundingClientRect()
+                    if (rect) {
+                      setMenuPos({
+                        top: rect.bottom + 4,
+                        left: rect.right - 160,
+                        })
+                    }
+                    setMenuOpen(!menuOpen)
+                  }}
+                  className="w-9 h-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm cursor-pointer animate-fade-in"
+                >
+                  <MoreVertical size={16} className="text-slate-600" />
+                </button>
+              </div>
 
               {menuOpen && typeof document !== 'undefined' &&
                 createPortal(
@@ -669,30 +763,17 @@ export default function AdmissionDetailPage() {
                     }}
                     className="w-40 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden text-left"
                   >
-                    <button
-                      onClick={() => {
-                        setMenuOpen(false)
-                        router.push(`/admission-management/${admission.id}/edit`)
-                      }}
-                      className="w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 text-left flex items-center gap-2 transition-colors cursor-pointer"
-                    >
-                      <Pencil size={13} />
-                      Edit Admission
-                    </button>
                     {(admission.status !== 'ADMITTED' || !admission.student) && (
-                      <>
-                        <div className="h-px bg-slate-100 mx-2" />
-                        <button
-                          onClick={() => {
-                            setMenuOpen(false)
-                            handleDelete()
-                          }}
-                          className="w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 text-left flex items-center gap-2 transition-colors cursor-pointer font-medium"
-                        >
-                          <Trash2 size={13} />
-                          Delete Admission
-                        </button>
-                      </>
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false)
+                          handleDelete()
+                        }}
+                        className="w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 text-left flex items-center gap-2 transition-colors cursor-pointer font-medium"
+                      >
+                        <Trash2 size={13} />
+                        Delete Admission
+                      </button>
                     )}
                   </div>,
                   document.body
@@ -738,45 +819,125 @@ export default function AdmissionDetailPage() {
             </div>
           </Card>
 
-          {/* 2. Admission Stage Card */}
+          {/* 2. Admission Details Card */}
           <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 text-left space-y-4 order-2 col-span-1 sm:col-span-1 lg:col-span-1">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">
-              ADMISSION STAGE
+            <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+              ADMISSION DETAILS
             </h4>
             
-            <div className="relative">
-              <label className="text-xs text-slate-400 block mb-1">Current Stage</label>
-              <div className="relative w-full">
-                <select
-                  disabled={isUpdatingStage}
-                  value={admission.stageId || ''}
-                  onChange={(e) => handleStageChange(e.target.value)}
-                  className="w-full h-10 sm:h-9 px-3 pr-10 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] appearance-none transition"
-                >
-                  {pipelineStages.map((stage) => (
-                    <option key={stage.id} value={stage.id}>{stage.name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
+            <div className="space-y-0">
+              {/* ROW 1 — STATUS */}
+              <div className="flex items-center justify-between py-2.5 border-b border-slate-50 last:border-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">STATUS</span>
+                {isConverted ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border border-green-200 bg-green-50 text-green-800">
+                    Converted
+                  </span>
+                ) : (
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${statusColors[admission.status] || 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+                    {formatStatus(admission.status)}
+                  </span>
+                )}
+              </div>
+
+              {/* ROW 2 — PRIORITY */}
+              <div className="flex items-center justify-between py-2.5 border-b border-slate-50 last:border-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">PRIORITY</span>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                  admission.priority === 'URGENT' ? 'bg-red-50 text-red-700' :
+                  admission.priority === 'HIGH' ? 'bg-orange-50 text-orange-700' :
+                  admission.priority === 'MEDIUM' ? 'bg-amber-50 text-amber-700' :
+                  'bg-slate-100 text-slate-600'
+                }`}>
+                  {admission.priority || 'MEDIUM'}
+                </span>
+              </div>
+
+              {/* ROW 3 — COUNSELLOR */}
+              <div className="flex items-center justify-between py-2.5 border-b border-slate-50 last:border-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">ASSIGNED TO</span>
+                <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+                  {admission.assignedTo?.name ? (
+                    <div className="flex items-center gap-2 w-full justify-end">
+                      <div className="w-6 h-6 rounded-full bg-slate-700 text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0">
+                        {admission.assignedTo.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                      </div>
+                      <span className="text-sm text-slate-800 font-medium truncate max-w-[120px]">{admission.assignedTo.name}</span>
+                      <button
+                        onClick={() => router.push(`/admission-management/${admissionId}/edit`)}
+                        className="text-xs text-[#1565D8] hover:underline ml-auto cursor-pointer"
+                      >
+                        Reassign
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => router.push(`/admission-management/${admissionId}/edit`)}
+                      className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 hover:bg-amber-100 transition cursor-pointer"
+                    >
+                      Assign Counsellor
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* ROW 4 — ACADEMIC YEAR */}
+              <div className="flex items-center justify-between py-2.5 border-b border-slate-50 last:border-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">ACADEMIC YEAR</span>
+                <span className="text-sm text-slate-800 font-medium text-right">
+                  {admission.academicYear?.name || '—'}
+                </span>
+              </div>
+
+              {/* ROW 5 — APPLYING FOR */}
+              <div className="flex items-center justify-between py-2.5 border-b border-slate-50 last:border-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">GRADE APPLYING FOR</span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700">
+                  {getGradeLabel(admission.gradeSought) || '—'}
+                </span>
+              </div>
+
+              {/* ROW 6 — ADMISSION DATE */}
+              <div className="flex items-center justify-between py-2.5 border-b border-slate-50 last:border-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">APPLIED ON</span>
+                <span className="text-sm text-slate-800 font-medium text-right">
+                  {admission.createdAt ? format(new Date(admission.createdAt), 'd MMM yyyy') : '—'}
+                </span>
+              </div>
+
+              {/* ROW 7 — LAST UPDATED */}
+              <div className="flex items-center justify-between py-2.5 border-b border-slate-50 last:border-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">LAST UPDATED</span>
+                <span className="text-sm text-slate-800 font-medium text-right">
+                  {admission.updatedAt ? formatDistanceToNow(new Date(admission.updatedAt), { addSuffix: true }) : '—'}
+                </span>
               </div>
             </div>
 
-            {/* Convert to Student Action Button */}
+            {/* QUICK ACTIONS / CONVERT STATUS */}
             {isAdmitted && !isConverted && (
-              <div className="flex sm:justify-start">
+              <div className="pt-4 border-t border-slate-100">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">
+                  QUICK ACTIONS
+                </span>
                 <button
                   onClick={() => setShowConvertModal(true)}
-                  className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-bold text-sm transition shadow-sm cursor-pointer mt-4"
+                  className="w-full h-9 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white rounded-xl flex items-center justify-center transition cursor-pointer"
                 >
-                  <span>Convert to Student →</span>
+                  Convert to Student →
                 </button>
               </div>
             )}
 
             {isConverted && (
-              <div className="p-3 bg-green-50 border border-green-200 text-green-800 text-xs font-semibold rounded-xl flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-green-600" />
-                <span>Student record: {admission.student?.studentCode}</span>
+              <div className="pt-4 border-t border-slate-100">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">
+                  CONVERTED STUDENT
+                </span>
+                <div className="p-3 bg-green-50 border border-green-200 text-green-800 text-xs font-semibold rounded-xl flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-green-600" />
+                  <span>Student record: {admission.student?.studentCode}</span>
+                </div>
               </div>
             )}
           </Card>

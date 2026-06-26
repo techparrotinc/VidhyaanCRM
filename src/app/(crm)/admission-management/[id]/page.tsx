@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter, useParams } from 'next/navigation'
 import {
   ChevronLeft,
@@ -57,6 +58,25 @@ import {
 
 // Grades constants are imported from @/constants/grades
 
+const formatStatus = (status: string): string => {
+  const labels: Record<string, string> = {
+    IN_PROGRESS: 'In Progress',
+    ADMITTED: 'Admitted',
+    REJECTED: 'Rejected',
+    WAITLISTED: 'Waitlisted',
+    WITHDRAWN: 'Withdrawn',
+  }
+  return labels[status] || status
+}
+
+const statusColors: Record<string, string> = {
+  IN_PROGRESS: 'bg-blue-50 text-blue-700 border border-blue-200',
+  ADMITTED: 'bg-green-50 text-green-700 border border-green-200',
+  REJECTED: 'bg-red-50 text-red-700 border border-red-200',
+  WAITLISTED: 'bg-amber-50 text-amber-700 border border-amber-200',
+  WITHDRAWN: 'bg-slate-100 text-slate-600 border border-slate-200',
+}
+
 export default function AdmissionDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -67,6 +87,34 @@ export default function AdmissionDetailPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [showAllActivities, setShowAllActivities] = useState(false)
+
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
+  const menuRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        !buttonRef.current?.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false)
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('keydown', handleEsc)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEsc)
+    }
+  }, [menuOpen])
 
   const handleDelete = async () => {
     const confirmed = window.confirm(
@@ -519,55 +567,79 @@ export default function AdmissionDetailPage() {
                 <Pencil size={14} className="text-slate-500" />
                 <span className="hidden sm:inline">Edit Admission</span>
               </button>
-
               <div className="relative">
                 <button
-                  onClick={() => setShowMenu(!showMenu)}
-                  className="w-9 h-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm cursor-pointer"
+                  ref={buttonRef}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const rect = buttonRef.current?.getBoundingClientRect()
+                    if (rect) {
+                      setMenuPos({
+                        top: rect.bottom + 4,
+                        left: rect.right - 160,
+                      })
+                    }
+                    setMenuOpen(!menuOpen)
+                  }}
+                  className="w-9 h-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm cursor-pointer animate-fade-in"
                 >
                   <MoreVertical size={16} className="text-slate-600" />
                 </button>
-
-                {showMenu && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[9999] min-w-[160px] overflow-hidden text-left">
-                      <button
-                        onClick={() => {
-                          setShowMenu(false)
-                          router.push(`/admission-management/${admissionId}/edit`)
-                        }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-slate-750 hover:bg-slate-50 transition-colors cursor-pointer"
-                      >
-                        Edit Admission
-                      </button>
-                      {(admission.status !== 'ADMITTED' || !admission.student) && (
-                        <button
-                          onClick={() => {
-                            setShowMenu(false)
-                            handleDelete()
-                          }}
-                          className="w-full text-left px-4 py-2.5 text-sm text-red-650 hover:bg-red-50 transition-colors cursor-pointer border-t border-slate-100 font-medium"
-                        >
-                          Delete Admission
-                        </button>
-                      )}
-                    </div>
-                  </>
-                )}
               </div>
-              <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-800">
-                Stage: {admission.stage?.name || 'New Lead'}
-              </span>
+
               {isConverted ? (
-                <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border border-green-200 bg-green-50 text-green-800">
+                <span className="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 border border-green-200 bg-green-50 text-green-800">
+                  <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
                   Converted
                 </span>
               ) : (
-                <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border ${isAdmitted ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
-                  Status: {admission.status}
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 ${statusColors[admission.status] || 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
+                  {formatStatus(admission.status)}
                 </span>
               )}
+
+              {menuOpen && typeof document !== 'undefined' &&
+                createPortal(
+                  <div
+                    ref={menuRef}
+                    style={{
+                      position: 'fixed',
+                      top: menuPos.top,
+                      left: menuPos.left,
+                      zIndex: 9999,
+                    }}
+                    className="w-40 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden text-left"
+                  >
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false)
+                        router.push(`/admission-management/${admission.id}/edit`)
+                      }}
+                      className="w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 text-left flex items-center gap-2 transition-colors cursor-pointer"
+                    >
+                      <Pencil size={13} />
+                      Edit Admission
+                    </button>
+                    {(admission.status !== 'ADMITTED' || !admission.student) && (
+                      <>
+                        <div className="h-px bg-slate-100 mx-2" />
+                        <button
+                          onClick={() => {
+                            setMenuOpen(false)
+                            handleDelete()
+                          }}
+                          className="w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 text-left flex items-center gap-2 transition-colors cursor-pointer font-medium"
+                        >
+                          <Trash2 size={13} />
+                          Delete Admission
+                        </button>
+                      </>
+                    )}
+                  </div>,
+                  document.body
+                )
+              }
             </div>
           </div>
         </Card>

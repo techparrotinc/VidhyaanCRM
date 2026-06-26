@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
 import { format } from 'date-fns'
@@ -432,6 +433,45 @@ export default function LeadManagementPage() {
     type: 'success' | 'error' | 'info'
     show: boolean
   }>({ message: '', type: 'success', show: false })
+
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
+
+  useEffect(() => {
+    const close = () => setOpenMenuId(null)
+    if (openMenuId) {
+      document.addEventListener('click', close)
+    }
+    return () => {
+      document.removeEventListener('click', close)
+    }
+  }, [openMenuId])
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpenMenuId(null)
+      }
+    }
+    document.addEventListener('keydown', handleEsc)
+    return () => {
+      document.removeEventListener('keydown', handleEsc)
+    }
+  }, [])
+
+  const handleDeleteLead = (leadId: string) => {
+    const lead = leads.find((l: any) => l.id === leadId)
+    if (lead) {
+      setDeleteModalLead(lead)
+    }
+  }
+
+  const handleConvertLead = (leadId: string) => {
+    const lead = leads.find((l: any) => l.id === leadId)
+    if (lead) {
+      openConvertModal(lead)
+    }
+  }
 
   // Helper functions
   const showToast = (
@@ -1553,50 +1593,20 @@ export default function LeadManagementPage() {
                             {/* Action */}
                             <td className="px-3 py-2.5 text-left w-[50px] min-w-[50px]" onClick={(e) => e.stopPropagation()}>
                               <div className="flex justify-start">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger>
-                                    <button 
-                                      className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none cursor-pointer"
-                                    >
-                                      <MoreVertical size={16} strokeWidth={1.5} />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent 
-                                    align="end"
-                                    className="w-56 min-w-[224px] rounded-xl border border-slate-200 shadow-lg p-1.5"
-                                  >
-                                    <DropdownMenuItem onClick={() => router.push(`/lead-management/${lead.id}`)}>
-                                      <Eye size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                                      View Lead
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => startEdit(lead)}>
-                                      <Pencil size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                                      <span>Edit Lead</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => startEdit(lead)}>
-                                      <UserPlus size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                                      <span>Assign Counsellor</span>
-                                    </DropdownMenuItem>
-                                    {institutionType === 'school' && lead.status !== 'CONVERTED' && (
-                                      <DropdownMenuItem 
-                                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
-                                        onClick={() => openConvertModal(lead)}
-                                      >
-                                        <ArrowRight size={14} className="text-[#1565D8] flex-shrink-0" strokeWidth={1.5} />
-                                        Convert to Admission
-                                      </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuItem onClick={() => markNotInterested(lead.id)} className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer">
-                                      <XCircle size={14} className="text-slate-400" />
-                                      <span>Mark Not Interested</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="text-red-500 hover:bg-red-50" onClick={() => setDeleteModalLead(lead)}>
-                                      <Trash2 size={14} className="mr-2 text-red-500" strokeWidth={1.5} />
-                                      <span>Delete Lead</span>
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                                    setMenuPosition({
+                                      top: rect.bottom + 4,
+                                      left: rect.right - 160,
+                                    })
+                                    setOpenMenuId(openMenuId === lead.id ? null : lead.id)
+                                  }}
+                                  className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
+                                >
+                                  <MoreVertical size={14} />
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -2276,6 +2286,64 @@ export default function LeadManagementPage() {
             </div>
           </div>
 
+          {openMenuId && typeof document !== 'undefined' &&
+            createPortal(
+              <div
+                style={{
+                  position: 'fixed',
+                  top: menuPosition.top,
+                  left: menuPosition.left,
+                  zIndex: 9999,
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-44 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden text-left"
+              >
+                <button
+                  onClick={() => {
+                    setOpenMenuId(null)
+                    router.push(`/lead-management/${openMenuId}`)
+                  }}
+                  className="w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 text-left flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Eye size={13} />
+                  View Lead
+                </button>
+                <button
+                  onClick={() => {
+                    setOpenMenuId(null)
+                    router.push(`/lead-management/${openMenuId}/edit`)
+                  }}
+                  className="w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 text-left flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Pencil size={13} />
+                  Edit Lead
+                </button>
+                <div className="h-px bg-slate-100 mx-2" />
+                <button
+                  onClick={() => {
+                    setOpenMenuId(null)
+                    handleConvertLead(openMenuId)
+                  }}
+                  className="w-full px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 text-left flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <ArrowRight size={13} />
+                  Convert to Admission
+                </button>
+                <div className="h-px bg-slate-100 mx-2" />
+                <button
+                  onClick={() => {
+                    setOpenMenuId(null)
+                    handleDeleteLead(openMenuId)
+                  }}
+                  className="w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 text-left flex items-center gap-2 transition-colors cursor-pointer font-medium"
+                >
+                  <Trash2 size={13} />
+                  Delete Lead
+                </button>
+              </div>,
+              document.body
+            )
+          }
 
     </div>
     </>

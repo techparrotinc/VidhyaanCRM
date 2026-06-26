@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
 import { useCounsellors } from '@/hooks/useCounsellors'
@@ -307,6 +308,31 @@ export default function AdmissionManagementPage() {
     type: 'success' | 'info' | 'error'
     show: boolean
   }>({ msg: '', type: 'success', show: false })
+
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
+
+  useEffect(() => {
+    const close = () => setOpenMenuId(null)
+    if (openMenuId) {
+      document.addEventListener('click', close)
+    }
+    return () => {
+      document.removeEventListener('click', close)
+    }
+  }, [openMenuId])
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpenMenuId(null)
+      }
+    }
+    document.addEventListener('keydown', handleEsc)
+    return () => {
+      document.removeEventListener('keydown', handleEsc)
+    }
+  }, [])
   const [showConvertModal, setShowConvertModal] =
     useState<any | null>(null)
   const [showRejectModal, setShowRejectModal] =
@@ -913,6 +939,25 @@ export default function AdmissionManagementPage() {
     } catch (err) {
       console.error(err)
       showToast('Failed to delete some admissions', 'error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDeleteAdmission = async (admissionId: string) => {
+    const confirmed = window.confirm('Delete this admission record?')
+    if (!confirmed) return
+    setIsLoading(true)
+    try {
+      const res = await fetch(`/api/v1/admissions/${admissionId}`, {
+        method: 'DELETE'
+      })
+      if (!res.ok) throw new Error()
+      showToast('Admission deleted', 'success')
+      fetchAdmissions()
+      fetchPipeline()
+    } catch {
+      showToast('Failed to delete', 'error')
     } finally {
       setIsLoading(false)
     }
@@ -1717,65 +1762,20 @@ export default function AdmissionManagementPage() {
                             {/* Action */}
                             <td className="px-3 py-2.5 text-left w-[50px] min-w-[50px]" onClick={e => e.stopPropagation()}>
                               <div className="flex justify-start">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger>
-                                    <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none cursor-pointer">
-                                      <MoreVertical size={16} strokeWidth={1.5} />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent
-                                    align="end"
-                                    className="w-56 min-w-[224px] bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 z-40"
-                                  >
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        router.push('/admission-management/' + a.id)
-                                      }}
-                                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                                    >
-                                      <Eye size={14} strokeWidth={1.5} className="text-slate-400" />
-                                      View Applicant
-                                    </DropdownMenuItem>
-
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        router.push('/admission-management/' + a.id + '/edit')
-                                      }}
-                                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                                    >
-                                      <Pencil size={14} strokeWidth={1.5} className="text-slate-400" />
-                                      Edit Applicant
-                                    </DropdownMenuItem>
-
-                                    <DropdownMenuSeparator />
-
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setShowConvertModal(a)
-                                      }}
-                                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
-                                    >
-                                      <CheckCircle2 size={14} strokeWidth={1.5} className="text-[#1565D8]" />
-                                      {config.convertToStudentLabel[type]}
-                                    </DropdownMenuItem>
-
-                                    <DropdownMenuSeparator />
-
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setShowRejectModal(a)
-                                      }}
-                                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer"
-                                    >
-                                      <XCircle size={14} strokeWidth={1.5} className="text-red-500" />
-                                      Reject Application
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                                    setMenuPosition({
+                                      top: rect.bottom + 4,
+                                      left: rect.right - 160,
+                                    })
+                                    setOpenMenuId(openMenuId === a.id ? null : a.id)
+                                  }}
+                                  className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
+                                >
+                                  <MoreVertical size={14} />
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -2800,6 +2800,54 @@ export default function AdmissionManagementPage() {
           </div>
         </div>
       )}
+
+      {openMenuId && typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              top: menuPosition.top,
+              left: menuPosition.left,
+              zIndex: 9999,
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-44 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden text-left"
+          >
+            <button
+              onClick={() => {
+                setOpenMenuId(null)
+                router.push(`/admission-management/${openMenuId}`)
+              }}
+              className="w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 text-left flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <Eye size={13} />
+              View Admission
+            </button>
+            <button
+              onClick={() => {
+                setOpenMenuId(null)
+                router.push(`/admission-management/${openMenuId}/edit`)
+              }}
+              className="w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 text-left flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <Pencil size={13} />
+              Edit Admission
+            </button>
+            <div className="h-px bg-slate-100 mx-2" />
+            <button
+              onClick={() => {
+                setOpenMenuId(null)
+                handleDeleteAdmission(openMenuId)
+              }}
+              className="w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 text-left flex items-center gap-2 transition-colors cursor-pointer font-medium"
+            >
+              <Trash2 size={13} />
+              Delete Admission
+            </button>
+          </div>,
+          document.body
+        )
+      }
 
     </>
   )

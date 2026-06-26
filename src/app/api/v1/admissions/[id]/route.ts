@@ -1,5 +1,6 @@
 import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
+import { redis } from '@/lib/redis'
 import { Errors, AppError } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
@@ -268,6 +269,18 @@ export const PUT = route({
       })
     }
 
+    // Invalidate pipeline cache
+    try {
+      const ayId = existing.academicYearId
+      await redis.del(`pipeline:${user.orgId}`)
+      await redis.del(`admissions_pipeline:${user.orgId}:all`)
+      if (ayId) {
+        await redis.del(`admissions_pipeline:${user.orgId}:${ayId}`)
+      }
+    } catch (err) {
+      console.error('Failed to invalidate pipeline cache:', err)
+    }
+
     return ok(updated)
   }
 })
@@ -318,6 +331,18 @@ export const DELETE = route({
         performedById: user.id
       }
     })
+
+    // Invalidate pipeline cache
+    try {
+      const ayId = admission.academicYearId
+      await redis.del(`pipeline:${user.orgId}`)
+      await redis.del(`admissions_pipeline:${user.orgId}:all`)
+      if (ayId) {
+        await redis.del(`admissions_pipeline:${user.orgId}:${ayId}`)
+      }
+    } catch (err) {
+      console.error('Failed to invalidate pipeline cache:', err)
+    }
 
     return ok({ success: true })
   }

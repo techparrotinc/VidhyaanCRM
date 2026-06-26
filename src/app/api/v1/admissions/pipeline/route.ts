@@ -2,6 +2,7 @@ import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
+import { redis } from '@/lib/redis'
 
 export const GET = route({
   module: MODULES.ADMISSION_MANAGEMENT,
@@ -15,30 +16,42 @@ export const GET = route({
     const { searchParams } = new URL(req.url)
     const academicYearId = searchParams.get('academicYearId')
 
+    const cacheKey = `admissions_pipeline:${user.orgId}:${academicYearId || 'all'}`
+    const cached = await redis.get(cacheKey)
+    if (cached) {
+      return ok(JSON.parse(cached))
+    }
+
     const stages = await db.admissionStage.findMany({
       where: { orgId: user.orgId },
       orderBy: { sortOrder: 'asc' }
     })
 
-    const counts = await Promise.all(
-      stages.map(stage =>
-        db.admission.count({
-          where: {
-            orgId: user.orgId,
-            stageId: stage.id,
-            deletedAt: null,
-            ...(academicYearId && {
-              OR: [
-                { academicYearId: academicYearId },
-                { academicYearId: null }
-              ]
-            })
-          }
+    const groupedCounts = await db.admission.groupBy({
+      by: ['stageId'],
+      where: {
+        orgId: user.orgId,
+        deletedAt: null,
+        ...(academicYearId && {
+          OR: [
+            { academicYearId: academicYearId },
+            { academicYearId: null }
+          ]
         })
-      )
-    )
+      },
+      _count: {
+        _all: true
+      }
+    })
 
-    const pipeline = stages.map((stage, i) => ({
+    const countMap: Record<string, number> = {}
+    groupedCounts.forEach(g => {
+      if (g.stageId) {
+        countMap[g.stageId] = g._count._all
+      }
+    })
+
+    const pipeline = stages.map(stage => ({
       id: stage.id,
       label: stage.name,
       color: stage.color,
@@ -48,10 +61,10 @@ export const GET = route({
       isLost: stage.isLost,
       requiresDocs: stage.requiresDocs,
       requiresPayment: stage.requiresPayment,
-      count: counts[i]
+      count: countMap[stage.id] || 0
     }))
 
-    const total = counts.reduce((a, b) => a + b, 0)
+    const total = pipeline.reduce((sum, s) => sum + s.count, 0)
 
     const admittedCount = pipeline
       .filter(s => s.isWon)
@@ -92,11 +105,15 @@ export const GET = route({
         )
       : 0
 
-    return ok({
+    const result = {
       pipeline,
       total,
       conversionRate,
       avgDaysToAdmit: avgDays
-    })
+    }
+
+    await redis.set(cacheKey, JSON.stringify(result), 'EX', 60)
+
+    return ok(result)
   }
 })

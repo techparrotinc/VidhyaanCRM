@@ -5,6 +5,7 @@ import { ok, created, paginated } from '@/lib/api/respond'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db/client'
+import { redis } from '@/lib/redis'
 
 export const GET = route({
   module: MODULES.ADMISSION_MANAGEMENT,
@@ -324,6 +325,18 @@ export const POST = route({
         performedById: user.id
       }
     })
+
+    // Invalidate pipeline cache
+    try {
+      const ayId = body.academicYearId || academicYearId
+      await redis.del(`pipeline:${user.orgId}`)
+      await redis.del(`admissions_pipeline:${user.orgId}:all`)
+      if (ayId) {
+        await redis.del(`admissions_pipeline:${user.orgId}:${ayId}`)
+      }
+    } catch (err) {
+      console.error('Failed to invalidate pipeline cache:', err)
+    }
 
     return created(admission)
   }

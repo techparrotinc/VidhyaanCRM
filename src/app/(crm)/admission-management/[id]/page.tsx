@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter, useParams } from 'next/navigation'
+import { format } from 'date-fns'
 import {
   ChevronLeft,
   ChevronRight,
@@ -32,7 +33,9 @@ import {
   Shield as ShieldIcon,
   Image,
   File,
-  Upload
+  Upload,
+  MessageSquare,
+  Send
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 
@@ -165,8 +168,14 @@ export default function AdmissionDetailPage() {
   const [pipelineStages, setPipelineStages] = useState<any[]>([])
   const [isUpdatingStage, setIsUpdatingStage] = useState(false)
 
+  // Activity Logging State
+  const [activities, setActivities] = useState<any[]>([])
+  const [activityType, setActivityType] = useState<'NOTE' | 'CALL' | 'WHATSAPP' | 'EMAIL'>('NOTE')
+  const [activityText, setActivityText] = useState('')
+  const [isLoggingActivity, setIsLoggingActivity] = useState(false)
+
   // Toast state
-  const [toast, setToast] = useState<{
+  const [toastState, setToastState] = useState<{
     msg: string
     type: 'success' | 'info' | 'error'
     show: boolean
@@ -176,8 +185,56 @@ export default function AdmissionDetailPage() {
     msg: string,
     type: 'success' | 'info' | 'error' = 'success'
   ) => {
-    setToast({ msg, type, show: true })
-    setTimeout(() => setToast(t => ({ ...t, show: false })), 3000)
+    setToastState({ msg, type, show: true })
+    setTimeout(() => setToastState(t => ({ ...t, show: false })), 3000)
+  }
+
+  const toast = {
+    success: (msg: string) => showToast(msg, 'success'),
+    error: (msg: string) => showToast(msg, 'error')
+  }
+
+  const fetchActivities = async () => {
+    try {
+      const res = await fetch(`/api/v1/admissions/${admissionId}`)
+      const json = await res.json()
+      setActivities(json.data?.activities || json.admission?.activities || [])
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleLogActivity = async () => {
+    if (!activityText.trim()) return
+    setIsLoggingActivity(true)
+
+    try {
+      const res = await fetch(
+        `/api/v1/admissions/${admissionId}/activities`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            type: activityType,
+            summary: activityText.trim(),
+          })
+        }
+      )
+
+      if (!res.ok) throw new Error()
+
+      setActivityText('')
+      setActivityType('NOTE')
+      fetchActivities()
+      toast.success('Activity logged')
+
+    } catch {
+      toast.error('Failed to log activity')
+    } finally {
+      setIsLoggingActivity(false)
+    }
   }
 
   // Fetch admission detail and stages
@@ -193,6 +250,7 @@ export default function AdmissionDetailPage() {
         setConvertStudentName(json.data.applicantName || '')
         setConvertStudentGrade(json.data.gradeSought || '')
         setConvertStudentGuardianName(json.data.lead?.parentName || '')
+        setActivities(json.data.activities || [])
       }
     } catch (err) {
       console.error(err)
@@ -723,42 +781,123 @@ export default function AdmissionDetailPage() {
             )}
           </Card>
 
+          {/* Log Activity Card */}
+          <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 text-left order-3 col-span-1 sm:col-span-2 lg:col-span-1">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <MessageSquare className="size-3.5 text-[#1565D8]" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-2">
+                  LOG ACTIVITY
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-1 mb-3 p-1 bg-slate-50 rounded-lg w-fit">
+              {(['NOTE', 'CALL', 'WHATSAPP', 'EMAIL'] as const).map((type) => {
+                const isActive = activityType === type
+                const label = type === 'NOTE' ? 'Note' : type === 'CALL' ? 'Call' : type === 'WHATSAPP' ? 'WhatsApp' : 'Email'
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setActivityType(type)}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+                      isActive ? 'bg-white shadow-sm text-[#1565D8]' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+
+            <textarea
+              value={activityText}
+              onChange={(e) => setActivityText(e.target.value)}
+              rows={3}
+              placeholder={
+                activityType === 'NOTE'
+                  ? 'Write a note about this admission...'
+                  : activityType === 'CALL'
+                  ? 'Summarize the call...'
+                  : activityType === 'WHATSAPP'
+                  ? 'What was discussed on WhatsApp...'
+                  : 'Email summary...'
+              }
+              className="w-full resize-none border border-slate-200 rounded-lg p-3 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10"
+            />
+
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-xs text-slate-400">
+                {activityText.length} chars
+              </span>
+              <button
+                onClick={handleLogActivity}
+                disabled={!activityText.trim() || isLoggingActivity}
+                className="flex items-center gap-2 h-8 px-4 text-xs font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                {isLoggingActivity ? (
+                  <Loader2 className="animate-spin" size={12} />
+                ) : (
+                  <Send size={12} />
+                )}
+                {isLoggingActivity ? 'Saving...' : 'Save Activity'}
+              </button>
+            </div>
+          </Card>
+
           {/* 3. Activity Timeline Card */}
           <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 text-left order-3 col-span-1 sm:col-span-2 lg:col-span-1 lg:row-span-2">
             <h4 className="text-sm sm:text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Activity Timeline</h4>
-            {admission.activities && admission.activities.length > 0 ? (
-              <div className="space-y-4">
-                <div className="relative pl-6 border-l border-slate-100 space-y-6">
-                  {(showAllActivities ? admission.activities : admission.activities.slice(0, 5)).map((act: any) => (
-                    <div key={act.id} className="relative">
-                      <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-white bg-slate-300 flex items-center justify-center">
-                        <Clock className="w-2.5 h-2.5 text-white" />
-                      </div>
-                      <div className="flex justify-between items-start gap-4">
-                        <div>
-                          <p className="text-sm font-medium text-slate-700">{act.summary}</p>
-                          <span className="text-xs text-slate-400 mt-1 block">
-                            {new Date(act.createdAt).toLocaleString('en-IN')}
-                          </span>
+            {activities && activities.length > 0 ? (
+              <div className="relative">
+                {activities.length > 1 && (
+                  <div className="absolute left-[7px] top-2.5 bottom-2.5 w-0.5 bg-slate-100" />
+                )}
+                <div className="space-y-4">
+                  {activities.map((act) => {
+                    const typeColors: Record<string, string> = {
+                      NOTE: 'border-slate-400 text-slate-400',
+                      CALL: 'border-blue-400 text-blue-400',
+                      WHATSAPP: 'border-green-500 text-green-500',
+                      EMAIL: 'border-purple-400 text-purple-400',
+                      STAGE_CHANGE: 'border-amber-400 text-amber-400',
+                      SYSTEM: 'border-slate-300 text-slate-300',
+                      DOCUMENT: 'border-teal-400 text-teal-400',
+                    }
+                    const dotClass = typeColors[act.type] || 'border-slate-300 text-slate-300'
+                    return (
+                      <div key={act.id} className="flex gap-3 mb-4 last:mb-0 relative">
+                        {/* Left: colored dot */}
+                        <div className={`w-4 h-4 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center z-10 relative bg-white border-2 ${dotClass}`}>
+                          <div className="w-2 h-2 rounded-full bg-current" />
+                        </div>
+                        {/* Right: flex-1 */}
+                        <div className="flex-1">
+                          <p className="text-sm text-slate-700 leading-snug">
+                            {act.summary}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-slate-400">
+                              Performed by: {act.performedBy?.name || 'System'}
+                            </span>
+                            <span className="text-xs text-slate-400">·</span>
+                            <span className="text-xs text-slate-400">
+                              {format(new Date(act.createdAt), 'd MMM yyyy, h:mm a')}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
-
-                {admission.activities.length > 5 && (
-                  <div className="pt-2 border-t border-slate-100 flex justify-center">
-                    <button
-                      onClick={() => setShowAllActivities(!showAllActivities)}
-                      className="text-xs font-semibold text-[#1565D8] hover:underline cursor-pointer"
-                    >
-                      {showAllActivities ? 'Show less' : `Show all (${admission.activities.length})`}
-                    </button>
-                  </div>
-                )}
               </div>
             ) : (
-              <p className="text-sm text-slate-400 text-center py-6 font-sans">No activity logged yet.</p>
+              <div className="py-6 text-center">
+                <FileText className="text-slate-200 mx-auto" size={20} />
+                <p className="text-sm text-slate-400 mt-2">No activities yet</p>
+                <p className="text-xs text-slate-300 mt-1">Log your first activity above</p>
+              </div>
             )}
           </Card>
 
@@ -948,10 +1087,10 @@ export default function AdmissionDetailPage() {
       )}
 
       {/* TOAST NOTIFICATION */}
-      {toast.show && (
-        <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl border text-sm font-semibold shadow-lg transition duration-300 animate-slide-in ${toast.type === 'error' ? 'bg-red-50 text-red-800 border-red-200' : 'bg-green-50 text-green-800 border-green-200'}`}>
-          {toast.type === 'error' ? <XCircle size={16} /> : <CheckCircle2 size={16} />}
-          <span>{toast.msg}</span>
+      {toastState.show && (
+        <div className={`fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl border text-sm font-semibold shadow-lg transition duration-300 animate-slide-in ${toastState.type === 'error' ? 'bg-red-50 text-red-800 border-red-200' : 'bg-green-50 text-green-800 border-green-200'}`}>
+          {toastState.type === 'error' ? <XCircle size={16} /> : <CheckCircle2 size={16} />}
+          <span>{toastState.msg}</span>
         </div>
       )}
     </>

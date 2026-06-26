@@ -51,12 +51,27 @@ export const GET = route({
       })
     ])
 
+    const performerIds = Array.from(new Set(activities.map(a => a.performedById).filter(Boolean))) as string[]
+    const performers = performerIds.length > 0
+      ? await db.user.findMany({
+          where: { id: { in: performerIds } },
+          select: { id: true, name: true }
+        })
+      : []
+
+    const performerMap = new Map(performers.map(p => [p.id, p.name]))
+
+    const activitiesWithPerformer = activities.map(act => ({
+      ...act,
+      performedBy: act.performedById ? { name: performerMap.get(act.performedById) || 'System' } : { name: 'System' }
+    }))
+
     const admissionWithIsTerminal = {
       ...admission,
       expectedJoinDate: admission.lead?.expectedJoinDate || null,
       currentSchool: admission.lead?.currentSchool || null,
       priority: admission.lead?.priority || 'MEDIUM',
-      activities,
+      activities: activitiesWithPerformer,
       documents,
       stage: admission.stage
         ? {

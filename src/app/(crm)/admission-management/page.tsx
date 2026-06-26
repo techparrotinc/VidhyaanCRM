@@ -713,6 +713,54 @@ export default function AdmissionManagementPage() {
     )
   }
 
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const params = new URLSearchParams()
+
+      if (activeStageId !== 'all') {
+        params.set('stageId', activeStageId)
+      }
+      if (searchQuery) {
+        params.set('search', searchQuery)
+      }
+      if (counsellorFilter) {
+        params.set('assignedToId', counsellorFilter)
+      }
+      if (priorityFilter) {
+        params.set('priority', priorityFilter)
+      }
+      if (dateRange.from) {
+        params.set('dateFrom', dateRange.from)
+      }
+      if (dateRange.to) {
+        params.set('dateTo', dateRange.to)
+      }
+
+      const res = await fetch(`/api/v1/admissions/export?${params.toString()}`)
+
+      if (!res.ok) throw new Error()
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `admissions-${format(new Date(), 'yyyy-MM-dd')}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      showToast('Export downloaded successfully', 'success')
+    } catch {
+      showToast('Export failed', 'error')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   // ===================================================================
   // FILTERING LOGIC
   // ===================================================================
@@ -1169,12 +1217,17 @@ export default function AdmissionManagementPage() {
             </h1>
 
             <div className="flex items-center gap-3">
-              <button 
-                onClick={() => showToast("Export initiated", "info")}
-                className="h-9 px-4 text-sm border border-slate-200 text-slate-600 rounded-lg flex items-center gap-2 hover:bg-slate-50 transition cursor-pointer"
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="flex items-center gap-2 h-8 px-4 text-sm font-medium border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors cursor-pointer"
               >
-                <Download size={14} />
-                <span>Export</span>
+                {isExporting ? (
+                  <Loader2 className="animate-spin" size={14} />
+                ) : (
+                  <Download size={14} />
+                )}
+                {isExporting ? 'Exporting...' : 'Export'}
               </button>
               <button
                 onClick={() => {

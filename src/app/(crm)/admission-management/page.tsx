@@ -304,34 +304,6 @@ export default function AdmissionManagementPage() {
     useState<any[]>([])
   const [activeStageId, setActiveStageId] =
     useState<string>('all')
-  const [stageCounts, setStageCounts] =
-    useState<Record<string, number>>({})
-  const [totalCount, setTotalCount] = useState<number>(0)
-
-  const fetchPipelineData = async () => {
-    try {
-      const res = await fetch(
-        '/api/v1/admissions/pipeline'
-      )
-      const resJson = await res.json()
-      const data = resJson.data || {}
-
-      const counts: Record<string, number> = {}
-      const pipeline = data.pipeline || []
-
-      pipeline.forEach((s: any) => {
-        counts[s.id] = s.count || 0
-      })
-
-      const total = data.total || Object.values(counts).reduce((a: number, b: number) => a + b, 0)
-
-      setStageCounts(counts)
-      setTotalCount(total)
-    } catch (err) {
-      console.error('Failed to fetch pipeline data:', err)
-    }
-  }
-
   useEffect(() => {
     const fetchStages = async () => {
       try {
@@ -347,7 +319,6 @@ export default function AdmissionManagementPage() {
       }
     }
     fetchStages()
-    fetchPipelineData()
   }, [])
 
   const [pipelineExpanded, setPipelineExpanded] = useState(() => {
@@ -411,9 +382,20 @@ export default function AdmissionManagementPage() {
     fetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 30000,
+      dedupingInterval: 60000,
     }
   )
+
+  const stageCounts = useMemo<Record<string, number>>(() => {
+    return pipelineData?.data?.pipeline?.reduce(
+      (acc: any, s: any) => {
+        acc[s.id] = s.count || 0
+        return acc
+      }, {}
+    ) || {}
+  }, [pipelineData])
+
+  const totalCount = pipelineData?.data?.total || 0
 
   const pipeline = useMemo(() => pipelineData?.data?.pipeline ?? [], [pipelineData])
   const pipelineStats = useMemo(() => ({
@@ -565,7 +547,6 @@ export default function AdmissionManagementPage() {
   // Mutate trigger wrappers
   const fetchPipeline = useCallback(async () => {
     mutatePipeline()
-    fetchPipelineData()
   }, [mutatePipeline])
 
   const fetchAdmissions = useCallback(async () => {
@@ -1856,7 +1837,7 @@ export default function AdmissionManagementPage() {
 
                                       await Promise.all([
                                         fetchAdmissions(),
-                                        fetchPipelineData(),
+                                        fetchPipeline(),
                                       ])
 
                                       showToast('Stage updated', 'success')
@@ -2099,7 +2080,7 @@ export default function AdmissionManagementPage() {
 
                                   await Promise.all([
                                     fetchAdmissions(),
-                                    fetchPipelineData(),
+                                    fetchPipeline(),
                                   ])
 
                                   showToast('Stage updated', 'success')

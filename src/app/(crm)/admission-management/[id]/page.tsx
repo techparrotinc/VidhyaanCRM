@@ -25,7 +25,9 @@ import {
   Loader2,
   FileX,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  Pencil,
+  ChevronDown
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 
@@ -59,6 +61,7 @@ export default function AdmissionDetailPage() {
   const [loading, setLoading] = useState(true)
   const [admission, setAdmission] = useState<any>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showAllActivities, setShowAllActivities] = useState(false)
 
   const handleDelete = async () => {
     const confirmed = window.confirm(
@@ -348,32 +351,32 @@ export default function AdmissionDetailPage() {
 
   return (
     <>
-      <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-5 lg:space-y-6 max-w-7xl mx-auto w-full flex-1">
+      <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 max-w-7xl mx-auto w-full flex-1">
         {/* PAGE HEADER */}
-        <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6 text-left">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div className="flex items-start gap-4">
+        <Card className="bg-white rounded-xl border border-slate-200 shadow-sm px-3 sm:px-6 py-4 text-left">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 onClick={() => router.back()}
-                className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center flex-shrink-0 hover:bg-slate-50 transition cursor-pointer"
+                className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg border border-slate-200 flex items-center justify-center flex-shrink-0 hover:bg-slate-50 transition cursor-pointer"
               >
                 <ChevronLeft size={18} className="text-slate-500" strokeWidth={1.5} />
               </button>
 
-              <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-blue-100 text-blue-700 text-sm md:text-base font-bold flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 text-blue-700 text-xs sm:text-sm font-bold flex items-center justify-center flex-shrink-0">
                 {admission.applicantName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'AD'}
               </div>
 
               <div className="min-w-0">
-                <h3 className="text-base md:text-lg lg:text-xl font-bold text-slate-800 Poppins leading-tight">
+                <h3 className="text-base sm:text-lg font-bold text-slate-800 Poppins leading-tight max-w-[120px] sm:max-w-[200px] truncate">
                   {admission.applicantName}
                 </h3>
-                <div className="flex flex-wrap items-center gap-1.5 mt-1 text-xs md:text-sm text-slate-400">
-                  <span>Grade Sought: {getGradeLabel(admission.gradeSought || '—')}</span>
+                <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[11px] sm:text-xs text-slate-400">
+                  <span>Grade: {getGradeLabel(admission.gradeSought || '—')}</span>
                   <span className="text-slate-200">·</span>
                   <span>Phone: {admission.phone || '—'}</span>
-                  <span className="text-slate-200">·</span>
-                  <span>{admission.admissionCode}</span>
+                  <span className="hidden sm:inline text-slate-200">·</span>
+                  <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 font-mono">{admission.admissionCode}</span>
                 </div>
               </div>
             </div>
@@ -381,13 +384,14 @@ export default function AdmissionDetailPage() {
             <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
               <button
                 onClick={() => router.push(`/admission-management/${admissionId}/edit`)}
-                className="border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center gap-1.5 cursor-pointer transition shadow-sm font-sans"
+                className="border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition shadow-sm font-sans h-10 sm:h-9"
               >
-                Edit Admission
+                <Pencil size={14} className="text-slate-500" />
+                <span className="hidden sm:inline">Edit Admission</span>
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger>
-                  <button className="border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 p-2 rounded-lg flex items-center justify-center cursor-pointer transition shadow-sm h-[32px] w-[32px] md:h-[34px] md:w-[34px]">
+                  <button className="border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 p-2.5 rounded-lg flex items-center justify-center cursor-pointer transition shadow-sm h-10 w-10 sm:h-9 sm:w-9">
                     <MoreVertical size={16} className="text-slate-500" />
                   </button>
                 </DropdownMenuTrigger>
@@ -395,7 +399,7 @@ export default function AdmissionDetailPage() {
                   {(admission.status !== 'ADMITTED' || !admission.student) && (
                     <DropdownMenuItem
                       onClick={handleDelete}
-                      className="text-red-650 hover:bg-red-50 focus:bg-red-50 flex items-center gap-2"
+                      className="text-red-650 hover:bg-red-50 focus:bg-red-50 flex items-center gap-2 cursor-pointer"
                     >
                       <Trash2 size={14} className="text-red-500" />
                       Delete Admission
@@ -403,15 +407,15 @@ export default function AdmissionDetailPage() {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-800`}>
+              <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-800">
                 Stage: {admission.stage?.name || 'New Lead'}
               </span>
               {isConverted ? (
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full border border-green-200 bg-green-50 text-green-800">
-                  Converted to Student
+                <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border border-green-200 bg-green-50 text-green-800">
+                  Converted
                 </span>
               ) : (
-                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${isAdmitted ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+                <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border ${isAdmitted ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
                   Status: {admission.status}
                 </span>
               )}
@@ -420,75 +424,136 @@ export default function AdmissionDetailPage() {
         </Card>
 
         {/* MAIN LAYOUT GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* LEFT COLUMNS */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Applicant Details */}
-            <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-left">
-              <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Applicant Information</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 p-3 sm:p-4">
+          
+          {/* LEFT COLUMN — Applicant Info */}
+          <div className="order-1 space-y-3 sm:space-y-4">
+            <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 text-left">
+              <h4 className="text-sm sm:text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Applicant Information</h4>
+              <div className="space-y-4">
                 <div>
-                  <span className="text-xs text-slate-400 block">Applicant Name</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Applicant Name</span>
                   <span className="text-sm font-semibold text-slate-700">{admission.applicantName}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-400 block">Phone</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Phone</span>
                   <span className="text-sm font-semibold text-slate-700">{admission.phone || '—'}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-400 block">Email</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Email</span>
                   <span className="text-sm font-semibold text-slate-700">{admission.email || '—'}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-400 block">Applying For (Grade)</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Applying For (Grade)</span>
                   <span className="text-sm font-semibold text-slate-700">{getGradeLabel(admission.gradeSought || '—')}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-400 block">Assigned Counsellor</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Assigned Counsellor</span>
                   <span className="text-sm font-semibold text-slate-700">{admission.assignedTo?.name || 'Unassigned'}</span>
                 </div>
                 {admission.lead?.parentName && (
                   <div>
-                    <span className="text-xs text-slate-400 block">Parent/Guardian Name</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Parent/Guardian Name</span>
                     <span className="text-sm font-semibold text-slate-700">{admission.lead.parentName}</span>
                   </div>
                 )}
               </div>
             </Card>
+          </div>
 
-            {/* Timeline Activities */}
-            <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-left">
-              <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Activity Timeline</h4>
+          {/* CENTER COLUMN — Timeline */}
+          <div className="order-2 space-y-3 sm:space-y-4">
+            <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 text-left">
+              <h4 className="text-sm sm:text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Activity Timeline</h4>
               {admission.activities && admission.activities.length > 0 ? (
-                <div className="relative pl-6 border-l border-slate-100 space-y-6">
-                  {admission.activities.map((act: any) => (
-                    <div key={act.id} className="relative">
-                      <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-white bg-slate-300 flex items-center justify-center">
-                        <Clock className="w-2.5 h-2.5 text-white" />
-                      </div>
-                      <div className="flex justify-between items-start gap-4">
-                        <div>
-                          <p className="text-sm font-medium text-slate-700">{act.summary}</p>
-                          <span className="text-xs text-slate-400 mt-1 block">
-                            {new Date(act.createdAt).toLocaleString('en-IN')}
-                          </span>
+                <div className="space-y-4">
+                  <div className="relative pl-6 border-l border-slate-100 space-y-6">
+                    {(showAllActivities ? admission.activities : admission.activities.slice(0, 5)).map((act: any) => (
+                      <div key={act.id} className="relative">
+                        <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-white bg-slate-300 flex items-center justify-center">
+                          <Clock className="w-2.5 h-2.5 text-white" />
+                        </div>
+                        <div className="flex justify-between items-start gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-slate-700">{act.summary}</p>
+                            <span className="text-xs text-slate-400 mt-1 block">
+                              {new Date(act.createdAt).toLocaleString('en-IN')}
+                            </span>
+                          </div>
                         </div>
                       </div>
+                    ))}
+                  </div>
+
+                  {admission.activities.length > 5 && (
+                    <div className="pt-2 border-t border-slate-100 flex justify-center">
+                      <button
+                        onClick={() => setShowAllActivities(!showAllActivities)}
+                        className="text-xs font-semibold text-[#1565D8] hover:underline cursor-pointer"
+                      >
+                        {showAllActivities ? 'Show less' : `Show all (${admission.activities.length})`}
+                      </button>
                     </div>
-                  ))}
+                  )}
                 </div>
               ) : (
-                <p className="text-sm text-slate-400 text-center py-6">No activity logged yet.</p>
+                <p className="text-sm text-slate-400 text-center py-6 font-sans">No activity logged yet.</p>
+              )}
+            </Card>
+          </div>
+
+          {/* RIGHT COLUMN — Actions and Documents */}
+          <div className="order-3 md:order-3 space-y-3 sm:space-y-4 md:col-span-2 xl:col-span-1">
+            {/* Actions Panel */}
+            <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 text-left space-y-4">
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
+                ADMISSION STAGE
+              </h4>
+              
+              <div className="relative">
+                <label className="text-xs text-slate-400 block mb-1">Current Stage</label>
+                <div className="relative w-full">
+                  <select
+                    disabled={isUpdatingStage}
+                    value={admission.stageId || ''}
+                    onChange={(e) => handleStageChange(e.target.value)}
+                    className="w-full h-10 sm:h-9 px-3 pr-10 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] appearance-none transition"
+                  >
+                    {pipelineStages.map((stage) => (
+                      <option key={stage.id} value={stage.id}>{stage.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Convert to Student Action Button */}
+              {isAdmitted && !isConverted && (
+                <div className="flex sm:justify-start">
+                  <button
+                    onClick={() => setShowConvertModal(true)}
+                    className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-bold text-sm transition shadow-sm cursor-pointer mt-4"
+                  >
+                    <span>Convert to Student →</span>
+                  </button>
+                </div>
+              )}
+
+              {isConverted && (
+                <div className="p-3 bg-green-50 border border-green-200 text-green-800 text-xs font-semibold rounded-xl flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-green-600" />
+                  <span>Student record: {admission.student?.studentCode}</span>
+                </div>
               )}
             </Card>
 
             {/* Documents Section */}
-            <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-left">
+            <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 text-left">
               <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
-                <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider font-sans">Documents</h4>
+                <h4 className="text-sm sm:text-base font-bold text-slate-800 uppercase tracking-wider font-sans">Documents</h4>
                 <button
                   onClick={() => setShowUploadModal(true)}
-                  className="bg-[#1565D8] text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-blue-700 transition cursor-pointer font-sans"
+                  className="bg-[#1565D8] text-white text-xs font-semibold h-10 sm:h-9 px-3.5 rounded-lg flex items-center justify-center gap-1 hover:bg-blue-700 transition cursor-pointer font-sans"
                 >
                   <Plus size={13} />
                   Upload
@@ -506,124 +571,156 @@ export default function AdmissionDetailPage() {
                   <p className="text-xs text-slate-400 font-sans mt-0.5">Upload required files for verification</p>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100">
-                  {documents.map((doc) => {
-                    const sizeText = doc.sizeBytes 
-                      ? `${(doc.sizeBytes / 1024).toFixed(1)} KB` 
-                      : 'N/A'
-                    
-                    return (
-                      <div key={doc.id} className="py-3 flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center shrink-0">
-                            <FileText size={16} className="text-slate-500" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-slate-700 truncate font-sans">{doc.name}</p>
-                            <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400 font-sans">
-                              <span className="capitalize">{doc.type}</span>
-                              <span>·</span>
-                              <span>{sizeText}</span>
+                <>
+                  {/* Desktop/Tablet view */}
+                  <div className="hidden sm:block divide-y divide-slate-100">
+                    {documents.map((doc) => {
+                      const sizeText = doc.sizeBytes 
+                        ? `${(doc.sizeBytes / 1024).toFixed(1)} KB` 
+                        : 'N/A'
+                      
+                      return (
+                        <div key={doc.id} className="py-3 flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center shrink-0">
+                              <FileText size={16} className="text-slate-500" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-slate-700 truncate font-sans">{doc.name}</p>
+                              <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400 font-sans">
+                                <span className="capitalize">{doc.type}</span>
+                                <span>·</span>
+                                <span>{sizeText}</span>
+                              </div>
                             </div>
                           </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {/* Scan Status Badge */}
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              doc.scanStatus === 'APPROVED'
+                                ? 'bg-green-50 text-green-700 border-green-200'
+                                : doc.scanStatus === 'REJECTED'
+                                  ? 'bg-red-50 text-red-700 border-red-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                              {doc.scanStatus === 'APPROVED' ? 'Approved' : doc.scanStatus === 'REJECTED' ? 'Rejected' : 'Pending Review'}
+                            </span>
+
+                            {/* ORG_ADMIN action buttons */}
+                            {isOrgAdmin && doc.scanStatus === 'PENDING' && (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleUpdateDocStatus(doc.id, 'APPROVED')}
+                                  className="p-1 text-green-600 hover:bg-green-50 rounded cursor-pointer"
+                                  title="Approve Document"
+                                >
+                                  <Check size={14} strokeWidth={2.5} />
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateDocStatus(doc.id, 'REJECTED')}
+                                  className="p-1 text-red-650 hover:bg-red-50 rounded cursor-pointer"
+                                  title="Reject Document"
+                                >
+                                  <XCircle size={14} />
+                                </button>
+                              </div>
+                            )}
+
+                            {/* View link */}
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-bold text-[#1565D8] hover:underline px-2 py-1 font-sans cursor-pointer"
+                            >
+                              View
+                            </a>
+
+                            {/* Delete button */}
+                            <button
+                              onClick={() => handleDeleteDoc(doc.id)}
+                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition cursor-pointer"
+                              title="Delete Document"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </div>
+                      )
+                    })}
+                  </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          {/* Scan Status Badge */}
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                            doc.scanStatus === 'APPROVED'
-                              ? 'bg-green-50 text-green-700 border-green-200'
-                              : doc.scanStatus === 'REJECTED'
-                                ? 'bg-red-50 text-red-700 border-red-200'
-                                : 'bg-amber-50 text-amber-700 border-amber-200'
-                          }`}>
-                            {doc.scanStatus === 'APPROVED' ? 'Approved' : doc.scanStatus === 'REJECTED' ? 'Rejected' : 'Pending Review'}
-                          </span>
-
-                          {/* ORG_ADMIN action buttons */}
-                          {isOrgAdmin && doc.scanStatus === 'PENDING' && (
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => handleUpdateDocStatus(doc.id, 'APPROVED')}
-                                className="p-1 text-green-600 hover:bg-green-50 rounded"
-                                title="Approve Document"
-                              >
-                                <Check size={14} strokeWidth={2.5} />
-                              </button>
-                              <button
-                                onClick={() => handleUpdateDocStatus(doc.id, 'REJECTED')}
-                                className="p-1 text-red-650 hover:bg-red-50 rounded"
-                                title="Reject Document"
-                              >
-                                <XCircle size={14} />
-                              </button>
+                  {/* Mobile stacked card view */}
+                  <div className="block sm:hidden space-y-2">
+                    {documents.map((doc) => {
+                      const sizeText = doc.sizeBytes 
+                        ? `${(doc.sizeBytes / 1024).toFixed(1)} KB` 
+                        : 'N/A'
+                      return (
+                        <div key={doc.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2.5">
+                          {/* File Details + Status */}
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded bg-white flex items-center justify-center shrink-0 border border-slate-200">
+                              <FileText size={16} className="text-slate-500" />
                             </div>
-                          )}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-slate-700 truncate font-sans">{doc.name}</p>
+                              <p className="text-[10px] text-slate-400 font-sans mt-0.5">
+                                <span className="capitalize">{doc.type}</span> · {sizeText}
+                              </p>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
+                              doc.scanStatus === 'APPROVED'
+                                ? 'bg-green-50 text-green-700 border-green-200'
+                                : doc.scanStatus === 'REJECTED'
+                                  ? 'bg-red-50 text-red-700 border-red-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                              {doc.scanStatus === 'APPROVED' ? 'Approved' : doc.scanStatus === 'REJECTED' ? 'Rejected' : 'Pending'}
+                            </span>
+                          </div>
 
-                          {/* View link */}
-                          <a
-                            href={doc.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs font-bold text-[#1565D8] hover:underline px-2 py-1 font-sans"
-                          >
-                            View
-                          </a>
-
-                          {/* Delete button */}
-                          <button
-                            onClick={() => handleDeleteDoc(doc.id)}
-                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition"
-                            title="Delete Document"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          {/* Action Buttons Below */}
+                          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+                            {isOrgAdmin && doc.scanStatus === 'PENDING' && (
+                              <>
+                                <button
+                                  onClick={() => handleUpdateDocStatus(doc.id, 'APPROVED')}
+                                  className="h-8 px-2.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-semibold rounded-lg flex items-center gap-1 transition cursor-pointer"
+                                >
+                                  <Check size={12} strokeWidth={2.5} />
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateDocStatus(doc.id, 'REJECTED')}
+                                  className="h-8 px-2.5 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-lg flex items-center gap-1 transition cursor-pointer"
+                                >
+                                  <XCircle size={12} />
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="h-8 px-3 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg flex items-center justify-center transition cursor-pointer"
+                            >
+                              View
+                            </a>
+                            <button
+                              onClick={() => handleDeleteDoc(doc.id)}
+                              className="h-8 w-8 border border-slate-200 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg flex items-center justify-center transition cursor-pointer"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </Card>
-          </div>
-
-          {/* RIGHT COLUMN */}
-          <div className="space-y-6">
-            {/* Actions Panel */}
-            <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 text-left space-y-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
-                ADMISSION STAGE
-              </h4>
-              
-              <div className="relative">
-                <label className="text-xs text-slate-400 block mb-1">Current Stage</label>
-                <select
-                  disabled={isUpdatingStage}
-                  value={admission.stageId || ''}
-                  onChange={(e) => handleStageChange(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                >
-                  {pipelineStages.map((stage) => (
-                    <option key={stage.id} value={stage.id}>{stage.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Convert to Student Action Button */}
-              {isAdmitted && !isConverted && (
-                <button
-                  onClick={() => setShowConvertModal(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-sm transition shadow-sm cursor-pointer mt-4"
-                >
-                  <span>Convert to Student →</span>
-                </button>
-              )}
-
-              {isConverted && (
-                <div className="p-3 bg-green-50 border border-green-200 text-green-800 text-xs font-semibold rounded-xl flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-green-600" />
-                  <span>Student record: {admission.student?.studentCode}</span>
-                </div>
+                      )
+                    })}
+                  </div>
+                </>
               )}
             </Card>
           </div>

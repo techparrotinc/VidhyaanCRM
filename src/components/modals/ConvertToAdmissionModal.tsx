@@ -298,7 +298,7 @@ export default function ConvertToAdmissionModal({
         }
       ` }} />
 
-      <div className="bg-white rounded-[20px] w-full max-w-[560px] max-h-[90vh] flex flex-col shadow-[0_20px_60px_rgba(0,0,0,0.3)] overflow-hidden relative">
+      <div className="bg-white rounded-[20px] w-[95vw] max-w-[560px] max-h-[90vh] flex flex-col shadow-[0_20px_60px_rgba(0,0,0,0.3)] overflow-hidden relative">
         
         {/* SECTION 1 — COMPACT COLORED HEADER */}
         <div className="bg-gradient-to-r from-[#1565D8] to-[#1E40AF] px-6 py-5 shrink-0 flex flex-col">
@@ -354,9 +354,9 @@ export default function ConvertToAdmissionModal({
             </div>
           )}
 
-          <div className="modal-grid grid grid-cols-2 gap-x-4 gap-y-3">
+          <div className="modal-grid grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* FIELD 1: APPLICANT NAME */}
-            <div className="col-span-2">
+            <div className="col-span-1 sm:col-span-2">
               <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">
                 APPLICANT NAME *
               </label>
@@ -496,7 +496,7 @@ export default function ConvertToAdmissionModal({
             </div>
 
             {/* FIELD 6: NOTES */}
-            <div className="col-span-2">
+            <div className="col-span-1 sm:col-span-2">
               <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">
                 NOTES
               </label>

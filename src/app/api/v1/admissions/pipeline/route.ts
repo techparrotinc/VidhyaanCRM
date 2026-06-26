@@ -11,8 +11,12 @@ export const GET = route({
     ROLES.COUNSELLOR,
     ROLES.RECEPTIONIST
   ],
-  handler: async ({ db, user }) => {
+  handler: async ({ req, db, user }) => {
+    const { searchParams } = new URL(req.url)
+    const academicYearId = searchParams.get('academicYearId')
+
     const stages = await db.admissionStage.findMany({
+      where: { orgId: user.orgId },
       orderBy: { sortOrder: 'asc' }
     })
 
@@ -20,8 +24,15 @@ export const GET = route({
       stages.map(stage =>
         db.admission.count({
           where: {
+            orgId: user.orgId,
             stageId: stage.id,
-            deletedAt: null
+            deletedAt: null,
+            ...(academicYearId && {
+              OR: [
+                { academicYearId: academicYearId },
+                { academicYearId: null }
+              ]
+            })
           }
         })
       )
@@ -56,6 +67,12 @@ export const GET = route({
         status: 'ADMITTED',
         decidedAt: { not: null },
         deletedAt: null,
+        ...(academicYearId && {
+          OR: [
+            { academicYearId: academicYearId },
+            { academicYearId: null }
+          ]
+        })
       },
       select: {
         createdAt: true,

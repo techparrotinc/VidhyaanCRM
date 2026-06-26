@@ -14,12 +14,15 @@ export const GET = route({
     ROLES.RECEPTIONIST
   ],
   handler: async ({ db, params }) => {
-    const id = params?.id
+    const { id } = (await params) as any
     const admission = await db.admission.findFirst({
       where: { id },
       include: {
         stage: true,
         assignedTo: {
+          select: { id: true, name: true }
+        },
+        academicYear: {
           select: { id: true, name: true }
         },
         lead: {
@@ -93,10 +96,11 @@ export const PUT = route({
     ROLES.COUNSELLOR
   ],
   handler: async ({ req, db, user, params }) => {
+    const { id } = (await params) as any
     const body = await req.json()
 
     const existing = await db.admission.findFirst({
-      where: { id: params?.id },
+      where: { id },
       include: { stage: true }
     })
 
@@ -106,7 +110,7 @@ export const PUT = route({
 
     const currentAdmission = await db.admission.findFirst({
       where: {
-        id: params?.id,
+        id,
         orgId: user.orgId
       },
       include: {
@@ -118,7 +122,7 @@ export const PUT = route({
 
     // Filter out relation and read-only fields to prevent Prisma errors
     const {
-      id,
+      id: bodyId,
       orgId,
       branchId,
       createdAt,
@@ -140,7 +144,7 @@ export const PUT = route({
     } = body
 
     const updated = await db.admission.update({
-      where: { id: params?.id },
+      where: { id },
       data: updateData,
       include: { stage: true }
     })
@@ -174,7 +178,7 @@ export const PUT = route({
 
       // Update the admission record with the new leadId
       await db.admission.update({
-        where: { id: params?.id },
+        where: { id },
         data: { leadId }
       })
     } else {
@@ -204,7 +208,7 @@ export const PUT = route({
 
       await db.admissionActivity.create({
         data: {
-          admissionId: params?.id ?? '',
+          admissionId: id,
           orgId: user.orgId,
           type: 'STAGE_CHANGE',
           summary: `Stage changed from ${currentAdmission.stage?.name || 'Unknown'} to ${newStage?.name || 'Unknown'}`,
@@ -235,7 +239,7 @@ export const PUT = route({
       // Check if new stage is won
       if (updated.stage?.isWon) {
         await db.admission.update({
-          where: { id: params?.id },
+          where: { id },
           data: { status: 'ADMITTED' }
         })
         updated.status = 'ADMITTED'
@@ -244,7 +248,7 @@ export const PUT = route({
       // Check if new stage is lost
       if (updated.stage?.isLost) {
         await db.admission.update({
-          where: { id: params?.id },
+          where: { id },
           data: { status: 'REJECTED' }
         })
         updated.status = 'REJECTED'
@@ -272,8 +276,9 @@ export const DELETE = route({
   module: MODULES.ADMISSION_MANAGEMENT,
   roles: [ROLES.ORG_ADMIN, ROLES.BRANCH_ADMIN],
   handler: async ({ db, params, user }) => {
+    const { id } = (await params) as any
     const admission = await db.admission.findFirst({
-      where: { id: params?.id, orgId: user.orgId, deletedAt: null },
+      where: { id, orgId: user.orgId, deletedAt: null },
       include: { student: true }
     })
 
@@ -299,7 +304,7 @@ export const DELETE = route({
 
     // Soft delete
     await db.admission.update({
-      where: { id: params?.id },
+      where: { id },
       data: { deletedAt: new Date() }
     })
 

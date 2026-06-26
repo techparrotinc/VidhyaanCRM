@@ -4,7 +4,7 @@ import { route } from '@/lib/api/compose'
 import { ok, created, paginated } from '@/lib/api/respond'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 
 export const GET = route({
   module: MODULES.ADMISSION_MANAGEMENT,
@@ -57,12 +57,21 @@ export const GET = route({
       ...(assignedToId && {
         assignedToId
       }),
-      ...(priority && { priority }),
+      ...(priority && {
+        lead: {
+          priority: priority as any
+        }
+      }),
       ...(dateFrom && {
         createdAt: { gte: new Date(dateFrom) }
       }),
       ...(status && { status }),
-      ...(academicYearId && { academicYearId }),
+      ...(academicYearId && {
+        OR: [
+          { academicYearId: academicYearId },
+          { academicYearId: null }
+        ]
+      }),
     }
 
     const [admissions, total] = await Promise.all([
@@ -80,7 +89,13 @@ export const GET = route({
           email: true,
           gradeSought: true,
           status: true,
+          stageId: true,
           createdAt: true,
+          lead: {
+            select: {
+              priority: true
+            }
+          },
           stage: {
             select: {
               id: true,
@@ -103,7 +118,10 @@ export const GET = route({
             }
           },
           _count: {
-            select: { documents: true }
+            select: {
+              activities: true,
+              documents: true
+            }
           }
         }
       }),
@@ -112,6 +130,7 @@ export const GET = route({
 
     const admissionsWithIsTerminal = admissions.map((adm: any) => ({
       ...adm,
+      priority: adm.lead?.priority || 'MEDIUM',
       stage: adm.stage
         ? {
             ...adm.stage,

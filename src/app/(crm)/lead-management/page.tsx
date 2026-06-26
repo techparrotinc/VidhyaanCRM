@@ -248,6 +248,18 @@ const formatDate = (dateStr?: string) => {
   return format(new Date(dateStr), 'd MMM')
 }
 
+const leadRowBorderColor = (status: string): string => {
+  const colors: Record<string, string> = {
+    NEW: 'border-l-slate-300',
+    CONTACTED: 'border-l-blue-400',
+    INTERESTED: 'border-l-purple-400',
+    FOLLOW_UP_PENDING: 'border-l-amber-400',
+    CONVERTED: 'border-l-green-500',
+    NOT_INTERESTED: 'border-l-red-400',
+  }
+  return colors[status] || 'border-l-slate-200'
+}
+
 
 interface Lead {
   id: string
@@ -1043,676 +1055,631 @@ export default function LeadManagementPage() {
             </section>
           )}
 
-          {activeView === 'list' && (
+          {activeView === 'list' && (loading || filteredLeads.length > 0) && (
             loading && leads.length === 0 ? (
               <TableSkeleton rows={5} columns={8} />
             ) : (
-              /* SECTION 6 — LEADS TABLE */
-              <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              
-              {/* TABLE HEADER */}
-              <div className="bg-slate-50 border-b border-slate-200 hidden md:flex items-center px-5 py-3 gap-4 text-[11px] font-semibold uppercase tracking-wider text-slate-700">
-                <div className="w-8 flex-shrink-0 flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={selectedLeads.length === filteredLeads.length && filteredLeads.length > 0}
-                    onChange={handleSelectAllLeads}
-                    className="w-4 h-4 rounded border-slate-300 accent-[#1565D8] cursor-pointer"
-                  />
-                </div>
-                <div className="flex-1 min-w-[200px] ">
-                  Lead Name
-                </div>
-                <div className="hidden md:flex w-32 flex-shrink-0 ">
-                  {applyingForLabel[institutionType as keyof typeof applyingForLabel]}
-                </div>
-                <div className="hidden md:flex w-28 flex-shrink-0 ">
-                  Source
-                </div>
-                <div className="hidden lg:flex w-24 flex-shrink-0 ">
-                  Connect
-                </div>
-                <div className="hidden lg:flex w-36 flex-shrink-0 ">
-                  Counsellor
-                </div>
-                <div className="hidden xl:flex w-28 flex-shrink-0 ">
-                  Date
-                </div>
-                <div className="w-28 flex-shrink-0 ">
-                  Status
-                </div>
-                <div className="w-12 flex-shrink-0  text-center">
-                  Action
-                </div>
-              </div>
+              <>
+                {/* Desktop/Tablet Table View */}
+                <div className="hidden sm:block w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent bg-white rounded-xl border border-slate-200 shadow-sm">
+                  <table className="w-full table-fixed min-w-[800px] border-collapse text-left">
+                    {/* TABLE HEADER */}
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 select-none">
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-10 flex-shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={selectedLeads.length === filteredLeads.length && filteredLeads.length > 0}
+                            onChange={handleSelectAllLeads}
+                            className="w-4 h-4 rounded border-slate-300 accent-[#1565D8] cursor-pointer"
+                          />
+                        </th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[280px] min-w-[200px]">
+                          LEAD NAME
+                        </th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[140px] min-w-[120px]">
+                          APPLYING FOR
+                        </th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[100px] min-w-[90px] hidden sm:table-cell">
+                          SOURCE
+                        </th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[100px] min-w-[90px] hidden sm:table-cell">
+                          CONNECT
+                        </th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[160px] min-w-[140px] hidden md:table-cell">
+                          COUNSELLOR
+                        </th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[80px] min-w-[70px] hidden lg:table-cell">
+                          DATE
+                        </th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[140px] min-w-[120px]">
+                          STATUS
+                        </th>
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[50px] min-w-[50px]">
+                          ACTION
+                        </th>
+                      </tr>
+                    </thead>
 
-              {/* TABLE BODY */}
-              <div className="divide-y divide-slate-100">
-                {loading ? (
-                  [...Array(5)].map((_, i) => (
-                    <div key={i} className="flex items-center px-5 py-4 gap-4 w-full border-b border-slate-100">
-                      <div className="w-8 flex-shrink-0"><Skeleton className="h-4 w-4" /></div>
-                      <div className="flex-1 min-w-[200px] flex items-center gap-3">
-                        <Skeleton className="w-9 h-9 rounded-full shrink-0" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-2/3" />
-                          <Skeleton className="h-3 w-1/2" />
-                        </div>
-                      </div>
-                      <div className="hidden md:flex w-32 flex-shrink-0"><Skeleton className="h-4 w-20" /></div>
-                      <div className="hidden md:flex w-28 flex-shrink-0"><Skeleton className="h-6 w-16 rounded-full" /></div>
-                      <div className="hidden lg:flex w-24 flex-shrink-0 gap-1.5"><Skeleton className="h-7 w-7 rounded-lg" /><Skeleton className="h-7 w-7 rounded-lg" /><Skeleton className="h-7 w-7 rounded-lg" /></div>
-                      <div className="hidden lg:flex w-36 flex-shrink-0"><Skeleton className="h-8 w-24 rounded-lg" /></div>
-                      <div className="hidden xl:flex w-28 flex-shrink-0"><Skeleton className="h-4 w-16" /></div>
-                      <div className="w-28 flex-shrink-0"><Skeleton className="h-6 w-16 rounded-full" /></div>
-                      <div className="w-12 flex-shrink-0"><Skeleton className="h-8 w-8 rounded-lg" /></div>
-                    </div>
-                  ))
-                ) : filteredLeads.length === 0 ? (
-                  <div className="p-8 text-center text-slate-400 text-sm font-medium">No leads match the filters.</div>
-                ) : (
-                  filteredLeads.map((lead: any, idx: number) => {
-                    const isChecked = selectedLeads.includes(lead.id)
-                    const isEditing = editingLeadId === lead.id
-                    const isSaved = savedLeadId === lead.id
+                    {/* TABLE BODY */}
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredLeads.map((lead: any, idx: number) => {
+                        const isChecked = selectedLeads.includes(lead.id)
+                        const isEditing = editingLeadId === lead.id
+                        const isSaved = savedLeadId === lead.id
 
-                    if (isEditing) {
-                      const todayStr = new Date().toISOString().split('T')[0]
-                      return (
-                        <div
-                          key={lead.id}
-                          onClick={(e) => e.stopPropagation()}
-                          className="px-4 py-4 border-b border-slate-200 border-l-4 border-l-[#1565D8] bg-blue-50/40 flex flex-col transition-all duration-200 shadow-sm"
-                        >
-                          {/* TOP ROW / EDIT HEADER */}
-                          <div className="flex items-center gap-4 flex-wrap w-full">
-                            <div className="flex items-center gap-1.5 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                              <Pencil size={10} strokeWidth={1.5} />
-                              <span>Editing</span>
-                            </div>
-
-                            {/* Save / Cancel buttons */}
-                            <div className="flex ml-auto items-center gap-2">
-                              <button
-                                onClick={cancelEdit}
-                                className="flex items-center gap-1.5 border border-slate-200 bg-white text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-slate-50 transition cursor-pointer"
-                              >
-                                <X size={13} strokeWidth={1.5} />
-                                <span>Cancel</span>
-                              </button>
-                              <button
-                                onClick={() => saveEdit(lead.id)}
-                                className="flex items-center gap-1.5 bg-[#1565D8] text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-blue-700 transition cursor-pointer"
-                              >
-                                <Check size={13} strokeWidth={1.5} />
-                                <span>Save</span>
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* FIELDS GRID */}
-                          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-7 mt-3 w-full font-sans">
-                            {/* 1. Lead Name */}
-                            <div className="lg:col-span-1 min-w-0">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Lead Name</span>
-                              <input
-                                type="text"
-                                placeholder="Lead name"
-                                value={editFormData.name || ''}
-                                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 min-w-0"
-                              />
-                            </div>
-
-                            {/* 2. Parent Name (school only) */}
-                            {institutionType === 'school' && (
-                              <div className="lg:col-span-1 min-w-0">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Parent Name</span>
-                                <input
-                                  type="text"
-                                  placeholder="Parent name"
-                                  value={editFormData.parentName || ''}
-                                  onChange={(e) => setEditFormData({ ...editFormData, parentName: e.target.value })}
-                                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 min-w-0"
-                                />
-                              </div>
-                            )}
-
-                            {/* 3. Applying For */}
-                            <div className="lg:col-span-1 min-w-0">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">{applyingForLabel[institutionType as keyof typeof applyingForLabel]}</span>
-                              <select
-                                value={editFormData.applyingFor || ''}
-                                onChange={(e) => setEditFormData({ ...editFormData, applyingFor: e.target.value })}
-                                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none cursor-pointer min-w-0"
-                              >
-                                <option value="">Select option</option>
-                                {institutionType === 'school' ? (
-                                  GRADE_OPTIONS.map(g => (
-                                    <option key={g.value} value={g.value}>
-                                      {g.label}
-                                    </option>
-                                  ))
-                                ) : (
-                                  courses.map(opt => (
-                                    <option key={opt} value={opt}>
-                                      {opt}
-                                    </option>
-                                  ))
-                                )}
-                              </select>
-                            </div>
-
-                            {/* 4. Source */}
-                            <div className="lg:col-span-1 min-w-0">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Source</span>
-                              <select
-                                value={editFormData.source || ''}
-                                onChange={(e) => setEditFormData({ ...editFormData, source: e.target.value })}
-                                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none cursor-pointer min-w-0"
-                              >
-                                <option value="">Select source</option>
-                                {sources.map(src => (
-                                  <option key={src.id} value={src.id}>
-                                    • {src.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-
-                            {/* 5. Counsellor */}
-                            <div className="lg:col-span-1 min-w-0">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Counsellor</span>
-                              <select
-                                value={editFormData.counsellor || ''}
-                                onChange={(e) => setEditFormData({ ...editFormData, counsellor: e.target.value || '' })}
-                                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none cursor-pointer min-w-0"
-                              >
-                                <option value="">Unassigned</option>
-                                {counsellors.map((c: any) => (
-                                  <option key={c.id} value={c.name}>
-                                    {c.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-
-                            {/* 6. Status */}
-                            <div className="lg:col-span-1 min-w-0">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Status</span>
-                              <select
-                                value={editFormData.status || ''}
-                                onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
-                                className={`w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none cursor-pointer min-w-0 border-l-4 ${
-                                  editFormData.status === 'NEW' ? 'border-l-blue-500' :
-                                  editFormData.status === 'CONTACTED' ? 'border-l-amber-500' :
-                                  editFormData.status === 'FOLLOW_UP_PENDING' ? 'border-l-orange-500' :
-                                  editFormData.status === 'CONVERTED' ? 'border-l-green-500' :
-                                  editFormData.status === 'NOT_INTERESTED' ? 'border-l-red-500' : 'border-l-slate-200'
-                                }`}
-                              >
-                                {['NEW', 'CONTACTED', 'FOLLOW_UP_PENDING', 'CONVERTED', 'NOT_INTERESTED'].map(st => (
-                                  <option key={st} value={st}>
-                                    {statusLabels[st] || st}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-
-                            {/* 7. Follow-up Date */}
-                            <div className="lg:col-span-1 min-w-0">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Follow-up Date</span>
-                              <input
-                                type="date"
-                                min={todayStr}
-                                value={editFormData.followUpDate || ''}
-                                onChange={(e) => setEditFormData({ ...editFormData, followUpDate: e.target.value })}
-                                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 min-w-0 cursor-pointer"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    }
-
-                    return (
-                      <div
-                        key={lead.id}
-                        className={`relative flex flex-col border-b border-slate-100 last:border-0 transition-all duration-200 cursor-pointer ${idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'} ${isSaved ? 'bg-green-50/40' : 'hover:bg-blue-50'}`}
-                        onMouseEnter={() => router.prefetch(`/lead-management/${lead.id}`)}
-                        onClick={() => {
-                          if (editingLeadId) return
-                          handleOpenLeadDetails(lead)
-                        }}
-                      >
-                        {/* MOBILE VIEW */}
-                        <div className="flex md:hidden items-center justify-between gap-3 w-full py-3.5 px-4">
-                          <div className="flex items-center gap-3 min-w-0">
-                            {/* Avatar */}
-                            <div className="w-10 h-10 rounded-full flex-shrink-0 bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center font-sans">
-                              {lead.avatar}
-                            </div>
-                            {/* Text block */}
-                            <div className="min-w-0">
-                              <Link
-                                href={`/lead-management/${lead.id}`}
-                                className="text-sm font-semibold text-slate-800 hover:text-[#1565D8] hover:underline cursor-pointer truncate font-sans block"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  handleNavigate(`/lead-management/${lead.id}`)
-                                }}
-                              >
-                                {lead.name}
-                              </Link>
-                              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-slate-400 font-semibold mt-1">
-                                <span>{institutionType === 'school' ? getGradeLabel(lead.applyingFor) : lead.applyingFor}</span>
-                                <span>·</span>
-                                <span className="font-mono text-slate-550">{lead.leadCode}</span>
-                                <span>·</span>
-                                <span>{lead.source}</span>
-                                <span>·</span>
-                                <span>{lead.createdDate}</span>
-                                <span>·</span>
-                                <div className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusConfig[lead.status as keyof typeof statusConfig]?.bg} ${statusConfig[lead.status as keyof typeof statusConfig]?.text}`}>
-                                  <div className={`w-1.5 h-1.5 rounded-full ${statusConfig[lead.status as keyof typeof statusConfig]?.dot}`} />
-                                  <span>{statusLabels[lead.status] || lead.status}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Action menu */}
-                          <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger>
-                                <button 
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-slate-100 transition duration-150 cursor-pointer text-slate-400 focus:outline-none"
-                                >
-                                  <MoreVertical size={18} strokeWidth={1.5} />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent 
-                                align="end"
-                                className="w-56 min-w-[224px] rounded-xl border border-slate-200 shadow-lg p-1.5"
-                              >
-                                <DropdownMenuItem onClick={() => handleNavigate(`/lead-management/${lead.id}`)}>
-                                  <Eye size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                                  View Lead
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => startEdit(lead)}>
-                                  <Pencil size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                                  <span>Edit Lead</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => startEdit(lead)}>
-                                  <UserPlus size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                                  <span>Assign Counsellor</span>
-                                </DropdownMenuItem>
-                                {institutionType === 'school' && lead.status !== 'CONVERTED' && (
-                                  <DropdownMenuItem 
-                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
-                                    onClick={() => openConvertModal(lead)}
-                                  >
-                                    <ArrowRight size={14} className="text-[#1565D8] flex-shrink-0" strokeWidth={1.5} />
-                                    Convert to Admission
-                                  </DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem onClick={() => markNotInterested(lead.id)} className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer">
-                                  <XCircle size={14} className="text-slate-400" />
-                                  <span>Mark Not Interested</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-500 hover:bg-red-50" onClick={() => setDeleteModalLead(lead)}>
-                                  <Trash2 size={14} className="mr-2 text-red-500" strokeWidth={1.5} />
-                                  <span>Delete Lead</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-
-                        {/* DESKTOP / TABLET VIEW */}
-                        <div className="hidden md:flex items-center px-5 py-4 gap-4 w-full">
-                          {/* Checkbox */}
-                          <div className="w-8 flex-shrink-0 flex items-center" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
+                        if (isEditing) {
+                          const todayStr = new Date().toISOString().split('T')[0]
+                          return (
+                            <tr
+                              key={lead.id}
                               onClick={(e) => e.stopPropagation()}
-                              onChange={(e) => {
-                                e.stopPropagation()
-                                handleSelectLead(lead.id)
-                              }}
-                              className="w-4 h-4 rounded border-slate-300 accent-[#1565D8] cursor-pointer"
-                            />
-                          </div>
-
-                          {/* Lead Avatar + Name */}
-                          <div className="flex-1 min-w-[200px] flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full flex-shrink-0 bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center font-sans">
-                              {lead.avatar}
-                            </div>
-                            <div className="min-w-0">
-                              <Link
-                                href={`/lead-management/${lead.id}`}
-                                className="text-sm font-semibold text-slate-800 hover:text-[#1565D8] hover:underline cursor-pointer truncate font-sans block"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  handleNavigate(`/lead-management/${lead.id}`)
-                                }}
-                              >
-                                {lead.name}
-                              </Link>
-                              <p className="text-xs text-slate-400 mt-0.5 truncate font-sans flex items-center gap-1.5">
-                                <span className="font-mono font-semibold bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded">{lead.leadCode}</span>
-                                <span>Parent: {lead.parentName}</span>
-                              </p>
-                              {/* Date sub-text for mobile/tablet (hidden on xl+) */}
-                              <p className="xl:hidden text-[10px] text-slate-400 mt-0.5">
-                                <span className="hidden xl:inline">
-                                  {lead.createdDate}
-                                </span>
-                                <span className="inline xl:hidden">
-                                  {lead.createdDate.slice(0, 6)}
-                                </span>
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Grade / Course */}
-                          <div className="w-32 flex-shrink-0 text-sm font-semibold text-slate-700">
-                            {institutionType === 'school' ? (lead.applyingFor ? getGradeLabel(lead.applyingFor) : '—') : (lead.applyingFor || '—')}
-                          </div>
-
-                          {/* Source */}
-                          <div className="hidden md:flex w-28 flex-shrink-0 items-center">
-                            <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full w-fit font-sans ${sourceConfig[lead.source as keyof typeof sourceConfig]?.bg || 'bg-slate-100'} ${sourceConfig[lead.source as keyof typeof sourceConfig]?.text || 'text-slate-600'}`}>
-                              <div className={`w-1.5 h-1.5 rounded-full ${sourceConfig[lead.source as keyof typeof sourceConfig]?.dot || 'bg-slate-400'}`} />
-                              <span>{lead.source}</span>
-                            </div>
-                          </div>
-
-                          {/* Connect */}
-                          <div className="hidden lg:flex w-24 flex-shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                showToast(`Email initiated for ${lead.name}`)
-                              }}
-                              className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 transition"
+                              className="bg-blue-50/40"
                             >
-                              <Mail size={13} className="text-slate-400" strokeWidth={1.5} />
-                            </button>
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                showToast(`WhatsApp opened for ${lead.name}`)
-                                window.open(
-                                  `https://wa.me/91${lead.phone}`,
-                                  '_blank'
-                                )
-                              }}
-                              className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 transition"
-                            >
-                              <MessageCircle size={13} className="text-slate-400" strokeWidth={1.5} />
-                            </button>
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                showToast(`Call initiated for ${lead.name}`)
-                                window.open(`tel:${lead.phone}`)
-                              }}
-                              className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 transition"
-                            >
-                              <Phone size={13} className="text-slate-400" strokeWidth={1.5} />
-                            </button>
-                          </div>
-
-                          {/* Counsellor */}
-                          <div
-                            className="hidden lg:flex w-36 flex-shrink-0 relative"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {lead.counsellor ? (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setStatusDropdownId(null)
-                                  setCounsellorDropdownId(
-                                    counsellorDropdownId === lead.id ? null : lead.id
-                                  )
-                                }}
-                                className="flex items-center gap-2 hover:opacity-80 cursor-pointer group"
-                              >
-                                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                                  {lead.counsellorAvatar || lead.counsellor.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
-                                </div>
-                                <span className="text-sm font-medium text-slate-700 truncate">{lead.counsellor}</span>
-                                <Pencil size={11} className="text-slate-300 group-hover:text-slate-400 flex-shrink-0 ml-0.5" strokeWidth={1.5} />
-                              </button>
-                            ) : (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setStatusDropdownId(null)
-                                  setCounsellorDropdownId(
-                                    counsellorDropdownId === lead.id ? null : lead.id
-                                  )
-                                }}
-                                className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-amber-100 cursor-pointer"
-                              >
-                                <UserPlus size={12} className="text-amber-600" strokeWidth={1.5} />
-                                <span>Select</span>
-                              </button>
-                            )}
-
-                            {/* Counsellor dropdown */}
-                            {counsellorDropdownId === lead.id && (
-                              <>
-                                <div
-                                  className="fixed inset-0 z-10"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setCounsellorDropdownId(null)
-                                  }}
-                                />
-                                <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[180px]">
-                                  <div className="px-3 py-1.5 border-b border-slate-50 mb-1">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                      Assign Counsellor
-                                    </span>
+                              <td colSpan={9} className="px-4 py-4 border-b border-slate-200 border-l-4 border-l-[#1565D8] transition-all duration-200 shadow-sm">
+                                {/* TOP ROW / EDIT HEADER */}
+                                <div className="flex items-center gap-4 flex-wrap w-full">
+                                  <div className="flex items-center gap-1.5 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                    <Pencil size={10} strokeWidth={1.5} />
+                                    <span>Editing</span>
                                   </div>
-                                  {counsellors.map((c: any) => (
+
+                                  {/* Save / Cancel buttons */}
+                                  <div className="flex ml-auto items-center gap-2">
                                     <button
-                                      key={c.id}
-                                      onClick={async (e) => {
-                                        e.stopPropagation()
-                                        await assignCounsellor(lead.id, c.id)
-                                        setCounsellorDropdownId(null)
-                                        showToast(`Assigned to ${c.name}`)
-                                      }}
-                                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-150 ${
-                                        lead.counsellorId === c.id
-                                          ? 'bg-blue-50 text-blue-700 font-semibold'
-                                          : 'text-slate-600 hover:bg-slate-50'
-                                      }`}
+                                      onClick={cancelEdit}
+                                      className="flex items-center gap-1.5 border border-slate-200 bg-white text-slate-650 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-slate-50 transition cursor-pointer"
                                     >
-                                      <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
-                                        {c.name.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
-                                      </div>
-                                      <span className="flex-1 text-left">{c.name}</span>
-                                      {lead.counsellorId === c.id && (
-                                        <Check size={13} className="text-blue-500" strokeWidth={2} />
-                                      )}
+                                      <X size={13} strokeWidth={1.5} />
+                                      <span>Cancel</span>
                                     </button>
-                                  ))}
-                                  {lead.counsellorId && (
-                                    <div className="border-t border-slate-50 mt-1 pt-1">
-                                      <button
-                                        onClick={async (e) => {
-                                          e.stopPropagation()
-                                          await assignCounsellor(lead.id, null)
-                                          setCounsellorDropdownId(null)
-                                          showToast('Counsellor removed')
-                                        }}
-                                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer"
-                                      >
-                                        <X size={13} className="text-red-400" strokeWidth={1.5} />
-                                        Remove Assignment
-                                      </button>
+                                    <button
+                                      onClick={() => saveEdit(lead.id)}
+                                      className="flex items-center gap-1.5 bg-[#1565D8] text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-blue-700 transition cursor-pointer"
+                                    >
+                                      <Check size={13} strokeWidth={1.5} />
+                                      <span>Save</span>
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* FIELDS GRID */}
+                                <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-7 mt-3 w-full font-sans">
+                                  {/* 1. Lead Name */}
+                                  <div className="lg:col-span-1 min-w-0">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Lead Name</span>
+                                    <input
+                                      type="text"
+                                      placeholder="Lead name"
+                                      value={editFormData.name || ''}
+                                      onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 min-w-0"
+                                    />
+                                  </div>
+
+                                  {/* 2. Parent Name (school only) */}
+                                  {institutionType === 'school' && (
+                                    <div className="lg:col-span-1 min-w-0">
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Parent Name</span>
+                                      <input
+                                        type="text"
+                                        placeholder="Parent name"
+                                        value={editFormData.parentName || ''}
+                                        onChange={(e) => setEditFormData({ ...editFormData, parentName: e.target.value })}
+                                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 min-w-0"
+                                      />
                                     </div>
                                   )}
-                                </div>
-                              </>
-                            )}
-                          </div>
 
-                          {/* Date */}
-                          <div className="hidden xl:flex w-28 flex-shrink-0 items-center text-sm text-slate-500 font-medium font-sans truncate">
-                            {lead.createdDate}
-                          </div>
+                                  {/* 3. Applying For */}
+                                  <div className="lg:col-span-1 min-w-0">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">{applyingForLabel[institutionType as keyof typeof applyingForLabel]}</span>
+                                    <select
+                                      value={editFormData.applyingFor || ''}
+                                      onChange={(e) => setEditFormData({ ...editFormData, applyingFor: e.target.value })}
+                                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none cursor-pointer min-w-0"
+                                    >
+                                      <option value="">Select option</option>
+                                      {institutionType === 'school' ? (
+                                        GRADE_OPTIONS.map(g => (
+                                          <option key={g.value} value={g.value}>
+                                            {g.label}
+                                          </option>
+                                        ))
+                                      ) : (
+                                        courses.map(opt => (
+                                          <option key={opt} value={opt}>
+                                            {opt}
+                                          </option>
+                                        ))
+                                      )}
+                                    </select>
+                                  </div>
 
-                          {/* Status — inline clickable dropdown */}
-                          <div
-                            className="w-28 flex-shrink-0 relative"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                             <button
-                              disabled={updatingLeadId === lead.id}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setCounsellorDropdownId(null)
-                                setStatusDropdownId(
-                                  statusDropdownId === lead.id ? null : lead.id
-                                )
-                              }}
-                              className={`flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border cursor-pointer transition-all duration-150 hover:opacity-80 hover:shadow-sm font-sans ${
-                                statusConfig[lead.status as keyof typeof statusConfig]?.bg
-                              } ${
-                                statusConfig[lead.status as keyof typeof statusConfig]?.text
-                              } ${
-                                statusConfig[lead.status as keyof typeof statusConfig]?.border || 'border-transparent'
-                              }`}
-                            >
-                              {updatingLeadId === lead.id ? (
-                                <>
-                                  <svg className="animate-spin h-3.5 w-3.5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                  </svg>
-                                  <span>Saving...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusConfig[lead.status as keyof typeof statusConfig]?.dot}`} />
-                                  {statusLabels[lead.status] || lead.status}
-                                  <ChevronDown size={10} className="ml-0.5 opacity-60" strokeWidth={2} />
-                                </>
-                              )}
-                            </button>
+                                  {/* 4. Source */}
+                                  <div className="lg:col-span-1 min-w-0">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Source</span>
+                                    <select
+                                      value={editFormData.source || ''}
+                                      onChange={(e) => setEditFormData({ ...editFormData, source: e.target.value })}
+                                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none cursor-pointer min-w-0"
+                                    >
+                                      <option value="">Select source</option>
+                                      {sources.map(src => (
+                                        <option key={src.id} value={src.id}>
+                                          • {src.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
 
-                            {/* Status dropdown */}
-                            {statusDropdownId === lead.id && (
-                              <>
-                                <div
-                                  className="fixed inset-0 z-10"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setStatusDropdownId(null)
-                                  }}
-                                />
-                                <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px]">
-                                  {(['NEW', 'CONTACTED', 'FOLLOW_UP_PENDING', 'CONVERTED', 'NOT_INTERESTED'] as const).map((status) => (
-                                    <button
-                                      key={status}
-                                      onClick={async (e) => {
-                                        e.stopPropagation()
-                                        await updateStatus(lead.id, status)
-                                        setStatusDropdownId(null)
-                                        showToast(`Status updated to ${statusLabels[status]}`)
-                                      }}
-                                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all duration-150 ${
-                                        lead.status === status
-                                          ? `${statusConfig[status].bg} ${statusConfig[status].text} font-semibold`
-                                          : 'text-slate-600 hover:bg-slate-50'
+                                  {/* 5. Counsellor */}
+                                  <div className="lg:col-span-1 min-w-0">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Counsellor</span>
+                                    <select
+                                      value={editFormData.counsellor || ''}
+                                      onChange={(e) => setEditFormData({ ...editFormData, counsellor: e.target.value || '' })}
+                                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none cursor-pointer min-w-0"
+                                    >
+                                      <option value="">Unassigned</option>
+                                      {counsellors.map((c: any) => (
+                                        <option key={c.id} value={c.name}>
+                                          {c.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+
+                                  {/* 6. Status */}
+                                  <div className="lg:col-span-1 min-w-0">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Status</span>
+                                    <select
+                                      value={editFormData.status || ''}
+                                      onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                                      className={`w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none cursor-pointer min-w-0 border-l-4 ${
+                                        editFormData.status === 'NEW' ? 'border-l-blue-500' :
+                                        editFormData.status === 'CONTACTED' ? 'border-l-amber-500' :
+                                        editFormData.status === 'FOLLOW_UP_PENDING' ? 'border-l-orange-500' :
+                                        editFormData.status === 'CONVERTED' ? 'border-l-green-500' :
+                                        editFormData.status === 'NOT_INTERESTED' ? 'border-l-red-500' : 'border-l-slate-200'
                                       }`}
                                     >
-                                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusConfig[status].dot}`} />
-                                      {statusLabels[status]}
-                                      {lead.status === status && (
-                                        <Check size={13} className="ml-auto" strokeWidth={2} />
-                                      )}
-                                    </button>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-                          </div>
+                                      {['NEW', 'CONTACTED', 'FOLLOW_UP_PENDING', 'CONVERTED', 'NOT_INTERESTED'].map(st => (
+                                        <option key={st} value={st}>
+                                          {statusLabels[st] || st}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
 
-                          {/* Action Menu (3-dot menu for all desktop / tablet sizes) */}
-                          <div className="w-12 flex-shrink-0 flex items-center justify-center font-sans" onClick={(e) => e.stopPropagation()}>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger>
-                                <button 
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none cursor-pointer"
-                                >
-                                  <MoreVertical size={16} strokeWidth={1.5} />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent 
-                                align="end"
-                                className="w-56 min-w-[224px] rounded-xl border border-slate-200 shadow-lg p-1.5"
-                              >
-                                <DropdownMenuItem onClick={() => handleNavigate(`/lead-management/${lead.id}`)}>
-                                  <Eye size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                                  View Lead
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => startEdit(lead)}>
-                                  <Pencil size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                                  <span>Edit Lead</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => startEdit(lead)}>
-                                  <UserPlus size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
-                                  <span>Assign Counsellor</span>
-                                </DropdownMenuItem>
-                                {institutionType === 'school' && lead.status !== 'CONVERTED' && (
-                                  <DropdownMenuItem 
-                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
-                                    onClick={() => openConvertModal(lead)}
+                                  {/* 7. Follow-up Date */}
+                                  <div className="lg:col-span-1 min-w-0">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Follow-up Date</span>
+                                    <input
+                                      type="date"
+                                      min={todayStr}
+                                      value={editFormData.followUpDate || ''}
+                                      onChange={(e) => setEditFormData({ ...editFormData, followUpDate: e.target.value })}
+                                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 min-w-0 cursor-pointer"
+                                    />
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        }
+
+                        return (
+                          <tr
+                            key={lead.id}
+                            className={`border-b border-slate-100 border-l-2 ${leadRowBorderColor(lead.status)} hover:bg-slate-50/80 transition-colors cursor-pointer bg-white ${isSaved ? 'bg-green-50/40' : ''}`}
+                            onMouseEnter={() => router.prefetch(`/lead-management/${lead.id}`)}
+                            onClick={() => {
+                              if (editingLeadId) return
+                              router.push(`/lead-management/${lead.id}`)
+                            }}
+                          >
+                            {/* Checkbox */}
+                            <td className="px-3 py-2.5 text-left w-10 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  e.stopPropagation()
+                                  handleSelectLead(lead.id)
+                                }}
+                                className="w-4 h-4 rounded border-slate-300 accent-[#1565D8] cursor-pointer"
+                              />
+                            </td>
+
+                            {/* Lead Name */}
+                            <td className="px-3 py-2.5 text-left w-[280px] min-w-[200px]">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0 font-sans">
+                                  {lead.avatar}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <Link
+                                    href={`/lead-management/${lead.id}`}
+                                    className="text-sm font-semibold text-slate-800 hover:text-[#1565D8] hover:underline cursor-pointer truncate font-sans block"
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      router.push(`/lead-management/${lead.id}`)
+                                    }}
                                   >
-                                    <ArrowRight size={14} className="text-[#1565D8] flex-shrink-0" strokeWidth={1.5} />
-                                    Convert to Admission
-                                  </DropdownMenuItem>
+                                    {lead.name}
+                                  </Link>
+                                  <p className="text-xs font-normal text-slate-400 mt-0.5 truncate block font-sans">
+                                    <span className="font-mono font-semibold bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded mr-1.5">{lead.leadCode}</span>
+                                    <span>Parent: {lead.parentName}</span>
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Applying For */}
+                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px] text-xs text-slate-650 font-medium leading-tight">
+                              {institutionType === 'school' ? (lead.applyingFor ? getGradeLabel(lead.applyingFor) : '—') : (lead.applyingFor || '—')}
+                            </td>
+
+                            {/* Source */}
+                            <td className="px-3 py-2.5 text-left w-[100px] min-w-[90px] hidden sm:table-cell" onClick={(e) => e.stopPropagation()}>
+                              <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full w-fit font-sans ${sourceConfig[lead.source as keyof typeof sourceConfig]?.bg || 'bg-slate-100'} ${sourceConfig[lead.source as keyof typeof sourceConfig]?.text || 'text-slate-600'}`}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${sourceConfig[lead.source as keyof typeof sourceConfig]?.dot || 'bg-slate-400'}`} />
+                                <span>{lead.source}</span>
+                              </div>
+                            </td>
+
+                            {/* Connect */}
+                            <td className="px-3 py-2.5 text-left w-[100px] min-w-[90px] hidden sm:table-cell" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-1.5">
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    showToast(`Email initiated for ${lead.name}`)
+                                  }}
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                                >
+                                  <Mail size={13} strokeWidth={1.5} />
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    showToast(`WhatsApp opened for ${lead.name}`)
+                                    window.open(
+                                      `https://wa.me/91${lead.phone}`,
+                                      '_blank'
+                                    )
+                                  }}
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 transition-colors hover:bg-green-50 hover:text-green-600"
+                                >
+                                  <MessageCircle size={13} strokeWidth={1.5} />
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    showToast(`Call initiated for ${lead.name}`)
+                                    window.open(`tel:${lead.phone}`)
+                                  }}
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 transition-colors hover:bg-green-50 hover:text-green-600"
+                                >
+                                  <Phone size={13} strokeWidth={1.5} />
+                                </button>
+                              </div>
+                            </td>
+
+                            {/* Counsellor */}
+                            <td className="px-3 py-2.5 text-left w-[160px] min-w-[140px] hidden md:table-cell" onClick={(e) => e.stopPropagation()}>
+                              <div className="relative flex items-center min-w-0">
+                                {lead.counsellor ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setStatusDropdownId(null)
+                                      setCounsellorDropdownId(
+                                        counsellorDropdownId === lead.id ? null : lead.id
+                                      )
+                                    }}
+                                    className="flex items-center gap-2 hover:opacity-80 cursor-pointer group min-w-0"
+                                  >
+                                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                                      {lead.counsellorAvatar || lead.counsellor.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
+                                    </div>
+                                    <span 
+                                      title={lead.counsellor}
+                                      className="text-[13px] font-medium text-slate-700 max-w-[100px] truncate block"
+                                    >
+                                      {lead.counsellor}
+                                    </span>
+                                    <Pencil size={11} className="text-slate-300 group-hover:text-slate-400 flex-shrink-0 ml-0.5" strokeWidth={1.5} />
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setStatusDropdownId(null)
+                                      setCounsellorDropdownId(
+                                        counsellorDropdownId === lead.id ? null : lead.id
+                                      )
+                                    }}
+                                    className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-amber-100 cursor-pointer"
+                                  >
+                                    <UserPlus size={12} className="text-amber-600" strokeWidth={1.5} />
+                                    <span>Select</span>
+                                  </button>
                                 )}
-                                <DropdownMenuItem onClick={() => markNotInterested(lead.id)} className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer">
-                                  <XCircle size={14} className="text-slate-400" />
-                                  <span>Mark Not Interested</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-500 hover:bg-red-50" onClick={() => setDeleteModalLead(lead)}>
-                                  <Trash2 size={14} className="mr-2 text-red-500" strokeWidth={1.5} />
-                                  <span>Delete Lead</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+
+                                {counsellorDropdownId === lead.id && (
+                                  <>
+                                    <div
+                                      className="fixed inset-0 z-10"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setCounsellorDropdownId(null)
+                                      }}
+                                    />
+                                    <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[180px]">
+                                      <div className="px-3 py-1.5 border-b border-slate-50 mb-1">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                          Assign Counsellor
+                                        </span>
+                                      </div>
+                                      {counsellors.map((c: any) => (
+                                        <button
+                                          key={c.id}
+                                          onClick={async (e) => {
+                                            e.stopPropagation()
+                                            await assignCounsellor(lead.id, c.id)
+                                            setCounsellorDropdownId(null)
+                                            showToast(`Assigned to ${c.name}`)
+                                          }}
+                                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-150 ${
+                                            lead.counsellorId === c.id
+                                              ? 'bg-blue-50 text-blue-700 font-semibold'
+                                              : 'text-slate-600 hover:bg-slate-50'
+                                          }`}
+                                        >
+                                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                                            {c.name.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
+                                          </div>
+                                          <span className="flex-1 text-left">{c.name}</span>
+                                          {lead.counsellorId === c.id && (
+                                            <Check size={13} className="text-blue-500" strokeWidth={2} />
+                                          )}
+                                        </button>
+                                      ))}
+                                      {lead.counsellorId && (
+                                        <div className="border-t border-slate-50 mt-1 pt-1">
+                                          <button
+                                            onClick={async (e) => {
+                                              e.stopPropagation()
+                                              await assignCounsellor(lead.id, null)
+                                              setCounsellorDropdownId(null)
+                                              showToast('Counsellor removed')
+                                            }}
+                                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer"
+                                          >
+                                            <X size={13} className="text-red-400" strokeWidth={1.5} />
+                                            Remove Assignment
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Date */}
+                            <td className="px-3 py-2.5 text-left w-[80px] min-w-[70px] hidden lg:table-cell text-xs text-slate-500 font-medium font-sans truncate">
+                              {lead.createdDate}
+                            </td>
+
+                            {/* Status */}
+                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                disabled={updatingLeadId === lead.id}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setCounsellorDropdownId(null)
+                                  setStatusDropdownId(
+                                    statusDropdownId === lead.id ? null : lead.id
+                                  )
+                                }}
+                                className={`flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full border cursor-pointer transition-all duration-150 hover:opacity-80 hover:shadow-sm font-sans ${
+                                  statusConfig[lead.status as keyof typeof statusConfig]?.bg
+                                } ${
+                                  statusConfig[lead.status as keyof typeof statusConfig]?.text
+                                } ${
+                                  statusConfig[lead.status as keyof typeof statusConfig]?.border || 'border-transparent'
+                                }`}
+                              >
+                                {updatingLeadId === lead.id ? (
+                                  <>
+                                    <svg className="animate-spin h-3.5 w-3.5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span>Saving...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusConfig[lead.status as keyof typeof statusConfig]?.dot}`} />
+                                    {statusLabels[lead.status] || lead.status}
+                                    <ChevronDown size={10} className="ml-0.5 opacity-60" strokeWidth={2} />
+                                  </>
+                                )}
+                              </button>
+
+                              {/* Status dropdown */}
+                              {statusDropdownId === lead.id && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-10"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setStatusDropdownId(null)
+                                    }}
+                                  />
+                                  <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px]">
+                                    {(['NEW', 'CONTACTED', 'FOLLOW_UP_PENDING', 'CONVERTED', 'NOT_INTERESTED'] as const).map((status) => (
+                                      <button
+                                        key={status}
+                                        onClick={async (e) => {
+                                          e.stopPropagation()
+                                          await updateStatus(lead.id, status)
+                                          setStatusDropdownId(null)
+                                          showToast(`Status updated to ${statusLabels[status]}`)
+                                        }}
+                                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all duration-150 ${
+                                          lead.status === status
+                                            ? `${statusConfig[status].bg} ${statusConfig[status].text} font-semibold`
+                                            : 'text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                      >
+                                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusConfig[status].dot}`} />
+                                        {statusLabels[status]}
+                                        {lead.status === status && (
+                                          <Check size={13} className="ml-auto" strokeWidth={2} />
+                                        )}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
+                            </td>
+
+                            {/* Action */}
+                            <td className="px-3 py-2.5 text-left w-[50px] min-w-[50px]" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex justify-start">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger>
+                                    <button 
+                                      className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none cursor-pointer"
+                                    >
+                                      <MoreVertical size={16} strokeWidth={1.5} />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent 
+                                    align="end"
+                                    className="w-56 min-w-[224px] rounded-xl border border-slate-200 shadow-lg p-1.5"
+                                  >
+                                    <DropdownMenuItem onClick={() => router.push(`/lead-management/${lead.id}`)}>
+                                      <Eye size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
+                                      View Lead
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => startEdit(lead)}>
+                                      <Pencil size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
+                                      <span>Edit Lead</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => startEdit(lead)}>
+                                      <UserPlus size={14} className="mr-2 text-slate-400" strokeWidth={1.5} />
+                                      <span>Assign Counsellor</span>
+                                    </DropdownMenuItem>
+                                    {institutionType === 'school' && lead.status !== 'CONVERTED' && (
+                                      <DropdownMenuItem 
+                                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
+                                        onClick={() => openConvertModal(lead)}
+                                      >
+                                        <ArrowRight size={14} className="text-[#1565D8] flex-shrink-0" strokeWidth={1.5} />
+                                        Convert to Admission
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem onClick={() => markNotInterested(lead.id)} className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer">
+                                      <XCircle size={14} className="text-slate-400" />
+                                      <span>Mark Not Interested</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-red-500 hover:bg-red-50" onClick={() => setDeleteModalLead(lead)}>
+                                      <Trash2 size={14} className="mr-2 text-red-500" strokeWidth={1.5} />
+                                      <span>Delete Lead</span>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+
+                      {/* Empty Row Placeholders to keep minimum 8 rows */}
+                      {Math.max(0, 8 - filteredLeads.length) > 0 && 
+                        Array.from({ length: Math.max(0, 8 - filteredLeads.length) }).map((_, i) => (
+                          <tr
+                            key={`placeholder-${i}`}
+                            className="border-b border-slate-50 bg-white"
+                          >
+                            <td className="px-3 py-2.5 text-left w-10 flex-shrink-0" />
+                            <td className="px-3 py-2.5 text-left w-[280px] min-w-[200px]">
+                              <div className="h-4" />
+                            </td>
+                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]" />
+                            <td className="px-3 py-2.5 text-left w-[100px] min-w-[90px] hidden sm:table-cell" />
+                            <td className="px-3 py-2.5 text-left w-[100px] min-w-[90px] hidden sm:table-cell" />
+                            <td className="px-3 py-2.5 text-left w-[160px] min-w-[140px] hidden md:table-cell" />
+                            <td className="px-3 py-2.5 text-left w-[80px] min-w-[70px] hidden lg:table-cell" />
+                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]" />
+                            <td className="px-3 py-2.5 text-left w-[50px] min-w-[50px]" />
+                          </tr>
+                        ))
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Card View (visible on < 640px) */}
+                <div className="block sm:hidden divide-y divide-slate-100">
+                  {leads.map((lead: any) => (
+                    <div
+                      key={lead.id}
+                      onClick={() => router.push(`/lead-management/${lead.id}`)}
+                      className={`p-4 cursor-pointer hover:bg-slate-50 border-l-4 ${leadRowBorderColor(lead.status)}`}
+                    >
+                      {/* ROW 1: Avatar + Name + Status badge */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0 font-sans">
+                            {lead.avatar}
+                          </div>
+                          <span className="text-sm font-semibold text-slate-800 truncate">
+                            {lead.name}
+                          </span>
+                        </div>
+                        <div>
+                          <div className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusConfig[lead.status as keyof typeof statusConfig]?.bg} ${statusConfig[lead.status as keyof typeof statusConfig]?.text}`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${statusConfig[lead.status as keyof typeof statusConfig]?.dot}`} />
+                            <span>{statusLabels[lead.status] || lead.status}</span>
                           </div>
                         </div>
-                        {/* Success Flash */}
-                        {isSaved && (
-                          <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-lg px-4 py-2 mx-5 my-2 animate-fade-in w-fit">
-                            <CheckCircle2 size={16} className="text-green-500" strokeWidth={1.5} />
-                            <span className="text-sm font-semibold text-green-700">Changes saved successfully</span>
-                          </div>
-                        )}
                       </div>
-                    )
-                  })
-                )}
-              </div>
-            </section>
+
+                      {/* ROW 2: Code + Grade + Source */}
+                      <div className="flex gap-2 mt-1.5 flex-wrap items-center">
+                        <span className="text-xs font-normal text-slate-400 font-mono">
+                          {lead.leadCode}
+                        </span>
+                        <span className="text-xs font-normal text-slate-500">
+                          {institutionType === 'school' ? getGradeLabel(lead.applyingFor) : lead.applyingFor}
+                        </span>
+                        <span className={`flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${sourceConfig[lead.source as keyof typeof sourceConfig]?.bg || 'bg-slate-100'} ${sourceConfig[lead.source as keyof typeof sourceConfig]?.text || 'text-slate-600'}`}>
+                          <span>{lead.source}</span>
+                        </span>
+                      </div>
+
+                      {/* ROW 3: Counsellor + Date */}
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-[13px] font-medium text-slate-700">
+                          {lead.counsellor ? `Counsellor: ${lead.counsellor}` : 'Unassigned'}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {lead.createdDate}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )
           )}
 

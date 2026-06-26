@@ -1469,14 +1469,13 @@ export default function AdmissionManagementPage() {
                     )
                   })}
                 </div>
-
-                {/* Desktop/Tablet Table View */}
-                <div className="hidden sm:block w-full overflow-x-auto">
-                  <table className="w-full table-fixed min-w-[900px] border-collapse text-left">
+                 {/* Desktop/Tablet Table View */}
+                <div className="hidden sm:block w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                  <table className="w-full table-fixed min-w-[800px] border-collapse text-left">
                     {/* TABLE HEADER */}
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 select-none text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                        <th className="px-3 py-2.5 text-left w-10 flex-shrink-0">
+                      <tr className="bg-slate-50 border-b border-slate-200 select-none">
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-10 flex-shrink-0">
                           <input
                             type="checkbox"
                             checked={selectedItems.length === filteredApplicants.length && filteredApplicants.length > 0}
@@ -1484,33 +1483,33 @@ export default function AdmissionManagementPage() {
                             className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
                           />
                         </th>
-                        <th className="px-3 py-2.5 text-left w-[280px] min-w-[200px]">
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[280px] min-w-[200px]">
                           APPLICANT
                         </th>
-                        <th className="px-3 py-2.5 text-left w-[140px] min-w-[120px]">
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[140px] min-w-[120px] hidden sm:table-cell">
                           GRADE / STAGE
                         </th>
-                        <th className="px-3 py-2.5 text-left w-[100px] min-w-[90px] hidden lg:table-cell">
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[100px] min-w-[90px] hidden md:table-cell">
                           CONNECT
                         </th>
-                        <th className="px-3 py-2.5 text-left w-[140px] min-w-[120px]">
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[140px] min-w-[120px]">
                           STATUS
                         </th>
-                        <th className="px-3 py-2.5 text-left w-[160px] min-w-[140px] hidden lg:table-cell">
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[160px] min-w-[140px] hidden md:table-cell">
                           COUNSELLOR
                         </th>
-                        <th className="px-3 py-2.5 text-left w-[80px] min-w-[70px] hidden md:table-cell">
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[80px] min-w-[70px] hidden lg:table-cell">
                           DATE
                         </th>
-                        <th className="px-3 py-2.5 text-left w-[50px] min-w-[50px]">
-                          ACTIONS
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[50px] min-w-[50px]">
+                          ACTION
                         </th>
                       </tr>
                     </thead>
 
                     {/* TABLE BODY */}
                     <tbody className="divide-y divide-slate-100">
-                      {filteredApplicants.map((a: any, idx: number) => {
+                       {filteredApplicants.map((a: any, idx: number) => {
                         const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
 
                         return (
@@ -1546,7 +1545,7 @@ export default function AdmissionManagementPage() {
                                   >
                                     {a.fullName}
                                   </Link>
-                                  <span className="text-xs text-slate-400 mt-0.5 truncate block font-sans">
+                                  <span className="text-xs font-normal text-slate-400 mt-0.5 truncate block font-sans">
                                     <span className="font-mono">{a.admissionCode}</span>
                                     {a.parentName && ` · ${a.parentName}`}
                                     {a.phone && ` · ${a.phone}`}
@@ -1556,9 +1555,9 @@ export default function AdmissionManagementPage() {
                             </td>
 
                             {/* Grade / Stage */}
-                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]">
+                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px] hidden sm:table-cell">
                               <div className="flex flex-col gap-0.5">
-                                <span className="text-xs text-slate-600 font-medium leading-tight">
+                                <span className="text-xs text-slate-650 font-medium leading-tight">
                                   {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
                                 </span>
                                 <span className={`text-[10px] font-semibold leading-tight ${stageTextColor(a.stage)}`}>
@@ -1568,7 +1567,7 @@ export default function AdmissionManagementPage() {
                             </td>
 
                             {/* Connect */}
-                            <td className="px-3 py-2.5 text-left w-[100px] min-w-[90px] hidden lg:table-cell" onClick={(e) => e.stopPropagation()}>
+                            <td className="px-3 py-2.5 text-left w-[100px] min-w-[90px] hidden md:table-cell" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center gap-1.5">
                                 <button 
                                   onClick={(e) => {
@@ -1619,7 +1618,7 @@ export default function AdmissionManagementPage() {
                             </td>
 
                             {/* Counsellor */}
-                            <td className="px-3 py-2.5 text-left w-[160px] min-w-[140px] hidden lg:table-cell" onClick={e => e.stopPropagation()}>
+                            <td className="px-3 py-2.5 text-left w-[160px] min-w-[140px] hidden md:table-cell" onClick={e => e.stopPropagation()}>
                               <div className="relative flex items-center min-w-0">
                                 {a.counsellor ? (
                                   <button
@@ -1634,7 +1633,7 @@ export default function AdmissionManagementPage() {
                                     </div>
                                     <span 
                                       title={a.counsellor}
-                                      className="text-sm font-medium text-slate-700 max-w-[100px] truncate block"
+                                      className="text-[13px] font-medium text-slate-700 max-w-[100px] truncate block"
                                     >
                                       {a.counsellor}
                                     </span>
@@ -1711,11 +1710,11 @@ export default function AdmissionManagementPage() {
                             </td>
 
                             {/* Date */}
-                            <td className="px-3 py-2.5 text-left w-[80px] min-w-[70px] hidden md:table-cell text-xs text-slate-400 font-medium font-sans">
+                            <td className="px-3 py-2.5 text-left w-[80px] min-w-[70px] hidden lg:table-cell text-xs text-slate-500 font-medium font-sans">
                               {formatDate(a.createdAt)}
                             </td>
 
-                            {/* Actions */}
+                            {/* Action */}
                             <td className="px-3 py-2.5 text-left w-[50px] min-w-[50px]" onClick={e => e.stopPropagation()}>
                               <div className="flex justify-start">
                                 <DropdownMenu>
@@ -1794,11 +1793,11 @@ export default function AdmissionManagementPage() {
                             <td className="px-3 py-2.5 text-left w-[280px] min-w-[200px]">
                               <div className="h-4" />
                             </td>
+                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px] hidden sm:table-cell" />
+                            <td className="px-3 py-2.5 text-left w-[100px] min-w-[90px] hidden md:table-cell" />
                             <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]" />
-                            <td className="px-3 py-2.5 text-left w-[100px] min-w-[90px] hidden lg:table-cell" />
-                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]" />
-                            <td className="px-3 py-2.5 text-left w-[160px] min-w-[140px] hidden lg:table-cell" />
-                            <td className="px-3 py-2.5 text-left w-[80px] min-w-[70px] hidden md:table-cell" />
+                            <td className="px-3 py-2.5 text-left w-[160px] min-w-[140px] hidden md:table-cell" />
+                            <td className="px-3 py-2.5 text-left w-[80px] min-w-[70px] hidden lg:table-cell" />
                             <td className="px-3 py-2.5 text-left w-[50px] min-w-[50px]" />
                           </tr>
                         ))
@@ -1808,50 +1807,59 @@ export default function AdmissionManagementPage() {
                 </div>
 
                 {/* Mobile Card View (visible on < 640px) */}
-                <div className="block sm:hidden px-4 space-y-3 py-3">
+                <div className="block sm:hidden divide-y divide-slate-100">
                   {filteredApplicants.map((admission: any) => (
                     <div
                       key={admission.id}
                       onClick={() => router.push(`/admission-management/${admission.id}`)}
-                      className={`bg-white rounded-xl border border-slate-200 p-4 cursor-pointer hover:border-[#1565D8]/30 hover:shadow-sm transition-all border-l-4 ${rowBorderColor(admission.dbStatus)}`}
+                      className={`p-4 cursor-pointer hover:bg-slate-50 border-l-4 ${rowBorderColor(admission.dbStatus)}`}
                     >
-                      {/* ROW 1: Avatar + Name + Status */}
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-[#1565D8] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                      {/* ROW 1: Avatar w-8 h-8 + Name + Status dropdown */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0 font-sans">
                             {admission.avatar}
                           </div>
-                          <div>
-                            <div className="text-sm font-semibold text-slate-800">
-                              {admission.fullName}
-                            </div>
-                            <div className="text-xs text-slate-400 font-mono">
-                              {admission.admissionCode}
-                            </div>
-                          </div>
+                          <span className="text-sm font-semibold text-slate-800 truncate">
+                            {admission.fullName}
+                          </span>
                         </div>
-                        <div>
-                          {getStatusBadge(admission.dbStatus)}
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <select
+                            value={admission.dbStatus}
+                            onChange={(e) => handleStatusChange(admission.id, e.target.value)}
+                            className={getStatusSelectClass(admission.dbStatus)}
+                          >
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="ADMITTED">Admitted</option>
+                            <option value="REJECTED">Rejected</option>
+                            <option value="WAITLISTED">Waitlisted</option>
+                            <option value="WITHDRAWN">Withdrawn</option>
+                          </select>
                         </div>
                       </div>
 
-                      {/* ROW 2: Details */}
-                      <div className="mt-2 flex items-center gap-3 flex-wrap">
-                        <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded w-fit">
+                      {/* ROW 2: Code + Grade badge + Stage */}
+                      <div className="flex gap-2 mt-1.5 flex-wrap items-center">
+                        <span className="text-xs font-normal text-slate-400 font-mono">
+                          {admission.admissionCode}
+                        </span>
+                        <span className="text-[11px] font-semibold text-slate-650 bg-slate-100 px-1.5 py-0.5 rounded">
                           {admission.applyingFor ? getGradeLabel(admission.applyingFor) : '—'}
                         </span>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded w-fit ${stageColor(admission.stage)}`}>
+                        <span className={`text-[11px] font-semibold ${stageTextColor(admission.stage)}`}>
                           {admission.stage || '—'}
-                        </span>
-                        <span className="text-xs text-slate-500">
-                          {admission.counsellor ? `Counsellor: ${admission.counsellor.split(' ')[0]}` : 'Unassigned'}
                         </span>
                       </div>
 
-                      {/* ROW 3: Phone + Date */}
-                      <div className="mt-1.5 flex items-center justify-between">
-                        <span className="text-xs text-slate-400">{admission.phone}</span>
-                        <span className="text-xs text-slate-400">{formatDate(admission.createdAt)}</span>
+                      {/* ROW 3: Counsellor + Date */}
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-[13px] font-medium text-slate-700">
+                          {admission.counsellor ? `Counsellor: ${admission.counsellor}` : 'Unassigned'}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {formatDate(admission.createdAt)}
+                        </span>
                       </div>
                     </div>
                   ))}

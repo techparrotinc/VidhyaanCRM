@@ -8,7 +8,8 @@ import {
   ChevronLeft,
   Loader2,
   Info,
-  AlertCircle
+  AlertCircle,
+  ChevronDown
 } from 'lucide-react'
 
 import { Card } from "@/components/ui/card"
@@ -238,9 +239,9 @@ export default function EditAdmissionPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 pb-28 space-y-6 max-w-7xl mx-auto w-full select-none text-left">
-      {/* PAGE TITLE ROW */}
-      <div className="flex items-center justify-between mb-2">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col select-none text-left">
+      {/* HEADER */}
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -249,89 +250,70 @@ export default function EditAdmissionPage() {
           >
             <ChevronLeft className="size-[18px] text-slate-500" />
           </button>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800 tracking-tight font-sans" style={{ fontFamily: "'Poppins', sans-serif" }}>
-              Edit Admission Info
-            </h1>
-            <p className="text-sm text-slate-400 mt-0.5 font-sans">
+          <div className="h-6 w-px bg-slate-200" />
+          <div className="flex flex-col">
+            <span className="text-base font-bold text-slate-900">
+              Edit Admission
+            </span>
+            <span className="text-xs text-slate-400">
               Update details for {formData.applicantName}
-            </p>
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-3">
           <button
             type="button"
             onClick={() => router.back()}
-            className="border border-slate-200 bg-white text-slate-650 text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-slate-50 transition cursor-pointer min-h-[42px] font-sans"
+            className="h-8 px-4 text-sm font-semibold border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition cursor-pointer font-sans"
           >
             Cancel
           </button>
-          <Button
+          <button
             type="button"
             onClick={handleSubmit}
             disabled={!isFormValid || isSubmitting}
-            className={`text-white text-sm font-semibold px-5 py-2.5 h-auto rounded-lg flex items-center gap-2 transition ${isSubmitting ? 'opacity-70 cursor-not-allowed bg-[#1565D8]' : (isFormValid ? 'bg-[#1565D8] hover:bg-blue-700 cursor-pointer' : 'bg-[#1565D8]/50 opacity-50 cursor-not-allowed')}`}
+            className={`h-8 px-4 text-sm font-semibold text-white rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer ${
+              isSubmitting ? 'opacity-70 bg-[#1565D8]' : (isFormValid ? 'bg-[#1565D8] hover:bg-blue-700' : 'bg-[#1565D8]/50 opacity-50 cursor-not-allowed')
+            }`}
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="animate-spin size-4 mr-2" />
-                <span>Updating...</span>
+                <Loader2 className="animate-spin" size={13} />
+                <span>Saving...</span>
               </>
             ) : (
               <>
-                <Save className="size-4" />
+                <Save size={13} />
                 <span>Save Changes</span>
               </>
             )}
-          </Button>
+          </button>
         </div>
       </div>
 
       {errorMessage && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 font-medium flex items-center gap-2">
+        <div className="m-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 font-medium flex items-center gap-2">
           <AlertCircle size={16} />
           <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* THREE COLUMN GRID LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* LEFT COLUMN — Applicant Details */}
-        <div className="space-y-6">
+      {/* TWO COLUMN GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 pb-24 lg:pb-4">
+        
+        {/* LEFT COLUMN */}
+        <div className="space-y-4">
+          
           {/* CARD 1 — APPLICANT INFORMATION */}
-          <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-            <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 font-sans uppercase tracking-wider">
+          <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left">
+            <h3 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3 uppercase tracking-wider font-sans">
               Applicant Information
             </h3>
 
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                  Admission Code
-                </label>
-                <div className="text-xs font-mono bg-slate-100 rounded px-2.5 py-1.5 w-fit border border-slate-200">
-                  {admissionCode}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                  Status
-                </label>
-                <div className={`text-xs font-semibold px-2.5 py-1.5 rounded-full border w-fit ${
-                  status === 'ADMITTED'
-                    ? 'border-emerald-250 bg-emerald-50 text-emerald-800'
-                    : status === 'REJECTED'
-                      ? 'border-red-200 bg-red-50 text-red-800'
-                      : 'border-blue-200 bg-blue-50 text-blue-850'
-                }`}>
-                  {status}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
                   Applicant Name (Child) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -340,14 +322,14 @@ export default function EditAdmissionPage() {
                   value={formData.applicantName}
                   onChange={handleInputChange}
                   placeholder="Child's full name"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
+                  className="w-full h-10 lg:h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 transition-all font-sans"
                   required
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                  Parent / Guardian Name <span className="text-red-500">*</span>
+              <div className="col-span-2">
+                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                  Parent / Guardian <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -355,13 +337,13 @@ export default function EditAdmissionPage() {
                   value={formData.parentName}
                   onChange={handleInputChange}
                   placeholder="Parent name"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
+                  className="w-full h-10 lg:h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 transition-all font-sans"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -371,13 +353,13 @@ export default function EditAdmissionPage() {
                   value={formData.phone}
                   onChange={handleInputChange}
                   placeholder="10-digit mobile"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
+                  className="w-full h-10 lg:h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 transition-all font-sans"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
                   Email Address
                 </label>
                 <input
@@ -386,93 +368,95 @@ export default function EditAdmissionPage() {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="Email address"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
+                  className="w-full h-10 lg:h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 transition-all font-sans"
                 />
               </div>
             </div>
           </Card>
 
           {/* CARD 2 — ENROLLMENT DETAILS */}
-          <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-            <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 font-sans uppercase tracking-wider">
+          <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left">
+            <h3 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3 uppercase tracking-wider font-sans">
               Enrollment Details
             </h3>
 
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
+                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
                   Applying For Grade <span className="text-red-500">*</span>
                 </label>
-                <select
-                  name="gradeSought"
-                  value={formData.gradeSought}
-                  onChange={handleInputChange}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
-                  required
-                >
-                  <option value="">Select Grade</option>
-                  {GRADE_OPTIONS.map(g => (
-                    <option key={g.value} value={g.value}>{g.label}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    name="gradeSought"
+                    value={formData.gradeSought}
+                    onChange={handleInputChange}
+                    className="w-full h-10 lg:h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none pr-8 transition-all font-sans cursor-pointer"
+                    required
+                  >
+                    <option value="">Select Grade</option>
+                    {GRADE_OPTIONS.map(g => (
+                      <option key={g.value} value={g.value}>{g.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                  Academic Year <span className="text-red-500">*</span>
+                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                  Academic Year
                 </label>
-                <select
-                  name="academicYearId"
-                  value={formData.academicYearId}
-                  onChange={handleInputChange}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
-                  required
-                >
-                  <option value="">Select Academic Year</option>
-                  {dbAcademicYears.map(y => (
-                    <option key={y.id} value={y.id}>{y.name}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    name="academicYearId"
+                    value={formData.academicYearId}
+                    onChange={handleInputChange}
+                    className="w-full h-10 lg:h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none pr-8 transition-all font-sans cursor-pointer"
+                  >
+                    <option value="">Select Academic Year</option>
+                    {dbAcademicYears.map(y => (
+                      <option key={y.id} value={y.id}>{y.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                  Current School (if any)
+              <div className="col-span-2">
+                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                  Current School
                 </label>
                 <input
                   type="text"
                   name="currentSchool"
                   value={formData.currentSchool}
                   onChange={handleInputChange}
-                  placeholder="Previous school"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
+                  placeholder="Previous school details"
+                  className="w-full h-10 lg:h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 transition-all font-sans"
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block font-sans">
+              <div className="col-span-2">
+                <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1 font-sans">
                   Expected Join Date
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      className="w-full h-[40px] px-3.5 text-sm border border-slate-200 rounded-lg bg-slate-50 hover:bg-white flex items-center gap-2 text-slate-700 text-left focus:outline-none focus:border-[#1565D8] transition"
+                      className="w-full h-10 lg:h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white hover:bg-slate-50 flex items-center justify-between text-slate-800 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 transition-all font-sans font-medium"
                     >
-                      <CalendarDays size={14} className="text-slate-400 flex-shrink-0" />
-                      <span className="flex-1 truncate font-medium">
+                      <span className="truncate font-semibold text-slate-700">
                         {expectedJoinDate
                           ? format(expectedJoinDate, 'd MMM yyyy')
-                          : 'Select date'}
+                          : 'Select Expected Date'}
                       </span>
+                      <CalendarDays size={14} className="text-slate-400 pointer-events-none" />
                     </button>
                   </PopoverTrigger>
                   <PopoverContent
                     align="start"
-                    avoidCollisions={true}
-                    collisionPadding={16}
-                    sideOffset={4}
-                    className="z-[9999] w-auto p-0 shadow-xl rounded-xl border border-slate-200"
+                    className="z-[9999] w-auto p-0 shadow-xl rounded-xl border border-slate-200 bg-white"
                   >
                     <UiCalendar
                       mode="single"
@@ -487,125 +471,132 @@ export default function EditAdmissionPage() {
           </Card>
         </div>
 
-        {/* CENTER COLUMN — Assignment */}
-        <div className="space-y-6">
+        {/* RIGHT COLUMN */}
+        <div className="space-y-4">
+          
           {/* CARD 1 — PIPELINE & ASSIGNMENT */}
-          <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-            <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 font-sans uppercase tracking-wider">
+          <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left space-y-3">
+            <h3 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3 uppercase tracking-wider font-sans">
               Pipeline & Assignment
             </h3>
 
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                  Initial Stage <span className="text-red-500">*</span>
-                </label>
+            <div>
+              <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                Stage
+              </label>
+              <div className="relative">
                 <select
                   name="stageId"
                   value={formData.stageId}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
-                  required
+                  className="w-full h-10 lg:h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none pr-8 transition-all font-sans cursor-pointer"
                 >
                   <option value="">Select Stage</option>
                   {dbStages.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} {s.isWon ? '(Won)' : s.isLost ? '(Lost)' : ''}</option>
+                    <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
               </div>
+            </div>
 
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                  Assigned Counsellor
-                </label>
+            <div>
+              <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                Assigned Counsellor
+              </label>
+              <div className="relative">
                 <select
                   name="assignedToId"
                   value={formData.assignedToId}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
+                  className="w-full h-10 lg:h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none pr-8 transition-all font-sans cursor-pointer"
                 >
                   <option value="">Unassigned</option>
                   {dbCounsellors.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
               </div>
+            </div>
 
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                  Priority
-                </label>
+            <div>
+              <label className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                Priority
+              </label>
+              <div className="relative">
                 <select
                   name="priority"
                   value={formData.priority}
                   onChange={handleInputChange}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
+                  className="w-full h-10 lg:h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none pr-8 transition-all font-sans cursor-pointer"
                 >
                   <option value="LOW">Low</option>
                   <option value="MEDIUM">Medium</option>
                   <option value="HIGH">High</option>
                   <option value="URGENT">Urgent</option>
                 </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100">
+              <span className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold block mb-1">
+                CURRENT STATUS
+              </span>
+              <div className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider border ${
+                status === 'ADMITTED' ? 'border-green-200 bg-green-50 text-green-800' :
+                status === 'REJECTED' ? 'border-red-200 bg-red-50 text-red-800' :
+                'border-amber-200 bg-amber-50 text-amber-800'
+              }`}>
+                {status}
               </div>
             </div>
           </Card>
 
           {/* CARD 2 — NOTES */}
-          <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-            <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 font-sans uppercase tracking-wider">
-              Log Note Activity
+          <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left">
+            <h3 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3 uppercase tracking-wider font-sans">
+              Notes
             </h3>
             <div>
               <textarea
                 name="notes"
-                rows={4}
+                rows={3}
                 value={formData.notes}
                 onChange={handleInputChange}
-                placeholder="Log a new timeline note on save..."
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
+                placeholder="Internal notes..."
+                className="w-full p-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 transition-all font-sans"
               />
             </div>
           </Card>
         </div>
+      </div>
 
-        {/* RIGHT COLUMN — Actions */}
-        <div className="space-y-6">
-          <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-            <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 font-sans uppercase tracking-wider">
-              Actions
-            </h3>
-
-            <div className="space-y-2">
-              <Button
-                type="button"
-                onClick={handleSubmit}
-                disabled={!isFormValid || isSubmitting}
-                className={`w-full text-white text-sm font-bold h-10 rounded-lg flex items-center justify-center gap-2 transition ${isSubmitting ? 'opacity-70 cursor-not-allowed bg-[#1565D8]' : (isFormValid ? 'bg-[#1565D8] hover:bg-blue-700 cursor-pointer' : 'bg-[#1565D8]/50 opacity-50 cursor-not-allowed')}`}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="animate-spin size-4 mr-2" />
-                    <span>Updating...</span>
-                  </>
-                ) : (
-                  <span>Save Changes</span>
-                )}
-              </Button>
-
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="w-full h-9 border border-slate-200 bg-white text-slate-650 text-sm font-semibold rounded-lg hover:bg-slate-50 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-400 text-center font-sans">
-              Fields marked <span className="text-red-500 font-bold">*</span> are required
-            </p>
-          </Card>
-        </div>
+      {/* MOBILE STICKY SAVE BAR */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 flex gap-3 z-30 lg:hidden shadow-lg">
+        <button
+          onClick={() => router.back()}
+          className="flex-1 h-11 border border-slate-200 text-slate-650 rounded-xl text-sm font-medium hover:bg-slate-50 cursor-pointer transition flex items-center justify-center bg-white"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={!isFormValid || isSubmitting}
+          className={`flex-1 h-11 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition ${
+            isSubmitting ? 'opacity-70 bg-[#1565D8] cursor-not-allowed' : (isFormValid ? 'bg-[#1565D8] hover:bg-blue-700 cursor-pointer' : 'bg-[#1565D8]/50 opacity-50 cursor-not-allowed')
+          }`}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="animate-spin" size={14} />
+              <span>Saving...</span>
+            </>
+          ) : (
+            'Save Changes'
+          )}
+        </button>
       </div>
     </div>
   )

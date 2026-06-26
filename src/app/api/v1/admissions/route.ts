@@ -26,7 +26,9 @@ export const GET = route({
 
     const skip = (page - 1) * limit
 
-    const where: any = {}
+    const where: any = {
+      deletedAt: null
+    }
     if (stageId) where.stageId = stageId
     if (counsellorId) {
       where.assignedToId = counsellorId

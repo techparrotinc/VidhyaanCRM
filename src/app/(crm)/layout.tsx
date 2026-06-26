@@ -35,6 +35,13 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
     closeMobileSidebar()
   }, [pathname, closeMobileSidebar])
 
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return 'Good morning'
+    if (hour < 17) return 'Good afternoon'
+    return 'Good evening'
+  }
+
   const getPageTitle = () => {
     if (!pathname) return 'CRM Portal'
     if (pathname.startsWith('/dashboard')) return 'Dashboard'
@@ -100,9 +107,14 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <h2 className="text-lg font-semibold text-slate-800 truncate leading-none">
-              {getPageTitle()}
-            </h2>
+            <div className="flex flex-col text-left">
+              <span className="text-xs text-slate-400 font-normal">
+                {getGreeting()}, {session?.user?.name ? session.user.name.split(' ')[0] : 'Admin'} 👋
+              </span>
+              <span className="text-sm font-semibold text-slate-800">
+                {getPageTitle()}
+              </span>
+            </div>
           </div>
 
           {/* Right items: Academic year switcher + Notification bell + avatar dropdown */}

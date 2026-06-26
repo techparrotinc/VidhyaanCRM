@@ -278,10 +278,13 @@ export default function AdmissionManagementPage() {
     })
   const [filters, setFilters] = useState({
     stageId: '',
+    applyingFor: '',
     counsellorId: '',
+    priority: '',
     search: '',
-    academicYearId: ''
   })
+  const [isNavigating, setIsNavigating] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [activeStageFilter, setActiveStageFilter] =
     useState<string | null>(null)
   const searchTimeout = useRef<NodeJS.Timeout | undefined>(undefined)
@@ -360,9 +363,6 @@ export default function AdmissionManagementPage() {
             filters.counsellorId)
         if (filters.search)
           params.set('search', filters.search)
-        if (filters.academicYearId)
-          params.set('academicYearId',
-            filters.academicYearId)
 
         const res = await fetch(
           '/api/v1/admissions?' +
@@ -372,6 +372,9 @@ export default function AdmissionManagementPage() {
           'Failed to fetch admissions'
         )
         const json = await res.json()
+        const data = { admissions: json.data }
+        console.log('Admissions fetched:',
+          data.admissions?.length)
         
         // Map API data to original Applicant UI fields
         const mapped = (json.data ?? []).map((adm: any) => {
@@ -860,6 +863,7 @@ export default function AdmissionManagementPage() {
     )
     if (!confirmed) return
 
+    setIsLoading(true)
     try {
       const results = await Promise.all(
         selectedItems.map(id =>
@@ -872,7 +876,6 @@ export default function AdmissionManagementPage() {
       
       const failed = results.filter(r => !r.ok)
       if (failed.length > 0) {
-        // If some failed, show error message
         showToast('Failed to delete some admissions', 'error')
       } else {
         showToast(`${selectedItems.length} admission(s) deleted`, 'success')
@@ -883,6 +886,8 @@ export default function AdmissionManagementPage() {
     } catch (err) {
       console.error(err)
       showToast('Failed to delete some admissions', 'error')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -897,33 +902,34 @@ export default function AdmissionManagementPage() {
     <>
       <div className="p-3 sm:p-4 lg:p-6 space-y-4 max-w-7xl mx-auto w-full select-none">
           
-          {/* SECTION 1 — PAGE TITLE ROW */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-5 mb-5 gap-3">
-            <div>
-              <h1 className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight font-sans" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                {getGreeting()}, {currentUser.firstName} 👋
-              </h1>
-              <div className="text-sm text-slate-400 mt-0.5 flex items-center gap-1.5 font-sans">
-                <span>Sales & Marketing</span>
-                <ChevronRight size={12} className="text-slate-300" strokeWidth={3} />
-                <span>{moduleLabel}</span>
-              </div>
-            </div>
+          {/* SECTION 1 — PAGE HEADER SECTION */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h1 className="text-xl font-bold text-slate-900">
+              Admission Management
+            </h1>
 
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-3">
               <button 
                 onClick={() => showToast("Export initiated", "info")}
-                className="border border-slate-200 bg-white text-slate-600 text-sm font-semibold px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 hover:shadow-sm transition-shadow cursor-pointer min-h-10"
+                className="h-9 px-4 text-sm border border-slate-200 text-slate-600 rounded-lg flex items-center gap-2 hover:bg-slate-50 transition cursor-pointer"
               >
-                <Download size={14} strokeWidth={1.5} />
-                Export
+                <Download size={14} />
+                <span>Export</span>
               </button>
               <button
-                onClick={() => router.push('/admission-management/create')}
-                className="bg-[#1565D8] text-white text-sm font-semibold px-5 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 shadow-sm transition cursor-pointer min-h-10"
+                onClick={() => {
+                  setIsNavigating(true)
+                  router.push('/admission-management/create')
+                }}
+                disabled={isNavigating}
+                className="h-9 px-4 text-sm font-semibold bg-[#1565D8] text-white rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition cursor-pointer"
               >
-                <Plus size={16} strokeWidth={1.5} />
-                {config.newButtonLabel[type]}
+                {isNavigating ? (
+                  <Loader2 className="animate-spin" size={14} />
+                ) : (
+                  <Plus size={14} />
+                )}
+                <span>New Admission</span>
               </button>
             </div>
           </div>
@@ -942,26 +948,26 @@ export default function AdmissionManagementPage() {
             </div>
 
             {/* STATS CARDS ROW */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4">
               {/* Card 1: Total */}
-              <div className="bg-white p-3 sm:p-4 rounded-xl border border-slate-200 flex flex-col w-full shadow-sm">
-                <span className="text-xs sm:text-sm text-slate-500">Total Applicants</span>
-                <span className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{totalCount}</span>
+              <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
+                <div className="text-xs text-slate-500 font-medium mb-1">Total Applicants</div>
+                <div className="text-2xl font-bold text-slate-900">{totalCount}</div>
               </div>
               {/* Card 2: Conversion */}
-              <div className="bg-white p-3 sm:p-4 rounded-xl border border-slate-200 flex flex-col w-full shadow-sm">
-                <span className="text-xs sm:text-sm text-slate-500">Conversion Rate</span>
-                <span className="text-xl sm:text-2xl font-bold text-green-600 mt-1">{conversionRate}%</span>
+              <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
+                <div className="text-xs text-slate-500 font-medium mb-1">Conversion Rate</div>
+                <div className="text-2xl font-bold text-green-600">{conversionRate}%</div>
               </div>
               {/* Card 3: Avg. to admit */}
-              <div className="bg-white p-3 sm:p-4 rounded-xl border border-slate-200 flex flex-col w-full shadow-sm">
-                <span className="text-xs sm:text-sm text-slate-500">Avg. to Admit</span>
-                <span className="text-xl sm:text-2xl font-bold text-[#1565D8] mt-1">{pipelineStats.avgDaysToAdmit || 0} days</span>
+              <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
+                <div className="text-xs text-slate-500 font-medium mb-1">Avg. to Admit</div>
+                <div className="text-2xl font-bold text-[#1565D8]">{pipelineStats.avgDaysToAdmit || 0} days</div>
               </div>
               {/* Card 4: Pending Action */}
-              <div className="bg-white p-3 sm:p-4 rounded-xl border border-slate-200 flex flex-col w-full shadow-sm">
-                <span className="text-xs sm:text-sm text-slate-500">Pending Action</span>
-                <span className="text-xl sm:text-2xl font-bold text-red-600 mt-1">{pendingActionCount}</span>
+              <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
+                <div className="text-xs text-slate-500 font-medium mb-1">Pending Action</div>
+                <div className="text-2xl font-bold text-red-600">{pendingActionCount}</div>
               </div>
             </div>
 
@@ -1593,7 +1599,7 @@ export default function AdmissionManagementPage() {
                       <div
                         key={a.id}
                         onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                        className="bg-white border border-slate-200 rounded-xl p-4 mb-3 mx-3 text-left shadow-sm cursor-pointer"
+                        className="bg-white border border-slate-200 rounded-xl p-4 text-left shadow-sm cursor-pointer w-full"
                       >
                         {/* ROW 1: Avatar + name + status badge */}
                         <div className="flex items-center gap-3">
@@ -2225,6 +2231,15 @@ export default function AdmissionManagementPage() {
           >
             <X size={15} strokeWidth={2} />
           </button>
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center">
+          <Shield className="text-[#1565D8] animate-pulse" size={40}/>
+          <div className="mt-3 w-12 h-0.5 bg-slate-200 rounded-full overflow-hidden">
+            <div className="h-full bg-[#1565D8] rounded-full animate-[loader_1s_ease-in-out_infinite]"/>
+          </div>
         </div>
       )}
 

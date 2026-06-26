@@ -88,6 +88,7 @@ export const PUT = route({
       notes,
       expectedJoinDate,
       currentSchool,
+      priority,
       counsellor,
       counsellorAvatar,
       counsellorName,
@@ -102,19 +103,26 @@ export const PUT = route({
 
     // Log stage change
     if (updateData.stageId && updateData.stageId !== existing.stageId) {
+      const currentAdmission = await db.admission.findFirst({
+        where: { id: params?.id },
+        include: {
+          stage: { select: { name: true } }
+        }
+      })
+      const oldStageName = currentAdmission?.stage?.name || 'Unknown'
+
       const newStage = await db.admissionStage.findUnique({
         where: { id: updateData.stageId },
         select: { name: true }
       })
-
-      const oldStage = existing.stage?.name || 'Unknown'
+      const newStageName = newStage?.name || 'Unknown'
 
       await db.admissionActivity.create({
         data: {
+          admissionId: params?.id ?? '',
           orgId: user.orgId,
-          admissionId: existing.id,
           type: 'STAGE_CHANGE',
-          summary: `Stage changed from ${oldStage} to ${newStage?.name || 'Unknown'}`,
+          summary: `Stage changed from ${oldStageName} to ${newStageName}`,
           performedById: user.id
         }
       })

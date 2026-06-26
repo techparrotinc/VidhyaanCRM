@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from './client'
 
 const TENANT_MODELS = [
-  'Lead', 'Admission', 'AdmissionStage', 'AdmissionDocument', 'AdmissionCapacity',
+  'Lead', 'Admission', 'AdmissionDocument', 'AdmissionCapacity',
   'Student', 'StudentBatch', 'SiblingLink', 'FeePlanTemplate', 'FeePlan', 'Invoice',
   'Payment', 'Concession', 'Event', 'EventRsvp', 'Campaign', 'CampaignRecipient',
   'Notification', 'NotificationPreference', 'CommunicationLog', 'NotificationQueue',

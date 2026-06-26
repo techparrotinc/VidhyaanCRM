@@ -6,6 +6,7 @@ import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
 import { UserRole, UserStatus } from '@prisma/client'
 import { cleanPhoneNumber } from '@/lib/utils'
+import { redis } from '@/lib/redis'
 
 
 export const GET = route({
@@ -81,6 +82,9 @@ export const POST = route({
         status: 'INVITED' as UserStatus
       }
     })
+
+    // Invalidate counsellors cache
+    await redis.del(`counsellors:${user.orgId}`)
 
     return created({
       user: newUser,

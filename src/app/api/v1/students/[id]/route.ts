@@ -14,23 +14,33 @@ export const GET = route({
     ROLES.RECEPTIONIST
   ],
   handler: async ({ db, params }) => {
+    const id = params?.id
     const student = await db.student.findFirst({
-      where: { id: params?.id },
-      include: {
-        invoices: {
-          orderBy: { createdAt: 'desc' },
-          take: 5
-        },
-        _count: {
-          select: { invoices: true }
-        }
-      }
+      where: { id }
     })
 
     if (!student) {
       throw Errors.notFound('Student')
     }
-    return ok(student)
+
+    const [invoices, totalInvoices] = await Promise.all([
+      db.invoice.findMany({
+        where: { studentId: id },
+        orderBy: { createdAt: 'desc' },
+        take: 5
+      }),
+      db.invoice.count({
+        where: { studentId: id }
+      })
+    ])
+
+    return ok({
+      ...student,
+      invoices,
+      _count: {
+        invoices: totalInvoices
+      }
+    })
   }
 })
 

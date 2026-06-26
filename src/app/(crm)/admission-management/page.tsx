@@ -1,6 +1,9 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import useSWR from 'swr'
+import { fetcher } from '@/lib/fetcher'
+import { useCounsellors } from '@/hooks/useCounsellors'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -255,20 +258,6 @@ export default function AdmissionManagementPage() {
     useState<string[]>([])
   const [searchQuery, setSearchQuery] =
     useState('')
-  const [applicants, setApplicants] =
-    useState<any[]>([])
-  const [loading, setLoading] =
-    useState(true)
-  const [error, setError] =
-    useState<string | null>(null)
-  const [pipeline, setPipeline] =
-    useState<any[]>([])
-  const [pipelineStats, setPipelineStats] =
-    useState({
-      total: 0,
-      conversionRate: 0,
-      avgDaysToAdmit: 0
-    })
   const [pagination, setPagination] =
     useState({
       total: 0,
@@ -288,8 +277,9 @@ export default function AdmissionManagementPage() {
   const [activeStageFilter, setActiveStageFilter] =
     useState<string | null>(null)
   const searchTimeout = useRef<NodeJS.Timeout | undefined>(undefined)
-  const [counsellors, setCounsellors] =
-    useState<any[]>([])
+  
+  // Use shared hook for counsellor list
+  const { counsellors } = useCounsellors()
 
   const [stageDropdownId, 
     setStageDropdownId] =
@@ -307,159 +297,130 @@ export default function AdmissionManagementPage() {
   const [showRejectModal, setShowRejectModal] =
     useState<any | null>(null)
 
-  // Fetch counsellors on mount
-  useEffect(() => {
-    const fetchCounsellors = async () => {
-      try {
-        const res = await fetch('/api/v1/counsellors')
-        if (res.ok) {
-          const json = await res.json()
-          setCounsellors(json.data ?? [])
-        }
-      } catch (err) {
-        console.error('Failed to fetch counsellors', err)
-      }
+  // SWR for pipeline summary
+  const { data: pipelineData, mutate: mutatePipeline } = useSWR(
+    '/api/v1/admissions/pipeline',
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 30000,
     }
-    fetchCounsellors()
-  }, [])
-
-  // STEP 4: Fetch pipeline summary on mount
-  const fetchPipeline = useCallback(
-    async () => {
-      try {
-        const res = await fetch(
-          '/api/v1/admissions/pipeline'
-        )
-        if (!res.ok) throw new Error(
-          'Failed to fetch pipeline'
-        )
-        const json = await res.json()
-        setPipeline(json.data?.pipeline ?? [])
-        setPipelineStats({
-          total: json.data?.total ?? 0,
-          conversionRate: json.data?.conversionRate ?? 0,
-          avgDaysToAdmit: json.data?.avgDaysToAdmit ?? 0
-        })
-      } catch (err) {
-        console.error('Pipeline error:', err)
-      }
-    }, []
   )
 
-  // STEP 5: Add fetchAdmissions function
-  const fetchAdmissions = useCallback(
-    async () => {
-      setLoading(true)
-      try {
-        const params = new URLSearchParams()
-        params.set('page',
-          String(pagination.page))
-        params.set('limit', '10')
-        if (filters.stageId)
-          params.set('stageId',
-            filters.stageId)
-        if (filters.counsellorId)
-          params.set('counsellorId',
-            filters.counsellorId)
-        if (filters.search)
-          params.set('search', filters.search)
+  const pipeline = useMemo(() => pipelineData?.data?.pipeline ?? [], [pipelineData])
+  const pipelineStats = useMemo(() => ({
+    total: pipelineData?.data?.total ?? 0,
+    conversionRate: pipelineData?.data?.conversionRate ?? 0,
+    avgDaysToAdmit: pipelineData?.data?.avgDaysToAdmit ?? 0
+  }), [pipelineData])
 
-        const res = await fetch(
-          '/api/v1/admissions?' +
-          params.toString()
-        )
-        if (!res.ok) throw new Error(
-          'Failed to fetch admissions'
-        )
-        const json = await res.json()
-        const data = { admissions: json.data }
-        console.log('Admissions fetched:',
-          data.admissions?.length)
+  // SWR for admissions list
+  const params = useMemo(() => {
+    return new URLSearchParams({
+      page: String(pagination.page),
+      limit: '10',
+      ...(filters.stageId && { stageId: filters.stageId }),
+      ...(filters.counsellorId && { counsellorId: filters.counsellorId }),
+      ...(filters.search && { search: filters.search }),
+    })
+  }, [pagination.page, filters.stageId, filters.counsellorId, filters.search])
+
+  const { data: admissionsData, error: swrError, isLoading: loading, mutate } = useSWR<any>(
+    `/api/v1/admissions?${params.toString()}`,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 30000,
+      keepPreviousData: true,
+    }
+  )
+
+  const error = swrError ? 'Failed to load admissions' : null
+
+  // Update pagination total / totalPages when SWR data is fetched
+  useEffect(() => {
+    if (admissionsData?.pagination) {
+      setPagination(prev => ({
+        ...prev,
+        total: admissionsData.pagination.total,
+        totalPages: admissionsData.pagination.totalPages
+      }))
+    }
+  }, [admissionsData?.pagination])
+
+  // Derive applicants list from SWR data
+  const applicants = useMemo(() => {
+    const rawList = admissionsData?.admissions || admissionsData?.data || []
+    return rawList.map((adm: any) => {
+      const name = adm.applicantName ?? ''
+      const avatar = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+      
+      const counsellorName = adm.assignedTo?.name ?? null
+      const counsellorAvatar = counsellorName
+        ? counsellorName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+        : null
         
-        // Map API data to original Applicant UI fields
-        const mapped = (json.data ?? []).map((adm: any) => {
-          const name = adm.applicantName ?? ''
-          const avatar = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
-          
-          const counsellorName = adm.assignedTo?.name ?? null
-          const counsellorAvatar = counsellorName
-            ? counsellorName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
-            : null
-            
-          const stageData = configPipeline.find(
-            s => s.label === adm.stage?.name ||
-            s.label?.toLowerCase() === adm.stage?.name?.toLowerCase() ||
-            adm.stage?.name?.toLowerCase().startsWith(s.label?.toLowerCase()) ||
-            s.label?.toLowerCase().startsWith(adm.stage?.name?.toLowerCase())
-          )
-          const stageIndex = stageData ? stageData.order - 1 : 0
-          
-          const docsUploaded = adm._count?.documents ?? 0
-          const docsRequired = 3
+      const stageData = configPipeline.find(
+        s => s.label === adm.stage?.name ||
+        s.label?.toLowerCase() === adm.stage?.name?.toLowerCase() ||
+        adm.stage?.name?.toLowerCase().startsWith(s.label?.toLowerCase()) ||
+        s.label?.toLowerCase().startsWith(adm.stage?.name?.toLowerCase())
+      )
+      const stageIndex = stageData ? stageData.order - 1 : 0
+      
+      const docsUploaded = adm._count?.documents ?? 0
+      const docsRequired = 3
 
-          const createdDate = adm.createdAt ? new Date(adm.createdAt).toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-          }) : '—'
+      const createdDate = adm.createdAt ? new Date(adm.createdAt).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      }) : '—'
 
-          const daysInStage = adm.createdAt
-            ? Math.floor((Date.now() - new Date(adm.createdAt).getTime()) / (1000 * 60 * 60 * 24))
-            : 0
+      const daysInStage = adm.createdAt
+        ? Math.floor((Date.now() - new Date(adm.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+        : 0
 
-          return {
-            id: adm.id,
-            admissionCode: adm.admissionCode ?? '',
-            firstName: name.split(' ')[0] || '',
-            lastName: name.split(' ').slice(1).join(' ') || '',
-            fullName: name,
-            avatar,
-            parentName: adm.parentName ?? '',
-            phone: adm.phone ?? '',
-            email: adm.email ?? '',
-            applyingFor: adm.gradeSought ?? '',
-            source: adm.source ?? 'Other',
-            counsellor: counsellorName,
-            counsellorAvatar,
-            stage: adm.stage?.name ?? 'New',
-            stageId: stageData ? stageData.id : (adm.stageId ?? 'new'),
-            stageIndex,
-            createdDate,
-            createdAt: adm.createdAt,
-            academicYear: adm.academicYear?.name ?? '',
-            status: daysInStage > 14 ? 'overdue' : daysInStage > 7 ? 'warning' : 'active',
-            daysInStage,
-            pendingAction: null,
-            docsUploaded,
-            docsRequired,
-            feePaid: adm.stage?.isWon ?? false,
-            priority: adm.priority === 'URGENT' ? 'Urgent' : adm.priority === 'HIGH' ? 'High' : 'Normal',
-            dbStatus: adm.status
-          }
-        })
-
-        setApplicants(mapped)
-        setPagination(json.pagination ?? {
-          total: 0, page: 1,
-          limit: 10, totalPages: 0
-        })
-      } catch (err) {
-        setError('Failed to load admissions')
-        console.error(err)
-      } finally {
-        setLoading(false)
+      return {
+        id: adm.id,
+        admissionCode: adm.admissionCode ?? '',
+        firstName: name.split(' ')[0] || '',
+        lastName: name.split(' ').slice(1).join(' ') || '',
+        fullName: name,
+        avatar,
+        parentName: adm.parentName ?? '',
+        phone: adm.phone ?? '',
+        email: adm.email ?? '',
+        applyingFor: adm.gradeSought ?? '',
+        source: adm.source ?? 'Other',
+        counsellor: counsellorName,
+        counsellorAvatar,
+        stage: adm.stage?.name ?? 'New',
+        stageId: stageData ? stageData.id : (adm.stageId ?? 'new'),
+        stageIndex,
+        createdDate,
+        createdAt: adm.createdAt,
+        academicYear: adm.academicYear?.name ?? '',
+        status: daysInStage > 14 ? 'overdue' : daysInStage > 7 ? 'warning' : 'active',
+        daysInStage,
+        pendingAction: null,
+        docsUploaded,
+        docsRequired,
+        feePaid: adm.stage?.isWon ?? false,
+        priority: adm.priority === 'URGENT' ? 'Urgent' : adm.priority === 'HIGH' ? 'High' : 'Normal',
+        dbStatus: adm.status
       }
-    }, [filters, pagination.page]
-  )
+    })
+  }, [admissionsData])
 
-  // STEP 6: Add useEffects
-  useEffect(() => {
-    fetchPipeline()
-  }, [fetchPipeline])
+  // Mutate trigger wrappers
+  const fetchPipeline = useCallback(async () => {
+    mutatePipeline()
+  }, [mutatePipeline])
 
-  useEffect(() => {
-    fetchAdmissions()
-  }, [fetchAdmissions])
+  const fetchAdmissions = useCallback(async () => {
+    mutate()
+  }, [mutate])
 
   // Dropdown filter variables
   const [filterApplyingFor, setFilterApplyingFor] = useState<string | null>(null)
@@ -579,7 +540,7 @@ export default function AdmissionManagementPage() {
   // FILTERING LOGIC
   // ===================================================================
   const filteredApplicants = 
-    applicants.filter(a => {
+    applicants.filter((a: any) => {
       if (activeStageFilter) {
         const localStage = configPipeline.find(s => s.id === activeStageFilter)
         const activeLabel = localStage ? localStage.label : ''
@@ -612,7 +573,7 @@ export default function AdmissionManagementPage() {
   const conversionRate = pipelineStats.conversionRate
   const pendingActionCount = 
     applicants.filter(
-      a => a.pendingAction !== null
+      (a: any) => a.pendingAction !== null
     ).length
 
   const showingStart = filteredApplicants.length > 0 ? (pagination.page - 1) * 10 + 1 : 0
@@ -620,7 +581,7 @@ export default function AdmissionManagementPage() {
 
   const getStageCount = (stageLabel: string) => {
     const apiStage = pipeline.find(
-      p => p.label === stageLabel ||
+      (p: any) => p.label === stageLabel ||
       (p.label && stageLabel && p.label.toLowerCase() === stageLabel.toLowerCase())
     )
     return apiStage?.count ?? 0
@@ -628,14 +589,14 @@ export default function AdmissionManagementPage() {
 
   const getDatabaseStageId = (localStageLabel: string) => {
     const apiStage = pipeline.find(
-      p => p.label === localStageLabel ||
+      (p: any) => p.label === localStageLabel ||
       (p.label && localStageLabel && p.label.toLowerCase() === localStageLabel.toLowerCase())
     )
     return apiStage?.id
   }
 
   // Unique lists for filter dropdown values
-  const uniqueApplyingFor = Array.from(new Set(applicants.map(a => a.applyingFor)))
+  const uniqueApplyingFor = Array.from(new Set(applicants.map((a: any) => a.applyingFor)))
 
   const isAnyFilterActive = !!(
     filterApplyingFor ||
@@ -671,7 +632,7 @@ export default function AdmissionManagementPage() {
     if (selectedItems.length === filteredApplicants.length) {
       setSelectedItems([])
     } else {
-      setSelectedItems(filteredApplicants.map(a => a.id))
+      setSelectedItems(filteredApplicants.map((a: any) => a.id))
     }
   }
 
@@ -691,7 +652,7 @@ export default function AdmissionManagementPage() {
         }
       )
       fetchAdmissions()
-      const c = counsellors.find(item => item.id === counsellorId)
+      const c = counsellors.find((item: any) => item.id === counsellorId)
       showToast(c ? `Assigned to ${c.name}` : 'Unassigned counsellor')
     } catch (err) {
       console.error('Assign failed', err)
@@ -704,7 +665,7 @@ export default function AdmissionManagementPage() {
     const targetStage = configPipeline.find(s => s.id === targetStageId)
     if (!targetStage) return
 
-    const applicant = applicants.find(a => a.id === applicantId)
+    const applicant = applicants.find((a: any) => a.id === applicantId)
     if (!applicant) return
 
     try {
@@ -726,7 +687,7 @@ export default function AdmissionManagementPage() {
       fetchAdmissions()
       fetchPipeline()
 
-      const dbStage = pipeline.find(p => p.id === dbStageId)
+      const dbStage = pipeline.find((p: any) => p.id === dbStageId)
       const isWon = dbStage?.isWon || targetStageId === 'admitted' || targetStageId === 'enrolled'
       const isLost = dbStage?.isLost || targetStageId === 'rejected'
 
@@ -836,7 +797,7 @@ export default function AdmissionManagementPage() {
   }
 
   const handleBulkAssignCounsellor = async (counsellorName: string | null) => {
-    const c = counsellors.find(item => item.name === counsellorName)
+    const c = counsellors.find((item: any) => item.name === counsellorName)
     const counsellorId = c ? c.id : null
     try {
       await Promise.all(selectedItems.map(id =>
@@ -986,7 +947,7 @@ export default function AdmissionManagementPage() {
                         setActiveStageFilter(newStageId || null)
                         
                         const dbStage = pipeline.find(
-                          p => p.label === stage.label ||
+                          (p: any) => p.label === stage.label ||
                           (p.label && stage.label && p.label.toLowerCase() === stage.label.toLowerCase())
                         )
                         
@@ -1099,7 +1060,7 @@ export default function AdmissionManagementPage() {
                     >
                       All Classes
                     </div>
-                    {uniqueApplyingFor.map(option => (
+                    {uniqueApplyingFor.map((option: any) => (
                       <div
                         key={option}
                         onClick={() => { setFilterApplyingFor(option); setShowApplyingForDropdown(false) }}
@@ -1137,7 +1098,7 @@ export default function AdmissionManagementPage() {
                     >
                       All Counsellors
                     </div>
-                    {counsellors.map(c => (
+                    {counsellors.map((c: any) => (
                       <div
                         key={c.id}
                         onClick={() => { setFilterCounsellor(c.name); setShowCounsellorFilterDropdown(false) }}
@@ -1436,13 +1397,14 @@ export default function AdmissionManagementPage() {
                           </div>
                         ))
                       ) : (
-                        filteredApplicants.map((a, idx) => {
+                        filteredApplicants.map((a: any, idx: number) => {
                           const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
                           const leftBorderColor = getLeftBorderBg(a)
 
                           return (
                             <div
                               key={a.id}
+                              onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
                               onClick={() => handleNavigate(`/admission-management/${a.id}`)}
                               className="relative flex items-center px-4 py-3 gap-3 hover:bg-slate-50 border-b border-slate-100 min-h-[56px] h-auto transition-colors duration-100 cursor-pointer bg-white"
                             >
@@ -1593,11 +1555,12 @@ export default function AdmissionManagementPage() {
 
                 {/* Mobile Card View */}
                 <div className="block sm:hidden space-y-3">
-                  {filteredApplicants.map((a) => {
+                  {filteredApplicants.map((a: any) => {
                     const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
                     return (
                       <div
                         key={a.id}
+                        onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
                         onClick={() => handleNavigate(`/admission-management/${a.id}`)}
                         className="bg-white border border-slate-200 rounded-xl p-4 text-left shadow-sm cursor-pointer w-full"
                       >
@@ -1694,12 +1657,13 @@ export default function AdmissionManagementPage() {
                   </div>
                 ))
               ) : (
-                filteredApplicants.map(a => {
+                filteredApplicants.map((a: any) => {
                   const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
                   
                   return (
                     <div
                       key={a.id}
+                      onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
                       onClick={() => handleNavigate(`/admission-management/${a.id}`)}
                       className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md hover:border-[#1565D8] cursor-pointer transition-all flex flex-col gap-3 justify-between"
                     >
@@ -1766,7 +1730,7 @@ export default function AdmissionManagementPage() {
             <div className="relative">
               <div className="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-slate-300">
                 {configPipeline.map(stage => {
-                  const stageApplicants = filteredApplicants.filter(a => a.stageId === stage.id)
+                  const stageApplicants = filteredApplicants.filter((a: any) => a.stageId === stage.id)
 
                   return (
                     <div key={stage.id} className="w-[280px] flex-shrink-0 bg-slate-50 rounded-xl p-3 flex flex-col gap-3">
@@ -1812,10 +1776,11 @@ export default function AdmissionManagementPage() {
                             </span>
                           </div>
                         ) : (
-                          stageApplicants.map(a => {
+                          stageApplicants.map((a: any) => {
                             return (
                               <div
                                 key={a.id}
+                                onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
                                 onClick={() => handleNavigate(`/admission-management/${a.id}`)}
                                 className="bg-white border border-slate-200 rounded-xl p-3 mb-2 hover:shadow-sm cursor-pointer transition-all flex flex-col gap-2.5"
                               >
@@ -2147,7 +2112,7 @@ export default function AdmissionManagementPage() {
             </button>
             {showBulkStageDropdown && (
               <div className="absolute bottom-full left-0 mb-2.5 z-20 bg-slate-700 text-white rounded-xl border border-slate-650 shadow-lg p-1.5 min-w-[160px] max-h-48 overflow-y-auto">
-                {pipeline.map(s => (
+                {pipeline.map((s: any) => (
                   <div
                     key={s.id}
                     onClick={() => handleBulkMoveStage(s.id)}
@@ -2174,7 +2139,7 @@ export default function AdmissionManagementPage() {
             </button>
             {showBulkCounsellorDropdown && (
               <div className="absolute bottom-full left-0 mb-2.5 z-20 bg-slate-700 text-white rounded-xl border border-slate-650 shadow-lg p-1.5 min-w-[160px]">
-                {counsellors.map(c => (
+                {counsellors.map((c: any) => (
                   <div
                     key={c.id}
                     onClick={() => handleBulkAssignCounsellor(c.name)}

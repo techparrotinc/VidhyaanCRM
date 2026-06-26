@@ -14,18 +14,14 @@ export const GET = route({
     ROLES.RECEPTIONIST
   ],
   handler: async ({ db, params }) => {
+    const id = params?.id
     const admission = await db.admission.findFirst({
-      where: { id: params?.id },
+      where: { id },
       include: {
         stage: true,
         assignedTo: {
           select: { id: true, name: true }
         },
-        activities: {
-          orderBy: { createdAt: 'desc' },
-          take: 20
-        },
-        documents: true,
         lead: {
           select: { parentName: true }
         },
@@ -39,8 +35,21 @@ export const GET = route({
       throw Errors.notFound('Admission')
     }
 
+    const [activities, documents] = await Promise.all([
+      db.admissionActivity.findMany({
+        where: { admissionId: id },
+        orderBy: { createdAt: 'desc' },
+        take: 20
+      }),
+      db.admissionDocument.findMany({
+        where: { admissionId: id }
+      })
+    ])
+
     const admissionWithIsTerminal = {
       ...admission,
+      activities,
+      documents,
       stage: admission.stage
         ? {
             ...admission.stage,

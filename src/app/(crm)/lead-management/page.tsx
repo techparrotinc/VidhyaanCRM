@@ -1,6 +1,9 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import useSWR from 'swr'
+import { fetcher } from '@/lib/fetcher'
+import { useCounsellors } from '@/hooks/useCounsellors'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
@@ -280,12 +283,9 @@ export default function LeadManagementPage() {
   }
 
   // STEP 2: Remove hardcoded leads array. Replace with empty array:
-  const [leads, setLeads] = useState<any[]>([])
   const [updatingLeadId, setUpdatingLeadId] = useState<string | null>(null)
 
   // STEP 3: Add state variables:
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [pagination, setPagination] = useState({
     total: 0,
     page: 1,
@@ -301,103 +301,90 @@ export default function LeadManagementPage() {
   })
   const [filterDateRange, setFilterDateRange] = useState<string | null>(null)
 
-  // State for active counsellors
-  const [counsellors, setCounsellors] = useState<any[]>([])
+  // Use shared hook for active counsellors
+  const { counsellors } = useCounsellors()
 
   const [showConvertModal, setShowConvertModal] = useState(false)
   const [convertLead, setConvertLead] = useState<any | null>(null)
-
-  // Fetch counsellors, academic years, and pipeline stages on mount
-  useEffect(() => {
-    const fetchCounsellors = async () => {
-      try {
-        const res = await fetch('/api/v1/counsellors')
-        if (res.ok) {
-          const json = await res.json()
-          setCounsellors(json.data ?? [])
-        }
-      } catch (err) {
-        console.error('Failed to fetch counsellors', err)
-      }
-    }
-
-    fetchCounsellors()
-  }, [])
 
   const openConvertModal = (lead: any) => {
     setConvertLead(lead)
     setShowConvertModal(true)
   }
 
-  // STEP 4: Add fetchLeads function:
-  const fetchLeads = useCallback(async () => {
-    setLoading(true)
-    try {
-      const params = new URLSearchParams()
-      params.set('page', String(pagination.page))
-      params.set('limit', '10')
-      if (filters.status)
-        params.set('status', filters.status)
-      if (filters.source)
-        params.set('source', filters.source)
-      if (filters.counsellorId)
-        params.set('counsellorId', filters.counsellorId)
-      if (filters.search)
-        params.set('search', filters.search)
-      if (filters.priority)
-        params.set('priority', filters.priority)
+  // SWR for data fetching
+  const currentPage = pagination.page
+  const search = filters.search
+  const statusFilter = filters.status
+  const counsellorFilter = filters.counsellorId
 
-      const res = await fetch(
-        '/api/v1/leads?' + params.toString()
-      )
-      if (!res.ok) throw new Error(
-        'Failed to fetch leads'
-      )
-      const json = await res.json()
-      
-      const mapped = (json.data ?? []).map((l: any) => ({
-        id: l.id,
-        leadCode: l.leadCode,
-        name: l.parentName || '—',
-        parentName: l.parentName || '—',
-        kidName: l.kidName || '—',
-        phone: l.phone || '—',
-        email: l.email ?? '—',
-        applyingFor: l.gradeSought ?? '—',
-        source: l.source || '—',
-        counsellor: l.assignedTo?.name ?? null,
-        counsellorId: l.assignedToId ?? null,
-        counsellorAvatar: l.assignedTo?.name 
-          ? l.assignedTo.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() 
-          : null,
-        createdDate: formatDate(l.createdAt),
-        status: l.status,
-        priority: l.priority,
-        avatar: (l.parentName || 'L').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
-        followUpDate: l.nextFollowUpAt ? new Date(l.nextFollowUpAt).toISOString().split('T')[0] : '',
-        academicYearId: l.academicYearId ?? null,
-        notes: l.notes ?? null,
-      }))
+  const params = useMemo(() => {
+    return new URLSearchParams({
+      page: String(currentPage),
+      limit: '10',
+      ...(search && { search }),
+      ...(statusFilter && { status: statusFilter }),
+      ...(counsellorFilter && { assignedToId: counsellorFilter }),
+      ...(filters.source && { source: filters.source }),
+      ...(filters.priority && { priority: filters.priority }),
+    })
+  }, [currentPage, search, statusFilter, counsellorFilter, filters.source, filters.priority])
 
-      setLeads(mapped)
-      setPagination(json.pagination ?? {
-        total: 0,
-        page: 1,
-        limit: 10,
-        totalPages: 0
-      })
-    } catch (err) {
-      setError('Failed to load leads')
-      console.error(err)
-    } finally {
-      setLoading(false)
+  const { data, error: swrError, isLoading: loading, mutate } = useSWR<any>(
+    `/api/v1/leads?${params.toString()}`,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 30000,
+      keepPreviousData: true,
     }
-  }, [filters, pagination.page])
+  )
 
-  // STEP 5: Add useEffect:
+  const error = swrError ? 'Failed to load leads' : null
+
+  // Update pagination total / totalPages when SWR data is fetched
   useEffect(() => {
-    fetchLeads()
-  }, [fetchLeads])
+    if (data?.pagination) {
+      setPagination(prev => ({
+        ...prev,
+        total: data.pagination.total,
+        totalPages: data.pagination.totalPages
+      }))
+    }
+  }, [data?.pagination])
+
+  // Derive leads list from data
+  const leads = useMemo(() => {
+    const rawList = data?.leads || data?.data || []
+    return rawList.map((l: any) => ({
+      id: l.id,
+      leadCode: l.leadCode,
+      name: l.parentName || '—',
+      parentName: l.parentName || '—',
+      kidName: l.kidName || '—',
+      phone: l.phone || '—',
+      email: l.email ?? '—',
+      applyingFor: l.gradeSought ?? '—',
+      source: l.source || '—',
+      counsellor: l.assignedTo?.name ?? null,
+      counsellorId: l.assignedToId ?? null,
+      counsellorAvatar: l.assignedTo?.name 
+        ? l.assignedTo.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() 
+        : null,
+      createdDate: formatDate(l.createdAt),
+      status: l.status,
+      priority: l.priority,
+      avatar: (l.parentName || 'L').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
+      followUpDate: l.nextFollowUpAt ? new Date(l.nextFollowUpAt).toISOString().split('T')[0] : '',
+      academicYearId: l.academicYearId ?? null,
+      notes: l.notes ?? null,
+    }))
+  }, [data])
+
+  // Mutate/refresh function for SWR
+  const fetchLeads = useCallback(async () => {
+    mutate()
+  }, [mutate])
 
   // Lead cap banner visibility (dismissed per session)
   const [showLeadBanner, setShowLeadBanner] = useState(true)
@@ -494,11 +481,7 @@ export default function LeadManagementPage() {
         }
       )
       if (res.ok) {
-        setLeads(prevLeads =>
-          prevLeads.map(lead =>
-            lead.id === leadId ? { ...lead, status: newStatus } : lead
-          )
-        )
+        fetchLeads()
       }
     } catch (err) {
       console.error('Status update failed', err)
@@ -574,7 +557,7 @@ export default function LeadManagementPage() {
       }
 
       if (editFormData.counsellor !== undefined) {
-        const found = counsellors.find(c => c.name === editFormData.counsellor)
+        const found = counsellors.find((c: any) => c.name === editFormData.counsellor)
         payload.assignedToId = found ? found.id : null
       }
 
@@ -607,7 +590,7 @@ export default function LeadManagementPage() {
     setEditFormData({})
     if (unsavedWarning.pendingLeadId) {
       const lead = leads.find(
-        l => l.id === unsavedWarning.pendingLeadId
+        (l: any) => l.id === unsavedWarning.pendingLeadId
       )
       if (lead) startEdit(lead)
     }
@@ -621,7 +604,7 @@ export default function LeadManagementPage() {
     saveEdit(leadId)
     if (unsavedWarning.pendingLeadId) {
       const lead = leads.find(
-        l => l.id === unsavedWarning.pendingLeadId
+        (l: any) => l.id === unsavedWarning.pendingLeadId
       )
       if (lead) setTimeout(() => startEdit(lead), 100)
     }
@@ -682,7 +665,7 @@ export default function LeadManagementPage() {
   const getTabCount = (statusVal: string) => {
     if (!statusVal) return pagination.total
     if (filters.status === statusVal) return pagination.total
-    return leads.filter(l => l.status === statusVal).length
+    return leads.filter((l: any) => l.status === statusVal).length
   }
 
   // Handle clear all filters
@@ -709,7 +692,7 @@ export default function LeadManagementPage() {
     if (selectedLeads.length === filteredLeads.length) {
       setSelectedLeads([])
     } else {
-      setSelectedLeads(filteredLeads.map(l => l.id))
+      setSelectedLeads(filteredLeads.map((l: any) => l.id))
     }
   }
 
@@ -914,14 +897,14 @@ export default function LeadManagementPage() {
                     >
                       <span className="truncate">
                         {filters.counsellorId 
-                          ? `Counsellor: ${counsellors.find(c => c.id === filters.counsellorId)?.name ?? 'Counsellor'}` 
+                          ? `Counsellor: ${counsellors.find((c: any) => c.id === filters.counsellorId)?.name ?? 'Counsellor'}` 
                           : 'Counsellor'}
                       </span>
                       <ChevronDown className="size-3.5 text-slate-400 shrink-0" />
                     </button>
                     {showCounsellorDropdown && (
                       <div className="absolute left-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-30 py-1 font-sans animate-fade-in">
-                        {counsellors.map(c => (
+                        {counsellors.map((c: any) => (
                           <button
                             key={c.id}
                             onClick={() => {
@@ -1143,7 +1126,7 @@ export default function LeadManagementPage() {
                 ) : filteredLeads.length === 0 ? (
                   <div className="p-8 text-center text-slate-400 text-sm font-medium">No leads match the filters.</div>
                 ) : (
-                  filteredLeads.map((lead, idx) => {
+                  filteredLeads.map((lead: any, idx: number) => {
                     const isChecked = selectedLeads.includes(lead.id)
                     const isEditing = editingLeadId === lead.id
                     const isSaved = savedLeadId === lead.id
@@ -1261,7 +1244,7 @@ export default function LeadManagementPage() {
                                 className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none cursor-pointer min-w-0"
                               >
                                 <option value="">Unassigned</option>
-                                {counsellors.map(c => (
+                                {counsellors.map((c: any) => (
                                   <option key={c.id} value={c.name}>
                                     {c.name}
                                   </option>
@@ -1307,11 +1290,11 @@ export default function LeadManagementPage() {
                       )
                     }
 
-                    // VIEW MODE ROW
                     return (
                       <div
                         key={lead.id}
                         className={`relative flex flex-col border-b border-slate-100 last:border-0 transition-all duration-200 cursor-pointer ${idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'} ${isSaved ? 'bg-green-50/40' : 'hover:bg-blue-50'}`}
+                        onMouseEnter={() => router.prefetch(`/lead-management/${lead.id}`)}
                         onClick={() => {
                           if (editingLeadId) return
                           handleOpenLeadDetails(lead)
@@ -1556,7 +1539,7 @@ export default function LeadManagementPage() {
                                       Assign Counsellor
                                     </span>
                                   </div>
-                                  {counsellors.map(c => (
+                                  {counsellors.map((c: any) => (
                                     <button
                                       key={c.id}
                                       onClick={async (e) => {
@@ -1752,7 +1735,7 @@ export default function LeadManagementPage() {
             
             /* GRID VIEW */
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredLeads.map(lead => (
+              {filteredLeads.map((lead: any) => (
                 <Card
                   key={lead.id}
                   onClick={() => handleNavigate(`/lead-management/${lead.id}`)}
@@ -2274,7 +2257,7 @@ export default function LeadManagementPage() {
               </DialogHeader>
 
               <DialogDescription className="text-slate-500 leading-relaxed font-sans mb-2">
-                You have unsaved changes on {leads.find(l => l.id === editingLeadId)?.name}. What would you like to do?
+                You have unsaved changes on {leads.find((l: any) => l.id === editingLeadId)?.name}. What would you like to do?
               </DialogDescription>
 
               {/* BUTTONS */}

@@ -130,6 +130,7 @@ export default function StudentListingPage() {
                 {students.map((student) => (
                   <tr
                     key={student.id}
+                    onMouseEnter={() => router.prefetch(`/student-management/${student.id}`)}
                     onClick={() => router.push(`/student-management/${student.id}`)}
                     className="hover:bg-slate-50/70 transition cursor-pointer"
                   >

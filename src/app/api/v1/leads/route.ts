@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { route } from '@/lib/api/compose'
 import { ok, created, paginated } from '@/lib/api/respond'
@@ -24,7 +24,7 @@ export const GET = route({
     const limit = Number(searchParams.get('limit') ?? 10)
     const status = searchParams.get('status') ?? undefined
     const source = searchParams.get('source') ?? undefined
-    const counsellorId = searchParams.get('counsellorId') ?? undefined
+    const counsellorId = searchParams.get('counsellorId') ?? searchParams.get('assignedToId') ?? undefined
     const search = searchParams.get('search') ?? undefined
     const priority = searchParams.get('priority') ?? undefined
 
@@ -53,22 +53,47 @@ export const GET = route({
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
+        select: {
+          id: true,
+          leadCode: true,
+          parentName: true,
+          phone: true,
+          email: true,
+          kidName: true,
+          status: true,
+          priority: true,
+          source: true,
+          gradeSought: true,
+          nextFollowUpAt: true,
+          createdAt: true,
           assignedTo: {
             select: {
               id: true,
-              name: true
+              name: true,
+            }
+          },
+          academicYear: {
+            select: {
+              id: true,
+              name: true,
             }
           },
           _count: {
-            select: { activities: true }
+            select: {
+              activities: true,
+            }
           }
         }
       }),
       db.lead.count({ where })
     ])
 
-    return paginated(leads, total, page, limit)
+    const paginatedRes = paginated(leads, total, page, limit)
+    const json = await paginatedRes.json()
+    return NextResponse.json({
+      ...json,
+      leads: json.data
+    })
   }
 })
 

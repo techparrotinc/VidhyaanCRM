@@ -1,6 +1,8 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
+import { SWRConfig } from 'swr'
+import { fetcher } from '@/lib/fetcher'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import Sidebar from '@/components/Sidebar'
@@ -219,7 +221,17 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
 
         {/* Main Content View */}
         <main className="flex-1 relative z-10 overflow-y-auto">
-          {children}
+          <SWRConfig
+            value={{
+              fetcher,
+              revalidateOnFocus: false,
+              revalidateOnReconnect: false,
+              shouldRetryOnError: false,
+              dedupingInterval: 30000,
+            }}
+          >
+            {children}
+          </SWRConfig>
         </main>
       </div>
     </div>

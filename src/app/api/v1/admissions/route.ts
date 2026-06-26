@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { route } from '@/lib/api/compose'
 import { ok, created, paginated } from '@/lib/api/respond'
@@ -59,7 +59,16 @@ export const GET = route({
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
+        select: {
+          id: true,
+          admissionCode: true,
+          applicantName: true,
+          parentName: true,
+          phone: true,
+          email: true,
+          gradeSought: true,
+          status: true,
+          createdAt: true,
           stage: {
             select: {
               id: true,
@@ -99,7 +108,12 @@ export const GET = route({
         : null
     }))
 
-    return paginated(admissionsWithIsTerminal, total, page, limit)
+    const paginatedRes = paginated(admissionsWithIsTerminal, total, page, limit)
+    const json = await paginatedRes.json()
+    return NextResponse.json({
+      ...json,
+      admissions: json.data
+    })
   }
 })
 

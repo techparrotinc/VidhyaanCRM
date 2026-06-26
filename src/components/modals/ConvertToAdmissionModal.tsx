@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react'
 import { ClipboardList, Info, ArrowRight, X, Phone, GraduationCap, Tag, Circle, Loader2 } from 'lucide-react'
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 import { mapGradeValue } from '@/lib/utils/gradeMapping'
+import { useCounsellors } from '@/hooks/useCounsellors'
+import { useAcademicYears } from '@/hooks/useAcademicYears'
+import { usePipelineStages } from '@/hooks/usePipelineStages'
 
 interface LeadRecord {
   id: string
@@ -57,12 +60,6 @@ export default function ConvertToAdmissionModal({
     notes: lead?.notes || '',
   }))
 
-  // Option list states
-  const [academicYears, setAcademicYears] = useState<any[]>([])
-  const [pipelineStages, setPipelineStages] = useState<any[]>([])
-  const [counsellors, setCounsellors] = useState<any[]>([])
-  const [loadingOptions, setLoadingOptions] = useState(true)
-
   // Interaction/submission states
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
@@ -87,72 +84,39 @@ export default function ConvertToAdmissionModal({
     setError('')
   }, [lead?.id])
 
-  // Fetch options when modal is opened
+  // Option list hooks
+  const { counsellors, isLoading: loadingCounsellors } = useCounsellors()
+  const { years: academicYears, isLoading: loadingYears } = useAcademicYears()
+  const { stages: pipelineStages, isLoading: loadingPipeline } = usePipelineStages()
+  const loadingOptions = loadingCounsellors || loadingYears || loadingPipeline
+
+  // Pre-select active year when loaded
   useEffect(() => {
-    if (!isOpen) return
-
-    const fetchData = async () => {
-      setLoadingOptions(true)
-      try {
-        const [yearsRes, pipelineRes, counsellorsRes] = await Promise.all([
-          fetch('/api/v1/settings/academic-year'),
-          fetch('/api/v1/settings/pipeline'),
-          fetch('/api/v1/users/counsellors')
-        ])
-
-        if (yearsRes.ok) {
-          const yearsData = await yearsRes.json()
-          if (yearsData.success) {
-            const yearsList = yearsData.data || []
-            setAcademicYears(yearsList)
-
-            // Pre-select active year
-            const activeYear = yearsList.find(
-              (y: any) => y.status === 'ACTIVE' || y.isCurrent === true
-            )
-            if (activeYear) {
-              setForm((prev) => ({
-                ...prev,
-                academicYearId: prev.academicYearId || activeYear.id
-              }))
-            }
-          }
-        }
-
-        if (pipelineRes.ok) {
-          const pipelineData = await pipelineRes.json()
-          if (pipelineData.success) {
-            const stagesList = pipelineData.data || []
-            setPipelineStages(stagesList)
-
-            // Pre-select first stage
-            const firstNonTerminal = stagesList
-              .filter((s: any) => !s.isWon && !s.isLost)
-              .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0))[0]
-            if (firstNonTerminal) {
-              setForm((prev) => ({
-                ...prev,
-                stageId: prev.stageId || firstNonTerminal.id
-              }))
-            }
-          }
-        }
-
-        if (counsellorsRes.ok) {
-          const counsellorsData = await counsellorsRes.json()
-          if (counsellorsData.success) {
-            setCounsellors(counsellorsData.data || [])
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching modal options:', err)
-      } finally {
-        setLoadingOptions(false)
-      }
+    if (!isOpen || academicYears.length === 0) return
+    const activeYear = academicYears.find(
+      (y: any) => y.status === 'ACTIVE' || y.isCurrent === true
+    )
+    if (activeYear) {
+      setForm((prev) => ({
+        ...prev,
+        academicYearId: prev.academicYearId || activeYear.id
+      }))
     }
+  }, [academicYears, isOpen])
 
-    fetchData()
-  }, [isOpen])
+  // Pre-select first stage when loaded
+  useEffect(() => {
+    if (!isOpen || pipelineStages.length === 0) return
+    const firstNonTerminal = pipelineStages
+      .filter((s: any) => !s.isWon && !s.isLost)
+      .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0))[0]
+    if (firstNonTerminal) {
+      setForm((prev) => ({
+        ...prev,
+        stageId: prev.stageId || firstNonTerminal.id
+      }))
+    }
+  }, [pipelineStages, isOpen])
 
   // Inline Validation Helpers
   const handleBlur = (field: string) => {
@@ -424,7 +388,7 @@ export default function ConvertToAdmissionModal({
                   className={`form-input-style ${form.academicYearId ? 'has-value' : ''} ${isFieldInvalid('academicYearId') ? 'has-error' : ''}`}
                 >
                   <option value="">Select Year</option>
-                  {academicYears.map((ay) => (
+                  {academicYears.map((ay: any) => (
                     <option key={ay.id} value={ay.id}>
                       {ay.name} {ay.status === 'ACTIVE' ? '(Current)' : ''}
                     </option>
@@ -456,7 +420,7 @@ export default function ConvertToAdmissionModal({
                   className={`form-input-style ${form.stageId ? 'has-value' : ''} ${isFieldInvalid('stageId') ? 'has-error' : ''}`}
                 >
                   <option value="">Select Stage</option>
-                  {pipelineStages.map((stage) => (
+                  {pipelineStages.map((stage: any) => (
                     <option key={stage.id} value={stage.id}>
                       {stage.name}
                     </option>
@@ -486,7 +450,7 @@ export default function ConvertToAdmissionModal({
                   className={`form-input-style ${form.assignedToId ? 'has-value' : ''}`}
                 >
                   <option value="">Unassigned</option>
-                  {counsellors.map((c) => (
+                  {counsellors.map((c: any) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>

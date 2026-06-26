@@ -12,24 +12,41 @@ export const GET = route({
   module: MODULES.LEAD_MANAGEMENT,
   roles: [...CRM_ROLES],
   handler: async ({ req, db, params }) => {
+    const id = params?.id
     const lead = await db.lead.findFirst({
-      where: { id: params?.id },
+      where: { id },
       include: {
         assignedTo: {
           select: {
             id: true,
             name: true
           }
-        },
-        activities: {
-          orderBy: { createdAt: 'desc' },
-          take: 20
         }
       }
     })
 
     if (!lead) throw Errors.notFound('Lead')
-    return ok(lead)
+
+    const [activities, related] = await Promise.all([
+      db.leadActivity.findMany({
+        where: { leadId: id },
+        orderBy: { createdAt: 'desc' },
+        take: 20
+      }),
+      lead.phone ? db.lead.findMany({
+        where: {
+          phone: lead.phone,
+          id: { not: id }
+        },
+        take: 3
+      }) : Promise.resolve([])
+    ])
+
+    return ok({
+      ...lead,
+      activities,
+      related
+    })
   }
 })
 

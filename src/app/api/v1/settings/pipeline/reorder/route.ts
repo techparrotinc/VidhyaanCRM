@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { ROLES } from '@/constants/roles'
+import { redis } from '@/lib/redis'
 
 export const PUT = route({
   roles: [ROLES.ORG_ADMIN],
@@ -26,6 +27,9 @@ export const PUT = route({
       where: { orgId: user.orgId },
       orderBy: { sortOrder: 'asc' }
     })
+
+    // Invalidate settings cache
+    await redis.del(`pipeline:${user.orgId}`)
 
     return ok(updated)
   }

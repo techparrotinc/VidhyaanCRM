@@ -3,6 +3,7 @@ import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { ROLES } from '@/constants/roles'
+import { redis } from '@/lib/redis'
 
 export const PUT = route({
   roles: [ROLES.ORG_ADMIN],
@@ -40,6 +41,9 @@ export const PUT = route({
       data: updateData
     })
 
+    // Invalidate settings cache
+    await redis.del(`pipeline:${user.orgId}`)
+
     return ok(updated)
   }
 })
@@ -76,6 +80,9 @@ export const DELETE = route({
     await db.admissionStage.delete({
       where: { id: params?.id }
     })
+
+    // Invalidate settings cache
+    await redis.del(`pipeline:${user.orgId}`)
 
     return ok({ deleted: true })
   }

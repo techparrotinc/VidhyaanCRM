@@ -270,6 +270,9 @@ export default function AdmissionManagementPage() {
       limit: 25,
       totalPages: 0
     })
+  const setCurrentPage = (page: number) => {
+    setPagination(prev => ({ ...prev, page }))
+  }
   const [filters, setFilters] = useState({
     stageId: '',
     applyingFor: '',
@@ -282,6 +285,70 @@ export default function AdmissionManagementPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [activeStageFilter, setActiveStageFilter] =
     useState<string | null>(null)
+
+  // Dropdown filter variables
+  const [filterApplyingFor, setFilterApplyingFor] = useState<string | null>(null)
+  const [filterCounsellor, setFilterCounsellor] = useState<string | null>(null)
+  const [filterStage, setFilterStage] = useState<string | null>(null)
+  const [filterDateRange, setFilterDateRange] = useState<string | null>(null)
+  const [filterPriority, setFilterPriority] = useState<string | null>(null)
+
+  // UI state for dropdown filter panels
+  const [showApplyingForDropdown, setShowApplyingForDropdown] = useState(false)
+  const [showCounsellorFilterDropdown, setShowCounsellorFilterDropdown] = useState(false)
+  const [showStageFilterDropdown, setShowStageFilterDropdown] = useState(false)
+  const [showDateFilterDropdown, setShowDateFilterDropdown] = useState(false)
+  const [showPriorityFilterDropdown, setShowPriorityFilterDropdown] = useState(false)
+
+  const [stages, setStages] =
+    useState<any[]>([])
+  const [activeStageId, setActiveStageId] =
+    useState<string>('all')
+  const [stageCounts, setStageCounts] =
+    useState<Record<string, number>>({})
+  const [totalCount, setTotalCount] = useState<number>(0)
+
+  const fetchPipelineData = async () => {
+    try {
+      const res = await fetch(
+        '/api/v1/admissions/pipeline'
+      )
+      const data = await res.json()
+
+      const counts: Record<string, number> = {}
+      let total = 0
+
+      if (data.stages) {
+        data.stages.forEach((s: any) => {
+          counts[s.id] = s.count || 0
+          total += s.count || 0
+        })
+      }
+
+      setStageCounts(counts)
+      setTotalCount(total)
+    } catch (err) {
+      console.error('Failed to fetch pipeline data:', err)
+    }
+  }
+
+  useEffect(() => {
+    const fetchStages = async () => {
+      try {
+        const res = await fetch(
+          '/api/v1/settings/pipeline'
+        )
+        const data = await res.json()
+        setStages(data.stages || [])
+      } catch (err) {
+        console.error(
+          'Failed to fetch stages:', err
+        )
+      }
+    }
+    fetchStages()
+    fetchPipelineData()
+  }, [])
 
   const [pipelineExpanded, setPipelineExpanded] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -355,19 +422,48 @@ export default function AdmissionManagementPage() {
     avgDaysToAdmit: pipelineData?.data?.avgDaysToAdmit ?? 0
   }), [pipelineData])
 
-  const params = useMemo(() => {
-    return new URLSearchParams({
-      page: String(pagination.page),
-      limit: '25',
-      ...(filters.stageId && { stageId: filters.stageId }),
-      ...(filters.counsellorId && { counsellorId: filters.counsellorId }),
-      ...(filters.search && { search: filters.search }),
-      ...(filters.status && { status: filters.status }),
-    })
-  }, [pagination.page, filters.stageId, filters.counsellorId, filters.search, filters.status])
+  const currentPage = pagination.page
+  const counsellorFilter = useMemo(() => filterCounsellor ? counsellors.find((c: any) => c.name === filterCounsellor)?.id : null, [filterCounsellor, counsellors])
+  const priorityFilter = useMemo(() => filterPriority === 'Urgent' ? 'URGENT' : filterPriority === 'High' ? 'HIGH' : filterPriority === 'Normal' ? 'MEDIUM' : null, [filterPriority])
+  const dateRange = useMemo(() => ({
+    from: filterDateRange === 'Jun' ? '2026-06-01' : filterDateRange === 'May' ? '2026-05-01' : filterDateRange === 'Apr' ? '2026-04-01' : null,
+    to: filterDateRange === 'Jun' ? '2026-06-30' : filterDateRange === 'May' ? '2026-05-31' : filterDateRange === 'Apr' ? '2026-04-30' : null,
+  }), [filterDateRange])
+
+  const buildQueryParams = useCallback(() => {
+    const params = new URLSearchParams()
+    params.set('page', String(currentPage))
+    params.set('limit', '25')
+
+    if (searchQuery) {
+      params.set('search', searchQuery)
+    }
+
+    if (activeStageId !== 'all') {
+      params.set('stageId', activeStageId)
+    }
+
+    if (counsellorFilter) {
+      params.set('assignedToId', counsellorFilter)
+    }
+
+    if (priorityFilter) {
+      params.set('priority', priorityFilter)
+    }
+
+    if (dateRange.from) {
+      params.set('dateFrom', dateRange.from)
+    }
+
+    if (dateRange.to) {
+      params.set('dateTo', dateRange.to)
+    }
+
+    return params.toString()
+  }, [currentPage, searchQuery, activeStageId, counsellorFilter, priorityFilter, dateRange])
 
   const { data: admissionsData, error: swrError, isLoading: loading, mutate } = useSWR<any>(
-    `/api/v1/admissions?${params.toString()}`,
+    `/api/v1/admissions?${buildQueryParams()}`,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -375,6 +471,17 @@ export default function AdmissionManagementPage() {
       keepPreviousData: true,
     }
   )
+
+  useEffect(() => {
+    fetchAdmissions()
+  }, [
+    currentPage,
+    searchQuery,
+    activeStageId,
+    counsellorFilter,
+    priorityFilter,
+    dateRange,
+  ])
 
   const error = swrError ? 'Failed to load admissions' : null
 
@@ -458,25 +565,14 @@ export default function AdmissionManagementPage() {
   // Mutate trigger wrappers
   const fetchPipeline = useCallback(async () => {
     mutatePipeline()
+    fetchPipelineData()
   }, [mutatePipeline])
 
   const fetchAdmissions = useCallback(async () => {
     mutate()
   }, [mutate])
 
-  // Dropdown filter variables
-  const [filterApplyingFor, setFilterApplyingFor] = useState<string | null>(null)
-  const [filterCounsellor, setFilterCounsellor] = useState<string | null>(null)
-  const [filterStage, setFilterStage] = useState<string | null>(null)
-  const [filterDateRange, setFilterDateRange] = useState<string | null>(null)
-  const [filterPriority, setFilterPriority] = useState<string | null>(null)
 
-  // UI state for dropdown filter panels
-  const [showApplyingForDropdown, setShowApplyingForDropdown] = useState(false)
-  const [showCounsellorFilterDropdown, setShowCounsellorFilterDropdown] = useState(false)
-  const [showStageFilterDropdown, setShowStageFilterDropdown] = useState(false)
-  const [showDateFilterDropdown, setShowDateFilterDropdown] = useState(false)
-  const [showPriorityFilterDropdown, setShowPriorityFilterDropdown] = useState(false)
 
   // Layout sidebar states
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -556,28 +652,41 @@ export default function AdmissionManagementPage() {
     }
   }
 
-  const getStatusSelectClass = (status: string) => {
-    const base = "text-[10px] font-semibold px-2 py-0.5 rounded-full border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 "
-    switch (status) {
-      case 'ADMITTED':
-        return base + "bg-emerald-50 text-emerald-700 border-emerald-200"
-      case 'REJECTED':
-        return base + "bg-rose-50 text-rose-700 border-rose-200"
-      case 'WAITLISTED':
-        return base + "bg-amber-50 text-amber-700 border-amber-200"
-      case 'WITHDRAWN':
-        return base + "bg-slate-50 text-slate-600 border-slate-200"
-      case 'IN_PROGRESS':
-      default:
-        return base + "bg-blue-50 text-blue-700 border-blue-200"
+  const formatStatus = (
+    status: string
+  ): string => {
+    const map: Record<string,string>
+      = {
+      IN_PROGRESS: 'In Progress',
+      ADMITTED: 'Admitted',
+      REJECTED: 'Rejected',
+      WAITLISTED: 'Waitlisted',
+      WITHDRAWN: 'Withdrawn',
     }
+    return map[status] || status
   }
 
-  const getTabCount = (statusVal: string) => {
-    if (!statusVal) return pagination.total
-    if (filters.status === statusVal) return pagination.total
-    return applicants.filter((a: any) => a.dbStatus === statusVal).length
+  const statusBadgeColor = (
+    status: string
+  ): string => {
+    const map: Record<string,string>
+      = {
+      IN_PROGRESS:
+        'bg-blue-50 text-blue-700',
+      ADMITTED:
+        'bg-green-50 text-green-700',
+      REJECTED:
+        'bg-red-50 text-red-700',
+      WAITLISTED:
+        'bg-amber-50 text-amber-700',
+      WITHDRAWN:
+        'bg-slate-100 text-slate-500',
+    }
+    return map[status]
+      || 'bg-slate-100 text-slate-500'
   }
+
+
 
   const formatDate = (dateString: any) => {
     if (!dateString) return '—'
@@ -637,8 +746,17 @@ export default function AdmissionManagementPage() {
       return true
     })
 
-  const totalCount = pipelineStats.total
-  const conversionRate = pipelineStats.conversionRate
+  const conversionRate = useMemo(() => {
+    const total = Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0
+    const wonStage = stages.find(s => s.isWon === true)
+    const admitted = wonStage ? (stageCounts[wonStage.id] || 0) : 0
+    return total > 0 ? Math.round((admitted / total) * 100) : 0
+  }, [stageCounts, totalCount, stages])
+
+  const displayAdmittedCount = useMemo(() => {
+    const wonStage = stages.find(s => s.isWon === true)
+    return wonStage ? (stageCounts[wonStage.id] || 0) : 0
+  }, [stageCounts, stages])
   const pendingActionCount = 
     applicants.filter(
       (a: any) => a.pendingAction !== null
@@ -684,6 +802,7 @@ export default function AdmissionManagementPage() {
     setFilterPriority(null)
     setSearchQuery('')
     setActiveStageFilter(null)
+    setActiveStageId('all')
     setSelectedItems([])
   }
 
@@ -1047,7 +1166,9 @@ export default function AdmissionManagementPage() {
                   <div className="flex items-center gap-4 ml-4">
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs text-slate-400">Total:</span>
-                      <span className="text-xs font-bold text-slate-800">{totalCount}</span>
+                      <span className="text-xs font-bold text-slate-800">
+                        {Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs text-slate-400 font-sans">Conversion:</span>
@@ -1056,7 +1177,7 @@ export default function AdmissionManagementPage() {
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs text-slate-400 font-sans">Admitted:</span>
                       <span className="text-xs font-bold text-blue-600">
-                        {getStageCount('Admitted') || getStageCount('admitted') || getStageCount('Enrolled') || getStageCount('enrolled') || 0}
+                        {displayAdmittedCount}
                       </span>
                     </div>
                   </div>
@@ -1302,43 +1423,7 @@ export default function AdmissionManagementPage() {
                       )}
                     </div>
 
-                    {/* Stage */}
-                    <div className="relative w-full sm:w-auto">
-                      <button
-                        onClick={() => {
-                          setShowStageFilterDropdown(!showStageFilterDropdown)
-                          setShowApplyingForDropdown(false)
-                          setShowCounsellorFilterDropdown(false)
-                          setShowDateFilterDropdown(false)
-                          setShowPriorityFilterDropdown(false)
-                        }}
-                        className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                      >
-                        <span>{filterStage ? `Stage: ${configPipeline.find(s => s.id === filterStage)?.label}` : 'Stage ▾'}</span>
-                      </button>
-                      {showStageFilterDropdown && (
-                        <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] max-h-48 overflow-y-auto w-full sm:w-auto">
-                          <div 
-                            onClick={() => { setFilterStage(null); setShowStageFilterDropdown(false) }}
-                            className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                          >
-                            All Stages
-                          </div>
-                          {configPipeline.map(s => (
-                            <div
-                              key={s.id}
-                              onClick={() => { setFilterStage(s.id); setShowStageFilterDropdown(false) }}
-                              className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                                filterStage === s.id ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                              }`}
-                            >
-                              <span>{s.label}</span>
-                              {filterStage === s.id && <Check size={12} className="text-[#1565D8]" />}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+
 
                     {/* Date Range */}
                     <div className="relative w-full sm:w-auto">
@@ -1483,36 +1568,52 @@ export default function AdmissionManagementPage() {
                   </div>
                 </div>
 
-                {/* STATUS TAB STRIP */}
-                <div 
-                  className="border-b border-slate-100 pb-0 flex items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden scrollbar-none px-4 bg-white"
-                  style={{ scrollbarWidth: 'none' }}
-                >
-                  {[
-                    { id: '', label: 'All', badgeClass: 'bg-slate-200 text-slate-600' },
-                    { id: 'IN_PROGRESS', label: 'In Progress', badgeClass: 'bg-blue-100 text-blue-700' },
-                    { id: 'ADMITTED', label: 'Admitted', badgeClass: 'bg-emerald-100 text-emerald-700' },
-                    { id: 'REJECTED', label: 'Rejected', badgeClass: 'bg-rose-100 text-rose-700' },
-                    { id: 'WAITLISTED', label: 'Waitlisted', badgeClass: 'bg-amber-100 text-amber-700' },
-                    { id: 'WITHDRAWN', label: 'Withdrawn', badgeClass: 'bg-slate-150 text-slate-600' },
-                  ].map(tab => {
-                    const isActive = filters.status === tab.id
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => {
-                          setFilters(f => ({ ...f, status: tab.id }))
-                          setPagination(p => ({ ...p, page: 1 }))
-                        }}
-                        className={`px-3 py-2.5 text-sm font-medium cursor-pointer relative transition-all duration-200 shrink-0 ${isActive ? 'text-[#1565D8] border-b-2 border-[#1565D8] mb-[-1px]' : 'text-slate-500 hover:text-slate-800'}`}
-                      >
-                        <span>{tab.label}</span>
-                        <span className={`ml-2 text-[10px] md:text-[11px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'bg-[#1565D8] text-white' : tab.badgeClass}`}>
-                          {getTabCount(tab.id)}
-                        </span>
-                      </button>
-                    )
-                  })}
+                {/* STAGE TABS */}
+                <div className="flex items-center gap-0.5 px-4 pt-1 pb-0 border-b border-slate-100 overflow-x-auto scrollbar-none flex-nowrap bg-white" style={{ scrollbarWidth: 'none' }}>
+                  <button
+                    onClick={() => {
+                      setActiveStageId('all')
+                      setCurrentPage(1)
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap flex-shrink-0 transition-colors cursor-pointer ${
+                      activeStageId === 'all'
+                        ? 'border-[#1565D8] text-[#1565D8]'
+                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                    }`}
+                  >
+                    All
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                      activeStageId === 'all'
+                        ? 'bg-[#1565D8] text-white'
+                        : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
+                    </span>
+                  </button>
+
+                  {stages.map(stage => (
+                    <button
+                      key={stage.id}
+                      onClick={() => {
+                        setActiveStageId(stage.id)
+                        setCurrentPage(1)
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap flex-shrink-0 transition-colors cursor-pointer ${
+                        activeStageId === stage.id
+                          ? 'border-[#1565D8] text-[#1565D8]'
+                          : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                      }`}
+                    >
+                      {stage.name}
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                        activeStageId === stage.id
+                          ? 'bg-[#1565D8] text-white'
+                          : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {stageCounts[stage.id] || 0}
+                      </span>
+                    </button>
+                  ))}
                 </div>
                  {/* Desktop/Tablet Table View */}
                 <div className="hidden sm:block w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
@@ -1649,17 +1750,10 @@ export default function AdmissionManagementPage() {
 
                             {/* Status */}
                             <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]" onClick={(e) => e.stopPropagation()}>
-                              <select
-                                value={a.dbStatus}
-                                onChange={(e) => handleStatusChange(a.id, e.target.value)}
-                                className={getStatusSelectClass(a.dbStatus)}
-                              >
-                                <option value="IN_PROGRESS">In Progress</option>
-                                <option value="ADMITTED">Admitted</option>
-                                <option value="REJECTED">Rejected</option>
-                                <option value="WAITLISTED">Waitlisted</option>
-                                <option value="WITHDRAWN">Withdrawn</option>
-                              </select>
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusBadgeColor(a.dbStatus)}`}>
+                                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60"/>
+                                {formatStatus(a.dbStatus)}
+                              </span>
                             </td>
 
                             {/* Counsellor */}
@@ -1825,17 +1919,10 @@ export default function AdmissionManagementPage() {
                           </span>
                         </div>
                         <div onClick={(e) => e.stopPropagation()}>
-                          <select
-                            value={admission.dbStatus}
-                            onChange={(e) => handleStatusChange(admission.id, e.target.value)}
-                            className={getStatusSelectClass(admission.dbStatus)}
-                          >
-                            <option value="IN_PROGRESS">In Progress</option>
-                            <option value="ADMITTED">Admitted</option>
-                            <option value="REJECTED">Rejected</option>
-                            <option value="WAITLISTED">Waitlisted</option>
-                            <option value="WITHDRAWN">Withdrawn</option>
-                          </select>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusBadgeColor(admission.dbStatus)}`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60"/>
+                            {formatStatus(admission.dbStatus)}
+                          </span>
                         </div>
                       </div>
 
@@ -2024,43 +2111,7 @@ export default function AdmissionManagementPage() {
                     )}
                   </div>
 
-                  {/* Stage */}
-                  <div className="relative w-full sm:w-auto">
-                    <button
-                      onClick={() => {
-                        setShowStageFilterDropdown(!showStageFilterDropdown)
-                        setShowApplyingForDropdown(false)
-                        setShowCounsellorFilterDropdown(false)
-                        setShowDateFilterDropdown(false)
-                        setShowPriorityFilterDropdown(false)
-                      }}
-                      className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                    >
-                      <span>{filterStage ? `Stage: ${configPipeline.find(s => s.id === filterStage)?.label}` : 'Stage ▾'}</span>
-                    </button>
-                    {showStageFilterDropdown && (
-                      <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] max-h-48 overflow-y-auto w-full sm:w-auto">
-                        <div 
-                          onClick={() => { setFilterStage(null); setShowStageFilterDropdown(false) }}
-                          className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                        >
-                          All Stages
-                        </div>
-                        {configPipeline.map(s => (
-                          <div
-                            key={s.id}
-                            onClick={() => { setFilterStage(s.id); setShowStageFilterDropdown(false) }}
-                            className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                              filterStage === s.id ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                            }`}
-                          >
-                            <span>{s.label}</span>
-                            {filterStage === s.id && <Check size={12} className="text-[#1565D8]" />}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+
 
                   {/* Date Range */}
                   <div className="relative w-full sm:w-auto">

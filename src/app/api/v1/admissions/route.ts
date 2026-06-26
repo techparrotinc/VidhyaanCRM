@@ -14,13 +14,15 @@ export const GET = route({
     ROLES.COUNSELLOR,
     ROLES.RECEPTIONIST
   ],
-  handler: async ({ req, db }) => {
+  handler: async ({ req, db, user }) => {
     const { searchParams } = new URL(req.url)
 
     const page = Number(searchParams.get('page') ?? 1)
     const limit = Number(searchParams.get('limit') ?? 25)
-    const stageId = searchParams.get('stageId') ?? undefined
-    const counsellorId = searchParams.get('counsellorId') ?? undefined
+    const stageId = searchParams.get('stageId')
+    const assignedToId = searchParams.get('assignedToId') ?? searchParams.get('counsellorId') ?? undefined
+    const priority = searchParams.get('priority') ?? undefined
+    const dateFrom = searchParams.get('dateFrom') ?? undefined
     const status = searchParams.get('status') ?? undefined
     const search = searchParams.get('search') ?? undefined
     const academicYearId = searchParams.get('academicYearId') ?? undefined
@@ -28,33 +30,39 @@ export const GET = route({
     const skip = (page - 1) * limit
 
     const where: any = {
-      deletedAt: null
-    }
-    if (stageId) where.stageId = stageId
-    if (counsellorId) {
-      where.assignedToId = counsellorId
-    }
-    if (status) {
-      where.status = status
-    }
-    if (academicYearId) {
-      where.academicYearId = academicYearId
-    }
-    if (search) {
-      where.OR = [
-        {
-          applicantName: {
-            contains: search,
-            mode: 'insensitive'
-          }
-        },
-        { phone: { contains: search } },
-        {
-          admissionCode: {
-            contains: search
-          }
-        }
-      ]
+      orgId: user.orgId,
+      deletedAt: null,
+      ...(stageId && {
+        stageId: stageId
+      }),
+      ...(search && {
+        OR: [
+          { applicantName: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          },
+          { admissionCode: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          },
+          { phone: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          },
+        ]
+      }),
+      ...(assignedToId && {
+        assignedToId
+      }),
+      ...(priority && { priority }),
+      ...(dateFrom && {
+        createdAt: { gte: new Date(dateFrom) }
+      }),
+      ...(status && { status }),
+      ...(academicYearId && { academicYearId }),
     }
 
     const [admissions, total] = await Promise.all([

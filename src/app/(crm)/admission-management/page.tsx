@@ -14,6 +14,7 @@ import {
   CreditCard,
   Shield,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   Search,
   Bell,
@@ -42,7 +43,8 @@ import {
   Columns,
   Inbox,
   FileText,
-  Loader2
+  Loader2,
+  BarChart2
 } from 'lucide-react'
 import TableSkeleton from '@/components/shared/TableSkeleton'
 import {
@@ -262,7 +264,7 @@ export default function AdmissionManagementPage() {
     useState({
       total: 0,
       page: 1,
-      limit: 10,
+      limit: 25,
       totalPages: 0
     })
   const [filters, setFilters] = useState({
@@ -276,6 +278,16 @@ export default function AdmissionManagementPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [activeStageFilter, setActiveStageFilter] =
     useState<string | null>(null)
+
+  const [pipelineExpanded, setPipelineExpanded] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('admission_pipeline_expanded') === 'true'
+  })
+
+  const togglePipeline = (val: boolean) => {
+    setPipelineExpanded(val)
+    localStorage.setItem('admission_pipeline_expanded', String(val))
+  }
   const searchTimeout = useRef<NodeJS.Timeout | undefined>(undefined)
   
   // Use shared hook for counsellor list
@@ -318,7 +330,7 @@ export default function AdmissionManagementPage() {
   const params = useMemo(() => {
     return new URLSearchParams({
       page: String(pagination.page),
-      limit: '10',
+      limit: '25',
       ...(filters.stageId && { stageId: filters.stageId }),
       ...(filters.counsellorId && { counsellorId: filters.counsellorId }),
       ...(filters.search && { search: filters.search }),
@@ -482,32 +494,32 @@ export default function AdmissionManagementPage() {
     switch (dbStatus) {
       case 'ADMITTED':
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
             Admitted
           </span>
         )
       case 'REJECTED':
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
             Rejected
           </span>
         )
       case 'WAITLISTED':
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
             Waitlisted
           </span>
         )
       case 'WITHDRAWN':
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200">
             Withdrawn
           </span>
         )
       case 'IN_PROGRESS':
       default:
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
             In Progress
           </span>
         )
@@ -896,110 +908,152 @@ export default function AdmissionManagementPage() {
           </div>
 
           {/* SECTION 2 — PIPELINE SUMMARY STRIP */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-md px-5 py-4 border-t-4 border-t-[#1565D8] space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          {!pipelineExpanded ? (
+            <div 
+              className="flex items-center justify-between px-4 py-2.5 bg-white border border-slate-200 rounded-xl mx-4 mb-3 cursor-pointer hover:border-[#1565D8] hover:bg-blue-50/30 transition-colors"
+              onClick={() => togglePipeline(true)}
+            >
               <div className="flex items-center gap-3">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                  {moduleLabel.toUpperCase()} PIPELINE
+                <BarChart2 className="size-14 text-[#1565D8]" />
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  ADMISSION PIPELINE
                 </span>
-                <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2.5 py-1 rounded-full">
-                  {config.academicYear}
-                </span>
+                <div className="flex items-center gap-4 ml-4">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-slate-400">Total:</span>
+                    <span className="text-xs font-bold text-slate-800">{totalCount}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-slate-400 font-sans">Conversion:</span>
+                    <span className="text-xs font-bold text-green-600">{conversionRate}%</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-slate-400 font-sans">Admitted:</span>
+                    <span className="text-xs font-bold text-blue-600">
+                      {getStageCount('Admitted') || getStageCount('admitted') || getStageCount('Enrolled') || getStageCount('enrolled') || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-[#1565D8] font-medium font-sans">View Pipeline</span>
+                <ChevronDown size={14} className="text-slate-400" />
               </div>
             </div>
-
-            {/* STATS CARDS ROW */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4">
-              {/* Card 1: Total */}
-              <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
-                <div className="text-xs text-slate-500 font-medium mb-1">Total Applicants</div>
-                <div className="text-2xl font-bold text-slate-900">{totalCount}</div>
-              </div>
-              {/* Card 2: Conversion */}
-              <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
-                <div className="text-xs text-slate-500 font-medium mb-1">Conversion Rate</div>
-                <div className="text-2xl font-bold text-green-600">{conversionRate}%</div>
-              </div>
-              {/* Card 3: Avg. to admit */}
-              <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
-                <div className="text-xs text-slate-500 font-medium mb-1">Avg. to Admit</div>
-                <div className="text-2xl font-bold text-[#1565D8]">{pipelineStats.avgDaysToAdmit || 0} days</div>
-              </div>
-              {/* Card 4: Pending Action */}
-              <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
-                <div className="text-xs text-slate-500 font-medium mb-1">Pending Action</div>
-                <div className="text-2xl font-bold text-red-600">{pendingActionCount}</div>
-              </div>
-            </div>
-
-            {/* PIPELINE STRIP */}
-            <div className="relative border-b border-slate-100 pb-2">
-              <div className="flex flex-wrap gap-2 p-3 sm:p-4">
-                {configPipeline.map((stage) => {
-                  const isActive = activeStageFilter === stage.id
-                  const stageCount = getStageCount(stage.label)
-
-                  return (
-                    <button
-                      key={stage.id}
-                      onClick={() => {
-                        const newStageId = activeStageFilter === stage.id ? '' : stage.id
-                        setActiveStageFilter(newStageId || null)
-                        
-                        const dbStage = pipeline.find(
-                          (p: any) => p.label === stage.label ||
-                          (p.label && stage.label && p.label.toLowerCase() === stage.label.toLowerCase())
-                        )
-                        
-                        setFilters(f => ({
-                          ...f,
-                          stageId: newStageId ? (dbStage ? dbStage.id : '') : ''
-                        }))
-                        setPagination(p => ({ ...p, page: 1 }))
-                      }}
-                      className={`h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs font-semibold rounded-full flex-shrink-0 whitespace-nowrap border flex items-center gap-1.5 transition-all cursor-pointer select-none
-                        ${
-                          isActive
-                            ? `${stage.bgClass} ${stage.textClass} ${stage.borderClass} ring-2 ring-offset-1 ring-blue-500`
-                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                        }`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${stage.dotClass}`} />
-                      <span>{stage.label}</span>
-                      <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${isActive ? 'bg-white/20 text-current' : 'bg-slate-100 text-slate-500'}`}>
-                        {stageCount}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {activeStageFilter && (
-              <div className="flex justify-end mt-3">
+          ) : (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-md px-5 py-4 border-t-4 border-t-[#1565D8] space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold uppercase text-slate-500">
+                    ADMISSION MANAGEMENT PIPELINE
+                  </span>
+                  <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2.5 py-1 rounded-full">
+                    {config.academicYear}
+                  </span>
+                </div>
                 <button
-                  onClick={() => {
-                    setActiveStageFilter(null)
-                    setFilters(f => ({
-                      ...f,
-                      stageId: ''
-                    }))
-                    setPagination(p => ({ ...p, page: 1 }))
-                  }}
-                  className="text-xs font-semibold text-slate-400 hover:text-[#1565D8] flex items-center gap-1 cursor-pointer font-sans"
+                  onClick={() => togglePipeline(false)}
+                  className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 cursor-pointer font-sans transition-colors"
                 >
-                  <X size={12} />
-                  Clear filter · Showing {configPipeline.find(p => p.id === activeStageFilter)?.label} ({filteredApplicants.length})
+                  <span>Collapse</span>
+                  <ChevronUp size={12} />
                 </button>
               </div>
-            )}
-          </div>
+
+              {/* STATS CARDS ROW */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4">
+                {/* Card 1: Total */}
+                <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
+                  <div className="text-xs text-slate-500 font-medium mb-1">Total Applicants</div>
+                  <div className="text-2xl font-bold text-slate-900">{totalCount}</div>
+                </div>
+                {/* Card 2: Conversion */}
+                <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
+                  <div className="text-xs text-slate-500 font-medium mb-1">Conversion Rate</div>
+                  <div className="text-2xl font-bold text-green-600">{conversionRate}%</div>
+                </div>
+                {/* Card 3: Avg. to admit */}
+                <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
+                  <div className="text-xs text-slate-500 font-medium mb-1">Avg. to Admit</div>
+                  <div className="text-2xl font-bold text-[#1565D8]">{pipelineStats.avgDaysToAdmit || 0} days</div>
+                </div>
+                {/* Card 4: Pending Action */}
+                <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
+                  <div className="text-xs text-slate-500 font-medium mb-1">Pending Action</div>
+                  <div className="text-2xl font-bold text-red-600">{pendingActionCount}</div>
+                </div>
+              </div>
+
+              {/* PIPELINE STRIP */}
+              <div className="relative border-b border-slate-100 pb-2">
+                <div className="flex flex-wrap gap-2 p-3 sm:p-4">
+                  {configPipeline.map((stage) => {
+                    const isActive = activeStageFilter === stage.id
+                    const stageCount = getStageCount(stage.label)
+
+                    return (
+                      <button
+                        key={stage.id}
+                        onClick={() => {
+                          const newStageId = activeStageFilter === stage.id ? '' : stage.id
+                          setActiveStageFilter(newStageId || null)
+                          
+                          const dbStage = pipeline.find(
+                            (p: any) => p.label === stage.label ||
+                            (p.label && stage.label && p.label.toLowerCase() === stage.label.toLowerCase())
+                          )
+                          
+                          setFilters(f => ({
+                            ...f,
+                            stageId: newStageId ? (dbStage ? dbStage.id : '') : ''
+                          }))
+                          setPagination(p => ({ ...p, page: 1 }))
+                        }}
+                        className={`h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs font-semibold rounded-full flex-shrink-0 whitespace-nowrap border flex items-center gap-1.5 transition-all cursor-pointer select-none
+                          ${
+                            isActive
+                              ? `${stage.bgClass} ${stage.textClass} ${stage.borderClass} ring-2 ring-offset-1 ring-blue-500`
+                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${stage.dotClass}`} />
+                        <span>{stage.label}</span>
+                        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${isActive ? 'bg-white/20 text-current' : 'bg-slate-100 text-slate-500'}`}>
+                          {stageCount}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Clear active filter indicator if active */}
+              {activeStageFilter && (
+                <div className="flex justify-end mt-3">
+                  <button
+                    onClick={() => {
+                      setActiveStageFilter(null)
+                      setFilters(f => ({
+                        ...f,
+                        stageId: ''
+                      }))
+                      setPagination(p => ({ ...p, page: 1 }))
+                    }}
+                    className="text-xs font-semibold text-slate-400 hover:text-[#1565D8] flex items-center gap-1 cursor-pointer font-sans"
+                  >
+                    <X size={12} />
+                    Clear filter · Showing {configPipeline.find(p => p.id === activeStageFilter)?.label} ({filteredApplicants.length})
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* SECTION 3 — FILTER BAR */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-md p-3 sm:p-4 flex flex-col sm:flex-row gap-2 flex-wrap border-t-2 border-t-slate-300 items-start sm:items-center justify-between">
             
             {/* Search Input */}
-            <div className="relative flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-4 w-full sm:w-64 flex-shrink-0 h-10 sm:h-9">
+            <div className="relative flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-4 flex-1 min-w-0 max-w-xs sm:max-w-sm h-10 sm:h-9">
               <Search size={15} className="text-slate-400" strokeWidth={1.5} />
               <input
                 type="text"
@@ -1331,7 +1385,7 @@ export default function AdmissionManagementPage() {
                 <div className="hidden sm:block w-full overflow-x-auto sm:overflow-x-visible bg-white rounded-xl border border-slate-200 shadow-sm">
                   <div className="flex flex-col w-full min-w-0 sm:min-w-[600px]">
                     {/* TABLE HEADER */}
-                    <div className="flex items-center px-4 py-3 bg-slate-50 border-b border-slate-100 select-none text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    <div className="flex items-center px-4 py-2 bg-slate-50 border-b border-slate-100 select-none text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                       <div className="w-8 flex-shrink-0">
                         <input
                           type="checkbox"
@@ -1366,7 +1420,7 @@ export default function AdmissionManagementPage() {
                         Array.from({ length: 5 }).map((_, idx) => (
                           <div
                             key={`skeleton-${idx}`}
-                            className="relative flex items-center px-4 py-3.5 gap-3 bg-white border-b border-slate-100 min-h-[56px]"
+                            className="relative flex items-center px-4 py-2.5 gap-3 bg-white border-b border-slate-100 min-h-[44px]"
                           >
                             <div className="w-8 flex-shrink-0">
                               <Skeleton className="w-4 h-4 rounded" />
@@ -1406,7 +1460,7 @@ export default function AdmissionManagementPage() {
                               key={a.id}
                               onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
                               onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                              className="relative flex items-center px-4 py-3 gap-3 hover:bg-slate-50 border-b border-slate-100 min-h-[56px] h-auto transition-colors duration-100 cursor-pointer bg-white"
+                              className="relative flex items-center px-4 py-2.5 gap-3 hover:bg-slate-50 border-b border-slate-100 min-h-[44px] h-auto transition-colors duration-100 cursor-pointer bg-white"
                             >
                               {/* Left border highlight */}
                               {leftBorderColor !== 'bg-transparent' && (
@@ -1425,7 +1479,7 @@ export default function AdmissionManagementPage() {
 
                               {/* Applicant Details */}
                               <div className="flex-1 flex items-center gap-3 min-w-0">
-                                <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0 font-sans">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0 font-sans">
                                   {a.avatar}
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -1449,10 +1503,10 @@ export default function AdmissionManagementPage() {
 
                               {/* Grade / Stage */}
                               <div className="w-32 flex-shrink-0 hidden sm:flex flex-col items-start gap-1">
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 font-sans">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 font-sans">
                                   {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
                                 </span>
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${stageData.bgClass} ${stageData.textClass} ${stageData.borderClass} font-sans`}>
+                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border ${stageData.bgClass} ${stageData.textClass} ${stageData.borderClass} font-sans`}>
                                   {stageData.label}
                                 </span>
                               </div>
@@ -1469,17 +1523,17 @@ export default function AdmissionManagementPage() {
                                     <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[8px] font-bold flex items-center justify-center shrink-0">
                                       {a.counsellorAvatar}
                                     </div>
-                                    <span className="text-sm text-slate-650 truncate font-sans">
+                                    <span className="text-xs text-slate-600 truncate font-sans">
                                       {a.counsellor}
                                     </span>
                                   </>
                                 ) : (
-                                  <span className="text-sm text-slate-405 font-sans">Unassigned</span>
+                                  <span className="text-xs text-slate-400 font-sans">Unassigned</span>
                                 )}
                               </div>
 
                               {/* Date */}
-                              <div className="w-20 flex-shrink-0 hidden lg:block text-xs text-slate-500 font-medium font-sans">
+                              <div className="w-20 flex-shrink-0 hidden lg:block text-xs text-slate-400 font-medium font-sans">
                                 {formatDate(a.createdAt)}
                               </div>
 

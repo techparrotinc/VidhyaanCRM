@@ -110,11 +110,8 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
               <Menu className="w-5 h-5" />
             </button>
             <div className="flex flex-col text-left">
-              <span className="text-xs text-slate-400 font-normal">
+              <span className="text-sm text-slate-600">
                 {getGreeting()}, {session?.user?.name ? session.user.name.split(' ')[0] : 'Admin'} 👋
-              </span>
-              <span className="text-sm font-semibold text-slate-800">
-                {getPageTitle()}
               </span>
             </div>
           </div>

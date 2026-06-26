@@ -864,11 +864,26 @@ export default function AdmissionManagementPage() {
     }
   }
 
-  const getLeftBorderBg = (a: any) => {
-    if (a.status === 'overdue') return 'bg-red-500'
-    if (a.status === 'warning') return 'bg-amber-400'
-    if (a.status === 'recent' || a.daysInStage <= 1) return 'bg-green-400'
-    return 'bg-transparent'
+  const rowBorderColor = (status: string): string => {
+    const colors: Record<string, string> = {
+      IN_PROGRESS: 'border-l-blue-400',
+      ADMITTED: 'border-l-green-500',
+      REJECTED: 'border-l-red-400',
+      WAITLISTED: 'border-l-amber-400',
+      WITHDRAWN: 'border-l-slate-300',
+    }
+    return colors[status] || 'border-l-slate-200'
+  }
+
+  const stageColor = (name: string | undefined): string => {
+    if (!name) return 'bg-slate-100 text-slate-500'
+    const n = name.toLowerCase()
+    if (n.includes('admit')) return 'bg-green-50 text-green-700'
+    if (n.includes('reject')) return 'bg-red-50 text-red-700'
+    if (n.includes('interview')) return 'bg-purple-50 text-purple-700'
+    if (n.includes('payment')) return 'bg-amber-50 text-amber-700'
+    if (n.includes('document') || n.includes('doc')) return 'bg-blue-50 text-blue-700'
+    return 'bg-slate-100 text-slate-600'
   }
 
   return (
@@ -909,35 +924,37 @@ export default function AdmissionManagementPage() {
 
           {/* SECTION 2 — PIPELINE SUMMARY STRIP */}
           {!pipelineExpanded ? (
-            <div 
-              className="flex items-center justify-between px-4 py-2.5 bg-white border border-slate-200 rounded-xl mx-4 mb-3 cursor-pointer hover:border-[#1565D8] hover:bg-blue-50/30 transition-colors"
-              onClick={() => togglePipeline(true)}
-            >
-              <div className="flex items-center gap-3">
-                <BarChart2 className="size-14 text-[#1565D8]" />
-                <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                  ADMISSION PIPELINE
-                </span>
-                <div className="flex items-center gap-4 ml-4">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-slate-400">Total:</span>
-                    <span className="text-xs font-bold text-slate-800">{totalCount}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-slate-400 font-sans">Conversion:</span>
-                    <span className="text-xs font-bold text-green-600">{conversionRate}%</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-slate-400 font-sans">Admitted:</span>
-                    <span className="text-xs font-bold text-blue-600">
-                      {getStageCount('Admitted') || getStageCount('admitted') || getStageCount('Enrolled') || getStageCount('enrolled') || 0}
-                    </span>
+            <div className="mx-4 mb-3">
+              <div 
+                className="flex items-center justify-between px-4 py-2.5 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-[#1565D8]/30 hover:bg-blue-50/20 transition-colors"
+                onClick={() => togglePipeline(true)}
+              >
+                <div className="flex items-center gap-3">
+                  <BarChart2 className="size-14 text-[#1565D8]" />
+                  <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    ADMISSION PIPELINE
+                  </span>
+                  <div className="flex items-center gap-4 ml-4">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-slate-400">Total:</span>
+                      <span className="text-xs font-bold text-slate-800">{totalCount}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-slate-400 font-sans">Conversion:</span>
+                      <span className="text-xs font-bold text-green-600">{conversionRate}%</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-slate-400 font-sans">Admitted:</span>
+                      <span className="text-xs font-bold text-blue-600">
+                        {getStageCount('Admitted') || getStageCount('admitted') || getStageCount('Enrolled') || getStageCount('enrolled') || 0}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-[#1565D8] font-medium font-sans">View Pipeline</span>
-                <ChevronDown size={14} className="text-slate-400" />
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[#1565D8] font-medium font-sans">View Pipeline</span>
+                  <ChevronDown size={14} className="text-slate-400" />
+                </div>
               </div>
             </div>
           ) : (
@@ -1048,341 +1065,314 @@ export default function AdmissionManagementPage() {
               )}
             </div>
           )}
-
-          {/* SECTION 3 — FILTER BAR */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-md p-3 sm:p-4 flex flex-col sm:flex-row gap-2 flex-wrap border-t-2 border-t-slate-300 items-start sm:items-center justify-between">
-            
-            {/* Search Input */}
-            <div className="relative flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-4 flex-1 min-w-0 max-w-xs sm:max-w-sm h-10 sm:h-9">
-              <Search size={15} className="text-slate-400" strokeWidth={1.5} />
-              <input
-                type="text"
-                placeholder={`Search by name, ID, ${config.applyingForLabel[type]}...`}
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  clearTimeout(searchTimeout.current)
-                  searchTimeout.current = setTimeout(
-                    () => {
-                      setFilters(f => ({
-                        ...f,
-                        search: e.target.value
-                      }))
-                      setPagination(p =>
-                        ({ ...p, page: 1 }))
-                    },
-                    300
-                  )
-                }}
-                className="bg-transparent border-none outline-none text-sm w-full text-slate-750 placeholder-slate-500 font-sans"
-              />
-              {searchQuery && (
-                <button onClick={() => {
-                  setSearchQuery('')
-                  setFilters(f => ({
-                    ...f,
-                    search: ''
-                  }))
-                  setPagination(p => ({ ...p, page: 1 }))
-                }} className="text-slate-400 hover:text-slate-650">
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-
-            {/* Filter Buttons */}
-            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto relative">
-              {/* Applying For */}
-              <div className="relative w-full sm:w-auto">
-                <button
-                  onClick={() => {
-                    setShowApplyingForDropdown(!showApplyingForDropdown)
-                    setShowCounsellorFilterDropdown(false)
-                    setShowStageFilterDropdown(false)
-                    setShowDateFilterDropdown(false)
-                    setShowPriorityFilterDropdown(false)
-                  }}
-                  className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                >
-                  <span>{filterApplyingFor ? `${config.applyingForLabel[type]}: ${getGradeLabel(filterApplyingFor)}` : `${config.applyingForLabel[type]} ▾`}</span>
-                </button>
-                {showApplyingForDropdown && (
-                  <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] max-h-48 overflow-y-auto w-full sm:w-auto">
-                    <div 
-                      onClick={() => { setFilterApplyingFor(null); setShowApplyingForDropdown(false) }}
-                      className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                    >
-                      All Classes
-                    </div>
-                    {uniqueApplyingFor.map((option: any) => (
-                      <div
-                        key={option}
-                        onClick={() => { setFilterApplyingFor(option); setShowApplyingForDropdown(false) }}
-                        className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                          filterApplyingFor === option ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span>{getGradeLabel(option)}</span>
-                        {filterApplyingFor === option && <Check size={12} className="text-[#1565D8]" />}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Counsellor */}
-              <div className="relative w-full sm:w-auto">
-                <button
-                  onClick={() => {
-                    setShowCounsellorFilterDropdown(!showCounsellorFilterDropdown)
-                    setShowApplyingForDropdown(false)
-                    setShowStageFilterDropdown(false)
-                    setShowDateFilterDropdown(false)
-                    setShowPriorityFilterDropdown(false)
-                  }}
-                  className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                >
-                  <span>{filterCounsellor ? `Counsellor: ${filterCounsellor}` : 'Counsellor ▾'}</span>
-                </button>
-                {showCounsellorFilterDropdown && (
-                  <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] w-full sm:w-auto">
-                    <div 
-                      onClick={() => { setFilterCounsellor(null); setShowCounsellorFilterDropdown(false) }}
-                      className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                    >
-                      All Counsellors
-                    </div>
-                    {counsellors.map((c: any) => (
-                      <div
-                        key={c.id}
-                        onClick={() => { setFilterCounsellor(c.name); setShowCounsellorFilterDropdown(false) }}
-                        className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                          filterCounsellor === c.name ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span>{c.name}</span>
-                        {filterCounsellor === c.name && <Check size={12} className="text-[#1565D8]" />}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Stage */}
-              <div className="relative w-full sm:w-auto">
-                <button
-                  onClick={() => {
-                    setShowStageFilterDropdown(!showStageFilterDropdown)
-                    setShowApplyingForDropdown(false)
-                    setShowCounsellorFilterDropdown(false)
-                    setShowDateFilterDropdown(false)
-                    setShowPriorityFilterDropdown(false)
-                  }}
-                  className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                >
-                  <span>{filterStage ? `Stage: ${configPipeline.find(s => s.id === filterStage)?.label}` : 'Stage ▾'}</span>
-                </button>
-                {showStageFilterDropdown && (
-                  <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] max-h-48 overflow-y-auto w-full sm:w-auto">
-                    <div 
-                      onClick={() => { setFilterStage(null); setShowStageFilterDropdown(false) }}
-                      className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                    >
-                      All Stages
-                    </div>
-                    {configPipeline.map(s => (
-                      <div
-                        key={s.id}
-                        onClick={() => { setFilterStage(s.id); setShowStageFilterDropdown(false) }}
-                        className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                          filterStage === s.id ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span>{s.label}</span>
-                        {filterStage === s.id && <Check size={12} className="text-[#1565D8]" />}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Date Range */}
-              <div className="relative w-full sm:w-auto">
-                <button
-                  onClick={() => {
-                    setShowDateFilterDropdown(!showDateFilterDropdown)
-                    setShowApplyingForDropdown(false)
-                    setShowCounsellorFilterDropdown(false)
-                    setShowStageFilterDropdown(false)
-                    setShowPriorityFilterDropdown(false)
-                  }}
-                  className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                >
-                  <span>{filterDateRange ? `Date: ${filterDateRange}` : 'Date Range ▾'}</span>
-                </button>
-                {showDateFilterDropdown && (
-                  <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[140px] w-full sm:w-auto">
-                    <div 
-                      onClick={() => { setFilterDateRange(null); setShowDateFilterDropdown(false) }}
-                      className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                    >
-                      All Time
-                    </div>
-                    {['May', 'Apr'].map(month => (
-                      <div
-                        key={month}
-                        onClick={() => { setFilterDateRange(month); setShowDateFilterDropdown(false) }}
-                        className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                          filterDateRange === month ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span>{month === 'May' ? 'May 2026' : 'April 2026'}</span>
-                        {filterDateRange === month && <Check size={12} className="text-[#1565D8]" />}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Priority */}
-              <div className="relative w-full sm:w-auto">
-                <button
-                  onClick={() => {
-                    setShowPriorityFilterDropdown(!showPriorityFilterDropdown)
-                    setShowApplyingForDropdown(false)
-                    setShowCounsellorFilterDropdown(false)
-                    setShowStageFilterDropdown(false)
-                    setShowDateFilterDropdown(false)
-                  }}
-                  className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                >
-                  <span>{filterPriority ? `Priority: ${filterPriority}` : 'Priority ▾'}</span>
-                </button>
-                {showPriorityFilterDropdown && (
-                  <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[140px] w-full sm:w-auto">
-                    <div 
-                      onClick={() => { setFilterPriority(null); setShowPriorityFilterDropdown(false) }}
-                      className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                    >
-                      All Priorities
-                    </div>
-                    {['Normal', 'High', 'Urgent'].map(p => (
-                      <div
-                        key={p}
-                        onClick={() => { setFilterPriority(p); setShowPriorityFilterDropdown(false) }}
-                        className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                          filterPriority === p ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span>{p}</span>
-                        {filterPriority === p && <Check size={12} className="text-[#1565D8]" />}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Clear Filters */}
-              {isAnyFilterActive && (
-                <button
-                  onClick={handleClearAllFilters}
-                  className="text-xs font-medium text-slate-400 hover:text-red-500 flex items-center gap-1 px-1.5 py-1.5 font-sans cursor-pointer w-full sm:w-auto justify-center sm:justify-start"
-                >
-                  <X size={13} />
-                  Clear Filters
-                </button>
-              )}
-            </div>
-
-            {/* Right group */}
-            <div className="flex gap-2 flex-wrap w-full sm:w-auto justify-end mt-2 sm:mt-0">
-              {/* View Toggle */}
-              <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-1 w-full sm:w-auto justify-center sm:justify-start">
-
-                {/* List */}
-                <button
-                  onClick={() => setActiveView('list')}
-                  className={`rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
-                    activeView === 'list'
-                      ? 'bg-white shadow-sm'
-                      : 'bg-transparent hover:bg-slate-200'
-                  }`}
-                >
-                  <List
-                    size={16}
-                    strokeWidth={1.5}
-                    className={activeView === 'list' ? 'text-[#1565D8]' : 'text-slate-400'}
-                  />
-                </button>
-
-                {/* Grid */}
-                <button
-                  onClick={() => setActiveView('grid')}
-                  className={`hidden sm:inline-flex rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
-                    activeView === 'grid'
-                      ? 'bg-white shadow-sm'
-                      : 'bg-transparent hover:bg-slate-200'
-                  }`}
-                >
-                  <LayoutGrid
-                    size={16}
-                    strokeWidth={1.5}
-                    className={activeView === 'grid' ? 'text-[#1565D8]' : 'text-slate-400'}
-                  />
-                </button>
-
-                {/* Kanban */}
-                <button
-                  onClick={() => setActiveView('kanban')}
-                  className={`rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
-                    activeView === 'kanban'
-                      ? 'bg-white shadow-sm'
-                      : 'bg-transparent hover:bg-slate-200'
-                  }`}
-                >
-                  <Columns
-                    size={16}
-                    strokeWidth={1.5}
-                    className={activeView === 'kanban' ? 'text-[#1565D8]' : 'text-slate-400'}
-                  />
-                </button>
-
-              </div>
-            </div>
-          </div>
-
-
-
-          {/* EMPTY STATE BLOCK */}
-          {!loading && filteredApplicants.length === 0 && (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm py-20 text-center flex flex-col items-center justify-center">
-              <ClipboardList size={48} className="text-slate-200" strokeWidth={1.5} />
-              <h3 className="text-lg font-bold text-slate-500 mt-4 font-sans" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                No {config.applicantLabel[type]}s found
-              </h3>
-              <p className="text-sm text-slate-400 mt-2 max-w-xs font-sans">
-                Try adjusting filters or add a new {config.applicantLabel[type].toLowerCase()}
-              </p>
-              <button
-                onClick={() => router.push('/admission-management/create')}
-                className="bg-[#1565D8] text-white text-sm font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition mt-6 cursor-pointer font-sans"
-              >
-                <Plus size={16} strokeWidth={1.5} />
-                {config.newButtonLabel[type]}
-              </button>
-            </div>
-          )}
-
-          {/* ===================================================================
-              SECTION 5 — LIST VIEW
-              =================================================================== */}
-          {activeView === 'list' && (
+          {/* SECTION 3 — FILTER BAR / SEARCH / TABLE / PAGINATION CARD */}
+          {activeView === 'list' && (loading || filteredApplicants.length > 0) ? (
             loading && applicants.length === 0 ? (
               <TableSkeleton rows={5} columns={7} />
-            ) : (loading || filteredApplicants.length > 0) && (
-              <>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden mx-4 mb-4 shadow-sm">
+                
+                {/* Search and filter row */}
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100 flex-wrap justify-between bg-white w-full">
+                  {/* Search Input */}
+                  <div className="relative flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-4 flex-1 min-w-0 max-w-xs sm:max-w-sm h-10 sm:h-9">
+                    <Search size={15} className="text-slate-400" strokeWidth={1.5} />
+                    <input
+                      type="text"
+                      placeholder={`Search by name, ID, ${config.applyingForLabel[type]}...`}
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value)
+                        clearTimeout(searchTimeout.current)
+                        searchTimeout.current = setTimeout(
+                          () => {
+                            setFilters(f => ({
+                              ...f,
+                              search: e.target.value
+                            }))
+                            setPagination(p =>
+                              ({ ...p, page: 1 }))
+                          },
+                          300
+                        )
+                      }}
+                      className="bg-transparent border-none outline-none text-sm w-full text-slate-750 placeholder-slate-500 font-sans"
+                    />
+                    {searchQuery && (
+                      <button onClick={() => {
+                        setSearchQuery('')
+                        setFilters(f => ({
+                          ...f,
+                          search: ''
+                        }))
+                        setPagination(p => ({ ...p, page: 1 }))
+                      }} className="text-slate-400 hover:text-slate-650">
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filter Buttons */}
+                  <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto relative">
+                    {/* Applying For */}
+                    <div className="relative w-full sm:w-auto">
+                      <button
+                        onClick={() => {
+                          setShowApplyingForDropdown(!showApplyingForDropdown)
+                          setShowCounsellorFilterDropdown(false)
+                          setShowStageFilterDropdown(false)
+                          setShowDateFilterDropdown(false)
+                          setShowPriorityFilterDropdown(false)
+                        }}
+                        className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
+                      >
+                        <span>{filterApplyingFor ? `${config.applyingForLabel[type]}: ${getGradeLabel(filterApplyingFor)}` : `${config.applyingForLabel[type]} ▾`}</span>
+                      </button>
+                      {showApplyingForDropdown && (
+                        <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] max-h-48 overflow-y-auto w-full sm:w-auto">
+                          <div 
+                            onClick={() => { setFilterApplyingFor(null); setShowApplyingForDropdown(false) }}
+                            className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
+                          >
+                            All Classes
+                          </div>
+                          {uniqueApplyingFor.map((option: any) => (
+                            <div
+                              key={option}
+                              onClick={() => { setFilterApplyingFor(option); setShowApplyingForDropdown(false) }}
+                              className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
+                                filterApplyingFor === option ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              <span>{getGradeLabel(option)}</span>
+                              {filterApplyingFor === option && <Check size={12} className="text-[#1565D8]" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Counsellor */}
+                    <div className="relative w-full sm:w-auto">
+                      <button
+                        onClick={() => {
+                          setShowCounsellorFilterDropdown(!showCounsellorFilterDropdown)
+                          setShowApplyingForDropdown(false)
+                          setShowStageFilterDropdown(false)
+                          setShowDateFilterDropdown(false)
+                          setShowPriorityFilterDropdown(false)
+                        }}
+                        className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
+                      >
+                        <span>{filterCounsellor ? `Counsellor: ${filterCounsellor}` : 'Counsellor ▾'}</span>
+                      </button>
+                      {showCounsellorFilterDropdown && (
+                        <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] w-full sm:w-auto">
+                          <div 
+                            onClick={() => { setFilterCounsellor(null); setShowCounsellorFilterDropdown(false) }}
+                            className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
+                          >
+                            All Counsellors
+                          </div>
+                          {counsellors.map((c: any) => (
+                            <div
+                              key={c.id}
+                              onClick={() => { setFilterCounsellor(c.name); setShowCounsellorFilterDropdown(false) }}
+                              className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
+                                filterCounsellor === c.name ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              <span>{c.name}</span>
+                              {filterCounsellor === c.name && <Check size={12} className="text-[#1565D8]" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Stage */}
+                    <div className="relative w-full sm:w-auto">
+                      <button
+                        onClick={() => {
+                          setShowStageFilterDropdown(!showStageFilterDropdown)
+                          setShowApplyingForDropdown(false)
+                          setShowCounsellorFilterDropdown(false)
+                          setShowDateFilterDropdown(false)
+                          setShowPriorityFilterDropdown(false)
+                        }}
+                        className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
+                      >
+                        <span>{filterStage ? `Stage: ${configPipeline.find(s => s.id === filterStage)?.label}` : 'Stage ▾'}</span>
+                      </button>
+                      {showStageFilterDropdown && (
+                        <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] max-h-48 overflow-y-auto w-full sm:w-auto">
+                          <div 
+                            onClick={() => { setFilterStage(null); setShowStageFilterDropdown(false) }}
+                            className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
+                          >
+                            All Stages
+                          </div>
+                          {configPipeline.map(s => (
+                            <div
+                              key={s.id}
+                              onClick={() => { setFilterStage(s.id); setShowStageFilterDropdown(false) }}
+                              className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
+                                filterStage === s.id ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              <span>{s.label}</span>
+                              {filterStage === s.id && <Check size={12} className="text-[#1565D8]" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Date Range */}
+                    <div className="relative w-full sm:w-auto">
+                      <button
+                        onClick={() => {
+                          setShowDateFilterDropdown(!showDateFilterDropdown)
+                          setShowApplyingForDropdown(false)
+                          setShowCounsellorFilterDropdown(false)
+                          setShowStageFilterDropdown(false)
+                          setShowPriorityFilterDropdown(false)
+                        }}
+                        className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
+                      >
+                        <span>{filterDateRange ? `Date: ${filterDateRange}` : 'Date Range ▾'}</span>
+                      </button>
+                      {showDateFilterDropdown && (
+                        <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[140px] w-full sm:w-auto">
+                          <div 
+                            onClick={() => { setFilterDateRange(null); setShowDateFilterDropdown(false) }}
+                            className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
+                          >
+                            All Time
+                          </div>
+                          {['May', 'Apr'].map(month => (
+                            <div
+                              key={month}
+                              onClick={() => { setFilterDateRange(month); setShowDateFilterDropdown(false) }}
+                              className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
+                                filterDateRange === month ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              <span>{month === 'May' ? 'May 2026' : 'April 2026'}</span>
+                              {filterDateRange === month && <Check size={12} className="text-[#1565D8]" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Priority */}
+                    <div className="relative w-full sm:w-auto">
+                      <button
+                        onClick={() => {
+                          setShowPriorityFilterDropdown(!showPriorityFilterDropdown)
+                          setShowApplyingForDropdown(false)
+                          setShowCounsellorFilterDropdown(false)
+                          setShowStageFilterDropdown(false)
+                          setShowDateFilterDropdown(false)
+                        }}
+                        className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
+                      >
+                        <span>{filterPriority ? `Priority: ${filterPriority}` : 'Priority ▾'}</span>
+                      </button>
+                      {showPriorityFilterDropdown && (
+                        <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[140px] w-full sm:w-auto">
+                          <div 
+                            onClick={() => { setFilterPriority(null); setShowPriorityFilterDropdown(false) }}
+                            className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
+                          >
+                            All Priorities
+                          </div>
+                          {['Normal', 'High', 'Urgent'].map(p => (
+                            <div
+                              key={p}
+                              onClick={() => { setFilterPriority(p); setShowPriorityFilterDropdown(false) }}
+                              className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
+                                filterPriority === p ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              <span>{p}</span>
+                              {filterPriority === p && <Check size={12} className="text-[#1565D8]" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Clear Filters */}
+                    {isAnyFilterActive && (
+                      <button
+                        onClick={handleClearAllFilters}
+                        className="text-xs font-medium text-slate-400 hover:text-red-500 flex items-center gap-1 px-1.5 py-1.5 font-sans cursor-pointer w-full sm:w-auto justify-center sm:justify-start"
+                      >
+                        <X size={13} />
+                        Clear Filters
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Right group */}
+                  <div className="flex gap-2 flex-wrap w-full sm:w-auto justify-end mt-2 sm:mt-0">
+                    {/* View Toggle */}
+                    <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-1 w-full sm:w-auto justify-center sm:justify-start">
+                      {/* List */}
+                      <button
+                        onClick={() => setActiveView('list')}
+                        className={`rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
+                          (activeView as string) === 'list'
+                            ? 'bg-white shadow-sm'
+                            : 'bg-transparent hover:bg-slate-200'
+                        }`}
+                      >
+                        <List
+                          size={16}
+                          strokeWidth={1.5}
+                          className={(activeView as string) === 'list' ? 'text-[#1565D8]' : 'text-slate-400'}
+                        />
+                      </button>
+
+                      {/* Grid */}
+                      <button
+                        onClick={() => setActiveView('grid')}
+                        className={`hidden sm:inline-flex rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
+                          (activeView as string) === 'grid'
+                            ? 'bg-white shadow-sm'
+                            : 'bg-transparent hover:bg-slate-200'
+                        }`}
+                      >
+                        <LayoutGrid
+                          size={16}
+                          strokeWidth={1.5}
+                          className={(activeView as string) === 'grid' ? 'text-[#1565D8]' : 'text-slate-400'}
+                        />
+                      </button>
+
+                      {/* Kanban */}
+                      <button
+                        onClick={() => setActiveView('kanban')}
+                        className={`rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
+                          (activeView as string) === 'kanban'
+                            ? 'bg-white shadow-sm'
+                            : 'bg-transparent hover:bg-slate-200'
+                        }`}
+                      >
+                        <Columns
+                          size={16}
+                          strokeWidth={1.5}
+                          className={(activeView as string) === 'kanban' ? 'text-[#1565D8]' : 'text-slate-400'}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Desktop/Tablet Table View */}
-                <div className="hidden sm:block w-full overflow-x-auto sm:overflow-x-visible bg-white rounded-xl border border-slate-200 shadow-sm">
+                <div className="hidden sm:block w-full overflow-x-auto sm:overflow-x-visible">
                   <div className="flex flex-col w-full min-w-0 sm:min-w-[600px]">
                     {/* TABLE HEADER */}
                     <div className="flex items-center px-4 py-2 bg-slate-50 border-b border-slate-100 select-none text-[10px] font-semibold uppercase tracking-wide text-slate-500">
@@ -1403,10 +1393,10 @@ export default function AdmissionManagementPage() {
                       <div className="w-24 flex-shrink-0 font-sans text-center">
                         STATUS
                       </div>
-                      <div className="w-32 flex-shrink-0 font-sans hidden md:block">
+                      <div className="w-32 flex-shrink-0 font-sans hidden lg:block">
                         COUNSELLOR
                       </div>
-                      <div className="w-20 flex-shrink-0 font-sans hidden lg:block">
+                      <div className="w-20 flex-shrink-0 font-sans hidden md:block">
                         DATE
                       </div>
                       <div className="w-12 flex-shrink-0 font-sans text-right">
@@ -1416,528 +1406,818 @@ export default function AdmissionManagementPage() {
 
                     {/* TABLE BODY */}
                     <div className="divide-y divide-slate-100">
-                      {loading ? (
-                        Array.from({ length: 5 }).map((_, idx) => (
+                      {filteredApplicants.map((a: any, idx: number) => {
+                        const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
+
+                        return (
                           <div
-                            key={`skeleton-${idx}`}
-                            className="relative flex items-center px-4 py-2.5 gap-3 bg-white border-b border-slate-100 min-h-[44px]"
+                            key={a.id}
+                            onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
+                            onClick={() => handleNavigate(`/admission-management/${a.id}`)}
+                            className={`border-l-2 ${rowBorderColor(a.dbStatus)} hover:bg-slate-50/80 transition-colors relative flex items-center px-4 py-2.5 gap-3 border-b border-slate-100 min-h-[44px] h-auto cursor-pointer bg-white`}
                           >
-                            <div className="w-8 flex-shrink-0">
-                              <Skeleton className="w-4 h-4 rounded" />
+                            {/* Checkbox */}
+                            <div className="w-8 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={selectedItems.includes(a.id)}
+                                onChange={() => handleSelectApplicant(a.id)}
+                                className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
+                              />
                             </div>
-                            <div className="flex-1 flex items-center gap-3">
-                              <Skeleton className="w-9 h-9 rounded-full" />
-                              <div className="space-y-1.5 flex-1 max-w-[150px]">
-                                <Skeleton className="h-4 w-full" />
-                                <Skeleton className="h-3 w-2/3" />
+
+                            {/* Applicant Details */}
+                            <div className="flex-1 flex items-center gap-3 min-w-0">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0 font-sans">
+                                {a.avatar}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <Link
+                                  href={`/admission-management/${a.id}`}
+                                  onClick={e => {
+                                    e.stopPropagation()
+                                  }}
+                                  className="font-semibold text-slate-800 text-sm hover:text-[#1565D8] hover:underline block truncate font-sans"
+                                >
+                                  {a.fullName}
+                                </Link>
+                                <span className="text-xs text-slate-400 mt-0.5 truncate block font-sans">
+                                  <span className="font-mono">{a.admissionCode}</span>
+                                  {a.parentName && ` · ${a.parentName}`}
+                                  {a.phone && ` · ${a.phone}`}
+                                </span>
                               </div>
                             </div>
-                            <div className="w-32 flex-shrink-0 space-y-1 hidden sm:block">
-                              <Skeleton className="h-4 w-16 rounded-full" />
-                              <Skeleton className="h-4 w-20 rounded-full" />
+
+                            {/* Grade / Stage */}
+                            <div className="w-32 flex-shrink-0 hidden sm:flex flex-col items-start gap-1">
+                              <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded w-fit font-sans">
+                                {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
+                              </span>
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded w-fit font-sans ${stageColor(a.stage)}`}>
+                                {a.stage || '—'}
+                              </span>
                             </div>
+
+                            {/* Status */}
                             <div className="w-24 flex-shrink-0 flex justify-center">
-                              <Skeleton className="h-5 w-16 rounded-full" />
+                              {getStatusBadge(a.dbStatus)}
                             </div>
-                            <div className="w-32 flex-shrink-0 hidden md:block">
-                              <Skeleton className="h-4 w-24 rounded" />
+
+                            {/* Counsellor */}
+                            <div className="w-32 flex-shrink-0 hidden lg:flex items-center gap-2 min-w-0" onClick={e => e.stopPropagation()}>
+                              {a.counsellor ? (
+                                <>
+                                  <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[8px] font-bold flex items-center justify-center shrink-0">
+                                    {a.counsellorAvatar}
+                                  </div>
+                                  <span className="text-xs text-slate-600 truncate font-sans">
+                                    {a.counsellor}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-xs text-slate-400 font-sans">Unassigned</span>
+                              )}
                             </div>
-                            <div className="w-20 flex-shrink-0 hidden lg:block">
-                              <Skeleton className="h-4 w-12" />
+
+                            {/* Date */}
+                            <div className="w-20 flex-shrink-0 hidden md:block text-xs text-slate-400 font-medium font-sans">
+                              {formatDate(a.createdAt)}
                             </div>
-                            <div className="w-12 flex-shrink-0 flex justify-end">
-                              <Skeleton className="w-8 h-8 rounded-lg" />
+
+                            {/* Actions */}
+                            <div className="w-12 flex-shrink-0 flex justify-end" onClick={e => e.stopPropagation()}>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger>
+                                  <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none cursor-pointer">
+                                    <MoreVertical size={16} strokeWidth={1.5} />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="w-56 min-w-[224px] bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 z-40"
+                                >
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      router.push('/admission-management/' + a.id)
+                                    }}
+                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                                  >
+                                    <Eye size={14} strokeWidth={1.5} className="text-slate-400" />
+                                    View Applicant
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      router.push('/admission-management/' + a.id + '/edit')
+                                    }}
+                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                                  >
+                                    <Pencil size={14} strokeWidth={1.5} className="text-slate-400" />
+                                    Edit Applicant
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuSeparator />
+
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setShowConvertModal(a)
+                                    }}
+                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
+                                  >
+                                    <CheckCircle2 size={14} strokeWidth={1.5} className="text-[#1565D8]" />
+                                    {config.convertToStudentLabel[type]}
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuSeparator />
+
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setShowRejectModal(a)
+                                    }}
+                                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer"
+                                  >
+                                    <XCircle size={14} strokeWidth={1.5} className="text-red-500" />
+                                    Reject Application
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
+                          </div>
+                        )
+                      })}
+
+                      {/* Empty Row Placeholders to keep minimum 8 rows */}
+                      {Math.max(0, 8 - filteredApplicants.length) > 0 && 
+                        Array.from({ length: Math.max(0, 8 - filteredApplicants.length) }).map((_, i) => (
+                          <div
+                            key={`placeholder-${i}`}
+                            className="relative flex items-center px-4 py-2.5 gap-3 border-b border-slate-50 last:border-0 min-h-[44px] h-auto bg-white"
+                          >
+                            <div className="w-8 flex-shrink-0" />
+                            <div className="flex-1 min-w-[160px]">
+                              <div className="h-4" />
+                            </div>
+                            <div className="w-32 flex-shrink-0 hidden sm:block" />
+                            <div className="w-24 flex-shrink-0" />
+                            <div className="w-32 flex-shrink-0 hidden lg:block" />
+                            <div className="w-20 flex-shrink-0 hidden md:block" />
+                            <div className="w-12 flex-shrink-0" />
                           </div>
                         ))
-                      ) : (
-                        filteredApplicants.map((a: any, idx: number) => {
-                          const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
-                          const leftBorderColor = getLeftBorderBg(a)
-
-                          return (
-                            <div
-                              key={a.id}
-                              onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
-                              onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                              className="relative flex items-center px-4 py-2.5 gap-3 hover:bg-slate-50 border-b border-slate-100 min-h-[44px] h-auto transition-colors duration-100 cursor-pointer bg-white"
-                            >
-                              {/* Left border highlight */}
-                              {leftBorderColor !== 'bg-transparent' && (
-                                <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-r ${leftBorderColor}`} />
-                              )}
-
-                              {/* Checkbox */}
-                              <div className="w-8 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                                <input
-                                  type="checkbox"
-                                  checked={selectedItems.includes(a.id)}
-                                  onChange={() => handleSelectApplicant(a.id)}
-                                  className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
-                                />
-                              </div>
-
-                              {/* Applicant Details */}
-                              <div className="flex-1 flex items-center gap-3 min-w-0">
-                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0 font-sans">
-                                  {a.avatar}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <Link
-                                    href={`/admission-management/${a.id}`}
-                                    onClick={e => {
-                                      e.stopPropagation()
-                                    }}
-                                    className="font-semibold text-slate-800 text-sm hover:text-[#1565D8] hover:underline block truncate font-sans"
-                                  >
-                                    {a.fullName}
-                                  </Link>
-                                  <span className="text-xs text-slate-400 mt-0.5 truncate block font-sans">
-                                    <span className="font-mono">{a.admissionCode}</span>
-                                    {a.parentName && ` · ${a.parentName}`}
-                                    {a.phone && ` · ${a.phone}`}
-                                    {a.academicYear && ` · ${a.academicYear}`}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Grade / Stage */}
-                              <div className="w-32 flex-shrink-0 hidden sm:flex flex-col items-start gap-1">
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 font-sans">
-                                  {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
-                                </span>
-                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border ${stageData.bgClass} ${stageData.textClass} ${stageData.borderClass} font-sans`}>
-                                  {stageData.label}
-                                </span>
-                              </div>
-
-                              {/* Status */}
-                              <div className="w-24 flex-shrink-0 flex justify-center">
-                                {getStatusBadge(a.dbStatus)}
-                              </div>
-
-                              {/* Counsellor */}
-                              <div className="w-32 flex-shrink-0 hidden md:flex items-center gap-2 min-w-0" onClick={e => e.stopPropagation()}>
-                                {a.counsellor ? (
-                                  <>
-                                    <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[8px] font-bold flex items-center justify-center shrink-0">
-                                      {a.counsellorAvatar}
-                                    </div>
-                                    <span className="text-xs text-slate-600 truncate font-sans">
-                                      {a.counsellor}
-                                    </span>
-                                  </>
-                                ) : (
-                                  <span className="text-xs text-slate-400 font-sans">Unassigned</span>
-                                )}
-                              </div>
-
-                              {/* Date */}
-                              <div className="w-20 flex-shrink-0 hidden lg:block text-xs text-slate-400 font-medium font-sans">
-                                {formatDate(a.createdAt)}
-                              </div>
-
-                              {/* Actions */}
-                              <div className="w-12 flex-shrink-0 flex justify-end" onClick={e => e.stopPropagation()}>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger>
-                                    <button className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition focus:outline-none cursor-pointer">
-                                      <MoreVertical size={16} strokeWidth={1.5} />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent
-                                    align="end"
-                                    className="w-56 min-w-[224px] bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 z-40"
-                                  >
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        router.push('/admission-management/' + a.id)
-                                      }}
-                                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                                    >
-                                      <Eye size={14} strokeWidth={1.5} className="text-slate-400" />
-                                      View Applicant
-                                    </DropdownMenuItem>
-
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        router.push('/admission-management/' + a.id + '/edit')
-                                      }}
-                                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                                    >
-                                      <Pencil size={14} strokeWidth={1.5} className="text-slate-400" />
-                                      Edit Applicant
-                                    </DropdownMenuItem>
-
-                                    <DropdownMenuSeparator />
-
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setShowConvertModal(a)
-                                      }}
-                                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1565D8] hover:bg-blue-50 cursor-pointer whitespace-nowrap"
-                                    >
-                                      <CheckCircle2 size={14} strokeWidth={1.5} className="text-[#1565D8]" />
-                                      {config.convertToStudentLabel[type]}
-                                    </DropdownMenuItem>
-
-                                    <DropdownMenuSeparator />
-
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setShowRejectModal(a)
-                                      }}
-                                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer"
-                                    >
-                                      <XCircle size={14} strokeWidth={1.5} className="text-red-500" />
-                                      Reject Application
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </div>
-                          )
-                        })
-                      )}
+                      }
                     </div>
                   </div>
                 </div>
 
-                {/* Mobile Card View */}
-                <div className="block sm:hidden space-y-3">
-                  {filteredApplicants.map((a: any) => {
-                    const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
-                    return (
-                      <div
-                        key={a.id}
-                        onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
-                        onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                        className="bg-white border border-slate-200 rounded-xl p-4 text-left shadow-sm cursor-pointer w-full"
-                      >
-                        {/* ROW 1: Avatar + name + status badge */}
+                {/* Mobile Card View (visible on < 640px) */}
+                <div className="block sm:hidden px-4 space-y-3 py-3">
+                  {filteredApplicants.map((admission: any) => (
+                    <div
+                      key={admission.id}
+                      onClick={() => router.push(`/admission-management/${admission.id}`)}
+                      className={`bg-white rounded-xl border border-slate-200 p-4 cursor-pointer hover:border-[#1565D8]/30 hover:shadow-sm transition-all border-l-4 ${rowBorderColor(admission.dbStatus)}`}
+                    >
+                      {/* ROW 1: Avatar + Name + Status */}
+                      <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-[#1565D8] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
-                            {a.avatar}
+                            {admission.avatar}
                           </div>
-                          <span className="text-sm font-semibold text-slate-800 flex-1 truncate">
-                            {a.fullName}
-                          </span>
-                          <div className="ml-auto text-xs shrink-0">
-                            {getStatusBadge(a.dbStatus)}
+                          <div>
+                            <div className="text-sm font-semibold text-slate-800">
+                              {admission.fullName}
+                            </div>
+                            <div className="text-xs text-slate-400 font-mono">
+                              {admission.admissionCode}
+                            </div>
                           </div>
                         </div>
-
-                        {/* ROW 2: Code + grade */}
-                        <div className="mt-2 flex gap-2 flex-wrap items-center">
-                          <span className="font-mono text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded">
-                            {a.admissionCode}
-                          </span>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 font-sans">
-                            {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
-                          </span>
-                        </div>
-
-                        {/* ROW 3: Counsellor + date */}
-                        <div className="mt-2 flex justify-between items-center">
-                          <span className="text-xs text-slate-500">
-                            {a.counsellor ? `Counsellor: ${a.counsellor.split(' ')[0]}` : 'Unassigned'}
-                          </span>
-                          <span className="text-xs text-slate-400">
-                            {formatDate(a.createdAt)}
-                          </span>
-                        </div>
-
-                        {/* ROW 4: Action buttons */}
-                        <div className="mt-3 pt-3 border-t border-slate-100 flex gap-2" onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                            className="flex-1 h-10 border border-[#1565D8] text-[#1565D8] hover:bg-blue-50 text-xs font-semibold rounded-lg flex items-center justify-center transition cursor-pointer"
-                          >
-                            View Details
-                          </button>
-                          <select
-                            value={a.stageId}
-                            onChange={(e) => handleMoveStage(a.id, e.target.value)}
-                            className="flex-1 h-10 bg-slate-50 border border-slate-200 rounded-lg px-2 text-xs focus:outline-none focus:border-blue-500 font-semibold cursor-pointer"
-                          >
-                            {configPipeline.map((s) => (
-                              <option key={s.id} value={s.id}>
-                                {s.label}
-                              </option>
-                            ))}
-                          </select>
+                        <div>
+                          {getStatusBadge(admission.dbStatus)}
                         </div>
                       </div>
-                    )
-                  })}
+
+                      {/* ROW 2: Details */}
+                      <div className="mt-2 flex items-center gap-3 flex-wrap">
+                        <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded w-fit">
+                          {admission.applyingFor ? getGradeLabel(admission.applyingFor) : '—'}
+                        </span>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded w-fit ${stageColor(admission.stage)}`}>
+                          {admission.stage || '—'}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {admission.counsellor ? `Counsellor: ${admission.counsellor.split(' ')[0]}` : 'Unassigned'}
+                        </span>
+                      </div>
+
+                      {/* ROW 3: Phone + Date */}
+                      <div className="mt-1.5 flex items-center justify-between">
+                        <span className="text-xs text-slate-400">{admission.phone}</span>
+                        <span className="text-xs text-slate-400">{formatDate(admission.createdAt)}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </>
-            )
-          )}
 
-          {/* ===================================================================
-              SECTION 6 — GRID VIEW
-              =================================================================== */}
-          {activeView === 'grid' && (loading || filteredApplicants.length > 0) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-              {loading ? (
-                Array.from({ length: 6 }).map((_, idx) => (
-                  <div
-                    key={`skeleton-grid-${idx}`}
-                    className="bg-white rounded-xl border border-slate-200 shadow-md p-5 relative overflow-hidden"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="w-10 h-10 rounded-full" />
-                        <div className="space-y-1.5 flex-1 min-w-[120px]">
-                          <Skeleton className="h-3 w-16" />
-                          <Skeleton className="h-4 w-28" />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center mt-3">
-                      <Skeleton className="h-6 w-16 rounded-lg" />
-                      <Skeleton className="h-5 w-20 rounded-full" />
-                    </div>
-                    <div className="border-t border-slate-200 my-3" />
-                    <div className="flex items-center justify-between mt-3.5">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-4 w-16" />
+                {/* Pagination */}
+                {(loading || filteredApplicants.length > 0) && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+                    <span className="text-sm text-slate-500 font-sans">
+                      Showing {loading ? '...' : `${showingStart}–${showingEnd}`} of {totalCount} {moduleLabel.toLowerCase()}
+                    </span>
+
+                    <div className="flex items-center gap-2 select-none">
+                      <button
+                        onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
+                        disabled={loading || pagination.page <= 1}
+                        className={`px-3 py-1.5 border rounded-lg text-xs font-semibold font-sans transition ${
+                          loading || pagination.page <= 1
+                            ? 'border-slate-200 text-slate-400 bg-slate-50/50 cursor-not-allowed'
+                            : 'border-slate-200 hover:bg-slate-50 text-slate-750 cursor-pointer'
+                        }`}
+                      >
+                        Previous
+                      </button>
+                      <button className="hidden sm:flex px-3 py-1.5 border border-[#1565D8] rounded-lg text-xs font-bold text-white bg-[#1565D8] font-sans">
+                        {pagination.page}
+                      </button>
+                      <button
+                        onClick={() => setPagination(p => ({ ...p, page: Math.min(pagination.totalPages, p.page + 1) }))}
+                        disabled={loading || pagination.page >= pagination.totalPages}
+                        className={`px-3 py-1.5 border rounded-lg text-xs font-semibold font-sans transition ${
+                          loading || pagination.page >= pagination.totalPages
+                            ? 'border-slate-200 text-slate-400 bg-slate-50/50 cursor-not-allowed'
+                            : 'border-slate-200 hover:bg-slate-50 text-slate-750 cursor-pointer'
+                        }`}
+                      >
+                        Next
+                      </button>
                     </div>
                   </div>
-                ))
-              ) : (
-                filteredApplicants.map((a: any) => {
-                  const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
-                  
-                  return (
-                    <div
-                      key={a.id}
-                      onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
-                      onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                      className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md hover:border-[#1565D8] cursor-pointer transition-all flex flex-col gap-3 justify-between"
+                )}
+
+              </div>
+            )
+          ) : (
+            <>
+              {/* Separate Search/Filter Bar (for grid and kanban views or empty state list view) */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-md p-3 sm:p-4 flex flex-col sm:flex-row gap-2 flex-wrap border-t-2 border-t-slate-300 items-start sm:items-center justify-between mx-4 mb-4">
+                {/* Search Input */}
+                <div className="relative flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-4 flex-1 min-w-0 max-w-xs sm:max-w-sm h-10 sm:h-9">
+                  <Search size={15} className="text-slate-400" strokeWidth={1.5} />
+                  <input
+                    type="text"
+                    placeholder={`Search by name, ID, ${config.applyingForLabel[type]}...`}
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value)
+                      clearTimeout(searchTimeout.current)
+                      searchTimeout.current = setTimeout(
+                        () => {
+                          setFilters(f => ({
+                            ...f,
+                            search: e.target.value
+                          }))
+                          setPagination(p =>
+                            ({ ...p, page: 1 }))
+                        },
+                        300
+                      )
+                    }}
+                    className="bg-transparent border-none outline-none text-sm w-full text-slate-750 placeholder-slate-500 font-sans"
+                  />
+                  {searchQuery && (
+                    <button onClick={() => {
+                      setSearchQuery('')
+                      setFilters(f => ({
+                        ...f,
+                        search: ''
+                      }))
+                      setPagination(p => ({ ...p, page: 1 }))
+                    }} className="text-slate-400 hover:text-slate-650">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filter Buttons */}
+                <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto relative">
+                  {/* Applying For */}
+                  <div className="relative w-full sm:w-auto">
+                    <button
+                      onClick={() => {
+                        setShowApplyingForDropdown(!showApplyingForDropdown)
+                        setShowCounsellorFilterDropdown(false)
+                        setShowStageFilterDropdown(false)
+                        setShowDateFilterDropdown(false)
+                        setShowPriorityFilterDropdown(false)
+                      }}
+                      className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
                     >
-                      {/* TOP ROW */}
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0">
-                            {a.avatar}
-                          </div>
-                          <span className="text-sm font-semibold text-slate-800 truncate block font-sans">
-                            {a.fullName}
-                          </span>
-                        </div>
-                        {/* Status Badge */}
-                        <div className="shrink-0">
-                          {getStatusBadge(a.dbStatus)}
-                        </div>
-                      </div>
-
-                      {/* MIDDLE ROW */}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-mono text-slate-400">
-                          {a.admissionCode}
-                        </span>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                          {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
-                        </span>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${stageData.bgClass} ${stageData.textClass} border ${stageData.borderClass}`}>
-                          {stageData.label}
-                        </span>
-                      </div>
-
-                      {/* BOTTOM ROW */}
-                      <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-1">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          {a.counsellor ? (
-                            <>
-                              <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-750 text-[8px] font-bold flex items-center justify-center shrink-0">
-                                {a.counsellorAvatar}
-                              </div>
-                              <span className="text-xs text-slate-655 truncate max-w-[100px] font-sans">
-                                {a.counsellor}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-xs text-slate-400 font-sans">Unassigned</span>
-                          )}
-                        </div>
-                        <span className="text-xs text-slate-400 font-sans">
-                          {formatDate(a.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
-          )}
-
-          {/* ===================================================================
-              SECTION 7 — KANBAN VIEW
-              =================================================================== */}
-          {activeView === 'kanban' && (loading || filteredApplicants.length > 0) && (
-            <div className="relative">
-              <div className="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-slate-300">
-                {configPipeline.map(stage => {
-                  const stageApplicants = filteredApplicants.filter((a: any) => a.stageId === stage.id)
-
-                  return (
-                    <div key={stage.id} className="w-[280px] flex-shrink-0 bg-slate-50 rounded-xl p-3 flex flex-col gap-3">
-                      {/* COLUMN HEADER */}
-                      <div className="flex items-center justify-between select-none">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${stage.dotClass}`} />
-                          <span className="text-sm font-bold text-slate-800 truncate font-sans">
-                            {stage.label}
-                          </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${stage.bgClass} ${stage.textClass}`}>
-                            {stageApplicants.length}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => router.push(`/admission-management/create?stage=${stage.id}`)}
-                          className="p-1 rounded text-slate-400 hover:text-slate-650 hover:bg-slate-200 cursor-pointer"
-                          title={`Add to ${stage.label}`}
+                      <span>{filterApplyingFor ? `${config.applyingForLabel[type]}: ${getGradeLabel(filterApplyingFor)}` : `${config.applyingForLabel[type]} ▾`}</span>
+                    </button>
+                    {showApplyingForDropdown && (
+                      <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] max-h-48 overflow-y-auto w-full sm:w-auto">
+                        <div 
+                          onClick={() => { setFilterApplyingFor(null); setShowApplyingForDropdown(false) }}
+                          className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
                         >
-                          <Plus size={14} strokeWidth={2} />
-                        </button>
+                          All Classes
+                        </div>
+                        {uniqueApplyingFor.map((option: any) => (
+                          <div
+                            key={option}
+                            onClick={() => { setFilterApplyingFor(option); setShowApplyingForDropdown(false) }}
+                            className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
+                              filterApplyingFor === option ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>{getGradeLabel(option)}</span>
+                            {filterApplyingFor === option && <Check size={12} className="text-[#1565D8]" />}
+                          </div>
+                        ))}
                       </div>
+                    )}
+                  </div>
 
-                      {/* COLUMN BODY */}
-                      <div className="space-y-3 min-h-[300px] flex-1 overflow-y-auto">
-                        {loading ? (
-                          Array.from({ length: 2 }).map((_, idx) => (
-                            <div
-                              key={`skeleton-kanban-${stage.id}-${idx}`}
-                              className="bg-white rounded-xl border border-slate-200 p-4 relative overflow-hidden"
-                            >
-                              <div className="space-y-1.5">
-                                <Skeleton className="h-4 w-28" />
-                                <Skeleton className="h-3 w-16" />
-                              </div>
+                  {/* Counsellor */}
+                  <div className="relative w-full sm:w-auto">
+                    <button
+                      onClick={() => {
+                        setShowCounsellorFilterDropdown(!showCounsellorFilterDropdown)
+                        setShowApplyingForDropdown(false)
+                        setShowStageFilterDropdown(false)
+                        setShowDateFilterDropdown(false)
+                        setShowPriorityFilterDropdown(false)
+                      }}
+                      className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
+                    >
+                      <span>{filterCounsellor ? `Counsellor: ${filterCounsellor}` : 'Counsellor ▾'}</span>
+                    </button>
+                    {showCounsellorFilterDropdown && (
+                      <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] w-full sm:w-auto">
+                        <div 
+                          onClick={() => { setFilterCounsellor(null); setShowCounsellorFilterDropdown(false) }}
+                          className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
+                        >
+                          All Counsellors
+                        </div>
+                        {counsellors.map((c: any) => (
+                          <div
+                            key={c.id}
+                            onClick={() => { setFilterCounsellor(c.name); setShowCounsellorFilterDropdown(false) }}
+                            className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
+                              filterCounsellor === c.name ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>{c.name}</span>
+                            {filterCounsellor === c.name && <Check size={12} className="text-[#1565D8]" />}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Stage */}
+                  <div className="relative w-full sm:w-auto">
+                    <button
+                      onClick={() => {
+                        setShowStageFilterDropdown(!showStageFilterDropdown)
+                        setShowApplyingForDropdown(false)
+                        setShowCounsellorFilterDropdown(false)
+                        setShowDateFilterDropdown(false)
+                        setShowPriorityFilterDropdown(false)
+                      }}
+                      className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
+                    >
+                      <span>{filterStage ? `Stage: ${configPipeline.find(s => s.id === filterStage)?.label}` : 'Stage ▾'}</span>
+                    </button>
+                    {showStageFilterDropdown && (
+                      <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] max-h-48 overflow-y-auto w-full sm:w-auto">
+                        <div 
+                          onClick={() => { setFilterStage(null); setShowStageFilterDropdown(false) }}
+                          className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
+                        >
+                          All Stages
+                        </div>
+                        {configPipeline.map(s => (
+                          <div
+                            key={s.id}
+                            onClick={() => { setFilterStage(s.id); setShowStageFilterDropdown(false) }}
+                            className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
+                              filterStage === s.id ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>{s.label}</span>
+                            {filterStage === s.id && <Check size={12} className="text-[#1565D8]" />}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Date Range */}
+                  <div className="relative w-full sm:w-auto">
+                    <button
+                      onClick={() => {
+                        setShowDateFilterDropdown(!showDateFilterDropdown)
+                        setShowApplyingForDropdown(false)
+                        setShowCounsellorFilterDropdown(false)
+                        setShowStageFilterDropdown(false)
+                        setShowPriorityFilterDropdown(false)
+                      }}
+                      className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
+                    >
+                      <span>{filterDateRange ? `Date: ${filterDateRange}` : 'Date Range ▾'}</span>
+                    </button>
+                    {showDateFilterDropdown && (
+                      <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[140px] w-full sm:w-auto">
+                        <div 
+                          onClick={() => { setFilterDateRange(null); setShowDateFilterDropdown(false) }}
+                          className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
+                        >
+                          All Time
+                        </div>
+                        {['May', 'Apr'].map(month => (
+                          <div
+                            key={month}
+                            onClick={() => { setFilterDateRange(month); setShowDateFilterDropdown(false) }}
+                            className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
+                              filterDateRange === month ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>{month === 'May' ? 'May 2026' : 'April 2026'}</span>
+                            {filterDateRange === month && <Check size={12} className="text-[#1565D8]" />}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Priority */}
+                  <div className="relative w-full sm:w-auto">
+                    <button
+                      onClick={() => {
+                        setShowPriorityFilterDropdown(!showPriorityFilterDropdown)
+                        setShowApplyingForDropdown(false)
+                        setShowCounsellorFilterDropdown(false)
+                        setShowStageFilterDropdown(false)
+                        setShowDateFilterDropdown(false)
+                      }}
+                      className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
+                    >
+                      <span>{filterPriority ? `Priority: ${filterPriority}` : 'Priority ▾'}</span>
+                    </button>
+                    {showPriorityFilterDropdown && (
+                      <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[140px] w-full sm:w-auto">
+                        <div 
+                          onClick={() => { setFilterPriority(null); setShowPriorityFilterDropdown(false) }}
+                          className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
+                        >
+                          All Priorities
+                        </div>
+                        {['Normal', 'High', 'Urgent'].map(p => (
+                          <div
+                            key={p}
+                            onClick={() => { setFilterPriority(p); setShowPriorityFilterDropdown(false) }}
+                            className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
+                              filterPriority === p ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>{p}</span>
+                            {filterPriority === p && <Check size={12} className="text-[#1565D8]" />}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Clear Filters */}
+                  {isAnyFilterActive && (
+                    <button
+                      onClick={handleClearAllFilters}
+                      className="text-xs font-medium text-slate-400 hover:text-red-500 flex items-center gap-1 px-1.5 py-1.5 font-sans cursor-pointer w-full sm:w-auto justify-center sm:justify-start"
+                    >
+                      <X size={13} />
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+
+                {/* Right group */}
+                <div className="flex gap-2 flex-wrap w-full sm:w-auto justify-end mt-2 sm:mt-0">
+                  {/* View Toggle */}
+                  <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-1 w-full sm:w-auto justify-center sm:justify-start">
+                    {/* List */}
+                    <button
+                      onClick={() => setActiveView('list')}
+                      className={`rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
+                        activeView === 'list'
+                          ? 'bg-white shadow-sm'
+                          : 'bg-transparent hover:bg-slate-200'
+                      }`}
+                    >
+                      <List
+                        size={16}
+                        strokeWidth={1.5}
+                        className={activeView === 'list' ? 'text-[#1565D8]' : 'text-slate-400'}
+                      />
+                    </button>
+
+                    {/* Grid */}
+                    <button
+                      onClick={() => setActiveView('grid')}
+                      className={`hidden sm:inline-flex rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
+                        activeView === 'grid'
+                          ? 'bg-white shadow-sm'
+                          : 'bg-transparent hover:bg-slate-200'
+                      }`}
+                    >
+                      <LayoutGrid
+                        size={16}
+                        strokeWidth={1.5}
+                        className={activeView === 'grid' ? 'text-[#1565D8]' : 'text-slate-400'}
+                      />
+                    </button>
+
+                    {/* Kanban */}
+                    <button
+                      onClick={() => setActiveView('kanban')}
+                      className={`rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
+                        activeView === 'kanban'
+                          ? 'bg-white shadow-sm'
+                          : 'bg-transparent hover:bg-slate-200'
+                      }`}
+                    >
+                      <Columns
+                        size={16}
+                        strokeWidth={1.5}
+                        className={activeView === 'kanban' ? 'text-[#1565D8]' : 'text-slate-400'}
+                      />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid View */}
+              {activeView === 'grid' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                  {loading ? (
+                    Array.from({ length: 6 }).map((_, idx) => (
+                      <div
+                        key={`skeleton-grid-${idx}`}
+                        className="bg-white rounded-xl border border-slate-200 shadow-md p-5 relative overflow-hidden"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="w-10 h-10 rounded-full" />
+                            <div className="space-y-1.5 flex-1 min-w-[120px]">
+                              <Skeleton className="h-3 w-16" />
+                              <Skeleton className="h-4 w-28" />
                             </div>
-                          ))
-                        ) : stageApplicants.length === 0 ? (
-                          <div className="bg-white/50 rounded-xl border border-dashed border-slate-200 py-8 text-center flex flex-col items-center justify-center">
-                            <Inbox size={24} className="text-slate-350" strokeWidth={1.5} />
-                            <span className="text-[11px] text-slate-400 font-bold mt-2 font-sans">
-                              No {config.applicantLabel[type]}s
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center mt-3">
+                          <Skeleton className="h-6 w-16 rounded-lg" />
+                          <Skeleton className="h-5 w-20 rounded-full" />
+                        </div>
+                        <div className="border-t border-slate-200 my-3" />
+                        <div className="flex items-center justify-between mt-3.5">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-4 w-16" />
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    filteredApplicants.map((a: any) => {
+                      const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
+                      
+                      return (
+                        <div
+                          key={a.id}
+                          onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
+                          onClick={() => handleNavigate(`/admission-management/${a.id}`)}
+                          className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md hover:border-[#1565D8] cursor-pointer transition-all flex flex-col gap-3 justify-between"
+                        >
+                          {/* TOP ROW */}
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0">
+                                {a.avatar}
+                              </div>
+                              <span className="text-sm font-semibold text-slate-800 truncate block font-sans">
+                                {a.fullName}
+                              </span>
+                            </div>
+                            {/* Status Badge */}
+                            <div className="shrink-0">
+                              {getStatusBadge(a.dbStatus)}
+                            </div>
+                          </div>
+
+                          {/* MIDDLE ROW */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-mono text-slate-400">
+                              {a.admissionCode}
+                            </span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                              {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
+                            </span>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${stageData.bgClass} ${stageData.textClass} border ${stageData.borderClass}`}>
+                              {stageData.label}
                             </span>
                           </div>
-                        ) : (
-                          stageApplicants.map((a: any) => {
-                            return (
-                              <div
-                                key={a.id}
-                                onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
-                                onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                                className="bg-white border border-slate-200 rounded-xl p-3 mb-2 hover:shadow-sm cursor-pointer transition-all flex flex-col gap-2.5"
-                              >
-                                <div>
-                                  <span className="text-sm font-semibold text-slate-800 block font-sans truncate">
-                                    {a.fullName}
-                                  </span>
-                                  <span className="text-xs font-mono text-slate-400 block mt-0.5">
-                                    {a.admissionCode}
-                                  </span>
-                                </div>
 
-                                <div className="flex flex-wrap gap-1.5">
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                                    {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
-                                  </span>
-                                </div>
-
-                                <div className="flex items-center justify-between mt-1 pt-2 border-t border-slate-100">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    {a.counsellor ? (
-                                      <>
-                                        <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 text-[8px] font-bold flex items-center justify-center shrink-0">
-                                          {a.counsellorAvatar}
-                                        </div>
-                                        <span className="text-xs text-slate-650 truncate max-w-[80px] font-sans">
-                                          {a.counsellor.split(' ')[0]}
-                                        </span>
-                                      </>
-                                    ) : (
-                                      <span className="text-xs text-slate-400 font-sans">Unassigned</span>
-                                    )}
+                          {/* BOTTOM ROW */}
+                          <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              {a.counsellor ? (
+                                <>
+                                  <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-750 text-[8px] font-bold flex items-center justify-center shrink-0">
+                                    {a.counsellorAvatar}
                                   </div>
-                                  <span className="text-xs text-slate-400 font-sans">
-                                    {formatDate(a.createdAt)}
+                                  <span className="text-xs text-slate-655 truncate max-w-[100px] font-sans">
+                                    {a.counsellor}
                                   </span>
-                                </div>
+                                </>
+                              ) : (
+                                <span className="text-xs text-slate-400 font-sans">Unassigned</span>
+                              )}
+                            </div>
+                            <span className="text-xs text-slate-400 font-sans">
+                              {formatDate(a.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              )}
 
-                                <div className="mt-1 pt-2 border-t border-slate-100 flex items-center justify-between" onClick={e => e.stopPropagation()}>
-                                  <span className="text-[10px] text-slate-400 uppercase font-bold">Stage</span>
-                                  <select
-                                    value={a.stageId}
-                                    onChange={(e) => handleMoveStage(a.id, e.target.value)}
-                                    className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 text-[11px] focus:outline-none focus:border-blue-500 font-medium cursor-pointer"
-                                  >
-                                    {configPipeline.map((s) => (
-                                      <option key={s.id} value={s.id}>
-                                        {s.label}
-                                      </option>
-                                    ))}
-                                  </select>
+              {/* Kanban View */}
+              {activeView === 'kanban' && (
+                <div className="relative">
+                  <div className="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-slate-300">
+                    {configPipeline.map(stage => {
+                      const stageApplicants = filteredApplicants.filter((a: any) => a.stageId === stage.id)
+
+                      return (
+                        <div key={stage.id} className="w-[280px] flex-shrink-0 bg-slate-50 rounded-xl p-3 flex flex-col gap-3">
+                          {/* COLUMN HEADER */}
+                          <div className="flex items-center justify-between select-none">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${stage.dotClass}`} />
+                              <span className="text-sm font-bold text-slate-800 truncate font-sans">
+                                {stage.label}
+                              </span>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${stage.bgClass} ${stage.textClass}`}>
+                                {stageApplicants.length}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => router.push(`/admission-management/create?stage=${stage.id}`)}
+                              className="p-1 rounded text-slate-400 hover:text-slate-655 hover:bg-slate-200 cursor-pointer"
+                              title={`Add to ${stage.label}`}
+                            >
+                              <Plus size={14} strokeWidth={2} />
+                            </button>
+                          </div>
+
+                          {/* COLUMN BODY */}
+                          <div className="space-y-3 min-h-[300px] flex-1 overflow-y-auto">
+                            {loading ? (
+                              Array.from({ length: 2 }).map((_, idx) => (
+                                <div
+                                  key={`skeleton-kanban-${stage.id}-${idx}`}
+                                  className="bg-white rounded-xl border border-slate-200 p-4 relative overflow-hidden"
+                                >
+                                  <div className="space-y-1.5">
+                                    <Skeleton className="h-4 w-28" />
+                                    <Skeleton className="h-3 w-16" />
+                                  </div>
                                 </div>
+                              ))
+                            ) : stageApplicants.length === 0 ? (
+                              <div className="bg-white/50 rounded-xl border border-dashed border-slate-200 py-8 text-center flex flex-col items-center justify-center">
+                                <Inbox size={24} className="text-slate-350" strokeWidth={1.5} />
+                                <span className="text-[11px] text-slate-400 font-bold mt-2 font-sans">
+                                  No {config.applicantLabel[type]}s
+                                </span>
                               </div>
-                            )
-                          })
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+                            ) : (
+                              stageApplicants.map((a: any) => {
+                                return (
+                                  <div
+                                    key={a.id}
+                                    onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
+                                    onClick={() => handleNavigate(`/admission-management/${a.id}`)}
+                                    className="bg-white border border-slate-200 rounded-xl p-3 mb-2 hover:shadow-sm cursor-pointer transition-all flex flex-col gap-2.5"
+                                  >
+                                    <div>
+                                      <span className="text-sm font-semibold text-slate-800 block font-sans truncate">
+                                        {a.fullName}
+                                      </span>
+                                      <span className="text-xs font-mono text-slate-400 block mt-0.5">
+                                        {a.admissionCode}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-1.5">
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                        {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center justify-between mt-1 pt-2 border-t border-slate-100">
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        {a.counsellor ? (
+                                          <>
+                                            <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 text-[8px] font-bold flex items-center justify-center shrink-0">
+                                              {a.counsellorAvatar}
+                                            </div>
+                                            <span className="text-xs text-slate-655 truncate max-w-[80px] font-sans">
+                                              {a.counsellor.split(' ')[0]}
+                                            </span>
+                                          </>
+                                        ) : (
+                                          <span className="text-xs text-slate-400 font-sans">Unassigned</span>
+                                        )}
+                                      </div>
+                                      <span className="text-xs text-slate-400 font-sans">
+                                        {formatDate(a.createdAt)}
+                                      </span>
+                                    </div>
+
+                                    <div className="mt-1 pt-2 border-t border-slate-100 flex items-center justify-between" onClick={e => e.stopPropagation()}>
+                                      <span className="text-[10px] text-slate-400 uppercase font-bold">Stage</span>
+                                      <select
+                                        value={a.stageId}
+                                        onChange={(e) => handleMoveStage(a.id, e.target.value)}
+                                        className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 text-[11px] focus:outline-none focus:border-blue-500 font-medium cursor-pointer"
+                                      >
+                                        {configPipeline.map((s) => (
+                                          <option key={s.id} value={s.id}>
+                                            {s.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  </div>
+                                )
+                              })
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Shared Pagination (For Grid view only, since List view has its own embedded pagination) */}
+              {activeView === 'grid' && (loading || filteredApplicants.length > 0) && (
+                <div className="bg-white border border-slate-200 rounded-xl px-5 py-4 flex items-center justify-between shadow-sm mx-4 mb-4">
+                  <span className="text-sm text-slate-500 font-sans">
+                    Showing {loading ? '...' : `${showingStart}–${showingEnd}`} of {totalCount} {moduleLabel.toLowerCase()}
+                  </span>
+
+                  <div className="flex items-center gap-2 select-none">
+                    <button
+                      onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
+                      disabled={loading || pagination.page <= 1}
+                      className={`px-3 py-1.5 border rounded-lg text-xs font-semibold font-sans transition ${
+                        loading || pagination.page <= 1
+                          ? 'border-slate-200 text-slate-400 bg-slate-50/50 cursor-not-allowed'
+                          : 'border-slate-200 hover:bg-slate-50 text-slate-750 cursor-pointer'
+                      }`}
+                    >
+                      Previous
+                    </button>
+                    <button className="hidden sm:flex px-3 py-1.5 border border-[#1565D8] rounded-lg text-xs font-bold text-white bg-[#1565D8] font-sans">
+                      {pagination.page}
+                    </button>
+                    <button
+                      onClick={() => setPagination(p => ({ ...p, page: Math.min(pagination.totalPages, p.page + 1) }))}
+                      disabled={loading || pagination.page >= pagination.totalPages}
+                      className={`px-3 py-1.5 border rounded-lg text-xs font-semibold font-sans transition ${
+                        loading || pagination.page >= pagination.totalPages
+                          ? 'border-slate-200 text-slate-400 bg-slate-50/50 cursor-not-allowed'
+                          : 'border-slate-200 hover:bg-slate-50 text-slate-750 cursor-pointer'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
-
-          {/* ===================================================================
-              SECTION 11 — PAGINATION & EMPTY SPACE FOOTER
-              =================================================================== */}
-          {(activeView === 'list' || activeView === 'grid') && (loading || filteredApplicants.length > 0) && (
-            <div className="bg-white border-t border-slate-200 rounded-b-xl px-5 py-4 flex items-center justify-between shadow-sm">
-              <span className="text-sm text-slate-500 font-sans">
-                Showing {loading ? '...' : `${showingStart}–${showingEnd}`} of {totalCount} {moduleLabel.toLowerCase()}
-              </span>
-
-              <div className="flex items-center gap-2 select-none">
-                <button
-                  onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                  disabled={loading || pagination.page <= 1}
-                  className={`px-3 py-1.5 border rounded-lg text-xs font-semibold font-sans transition ${
-                    loading || pagination.page <= 1
-                      ? 'border-slate-200 text-slate-400 bg-slate-50/50 cursor-not-allowed'
-                      : 'border-slate-200 hover:bg-slate-50 text-slate-750 cursor-pointer'
-                  }`}
-                >
-                  Previous
-                </button>
-                <button className="hidden sm:flex px-3 py-1.5 border border-[#1565D8] rounded-lg text-xs font-bold text-white bg-[#1565D8] font-sans">
-                  {pagination.page}
-                </button>
-                <button
-                  onClick={() => setPagination(p => ({ ...p, page: Math.min(pagination.totalPages, p.page + 1) }))}
-                  disabled={loading || pagination.page >= pagination.totalPages}
-                  className={`px-3 py-1.5 border rounded-lg text-xs font-semibold font-sans transition ${
-                    loading || pagination.page >= pagination.totalPages
-                      ? 'border-slate-200 text-slate-400 bg-slate-50/50 cursor-not-allowed'
-                      : 'border-slate-200 hover:bg-slate-50 text-slate-750 cursor-pointer'
-                  }`}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
-
       </div>
 
       {/* ===================================================================

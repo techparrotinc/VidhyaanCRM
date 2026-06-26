@@ -1093,27 +1093,70 @@ export default function AdmissionManagementPage() {
     return colors[status] || 'border-l-slate-200'
   }
 
-  const stageColor = (name: string | undefined): string => {
-    if (!name) return 'bg-slate-100 text-slate-500'
+  const getStageColor = (
+    name?: string
+  ): {
+    bg: string
+    text: string
+    border: string
+  } => {
+    if (!name) return {
+      bg: '#F8FAFC',
+      text: '#64748B',
+      border: 'border-l-slate-200'
+    }
     const n = name.toLowerCase()
-    if (n.includes('admit')) return 'bg-green-50 text-green-700'
-    if (n.includes('reject')) return 'bg-red-50 text-red-700'
-    if (n.includes('interview')) return 'bg-purple-50 text-purple-700'
-    if (n.includes('payment')) return 'bg-amber-50 text-amber-700'
-    if (n.includes('document') || n.includes('doc')) return 'bg-blue-50 text-blue-700'
-    return 'bg-slate-100 text-slate-600'
+    if (n.includes('admit'))
+      return { bg: '#F0FDF4',
+        text: '#16A34A',
+        border: 'border-l-green-500' }
+    if (n.includes('reject'))
+      return { bg: '#FEF2F2',
+        text: '#DC2626',
+        border: 'border-l-red-400' }
+    if (n.includes('interview'))
+      return { bg: '#F5F3FF',
+        text: '#7C3AED',
+        border: 'border-l-purple-400' }
+    if (n.includes('payment'))
+      return { bg: '#FFFBEB',
+        text: '#D97706',
+        border: 'border-l-amber-400' }
+    if (n.includes('doc'))
+      return { bg: '#EFF6FF',
+        text: '#2563EB',
+        border: 'border-l-blue-400' }
+    if (n.includes('contact'))
+      return { bg: '#F0F9FF',
+        text: '#0284C7',
+        border: 'border-l-sky-400' }
+    return { bg: '#F8FAFC',
+      text: '#64748B',
+      border: 'border-l-slate-300' }
   }
 
-  const stageTextColor = (name?: string): string => {
-    if (!name) return 'text-slate-400'
-    const n = name.toLowerCase()
-    if (n.includes('admit')) return 'text-green-600'
-    if (n.includes('reject')) return 'text-red-500'
-    if (n.includes('interview')) return 'text-purple-600'
-    if (n.includes('payment')) return 'text-amber-600'
-    if (n.includes('document') || n.includes('doc')) return 'text-blue-600'
-    return 'text-slate-500'
+  const getAvatarColor = (
+    name: string
+): string => {
+    const colors = [
+      '#1565D8', '#7C3AED', '#059669',
+      '#D97706', '#DC2626', '#0891B2',
+      '#4F46E5', '#BE185D',
+    ]
+    const index = name.charCodeAt(0)
+      % colors.length
+    return colors[index]
   }
+
+  const openCounsellorPicker = (admissionId: string) => {
+    setCounsellorDropdownId(counsellorDropdownId === admissionId ? null : admissionId)
+  }
+
+  const MINIMUM_ROWS = 8
+  const placeholderCount = Math.max(
+    0,
+    MINIMUM_ROWS - filteredApplicants.length
+  )
 
   return (
     <>
@@ -1233,71 +1276,61 @@ export default function AdmissionManagementPage() {
                 </div>
               </div>
 
-              {/* PIPELINE STRIP */}
-              <div className="relative border-b border-slate-100 pb-2">
-                <div className="flex flex-wrap gap-2 p-3 sm:p-4">
-                  {configPipeline.map((stage) => {
-                    const isActive = activeStageFilter === stage.id
-                    const stageCount = getStageCount(stage.label)
 
-                    return (
-                      <button
-                        key={stage.id}
-                        onClick={() => {
-                          const newStageId = activeStageFilter === stage.id ? '' : stage.id
-                          setActiveStageFilter(newStageId || null)
-                          
-                          const dbStage = pipeline.find(
-                            (p: any) => p.label === stage.label ||
-                            (p.label && stage.label && p.label.toLowerCase() === stage.label.toLowerCase())
-                          )
-                          
-                          setFilters(f => ({
-                            ...f,
-                            stageId: newStageId ? (dbStage ? dbStage.id : '') : ''
-                          }))
-                          setPagination(p => ({ ...p, page: 1 }))
-                        }}
-                        className={`h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs font-semibold rounded-full flex-shrink-0 whitespace-nowrap border flex items-center gap-1.5 transition-all cursor-pointer select-none
-                          ${
-                            isActive
-                              ? `${stage.bgClass} ${stage.textClass} ${stage.borderClass} ring-2 ring-offset-1 ring-blue-500`
-                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                          }`}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${stage.dotClass}`} />
-                        <span>{stage.label}</span>
-                        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${isActive ? 'bg-white/20 text-current' : 'bg-slate-100 text-slate-500'}`}>
-                          {stageCount}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Clear active filter indicator if active */}
-              {activeStageFilter && (
-                <div className="flex justify-end mt-3">
-                  <button
-                    onClick={() => {
-                      setActiveStageFilter(null)
-                      setFilters(f => ({
-                        ...f,
-                        stageId: ''
-                      }))
-                      setPagination(p => ({ ...p, page: 1 }))
-                    }}
-                    className="text-xs font-semibold text-slate-400 hover:text-[#1565D8] flex items-center gap-1 cursor-pointer font-sans"
-                  >
-                    <X size={12} />
-                    Clear filter · Showing {configPipeline.find(p => p.id === activeStageFilter)?.label} ({filteredApplicants.length})
-                  </button>
-                </div>
-              )}
             </div>
           </div>
           )}
+          {/* STAGE TABS */}
+          <div 
+            className="border-b border-slate-200 pb-0 flex items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden scrollbar-none mx-4 mb-4"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            <button
+              onClick={() => {
+                setActiveStageId('all')
+                setCurrentPage(1)
+              }}
+              className={`px-3 py-2.5 text-sm font-medium cursor-pointer relative transition-all duration-200 shrink-0 ${
+                activeStageId === 'all'
+                  ? 'text-[#1565D8] border-b-2 border-[#1565D8] mb-[-1px]'
+                  : 'text-slate-500 hover:text-slate-700 border-b-2 border-transparent'
+              }`}
+            >
+              All
+              <span className={`ml-2 text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                activeStageId === 'all'
+                  ? 'bg-[#1565D8] text-white'
+                  : 'bg-slate-100 text-slate-500'
+              }`}>
+                {Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
+              </span>
+            </button>
+
+            {stages.map(stage => (
+              <button
+                key={stage.id}
+                onClick={() => {
+                  setActiveStageId(stage.id)
+                  setCurrentPage(1)
+                }}
+                className={`px-3 py-2.5 text-sm font-medium cursor-pointer relative transition-all duration-200 shrink-0 ${
+                  activeStageId === stage.id
+                    ? 'text-[#1565D8] border-b-2 border-[#1565D8] mb-[-1px]'
+                    : 'text-slate-500 hover:text-slate-700 border-b-2 border-transparent'
+                }`}
+              >
+                {stage.name}
+                <span className={`ml-2 text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                  activeStageId === stage.id
+                    ? 'bg-[#1565D8] text-white'
+                    : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {stageCounts[stage.id] || 0}
+                </span>
+              </button>
+            ))}
+          </div>
+
           {/* SECTION 3 — FILTER BAR / SEARCH / TABLE / PAGINATION CARD */}
           {activeView === 'list' && (loading || filteredApplicants.length > 0) ? (
             loading && applicants.length === 0 ? (
@@ -1568,56 +1601,10 @@ export default function AdmissionManagementPage() {
                   </div>
                 </div>
 
-                {/* STAGE TABS */}
-                <div className="flex items-center gap-0.5 px-4 pt-1 pb-0 border-b border-slate-100 overflow-x-auto scrollbar-none flex-nowrap bg-white" style={{ scrollbarWidth: 'none' }}>
-                  <button
-                    onClick={() => {
-                      setActiveStageId('all')
-                      setCurrentPage(1)
-                    }}
-                    className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap flex-shrink-0 transition-colors cursor-pointer ${
-                      activeStageId === 'all'
-                        ? 'border-[#1565D8] text-[#1565D8]'
-                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                    }`}
-                  >
-                    All
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-                      activeStageId === 'all'
-                        ? 'bg-[#1565D8] text-white'
-                        : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      {Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
-                    </span>
-                  </button>
 
-                  {stages.map(stage => (
-                    <button
-                      key={stage.id}
-                      onClick={() => {
-                        setActiveStageId(stage.id)
-                        setCurrentPage(1)
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap flex-shrink-0 transition-colors cursor-pointer ${
-                        activeStageId === stage.id
-                          ? 'border-[#1565D8] text-[#1565D8]'
-                          : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                      }`}
-                    >
-                      {stage.name}
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-                        activeStageId === stage.id
-                          ? 'bg-[#1565D8] text-white'
-                          : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {stageCounts[stage.id] || 0}
-                      </span>
-                    </button>
-                  ))}
-                </div>
                  {/* Desktop/Tablet Table View */}
                 <div className="hidden sm:block w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
-                  <table className="w-full table-fixed min-w-[1100px] border-collapse text-left">
+                  <table className="w-full min-w-[800px] border-collapse text-left">
                     {/* TABLE HEADER */}
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 select-none">
@@ -1629,169 +1616,227 @@ export default function AdmissionManagementPage() {
                             className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
                           />
                         </th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[280px] min-w-[200px]">
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 flex-1 min-w-[200px]">
                           APPLICANT
                         </th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[140px] min-w-[120px] hidden sm:table-cell">
-                          GRADE / STAGE
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[120px] hidden sm:table-cell">
+                          GRADE
                         </th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[100px] min-w-[90px] hidden md:table-cell">
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[100px] hidden sm:table-cell">
                           CONNECT
                         </th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[140px] min-w-[120px]">
-                          STATUS
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[160px]">
+                          STAGE
                         </th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[160px] min-w-[140px] hidden md:table-cell">
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[160px] hidden md:table-cell">
                           COUNSELLOR
                         </th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[80px] min-w-[70px] hidden lg:table-cell">
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[80px] hidden lg:table-cell">
                           DATE
                         </th>
-                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[80px] min-w-[80px]">
+                        <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-[50px]">
                           ACTION
                         </th>
                       </tr>
                     </thead>
 
                     {/* TABLE BODY */}
+                    {/* TABLE BODY */}
                     <tbody className="divide-y divide-slate-100">
-                       {filteredApplicants.map((a: any, idx: number) => {
-                        const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
+                      {filteredApplicants.map((admission: any) => {
+                        admission.applicantName = admission.fullName;
+                        admission.gradeSought = admission.applyingFor;
+                        admission.assignedTo = admission.counsellor ? { name: admission.counsellor } : null;
 
                         return (
                           <tr
-                            key={a.id}
-                            onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
-                            onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                            className={`border-l-2 ${rowBorderColor(a.dbStatus)} hover:bg-slate-50/80 transition-colors cursor-pointer bg-white`}
+                            key={admission.id}
+                            className={`border-b border-slate-100 border-l-2 cursor-pointer hover:bg-slate-50/80 transition-colors duration-100 ${
+                              getStageColor(admission.stage?.name || admission.stage).border || 'border-l-slate-200'
+                            }`}
+                            onMouseEnter={() => router.prefetch(`/admission-management/${admission.id}`)}
+                            onClick={() => router.push(`/admission-management/${admission.id}`)}
                           >
                             {/* Checkbox */}
-                            <td className="px-3 py-2.5 text-left w-10 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                            <td className="px-3 py-2.5 w-10 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                               <input
                                 type="checkbox"
-                                checked={selectedItems.includes(a.id)}
-                                onChange={() => handleSelectApplicant(a.id)}
-                                className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer"
+                                checked={selectedItems.includes(admission.id)}
+                                onChange={() => handleSelectApplicant(admission.id)}
+                                className="accent-[#1565D8] rounded focus:ring-0 cursor-pointer w-4 h-4 border-slate-300"
                               />
                             </td>
 
-                            {/* Applicant Details */}
-                            <td className="px-3 py-2.5 text-left w-[280px] min-w-[200px]">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0 font-sans">
-                                  {a.avatar}
+                            {/* APPLICANT */}
+                            <td className="px-3 py-2.5 flex-1 min-w-[200px]">
+                              <div className="flex items-center gap-3">
+                                {/* Avatar */}
+                                <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"
+                                  style={{
+                                    backgroundColor: getAvatarColor(admission.applicantName)
+                                  }}>
+                                  {admission.applicantName.slice(0, 2).toUpperCase()}
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                  <Link
-                                    href={`/admission-management/${a.id}`}
-                                    onClick={e => {
-                                      e.stopPropagation()
-                                    }}
-                                    className="font-semibold text-slate-800 text-sm hover:text-[#1565D8] hover:underline block truncate font-sans"
-                                  >
-                                    {a.fullName}
-                                  </Link>
-                                  <span className="text-xs font-normal text-slate-400 mt-0.5 truncate block font-sans">
-                                    <span className="font-mono">{a.admissionCode}</span>
-                                    {a.parentName && ` · ${a.parentName}`}
-                                    {a.phone && ` · ${a.phone}`}
-                                  </span>
+
+                                {/* Info */}
+                                <div className="min-w-0">
+                                  {/* Name */}
+                                  <p className="text-sm font-semibold text-slate-800 truncate">
+                                    {admission.applicantName}
+                                  </p>
+                                  {/* Sub-info */}
+                                  <p className="text-xs text-slate-400 truncate">
+                                    {admission.admissionCode}
+                                    {admission.parentName && ` · ${admission.parentName}`}
+                                    {admission.phone && ` · ${admission.phone}`}
+                                  </p>
                                 </div>
                               </div>
                             </td>
 
-                            {/* Grade / Stage */}
-                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px] hidden sm:table-cell">
-                              <div className="flex flex-col gap-0.5">
-                                <span className="text-xs text-slate-650 font-medium leading-tight">
-                                  {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
+                            {/* GRADE */}
+                            <td className="px-3 py-2.5 w-[120px] hidden sm:table-cell">
+                              {admission.gradeSought ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700">
+                                  {getGradeLabel(admission.gradeSought) || admission.gradeSought}
                                 </span>
-                                <span className={`text-[10px] font-semibold leading-tight ${stageTextColor(a.stage)}`}>
-                                  {a.stage || '—'}
-                                </span>
+                              ) : (
+                                <span className="text-xs text-slate-300">—</span>
+                              )}
+                            </td>
+
+                            {/* CONNECT */}
+                            <td className="px-3 py-2.5 w-[100px] hidden sm:table-cell"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-center gap-1">
+                                <a href={`mailto:${admission.email}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                                    admission.email
+                                      ? 'text-slate-400 hover:bg-blue-50 hover:text-blue-600'
+                                      : 'text-slate-200 pointer-events-none'
+                                  }`}>
+                                  <Mail size={13}/>
+                                </a>
+
+                                <a href={`https://wa.me/91${admission.phone}`}
+                                  target="_blank"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                                    admission.phone
+                                      ? 'text-slate-400 hover:bg-green-50 hover:text-green-600'
+                                      : 'text-slate-200 pointer-events-none'
+                                  }`}>
+                                  <MessageCircle size={13}/>
+                                </a>
+
+                                <a href={`tel:${admission.phone}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                                    admission.phone
+                                      ? 'text-slate-400 hover:bg-green-50 hover:text-green-600'
+                                      : 'text-slate-200 pointer-events-none'
+                                  }`}>
+                                  <Phone size={13}/>
+                                </a>
                               </div>
                             </td>
 
-                            {/* Connect */}
-                            <td className="px-3 py-2.5 text-left w-[100px] min-w-[90px] hidden md:table-cell" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center gap-1.5">
-                                <button 
-                                  onClick={(e) => {
+                            {/* STAGE */}
+                            <td className="px-3 py-2.5 w-[160px]"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="relative">
+                                <select
+                                  value={admission.stageId || ''}
+                                  onChange={async (e) => {
                                     e.stopPropagation()
-                                    showToast(`Email initiated for ${a.fullName}`)
-                                    window.open(`mailto:${a.email}`)
+                                    const newStageId = e.target.value
+                                    try {
+                                      await fetch(
+                                        `/api/v1/admissions/${admission.id}`,
+                                        {
+                                          method: 'PUT',
+                                          headers: {
+                                            'Content-Type': 'application/json'
+                                          },
+                                          body: JSON.stringify({
+                                            stageId: newStageId
+                                          })
+                                        }
+                                      )
+                                      fetchAdmissions()
+                                      fetchPipelineData()
+                                    } catch {
+                                      showToast('Failed to update stage', 'error')
+                                    }
                                   }}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
-                                >
-                                  <Mail size={13} strokeWidth={1.5} />
-                                </button>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    showToast(`WhatsApp opened for ${a.fullName}`)
-                                    window.open(`https://wa.me/91${a.phone}`, '_blank')
-                                  }}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 transition-colors hover:bg-green-50 hover:text-green-600"
-                                >
-                                  <MessageCircle size={13} strokeWidth={1.5} />
-                                </button>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    showToast(`Call initiated for ${a.fullName}`)
-                                    window.open(`tel:${a.phone}`)
-                                  }}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 transition-colors hover:bg-green-50 hover:text-green-600"
-                                >
-                                  <Phone size={13} strokeWidth={1.5} />
-                                </button>
+                                  className="text-[11px] font-semibold pl-2 pr-6 py-1 rounded-full border-0 cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20"
+                                  style={{
+                                    backgroundColor:
+                                      getStageColor(
+                                        admission.stage?.name || admission.stage
+                                      ).bg,
+                                    color:
+                                      getStageColor(
+                                        admission.stage?.name || admission.stage
+                                      ).text,
+                                  }}>
+                                  {stages.map(stage => (
+                                    <option
+                                      key={stage.id}
+                                      value={stage.id}>
+                                      {stage.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <ChevronDown
+                                  className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                                  size={10}
+                                  style={{
+                                    color: getStageColor(
+                                      admission.stage?.name || admission.stage
+                                    ).text
+                                  }}/>
                               </div>
                             </td>
 
-                            {/* Status */}
-                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]" onClick={(e) => e.stopPropagation()}>
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusBadgeColor(a.dbStatus)}`}>
-                                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60"/>
-                                {formatStatus(a.dbStatus)}
-                              </span>
-                            </td>
-
-                            {/* Counsellor */}
-                            <td className="px-3 py-2.5 text-left w-[160px] min-w-[140px] hidden md:table-cell" onClick={e => e.stopPropagation()}>
-                              <div className="relative flex items-center min-w-0">
-                                {a.counsellor ? (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setCounsellorDropdownId(counsellorDropdownId === a.id ? null : a.id)
-                                    }}
-                                    className="flex items-center gap-2 hover:opacity-80 cursor-pointer group min-w-0"
-                                  >
-                                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                                      {a.counsellorAvatar || a.counsellor.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
+                            {/* COUNSELLOR */}
+                            <td className="px-3 py-2.5 w-[160px] hidden md:table-cell" onClick={(e) => e.stopPropagation()}>
+                              <div className="relative">
+                                {admission.assignedTo?.name ? (
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
+                                      {admission.assignedTo.name.slice(0, 2).toUpperCase()}
                                     </div>
-                                    <span 
-                                      title={a.counsellor}
-                                      className="text-[13px] font-medium text-slate-700 max-w-[100px] truncate block"
-                                    >
-                                      {a.counsellor}
+                                    <span className="text-[13px] font-medium text-slate-700 truncate max-w-[100px]">
+                                      {admission.assignedTo.name}
                                     </span>
-                                    <Pencil size={11} className="text-slate-300 group-hover:text-slate-400 flex-shrink-0 ml-0.5" strokeWidth={1.5} />
-                                  </button>
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation()
+                                        openCounsellorPicker(admission.id)
+                                      }}
+                                      className="text-slate-300 hover:text-slate-500 ml-auto"
+                                    >
+                                      <Pencil size={11}/>
+                                    </button>
+                                  </div>
                                 ) : (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      setCounsellorDropdownId(counsellorDropdownId === a.id ? null : a.id)
+                                      openCounsellorPicker(admission.id)
                                     }}
-                                    className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-2.5 py-1 rounded-lg hover:bg-amber-100 cursor-pointer"
+                                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
                                   >
-                                    <UserPlus size={12} className="text-amber-600 shrink-0" strokeWidth={1.5} />
-                                    <span>Select</span>
+                                    <UserPlus size={11}/>
+                                    Select
                                   </button>
                                 )}
 
-                                {counsellorDropdownId === a.id && (
+                                {counsellorDropdownId === admission.id && (
                                   <>
                                     <div
                                       className="fixed inset-0 z-10"
@@ -1811,10 +1856,10 @@ export default function AdmissionManagementPage() {
                                           key={c.id}
                                           onClick={async (e) => {
                                             e.stopPropagation()
-                                            await handleAssignCounsellor(a.id, c.id)
+                                            await handleAssignCounsellor(admission.id, c.id)
                                           }}
                                           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all duration-150 ${
-                                            a.counsellorId === c.id
+                                            admission.counsellorId === c.id
                                               ? 'bg-blue-50 text-blue-700 font-semibold'
                                               : 'text-slate-600 hover:bg-slate-50'
                                           }`}
@@ -1823,17 +1868,17 @@ export default function AdmissionManagementPage() {
                                             {c.name.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
                                           </div>
                                           <span className="flex-1 text-left">{c.name}</span>
-                                          {a.counsellorId === c.id && (
+                                          {admission.counsellorId === c.id && (
                                             <Check size={13} className="text-blue-500" strokeWidth={2} />
                                           )}
                                         </button>
                                       ))}
-                                      {a.counsellorId && (
+                                      {admission.counsellorId && (
                                         <div className="border-t border-slate-50 mt-1 pt-1">
                                           <button
                                             onClick={async (e) => {
                                               e.stopPropagation()
-                                              await handleAssignCounsellor(a.id, null)
+                                              await handleAssignCounsellor(admission.id, null)
                                             }}
                                             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 cursor-pointer"
                                           >
@@ -1848,13 +1893,15 @@ export default function AdmissionManagementPage() {
                               </div>
                             </td>
 
-                            {/* Date */}
-                            <td className="px-3 py-2.5 text-left w-[80px] min-w-[70px] hidden lg:table-cell text-xs text-slate-500 font-medium font-sans">
-                              {formatDate(a.createdAt)}
+                            {/* DATE */}
+                            <td className="px-3 py-2.5 w-[80px] hidden lg:table-cell">
+                              <span className="text-xs text-slate-500">
+                                {admission.createdAt ? format(new Date(admission.createdAt), 'd MMM') : '—'}
+                              </span>
                             </td>
 
-                            {/* Action */}
-                            <td className="px-3 py-2.5 text-left w-[80px] min-w-[80px]" onClick={e => e.stopPropagation()}>
+                            {/* ACTION */}
+                            <td className="px-3 py-2.5 w-[50px]" onClick={e => e.stopPropagation()}>
                               <div className="flex justify-start">
                                 <button
                                   onClick={(e) => {
@@ -1864,7 +1911,7 @@ export default function AdmissionManagementPage() {
                                       top: rect.bottom + 4,
                                       left: rect.right - 160,
                                     })
-                                    setOpenMenuId(openMenuId === a.id ? null : a.id)
+                                    setOpenMenuId(openMenuId === admission.id ? null : admission.id)
                                   }}
                                   className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
                                 >
@@ -1873,26 +1920,22 @@ export default function AdmissionManagementPage() {
                               </div>
                             </td>
                           </tr>
-                        )
+                        );
                       })}
 
                       {/* Empty Row Placeholders to keep minimum 8 rows */}
-                      {Math.max(0, 8 - filteredApplicants.length) > 0 && 
-                        Array.from({ length: Math.max(0, 8 - filteredApplicants.length) }).map((_, i) => (
-                          <tr
-                            key={`placeholder-${i}`}
-                            className="border-b border-slate-50 bg-white"
-                          >
-                            <td className="px-3 py-2.5 text-left w-10 flex-shrink-0" />
-                            <td className="px-3 py-2.5 text-left w-[280px] min-w-[200px]">
-                              <div className="h-4" />
-                            </td>
-                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px] hidden sm:table-cell" />
-                            <td className="px-3 py-2.5 text-left w-[100px] min-w-[90px] hidden md:table-cell" />
-                            <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]" />
-                            <td className="px-3 py-2.5 text-left w-[160px] min-w-[140px] hidden md:table-cell" />
-                            <td className="px-3 py-2.5 text-left w-[80px] min-w-[70px] hidden lg:table-cell" />
-                            <td className="px-3 py-2.5 text-left w-[80px] min-w-[80px]" />
+                      {placeholderCount > 0 && 
+                        Array.from({ length: placeholderCount }).map((_, i) => (
+                          <tr key={`empty-${i}`}
+                            className="border-b border-slate-50 last:border-0 border-l-2 border-l-transparent">
+                            <td className="px-3 py-3 w-10"/>
+                            <td className="px-3 py-3 flex-1 min-w-[200px]"/>
+                            <td className="px-3 py-3 w-[120px] hidden sm:table-cell"/>
+                            <td className="px-3 py-3 w-[100px] hidden sm:table-cell"/>
+                            <td className="px-3 py-3 w-[160px]"/>
+                            <td className="px-3 py-3 w-[160px] hidden md:table-cell"/>
+                            <td className="px-3 py-3 w-[80px] hidden lg:table-cell"/>
+                            <td className="px-3 py-3 w-[50px]"/>
                           </tr>
                         ))
                       }
@@ -1902,54 +1945,113 @@ export default function AdmissionManagementPage() {
 
                 {/* Mobile Card View (visible on < 640px) */}
                 <div className="block sm:hidden divide-y divide-slate-100">
-                  {filteredApplicants.map((admission: any) => (
-                    <div
-                      key={admission.id}
-                      onClick={() => router.push(`/admission-management/${admission.id}`)}
-                      className={`p-4 cursor-pointer hover:bg-slate-50 border-l-4 ${rowBorderColor(admission.dbStatus)}`}
-                    >
-                      {/* ROW 1: Avatar w-8 h-8 + Name + Status dropdown */}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center flex-shrink-0 font-sans">
-                            {admission.avatar}
+                  {filteredApplicants.map((admission: any) => {
+                    admission.applicantName = admission.fullName;
+                    admission.gradeSought = admission.applyingFor;
+                    admission.assignedTo = admission.counsellor ? { name: admission.counsellor } : null;
+
+                    return (
+                      <div
+                        key={admission.id}
+                        onClick={() => router.push(`/admission-management/${admission.id}`)}
+                        className={`p-4 cursor-pointer hover:bg-slate-50 border-l-4 ${
+                          getStageColor(admission.stage?.name || admission.stage).border || 'border-l-slate-200'
+                        }`}
+                      >
+                        {/* ROW 1: Avatar + Name + Stage inline dropdown */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"
+                              style={{
+                                backgroundColor: getAvatarColor(admission.applicantName)
+                              }}>
+                              {admission.applicantName.slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="text-sm font-semibold text-slate-800 truncate">
+                              {admission.applicantName}
+                            </span>
                           </div>
-                          <span className="text-sm font-semibold text-slate-800 truncate">
-                            {admission.fullName}
+                          <div className="relative" onClick={(e) => e.stopPropagation()}>
+                            <select
+                              value={admission.stageId || ''}
+                              onChange={async (e) => {
+                                e.stopPropagation()
+                                const newStageId = e.target.value
+                                try {
+                                  await fetch(
+                                    `/api/v1/admissions/${admission.id}`,
+                                    {
+                                      method: 'PUT',
+                                      headers: {
+                                        'Content-Type': 'application/json'
+                                      },
+                                      body: JSON.stringify({
+                                        stageId: newStageId
+                                      })
+                                    }
+                                  )
+                                  fetchAdmissions()
+                                  fetchPipelineData()
+                                } catch {
+                                  showToast('Failed to update stage', 'error')
+                                }
+                              }}
+                              className="text-[11px] font-semibold pl-2 pr-6 py-1 rounded-full border-0 cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20"
+                              style={{
+                                backgroundColor:
+                                  getStageColor(
+                                    admission.stage?.name || admission.stage
+                                  ).bg,
+                                color:
+                                  getStageColor(
+                                    admission.stage?.name || admission.stage
+                                  ).text,
+                              }}
+                            >
+                              {stages.map(stage => (
+                                <option key={stage.id} value={stage.id}>
+                                  {stage.name}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown
+                              className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                              size={10}
+                              style={{
+                                color: getStageColor(
+                                  admission.stage?.name || admission.stage
+                                ).text
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* ROW 2: Code + Grade badge */}
+                        <div className="flex gap-2 mt-1.5 flex-wrap items-center">
+                          <span className="text-xs font-normal text-slate-400 font-mono">
+                            {admission.admissionCode}
+                          </span>
+                          {admission.gradeSought ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700">
+                              {getGradeLabel(admission.gradeSought) || admission.gradeSought}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-300">—</span>
+                          )}
+                        </div>
+
+                        {/* ROW 3: Counsellor + Date */}
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-[13px] font-medium text-slate-700">
+                            {admission.assignedTo?.name ? `Counsellor: ${admission.assignedTo.name}` : 'Unassigned'}
+                          </span>
+                          <span className="text-xs text-slate-500 font-sans">
+                            {admission.createdAt ? format(new Date(admission.createdAt), 'd MMM') : '—'}
                           </span>
                         </div>
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${statusBadgeColor(admission.dbStatus)}`}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60"/>
-                            {formatStatus(admission.dbStatus)}
-                          </span>
-                        </div>
                       </div>
-
-                      {/* ROW 2: Code + Grade badge + Stage */}
-                      <div className="flex gap-2 mt-1.5 flex-wrap items-center">
-                        <span className="text-xs font-normal text-slate-400 font-mono">
-                          {admission.admissionCode}
-                        </span>
-                        <span className="text-[11px] font-semibold text-slate-650 bg-slate-100 px-1.5 py-0.5 rounded">
-                          {admission.applyingFor ? getGradeLabel(admission.applyingFor) : '—'}
-                        </span>
-                        <span className={`text-[11px] font-semibold ${stageTextColor(admission.stage)}`}>
-                          {admission.stage || '—'}
-                        </span>
-                      </div>
-
-                      {/* ROW 3: Counsellor + Date */}
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-[13px] font-medium text-slate-700">
-                          {admission.counsellor ? `Counsellor: ${admission.counsellor}` : 'Unassigned'}
-                        </span>
-                        <span className="text-xs text-slate-500">
-                          {formatDate(admission.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Pagination */}

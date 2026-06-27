@@ -40,16 +40,21 @@ interface StudentDetail {
   }[]
 }
 
+interface StudentResponse {
+  success: boolean
+  data: StudentDetail
+}
+
 export function useStudent(id: string) {
   const key = id
     ? `/api/v1/students/${id}`
     : null
 
   const { data, error, isLoading, mutate } =
-    useSWR<StudentDetail>(key, fetcher)
+    useSWR<StudentResponse>(key, fetcher)
 
   return {
-    student: data ?? null,
+    student: data?.data ?? null,
     isLoading,
     error,
     mutate

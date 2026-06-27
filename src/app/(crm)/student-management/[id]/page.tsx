@@ -67,9 +67,9 @@ export default function StudentDetailPage() {
 
   const config = STATUS_CONFIG[student.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.ACTIVE
 
-  const initials = student.name
+  const initials = (student.name || '')
     .split(' ')
-    .map(n => n[0])
+    .map((n: string) => n[0])
     .join('')
     .substring(0, 2)
     .toUpperCase()
@@ -79,7 +79,7 @@ export default function StudentDetailPage() {
     'bg-purple-500', 'bg-amber-500',
     'bg-red-500', 'bg-indigo-500'
   ]
-  const avatarColor = colors[student.name.charCodeAt(0) % colors.length]
+  const avatarColor = colors[(student.name || 'S').charCodeAt(0) % colors.length]
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">

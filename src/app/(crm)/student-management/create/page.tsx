@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { mutate } from 'swr'
 import { ArrowLeft, Save, Loader2, AlertCircle } from 'lucide-react'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { GRADE_OPTIONS } from '@/constants/grades'
@@ -65,6 +66,15 @@ export default function CreateStudentPage() {
       if (!res.ok) {
         throw new Error(json.error || json.message || 'Failed to create student')
       }
+
+      // Invalidate student list cache
+      await mutate(
+        (key: string) =>
+          typeof key === 'string' &&
+          key.startsWith('/api/v1/students'),
+        undefined,
+        { revalidate: true }
+      )
 
       router.push('/student-management?success=created')
     } catch (err: any) {

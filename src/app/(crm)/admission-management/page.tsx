@@ -1305,36 +1305,41 @@ export default function AdmissionManagementPage() {
           {!pipelineExpanded ? (
             <div className="mx-4 mb-3">
               <div 
-                className="flex items-center gap-3 px-4 py-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-[#1565D8]/30 hover:bg-blue-50/20 transition-colors min-w-0"
+                className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-[#1565D8]/30 hover:bg-blue-50/20 transition-colors gap-3 min-w-0"
                 onClick={() => togglePipeline(true)}
               >
-                {/* LEFT: Icon + Label — never shrinks */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <BarChart2 className="size-14 text-[#1565D8]" />
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 whitespace-nowrap hidden sm:inline">
-                    Admission Pipeline
-                  </span>
+                {/* TOP LINE ON MOBILE / LEFT ON DESKTOP */}
+                <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+                  <div className="flex items-center gap-2">
+                    <BarChart2 className="w-5 h-5 text-[#1565D8] flex-shrink-0" />
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 whitespace-nowrap">
+                      Admission Pipeline
+                    </span>
+                  </div>
+                  {/* View Pipeline mobile toggle */}
+                  <div className="flex items-center gap-1 text-sm font-medium text-[#1565D8] hover:underline whitespace-nowrap sm:hidden">
+                    <span>View</span>
+                    <ChevronDown size={14} className="text-slate-400" />
+                  </div>
                 </div>
 
-                {/* CENTER: Stats — scrollable on mobile */}
-                <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-1"
-                  style={{ WebkitOverflowScrolling: 'touch' }}
-                >
-                  <span className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm text-slate-600">
+                {/* BOTTOM LINE ON MOBILE / CENTER ON DESKTOP */}
+                <div className="flex items-center justify-between sm:justify-start gap-4 sm:gap-6 border-t border-slate-100 sm:border-0 pt-2.5 sm:pt-0 w-full sm:w-auto">
+                  <span className="text-xs sm:text-sm text-slate-600 whitespace-nowrap">
                     Total:{' '}
                     <span className="font-bold text-slate-900">
                       {Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
                     </span>
                   </span>
 
-                  <span className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm text-slate-600">
+                  <span className="text-xs sm:text-sm text-slate-600 whitespace-nowrap">
                     Conversion:{' '}
                     <span className="font-bold text-green-600">
                       {conversionRate}%
                     </span>
                   </span>
 
-                  <span className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm text-slate-600">
+                  <span className="text-xs sm:text-sm text-slate-600 whitespace-nowrap">
                     Admitted:{' '}
                     <span className="font-bold text-blue-600">
                       {displayAdmittedCount}
@@ -1342,10 +1347,10 @@ export default function AdmissionManagementPage() {
                   </span>
                 </div>
 
-                {/* RIGHT: View Pipeline — never shrinks */}
+                {/* RIGHT BUTTON — DESKTOP ONLY */}
                 <button
                   onClick={(e) => { e.stopPropagation(); togglePipeline(true); }}
-                  className="flex items-center gap-1 text-sm font-medium text-[#1565D8] hover:underline flex-shrink-0 whitespace-nowrap ml-auto cursor-pointer"
+                  className="hidden sm:flex items-center gap-1 text-sm font-medium text-[#1565D8] hover:underline flex-shrink-0 whitespace-nowrap ml-auto cursor-pointer"
                 >
                   View Pipeline
                   <ChevronDown size={14} className="text-slate-400" />

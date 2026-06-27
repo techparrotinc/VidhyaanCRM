@@ -241,10 +241,10 @@ enum DocumentReviewStatus {
 
 enum StudentStatus {
   ACTIVE
-  INACTIVE
   ALUMNI
   TRANSFERRED
-  WITHDRAWN
+  SUSPENDED
+  DROPPED_OUT
 
   @@schema("crm")
 }

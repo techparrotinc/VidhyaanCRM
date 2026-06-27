@@ -15,7 +15,7 @@ interface Student {
   gradeLabel: string | null
   guardianName: string | null
   guardianPhone: string | null
-  status: 'ACTIVE' | 'INACTIVE' | 'ALUMNI' | 'SUSPENDED'
+  status: 'ACTIVE' | 'ALUMNI' | 'TRANSFERRED' | 'SUSPENDED' | 'DROPPED_OUT'
 }
 
 export default function StudentListingPage() {

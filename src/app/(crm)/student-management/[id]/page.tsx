@@ -41,7 +41,7 @@ interface Student {
   guardianName: string | null
   guardianPhone: string | null
   guardianEmail: string | null
-  status: 'ACTIVE' | 'INACTIVE' | 'ALUMNI' | 'SUSPENDED'
+  status: 'ACTIVE' | 'ALUMNI' | 'TRANSFERRED' | 'SUSPENDED' | 'DROPPED_OUT'
   dateOfBirth: string | null
   gender: string | null
 }

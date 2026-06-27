@@ -4,7 +4,7 @@ import { ok, created, paginated } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import { Gender, StudentStatus } from '@prisma/client'
 
 export const GET = route({

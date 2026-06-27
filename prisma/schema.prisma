@@ -289,6 +289,37 @@ enum FeeFrequency {
   @@schema("crm")
 }
 
+enum InvoiceType {
+  TERM
+  ADHOC
+  COURSE
+
+  @@schema("crm")
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+
+  @@schema("crm")
+}
+
+enum CenterCategory {
+  MUSIC
+  DANCE
+  ART
+  ABACUS
+  COACHING
+  SPORTS
+  LANGUAGE
+  STEM
+  OTHER
+
+  @@schema("crm")
+}
+
 enum InvoiceStatus {
   UNPAID
   PARTIALLY_PAID
@@ -522,6 +553,7 @@ model Organization {
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
   deletedAt        DateTime?       @map("deleted_at")
+  centerCategory   String?         @map("center_category")
 
   plan                 Plan?                    @relation(fields: [planId], references: [id])
   branches             Branch[]
@@ -559,6 +591,9 @@ model Organization {
   notificationPrefs    NotificationPreference[]
   counsellorTargets    CounsellorTarget[]
   communicationLogs    CommunicationLog[]
+  terms                Term[]
+  courses              Course[]
+  courseEnrollments    CourseEnrollment[]
 
   @@index([status])
   @@index([institutionType])
@@ -839,6 +874,7 @@ model School {
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
   deletedAt          DateTime?          @map("deleted_at")
+  centerCategory     String?            @map("center_category")
 
   // For Learning Centers
   trialClassAvailable   Boolean   @default(false) @map("trial_class_available")
@@ -1431,6 +1467,7 @@ model AcademicYear {
   events              Event[]
   campaigns           Campaign[]
   counsellorTargets   CounsellorTarget[]
+  terms               Term[]
 
   @@unique([orgId, name])
   @@index([orgId])
@@ -1705,6 +1742,7 @@ model Student {
   siblingLinksA SiblingLink[] @relation("SiblingPrimary")
   siblingLinksB SiblingLink[] @relation("SiblingRelated")
   activities    StudentActivity[]
+  courseEnrollments CourseEnrollment[]
 
   @@unique([orgId, studentCode])
   @@index([orgId])
@@ -1801,13 +1839,15 @@ model SiblingLink {
 
 /// Reusable fee structure template (org-level).
 model FeePlanTemplate {
-  id        String    @id @default(cuid())
-  orgId     String    @map("org_id")
-  name      String
-  structure Json // array of { head, amount, frequency }
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id              String    @id @default(cuid())
+  orgId           String    @map("org_id")
+  name            String
+  gradeLabel      String?   @map("grade_label")
+  institutionType String?   @map("institution_type")
+  structure       Json // array of { head, amount, frequency }
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   feePlans     FeePlan[]
@@ -1856,6 +1896,9 @@ model Invoice {
   paidAmount     Decimal       @default(0) @map("paid_amount") @db.Decimal(12, 2)
   lateFeeAmount  Decimal       @default(0) @map("late_fee_amount") @db.Decimal(12, 2)
   status         InvoiceStatus @default(UNPAID)
+  invoiceType    InvoiceType   @default(ADHOC) @map("invoice_type")
+  termId         String?       @map("term_id")
+  courseId       String?       @map("course_id")
   dueDate        DateTime?     @map("due_date")
   notes          String?
   createdAt      DateTime      @default(now()) @map("created_at")
@@ -1866,6 +1909,8 @@ model Invoice {
   branch       Branch?       @relation(fields: [branchId], references: [id])
   academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
   student      Student       @relation(fields: [studentId], references: [id])
+  term         Term?         @relation(fields: [termId], references: [id])
+  course       Course?       @relation(fields: [courseId], references: [id])
   items        InvoiceItem[]
   payments     Payment[]
   concessions  Concession[]
@@ -1875,6 +1920,8 @@ model Invoice {
   @@index([studentId])
   @@index([status])
   @@index([dueDate])
+  @@index([termId])
+  @@index([courseId])
   @@map("invoices")
   @@schema("crm")
 }
@@ -2340,4 +2387,74 @@ model PlatformSettings {
 
   @@map("platform_settings")
   @@schema("platform")
+}
+
+model Term {
+  id             String    @id @default(cuid())
+  orgId          String    @map("org_id")
+  academicYearId String    @map("academic_year_id")
+  name           String
+  startDate      DateTime  @map("start_date")
+  endDate        DateTime  @map("end_date")
+  order          Int       @default(0)
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  invoices       Invoice[]
+
+  @@index([orgId])
+  @@index([academicYearId])
+  @@map("terms")
+  @@schema("crm")
+}
+
+model Course {
+  id            String        @id @default(cuid())
+  orgId         String        @map("org_id")
+  name          String
+  description   String?
+  category      CenterCategory?
+  amount        Decimal       @db.Decimal(10, 2)
+  frequency     FeeFrequency  @default(MONTHLY)
+  billingDay    Int           @default(1) @map("billing_day")
+  durationMonths Int?         @map("duration_months")
+  isActive      Boolean       @default(true) @map("is_active")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  deletedAt     DateTime?     @map("deleted_at")
+
+  organization  Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  enrollments   CourseEnrollment[]
+  invoices      Invoice[]
+
+  @@index([orgId])
+  @@map("courses")
+  @@schema("crm")
+}
+
+model CourseEnrollment {
+  id          String           @id @default(cuid())
+  orgId       String           @map("org_id")
+  studentId   String           @map("student_id")
+  courseId    String           @map("course_id")
+  startDate   DateTime         @map("start_date")
+  endDate     DateTime?        @map("end_date")
+  status      EnrollmentStatus @default(ACTIVE)
+  nextBillingDate DateTime?    @map("next_billing_date")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  organization Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  student      Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course       Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+  @@index([orgId])
+  @@index([studentId])
+  @@index([courseId])
+  @@map("course_enrollments")
+  @@schema("crm")
 }

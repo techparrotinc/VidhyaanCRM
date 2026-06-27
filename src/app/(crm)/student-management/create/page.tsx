@@ -8,7 +8,7 @@ import { GRADE_OPTIONS } from '@/constants/grades'
 
 export default function CreateStudentPage() {
   const router = useRouter()
-  const { years: academicYears, isLoading: loadingYears } = useAcademicYears()
+  const { years, isLoading: loadingYears } = useAcademicYears()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -207,7 +207,7 @@ export default function CreateStudentPage() {
                 className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition"
               >
                 <option value="">Select Year</option>
-                {academicYears.map((y: any) => (
+                {years.map((y: any) => (
                   <option key={y.id} value={y.id}>
                     {y.name}
                   </option>

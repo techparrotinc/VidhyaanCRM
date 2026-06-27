@@ -13,7 +13,7 @@ export default function EditStudentPage() {
   const id = params?.id as string
 
   const { student, isLoading } = useStudent(id)
-  const { years: academicYears } = useAcademicYears()
+  const { years } = useAcademicYears()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -266,7 +266,7 @@ export default function EditStudentPage() {
                 onChange={handleChange}
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                 <option value="">Select academic year</option>
-                {academicYears?.map((ay: any) => (
+                {years?.map((ay: any) => (
                   <option key={ay.id} value={ay.id}>
                     {ay.name}
                   </option>

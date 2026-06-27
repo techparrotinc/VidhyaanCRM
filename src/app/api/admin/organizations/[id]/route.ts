@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { OrgStatus, AuditAction, UserStatus } from '@prisma/client'
+import { redis } from '@/lib/redis'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -222,6 +223,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           })
         )
       ).catch((e) => console.error('Failed to save update audit logs:', e))
+    }
+
+    // Invalidate organization cache
+    try {
+      await redis.del(`org:${id}`)
+    } catch (err) {
+      console.error('Failed to invalidate organization cache:', err)
     }
 
     return NextResponse.json(updatedOrg)

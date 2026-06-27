@@ -73,7 +73,12 @@ export const POST = route({
     })
 
     // Invalidate academic-year cache
-    await redis.del(`academic-year:${user.orgId}`)
+    try {
+      await redis.del(`academic-year:${user.orgId}`)
+      await redis.del(`org:${user.orgId}:academic-year:active`)
+    } catch (err) {
+      console.error('Failed to invalidate academic-year cache:', err)
+    }
 
     return created(year)
   }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { InstitutionType } from '@prisma/client'
+import { redis } from '@/lib/redis'
 
 function slugify(text: string): string {
   return text
@@ -412,6 +413,13 @@ export async function POST(req: NextRequest) {
           }
         }
       })
+    }
+
+    // Invalidate organization cache
+    try {
+      await redis.del(`org:${org.id}`)
+    } catch (err) {
+      console.error('Failed to invalidate organization cache:', err)
     }
 
     return NextResponse.json({

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { forOrg } from '@/lib/db/tenant'
 import { Errors } from './errors'
 import { errorResponse } from './respond'
+import { redis } from '@/lib/redis'
 
 const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
 
@@ -58,18 +59,39 @@ export function route(config: RouteConfig) {
       }
 
       // STEP 3: Get organization
-      const org = await prisma.organization.findFirst({
-        where: {
-          id: user.orgId,
-          deletedAt: null
-        },
-        select: {
-          id: true,
-          status: true,
-          leadCap: true,
-          planId: true
+      let org = null
+      const orgCacheKey = `org:${user.orgId}`
+      try {
+        const cached = await redis.get(orgCacheKey)
+        if (cached) {
+          org = JSON.parse(cached)
         }
-      })
+      } catch (err) {
+        console.error('Org cache read:', err)
+      }
+
+      if (!org) {
+        org = await prisma.organization.findFirst({
+          where: {
+            id: user.orgId,
+            deletedAt: null
+          },
+          select: {
+            id: true,
+            status: true,
+            leadCap: true,
+            planId: true
+          }
+        })
+
+        if (org) {
+          try {
+            await redis.set(orgCacheKey, JSON.stringify(org), 'EX', 300)
+          } catch (err) {
+            console.error('Org cache write:', err)
+          }
+        }
+      }
 
       if (!org) {
         throw Errors.forbidden('Organization not found')
@@ -81,15 +103,36 @@ export function route(config: RouteConfig) {
 
       // STEP 4: Check module access
       if (config.module) {
-        const moduleAccess = await prisma.organizationModule.findFirst({
-          where: {
-            orgId: user.orgId,
-            module: {
-              slug: config.module
-            },
-            enabled: true
+        let moduleAccess = null
+        const moduleCacheKey = `org:${user.orgId}:module:${config.module}`
+        try {
+          const cached = await redis.get(moduleCacheKey)
+          if (cached) {
+            moduleAccess = JSON.parse(cached)
           }
-        })
+        } catch (err) {
+          console.error('Module cache read:', err)
+        }
+
+        if (!moduleAccess) {
+          moduleAccess = await prisma.organizationModule.findFirst({
+            where: {
+              orgId: user.orgId,
+              module: {
+                slug: config.module
+              },
+              enabled: true
+            }
+          })
+
+          if (moduleAccess) {
+            try {
+              await redis.set(moduleCacheKey, JSON.stringify(moduleAccess), 'EX', 300)
+            } catch (err) {
+              console.error('Module cache write:', err)
+            }
+          }
+        }
 
         if (!moduleAccess) {
           throw Errors.moduleLocked(config.module)
@@ -109,10 +152,31 @@ export function route(config: RouteConfig) {
       const db = forOrg(user.orgId)
 
       // STEP 7: Resolve academic year
-      const activeYear = await db.academicYear.findFirst({
-        where: { status: 'ACTIVE' },
-        select: { id: true, status: true }
-      })
+      let activeYear = null
+      const academicYearCacheKey = `org:${user.orgId}:academic-year:active`
+      try {
+        const cached = await redis.get(academicYearCacheKey)
+        if (cached) {
+          activeYear = JSON.parse(cached)
+        }
+      } catch (err) {
+        console.error('AY cache read:', err)
+      }
+
+      if (!activeYear) {
+        activeYear = await db.academicYear.findFirst({
+          where: { status: 'ACTIVE' },
+          select: { id: true, status: true }
+        })
+
+        if (activeYear) {
+          try {
+            await redis.set(academicYearCacheKey, JSON.stringify(activeYear), 'EX', 3600)
+          } catch (err) {
+            console.error('AY cache write:', err)
+          }
+        }
+      }
 
       const academicYearId =
         req.headers.get('x-academic-year-id') ??

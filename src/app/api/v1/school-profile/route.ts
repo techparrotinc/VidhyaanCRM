@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { recalculateAndSaveSchoolScores } from '@/lib/school-profile-helper'
+import { redis } from '@/lib/redis'
 
 // GET own school profile
 export async function GET(req: NextRequest) {
@@ -261,6 +262,13 @@ export async function PUT(req: NextRequest) {
 
     // 5. Recalculate scores and return
     const updatedSchool = await recalculateAndSaveSchoolScores(school.id)
+
+    // Invalidate organization cache
+    try {
+      await redis.del(`org:${user.orgId}`)
+    } catch (err) {
+      console.error('Failed to invalidate organization cache:', err)
+    }
 
     return NextResponse.json({ success: true, school: updatedSchool })
 

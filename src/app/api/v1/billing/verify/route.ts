@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { verifyPayment } from '@/lib/integrations/razorpay'
 import { sendEmail } from '@/lib/integrations/resend'
 import { AuditAction, SubscriptionStatus, BillingCycle } from '@prisma/client'
+import { redis } from '@/lib/redis'
 
 export async function POST(req: NextRequest) {
   try {
@@ -223,6 +224,16 @@ export async function POST(req: NextRequest) {
         }
       }
     }).catch(e => console.error('Failed to write verification audit log:', e))
+
+    // Invalidate organization and module caches
+    try {
+      await redis.del(`org:${user.orgId}`)
+      await Promise.all(
+        planModules.map((pm) => redis.del(`org:${user.orgId}:module:${pm.moduleSlug}`))
+      )
+    } catch (err) {
+      console.error('Failed to invalidate billing caches:', err)
+    }
 
     return NextResponse.json({ success: true })
 

@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { ok, errorResponse } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
+import { redis } from '@/lib/redis'
 import { z } from 'zod'
 
 export async function GET(
@@ -126,6 +127,13 @@ export async function PUT(
       }
     })
 
+    // Invalidate module cache
+    try {
+      await redis.del(`org:${id}:module:${body.moduleSlug}`)
+    } catch (err) {
+      console.error('Failed to invalidate module cache:', err)
+    }
+
     return ok(updated)
 
   } catch (error) {
@@ -219,6 +227,15 @@ export async function POST(
         after: { modules: body.modules }
       }
     })
+
+    // Invalidate module caches
+    try {
+      await Promise.all(
+        body.modules.map(mod => redis.del(`org:${id}:module:${mod.slug}`))
+      )
+    } catch (err) {
+      console.error('Failed to invalidate module caches:', err)
+    }
 
     return ok(results)
 

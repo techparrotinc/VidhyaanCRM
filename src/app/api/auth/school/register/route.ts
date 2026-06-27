@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Find Organization if schoolId is provided, or create one if schoolName/institutionType is provided
-    let org = null
+    let org: any = null
     let school = null
     let branch = null
 
@@ -186,18 +186,22 @@ export async function POST(req: NextRequest) {
         }
       })
 
-      const leadModule = await prisma.module.findUnique({
-        where: { slug: 'lead_management' }
-      })
-      if (leadModule) {
-        await prisma.organizationModule.create({
-          data: {
+      try {
+        const coreSlugs = ['lead_management', 'admission_management', 'student_management', 'fee_management']
+        const dbModules = await prisma.module.findMany({
+          where: { slug: { in: coreSlugs } }
+        })
+        await prisma.organizationModule.createMany({
+          data: dbModules.map(m => ({
             orgId: org.id,
-            moduleId: leadModule.id,
+            moduleId: m.id,
             enabled: true,
             enabledAt: new Date()
-          }
+          })),
+          skipDuplicates: true
         })
+      } catch (err) {
+        console.error('Failed to create org modules:', err)
       }
 
       if (freePlan) {

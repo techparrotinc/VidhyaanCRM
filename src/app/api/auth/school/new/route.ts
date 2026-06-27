@@ -193,19 +193,23 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    // 5. Enable free plan modules: lead_management only
-    const leadModule = await prisma.module.findUnique({
-      where: { slug: 'lead_management' }
-    })
-    if (leadModule) {
-      await prisma.organizationModule.create({
-        data: {
+    // 5. Enable free plan modules: lead_management, admission_management, student_management, fee_management
+    try {
+      const coreSlugs = ['lead_management', 'admission_management', 'student_management', 'fee_management']
+      const dbModules = await prisma.module.findMany({
+        where: { slug: { in: coreSlugs } }
+      })
+      await prisma.organizationModule.createMany({
+        data: dbModules.map(m => ({
           orgId: org.id,
-          moduleId: leadModule.id,
+          moduleId: m.id,
           enabled: true,
           enabledAt: new Date()
-        }
+        })),
+        skipDuplicates: true
       })
+    } catch (err) {
+      console.error('Failed to create org modules:', err)
     }
 
     // 6. Create free plan Subscription

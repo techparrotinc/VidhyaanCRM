@@ -85,6 +85,25 @@ export async function POST(req: NextRequest) {
         }
       })
 
+      // Auto-create core modules
+      try {
+        const coreSlugs = ['lead_management', 'admission_management', 'student_management', 'fee_management']
+        const dbModules = await prisma.module.findMany({
+          where: { slug: { in: coreSlugs } }
+        })
+        await prisma.organizationModule.createMany({
+          data: dbModules.map(m => ({
+            orgId: org.id,
+            moduleId: m.id,
+            enabled: true,
+            enabledAt: new Date()
+          })),
+          skipDuplicates: true
+        })
+      } catch (err) {
+        console.error('Failed to create org modules:', err)
+      }
+
       // Link school back to the new organization and update status
       await prisma.school.update({
         where: { id: school.id },
@@ -200,6 +219,25 @@ export async function POST(req: NextRequest) {
           status: 'ACTIVE'
         }
       })
+
+      // Auto-create core modules
+      try {
+        const coreSlugs = ['lead_management', 'admission_management', 'student_management', 'fee_management']
+        const dbModules = await prisma.module.findMany({
+          where: { slug: { in: coreSlugs } }
+        })
+        await prisma.organizationModule.createMany({
+          data: dbModules.map(m => ({
+            orgId: org.id,
+            moduleId: m.id,
+            enabled: true,
+            enabledAt: new Date()
+          })),
+          skipDuplicates: true
+        })
+      } catch (err) {
+        console.error('Failed to create org modules:', err)
+      }
 
       // Link school and update verificationStatus
       await prisma.school.update({

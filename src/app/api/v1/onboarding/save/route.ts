@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     }
 
     let orgId = user.orgId
-    let org = null
+    let org: any = null
 
     // Ensure Organization exists for ORG_ADMIN
     if (!orgId) {
@@ -104,6 +104,25 @@ export async function POST(req: NextRequest) {
         }
       })
       orgId = org.id
+
+      // Auto-create core modules
+      try {
+        const coreSlugs = ['lead_management', 'admission_management', 'student_management', 'fee_management']
+        const dbModules = await prisma.module.findMany({
+          where: { slug: { in: coreSlugs } }
+        })
+        await prisma.organizationModule.createMany({
+          data: dbModules.map(m => ({
+            orgId: org.id,
+            moduleId: m.id,
+            enabled: true,
+            enabledAt: new Date()
+          })),
+          skipDuplicates: true
+        })
+      } catch (err) {
+        console.error('Failed to create org modules:', err)
+      }
 
       // Link User to new organization
       await prisma.user.update({

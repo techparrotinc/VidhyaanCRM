@@ -526,7 +526,7 @@ export default function AdmissionManagementPage() {
         counsellor: counsellorName,
         counsellorAvatar,
         counsellorId: adm.assignedTo?.id ?? null,
-        stage: adm.stage?.name ?? 'New',
+        stage: adm.stage || { name: 'New' },
         stageId: stageData ? stageData.id : (adm.stageId ?? 'new'),
         stageIndex,
         createdDate,
@@ -750,7 +750,7 @@ export default function AdmissionManagementPage() {
       if (activeStageFilter) {
         const localStage = configPipeline.find(s => s.id === activeStageFilter)
         const activeLabel = localStage ? localStage.label : ''
-        if (a.stage.toLowerCase() !== activeLabel.toLowerCase())
+        if ((a.stage?.name || a.stage || '').toLowerCase() !== activeLabel.toLowerCase())
           return false
       }
       if (searchQuery &&
@@ -1855,7 +1855,7 @@ export default function AdmissionManagementPage() {
                             >
                               <div className="relative">
                                 <select
-                                  value={admission.stageId || ''}
+                                  value={admission.stage?.id ?? ''}
                                   onChange={async (e) => {
                                       e.stopPropagation()
                                       const newStageId = e.target.value
@@ -1945,13 +1945,18 @@ export default function AdmissionManagementPage() {
                                   style={{
                                     backgroundColor:
                                       getStageColor(
-                                        admission.stage?.name || admission.stage
+                                        admission.stage?.name
                                       ).bg,
                                     color:
                                       getStageColor(
-                                        admission.stage?.name || admission.stage
+                                        admission.stage?.name
                                       ).text,
                                   }}>
+                                  {!admission.stage && (
+                                    <option value="" disabled>
+                                      — Select Stage —
+                                    </option>
+                                  )}
                                   {stages.map(stage => (
                                     <option
                                       key={stage.id}
@@ -2142,7 +2147,7 @@ export default function AdmissionManagementPage() {
                           </div>
                           <div className="relative" onClick={(e) => e.stopPropagation()}>
                             <select
-                              value={admission.stageId || ''}
+                              value={admission.stage?.id ?? ''}
                               onChange={async (e) => {
                                 e.stopPropagation()
                                 const newStageId = e.target.value
@@ -2240,6 +2245,11 @@ export default function AdmissionManagementPage() {
                                   ).text,
                               }}
                             >
+                              {!admission.stage && (
+                                <option value="" disabled>
+                                  — Select Stage —
+                                </option>
+                              )}
                               {stages.map(stage => (
                                 <option key={stage.id} value={stage.id}>
                                   {stage.name}

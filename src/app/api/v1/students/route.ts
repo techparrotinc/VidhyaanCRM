@@ -12,7 +12,8 @@ export const GET = route({
     ROLES.ORG_ADMIN,
     ROLES.BRANCH_ADMIN,
     ROLES.COUNSELLOR,
-    ROLES.RECEPTIONIST
+    ROLES.RECEPTIONIST,
+    ROLES.TEACHER
   ],
   handler: async ({ req, db }) => {
     const { searchParams } = new URL(req.url)

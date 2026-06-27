@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       establishedYear
     } = body
 
-    if (!name || !phone || !email || !role || !schoolName || !institutionType || !city || !board) {
+    if (!name || !phone || !email || !role || !schoolName || !institutionType || !city || (institutionType !== 'LEARNING_CENTER' && !board)) {
       return NextResponse.json(
         { success: false, error: 'Missing required registration details' },
         { status: 400 }
@@ -163,13 +163,15 @@ export async function POST(req: NextRequest) {
     })
 
     // Create school board affiliation
-    await prisma.schoolAffiliation.create({
-      data: {
-        schoolId: school.id,
-        orgId: org.id,
-        board
-      }
-    })
+    if (board && mappedInstType !== 'LEARNING_CENTER') {
+      await prisma.schoolAffiliation.create({
+        data: {
+          schoolId: school.id,
+          orgId: org.id,
+          board
+        }
+      })
+    }
 
     // Create school initial email contact
     await prisma.schoolContact.create({
@@ -193,11 +195,18 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    // 5. Enable free plan modules: lead_management, admission_management, student_management, fee_management
+    // 5. Enable modules based on institutionType
     try {
-      const coreSlugs = ['lead_management', 'admission_management', 'student_management', 'fee_management']
+      const isSchool = mappedInstType !== 'LEARNING_CENTER'
+      const coreModuleSlugs = [
+        'lead_management',
+        'student_management',
+        'fee_management',
+        'campaign_management',
+        ...(isSchool ? ['admission_management'] : [])
+      ]
       const dbModules = await prisma.module.findMany({
-        where: { slug: { in: coreSlugs } }
+        where: { slug: { in: coreModuleSlugs } }
       })
       await prisma.organizationModule.createMany({
         data: dbModules.map(m => ({

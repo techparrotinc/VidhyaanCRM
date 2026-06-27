@@ -27,6 +27,7 @@ export default function RegisterSchoolPage() {
   const [board, setBoard] = useState('CBSE')
   const [establishedYear, setEstablishedYear] = useState('')
   const [role, setRole] = useState('')
+  const [centerCategory, setCenterCategory] = useState('')
 
   // Similar school warning state
   const [similarSchool, setSimilarSchool] = useState<SimilarSchool | null>(null)
@@ -46,7 +47,7 @@ export default function RegisterSchoolPage() {
     e.preventDefault()
     setError(null)
 
-    if (!schoolName || !institutionType || !city || !board || !role) {
+    if (!schoolName || !institutionType || !city || (institutionType !== 'LEARNING_CENTER' && !board) || (institutionType === 'LEARNING_CENTER' && !centerCategory) || !role) {
       setError('Please fill in all required fields')
       return
     }
@@ -106,7 +107,8 @@ export default function RegisterSchoolPage() {
           schoolName,
           institutionType,
           city,
-          board,
+          board: institutionType === 'LEARNING_CENTER' ? null : board,
+          centerCategory: institutionType === 'LEARNING_CENTER' ? centerCategory : null,
           establishedYear: establishedYear ? parseInt(establishedYear) : null
         })
       })
@@ -178,10 +180,10 @@ export default function RegisterSchoolPage() {
 
           <div className="text-center">
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Register Your School
+              {institutionType === 'LEARNING_CENTER' ? 'Register Your Learning Center' : 'Register Your School'}
             </h1>
             <p className="text-slate-500 mt-2 text-sm max-w-[400px]">
-              Create your free profile on Vidhyaan in minutes.
+              {institutionType === 'LEARNING_CENTER' ? 'Create your free learning center profile on Vidhyaan in minutes.' : 'Create your free school profile on Vidhyaan in minutes.'}
             </p>
           </div>
         </div>
@@ -299,25 +301,50 @@ export default function RegisterSchoolPage() {
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Board / Curriculum <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={board}
-                    onChange={(e) => setBoard(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
-                    required
-                  >
-                    <option value="CBSE">CBSE</option>
-                    <option value="ICSE">ICSE</option>
-                    <option value="State Board">State Board</option>
-                    <option value="IB">IB</option>
-                    <option value="Cambridge">Cambridge</option>
-                    <option value="IGCSE">IGCSE</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
+                {institutionType !== 'LEARNING_CENTER' ? (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Board / Curriculum <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={board}
+                      onChange={(e) => setBoard(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
+                      required
+                    >
+                      <option value="CBSE">CBSE</option>
+                      <option value="ICSE">ICSE</option>
+                      <option value="State Board">State Board</option>
+                      <option value="IB">IB</option>
+                      <option value="Cambridge">Cambridge</option>
+                      <option value="IGCSE">IGCSE</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 animate-fadeIn">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Center Category <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={centerCategory}
+                      onChange={(e) => setCenterCategory(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
+                      required
+                    >
+                      <option value="">Select category</option>
+                      <option value="MUSIC">Music</option>
+                      <option value="DANCE">Dance</option>
+                      <option value="ART">Art</option>
+                      <option value="ABACUS">Abacus</option>
+                      <option value="COACHING">Coaching / Tuition</option>
+                      <option value="SPORTS">Sports</option>
+                      <option value="LANGUAGE">Language</option>
+                      <option value="STEM">STEM / Robotics</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -335,7 +362,7 @@ export default function RegisterSchoolPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Your Role at School <span className="text-red-500">*</span>
+                  {institutionType === 'LEARNING_CENTER' ? 'Your Role at Center' : 'Your Role at School'} <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={role}

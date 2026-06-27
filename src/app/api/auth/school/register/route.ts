@@ -158,13 +158,15 @@ export async function POST(req: NextRequest) {
         }
       })
 
-      await prisma.schoolAffiliation.create({
-        data: {
-          schoolId: school.id,
-          orgId: org.id,
-          board: 'Other'
-        }
-      })
+      if (mappedInstType !== 'LEARNING_CENTER') {
+        await prisma.schoolAffiliation.create({
+          data: {
+            schoolId: school.id,
+            orgId: org.id,
+            board: 'Other'
+          }
+        })
+      }
 
       await prisma.schoolContact.create({
         data: {
@@ -187,9 +189,16 @@ export async function POST(req: NextRequest) {
       })
 
       try {
-        const coreSlugs = ['lead_management', 'admission_management', 'student_management', 'fee_management']
+        const isSchool = mappedInstType !== 'LEARNING_CENTER'
+        const coreModuleSlugs = [
+          'lead_management',
+          'student_management',
+          'fee_management',
+          'campaign_management',
+          ...(isSchool ? ['admission_management'] : [])
+        ]
         const dbModules = await prisma.module.findMany({
-          where: { slug: { in: coreSlugs } }
+          where: { slug: { in: coreModuleSlugs } }
         })
         await prisma.organizationModule.createMany({
           data: dbModules.map(m => ({

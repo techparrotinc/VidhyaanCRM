@@ -87,9 +87,16 @@ export async function POST(req: NextRequest) {
 
       // Auto-create core modules
       try {
-        const coreSlugs = ['lead_management', 'admission_management', 'student_management', 'fee_management']
+        const isSchool = school.institutionType !== 'LEARNING_CENTER'
+        const coreModuleSlugs = [
+          'lead_management',
+          'student_management',
+          'fee_management',
+          'campaign_management',
+          ...(isSchool ? ['admission_management'] : [])
+        ]
         const dbModules = await prisma.module.findMany({
-          where: { slug: { in: coreSlugs } }
+          where: { slug: { in: coreModuleSlugs } }
         })
         await prisma.organizationModule.createMany({
           data: dbModules.map(m => ({
@@ -222,9 +229,16 @@ export async function POST(req: NextRequest) {
 
       // Auto-create core modules
       try {
-        const coreSlugs = ['lead_management', 'admission_management', 'student_management', 'fee_management']
+        const isSchool = school.institutionType !== 'LEARNING_CENTER'
+        const coreModuleSlugs = [
+          'lead_management',
+          'student_management',
+          'fee_management',
+          'campaign_management',
+          ...(isSchool ? ['admission_management'] : [])
+        ]
         const dbModules = await prisma.module.findMany({
-          where: { slug: { in: coreSlugs } }
+          where: { slug: { in: coreModuleSlugs } }
         })
         await prisma.organizationModule.createMany({
           data: dbModules.map(m => ({

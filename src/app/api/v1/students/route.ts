@@ -4,7 +4,6 @@ import { ok, created, paginated } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
-import { prisma } from '@/lib/db/client'
 import { Gender, StudentStatus } from '@prisma/client'
 
 export const GET = route({
@@ -19,9 +18,9 @@ export const GET = route({
     const { searchParams } = new URL(req.url)
 
     const page = Number(searchParams.get('page') ?? 1)
-    const limit = Number(searchParams.get('limit') ?? 10)
+    const limit = Number(searchParams.get('limit') ?? 25)
     const status = searchParams.get('status') ?? undefined
-    const currentClass = searchParams.get('class') ?? undefined
+    const gradeLabel = searchParams.get('gradeLabel') ?? undefined
     const search = searchParams.get('search') ?? undefined
     const academicYearId = searchParams.get('academicYearId') ?? undefined
 
@@ -29,8 +28,8 @@ export const GET = route({
 
     const where: any = {}
     if (status) where.status = status as StudentStatus
-    if (currentClass) {
-      where.gradeLabel = currentClass
+    if (gradeLabel) {
+      where.gradeLabel = gradeLabel
     }
     if (academicYearId) {
       where.academicYearId = academicYearId
@@ -38,9 +37,8 @@ export const GET = route({
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
-        { guardianPhone: { contains: search } },
         { studentCode: { contains: search, mode: 'insensitive' } },
-        { rollNumber: { contains: search, mode: 'insensitive' } }
+        { guardianPhone: { contains: search, mode: 'insensitive' } }
       ]
     }
 
@@ -50,9 +48,29 @@ export const GET = route({
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
-          _count: {
-            select: { invoices: true }
+        select: {
+          id: true,
+          studentCode: true,
+          name: true,
+          gradeLabel: true,
+          guardianName: true,
+          guardianPhone: true,
+          gender: true,
+          status: true,
+          rollNumber: true,
+          academicYearId: true,
+          createdAt: true,
+          branch: {
+            select: { id: true, name: true }
+          },
+          academicYear: {
+            select: { id: true, name: true }
+          },
+          admission: {
+            select: {
+              id: true,
+              admissionCode: true
+            }
           }
         }
       }),
@@ -66,7 +84,7 @@ export const GET = route({
 const createStudentSchema = z.object({
   name: z.string().min(1),
   phone: z.string().optional(),
-  email: z.string().email().optional().or(z.literal('')),
+  email: z.string().optional(),
   currentClass: z.string().optional(),
   section: z.string().optional(),
   rollNumber: z.string().optional(),
@@ -86,11 +104,9 @@ export const POST = route({
     const body = createStudentSchema.parse(await req.json())
 
     const year = new Date().getFullYear()
-    const count = await prisma.student.count({
-      where: { orgId: user.orgId }
-    })
+    const count = await db.student.count()
 
-    const studentCode = 'STU-' + year + '-' + String(count + 1).padStart(5, '0')
+    const studentCode = 'ST-' + year + '-' + String(count + 1).padStart(5, '0')
 
     const student = await db.student.create({
       data: {

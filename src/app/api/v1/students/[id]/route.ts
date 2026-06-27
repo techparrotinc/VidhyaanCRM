@@ -1,9 +1,37 @@
+import { z } from 'zod'
 import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { Gender, StudentStatus } from '@prisma/client'
+
+const studentInclude = {
+  branch: {
+    select: { id: true, name: true }
+  },
+  academicYear: {
+    select: { id: true, name: true }
+  },
+  admission: {
+    select: {
+      id: true,
+      admissionCode: true
+    }
+  },
+  invoices: {
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+    select: {
+      id: true,
+      invoiceNumber: true,
+      totalAmount: true,
+      status: true,
+      dueDate: true,
+      createdAt: true
+    }
+  }
+} as const
 
 export const GET = route({
   module: MODULES.STUDENT_MANAGEMENT,
@@ -16,32 +44,30 @@ export const GET = route({
   handler: async ({ db, params }) => {
     const id = params?.id
     const student = await db.student.findFirst({
-      where: { id }
+      where: { id },
+      include: studentInclude
     })
 
     if (!student) {
       throw Errors.notFound('Student')
     }
 
-    const [invoices, totalInvoices] = await Promise.all([
-      db.invoice.findMany({
-        where: { studentId: id },
-        orderBy: { createdAt: 'desc' },
-        take: 5
-      }),
-      db.invoice.count({
-        where: { studentId: id }
-      })
-    ])
-
-    return ok({
-      ...student,
-      invoices,
-      _count: {
-        invoices: totalInvoices
-      }
-    })
+    return ok(student)
   }
+})
+
+const updateStudentSchema = z.object({
+  name: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+  currentClass: z.string().optional(),
+  section: z.string().optional(),
+  rollNumber: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  gender: z.string().optional(),
+  status: z.enum(['ACTIVE', 'ALUMNI', 'TRANSFERRED', 'SUSPENDED', 'DROPPED_OUT']).optional(),
+  academicYearId: z.string().optional(),
+  batchId: z.string().optional()
 })
 
 export const PUT = route({
@@ -51,10 +77,11 @@ export const PUT = route({
     ROLES.BRANCH_ADMIN
   ],
   handler: async ({ req, db, params }) => {
-    const body = await req.json()
+    const id = params?.id
+    const body = updateStudentSchema.parse(await req.json())
 
     const existing = await db.student.findFirst({
-      where: { id: params?.id }
+      where: { id }
     })
 
     if (!existing) {
@@ -75,14 +102,39 @@ export const PUT = route({
     }
     if (body.status !== undefined) updateData.status = body.status as StudentStatus
     if (body.academicYearId !== undefined) updateData.academicYearId = body.academicYearId
-    if (body.admissionId !== undefined) updateData.admissionId = body.admissionId
     if (body.batchId !== undefined) updateData.batchId = body.batchId
 
     const updated = await db.student.update({
-      where: { id: params?.id },
-      data: updateData
+      where: { id },
+      data: updateData,
+      include: studentInclude
     })
 
     return ok(updated)
+  }
+})
+
+export const DELETE = route({
+  module: MODULES.STUDENT_MANAGEMENT,
+  roles: [
+    ROLES.ORG_ADMIN,
+    ROLES.BRANCH_ADMIN
+  ],
+  handler: async ({ db, params }) => {
+    const id = params?.id
+    const existing = await db.student.findFirst({
+      where: { id }
+    })
+
+    if (!existing) {
+      throw Errors.notFound('Student')
+    }
+
+    await db.student.update({
+      where: { id },
+      data: { deletedAt: new Date() }
+    })
+
+    return ok({ success: true })
   }
 })

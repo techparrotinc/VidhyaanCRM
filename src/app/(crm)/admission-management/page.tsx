@@ -1313,18 +1313,18 @@ export default function AdmissionManagementPage() {
                   <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
                     ADMISSION PIPELINE
                   </span>
-                  <div className="flex items-center gap-4 ml-4">
-                    <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-4 ml-4 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
                       <span className="text-xs text-slate-400">Total:</span>
                       <span className="text-xs font-bold text-slate-800">
                         {Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
                       <span className="text-xs text-slate-400 font-sans">Conversion:</span>
                       <span className="text-xs font-bold text-green-600">{conversionRate}%</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
                       <span className="text-xs text-slate-400 font-sans">Admitted:</span>
                       <span className="text-xs font-bold text-blue-600">
                         {displayAdmittedCount}
@@ -1332,7 +1332,7 @@ export default function AdmissionManagementPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
                   <span className="text-xs text-[#1565D8] font-medium font-sans">View Pipeline</span>
                   <ChevronDown size={14} className="text-slate-400" />
                 </div>
@@ -1445,9 +1445,9 @@ export default function AdmissionManagementPage() {
               <div className="bg-white border border-slate-200 rounded-xl overflow-hidden mx-4 mb-4 shadow-sm">
                 
                 {/* Search and filter row */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 border-b border-slate-100 bg-white w-full">
-                  {/* Search Input */}
-                  <div className="w-full mb-2 sm:mb-0 sm:w-auto sm:flex-1 sm:max-w-xs">
+                <div className="flex flex-col gap-2 px-4 py-3 border-b border-slate-100 bg-white w-full">
+                  {/* Row 1: Search */}
+                  <div className="w-full">
                     <div className="relative flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-4 w-full h-10 sm:h-9">
                     <Search size={15} className="text-slate-400" strokeWidth={1.5} />
                     <input
@@ -1486,8 +1486,10 @@ export default function AdmissionManagementPage() {
                     </div>
                   </div>
 
-                  {/* Filter Buttons */}
-                  <div className="flex flex-row gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex-shrink-0 w-full sm:w-auto relative">
+                  {/* Row 2: Filters + Toggle */}
+                  <div className="flex items-center gap-2 w-full">
+                    {/* Filter buttons — horizontally scrollable */}
+                    <div className="flex items-center gap-2 overflow-x-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative">
                     {/* Applying For */}
                     <div className="relative w-full sm:w-auto flex-shrink-0">
                       <button
@@ -1654,10 +1656,8 @@ export default function AdmissionManagementPage() {
                     )}
                   </div>
 
-                  {/* Right group */}
-                  <div className="flex-shrink-0 ml-auto">
-                    {/* View Toggle */}
-                    <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-1 w-full sm:w-auto justify-center sm:justify-start">
+                    {/* View toggle — always visible, never shrinks */}
+                    <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-1 flex-shrink-0 ml-auto">
                       {/* List */}
                       <button
                         onClick={() => setActiveView('list')}

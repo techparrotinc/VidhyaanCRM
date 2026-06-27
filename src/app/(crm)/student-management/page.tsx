@@ -1,217 +1,561 @@
-"use client"
+'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
-import Link from 'next/link'
+import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, GraduationCap, Users, Calendar, ArrowRight, UserCheck } from 'lucide-react'
-import TableSkeleton from '@/components/shared/TableSkeleton'
-import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
+import { format } from 'date-fns'
+import {
+  Plus, Download, Search,
+  Mail, MessageCircle, Phone,
+  MoreVertical
+} from 'lucide-react'
+import { useStudents } from '@/hooks/useStudents'
+import { GRADE_OPTIONS } from '@/constants/grades'
+import { createPortal } from 'react-dom'
 
-interface Student {
-  id: string
-  studentCode: string
-  name: string
-  rollNumber: string | null
-  gradeLabel: string | null
-  guardianName: string | null
-  guardianPhone: string | null
-  status: 'ACTIVE' | 'ALUMNI' | 'TRANSFERRED' | 'SUSPENDED' | 'DROPPED_OUT'
-}
+const STATUS_CONFIG = {
+  ACTIVE: {
+    label: 'Active',
+    border: 'border-l-green-500',
+    badge: 'bg-green-50 text-green-700'
+  },
+  ALUMNI: {
+    label: 'Alumni',
+    border: 'border-l-purple-500',
+    badge: 'bg-purple-50 text-purple-700'
+  },
+  TRANSFERRED: {
+    label: 'Transferred',
+    border: 'border-l-amber-500',
+    badge: 'bg-amber-50 text-amber-700'
+  },
+  SUSPENDED: {
+    label: 'Suspended',
+    border: 'border-l-red-400',
+    badge: 'bg-red-50 text-red-700'
+  },
+  DROPPED_OUT: {
+    label: 'Dropped Out',
+    border: 'border-l-slate-400',
+    badge: 'bg-slate-100 text-slate-500'
+  }
+} as const
+
+const STATUS_TABS = [
+  { key: '', label: 'All' },
+  { key: 'ACTIVE', label: 'Active' },
+  { key: 'ALUMNI', label: 'Alumni' },
+  { key: 'TRANSFERRED', label: 'Transferred' },
+  { key: 'SUSPENDED', label: 'Suspended' },
+  { key: 'DROPPED_OUT', label: 'Dropped Out' }
+]
 
 export default function StudentListingPage() {
-  const router = useRouter()
-  const [students, setStudents] = useState<Student[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [gradeFilter, setGradeFilter] = useState('')
+  const [activeStatus, setActiveStatus] = useState('')
+  const [search, setSearch] = useState('')
+  const [gradeLabel, setGradeLabel] = useState('')
   const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [actionMenuId, setActionMenuId] = useState<string | null>(null)
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
 
-  const fetchStudents = useCallback(async () => {
-    try {
-      setLoading(true)
-      const params = new URLSearchParams()
-      params.set('page', String(page))
-      params.set('limit', '10')
-      if (searchQuery) params.set('search', searchQuery)
-      if (gradeFilter) params.set('class', gradeFilter)
+  const router = useRouter()
 
-      const res = await fetch(`/api/v1/students?${params.toString()}`)
-      if (res.ok) {
-        const json = await res.json()
-        setStudents(json.data || [])
-        setTotalPages(json.meta?.totalPages || 1)
+  const {
+    students,
+    total,
+    totalPages,
+    isLoading,
+    mutate
+  } = useStudents({
+    page,
+    search,
+    status: activeStatus || undefined,
+    gradeLabel: gradeLabel || undefined
+  })
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    STATUS_TABS.forEach(tab => {
+      if (tab.key === '') {
+        counts[''] = total
+      } else {
+        counts[tab.key] = students.filter(
+          s => s.status === tab.key
+        ).length
       }
-    } catch (err) {
-      console.error('Failed to fetch students:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [page, searchQuery, gradeFilter])
+    })
+    return counts
+  }, [students, total])
 
-  useEffect(() => {
-    fetchStudents()
-  }, [fetchStudents])
+  const handleActionClick = useCallback((
+    e: React.MouseEvent,
+    id: string
+  ) => {
+    e.stopPropagation()
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setMenuPosition({
+      top: rect.bottom + window.scrollY + 4,
+      left: rect.right + window.scrollX - 160
+    })
+    setActionMenuId(prev => prev === id ? null : id)
+  }, [])
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!confirm(
+        'Delete this student? ' +
+        'This cannot be undone.'
+      )) return
+      await fetch(
+        `/api/v1/students/${id}`,
+        { method: 'DELETE' }
+      )
+      mutate()
+      setActionMenuId(null)
+    }, [mutate]
+  )
+
+  const handleExport = useCallback(() => {
+    const params = new URLSearchParams()
+    if (activeStatus)
+      params.set('status', activeStatus)
+    if (gradeLabel)
+      params.set('gradeLabel', gradeLabel)
+    window.open(
+      `/api/v1/students/export?${params}`,
+      '_blank'
+    )
+  }, [activeStatus, gradeLabel])
+
+  const MIN_ROWS = 8
+  const emptyRowCount = Math.max(
+    0,
+    MIN_ROWS - students.length
+  )
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Title block */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 font-sans">Students Directory</h1>
-          <p className="text-sm text-slate-500">View and manage enrolled student profiles, academic status, and billing.</p>
+    <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
+
+      {/* ── HEADER ── */}
+      <div className="flex items-center justify-between gap-2 px-4 sm:px-6 pt-6 pb-4">
+
+        <h1 className="text-xl font-bold text-slate-900 flex-1 min-w-0">
+          Student Management
+        </h1>
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+
+          {/* Export button */}
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-slate-200 rounded-lg bg-white hover:bg-slate-50 transition-colors whitespace-nowrap flex-shrink-0">
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+
+          {/* New Student button */}
+          <button
+            onClick={() => router.push('/student-management/create')}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap flex-shrink-0">
+            <Plus className="w-4 h-4" />
+            New Student
+          </button>
+
         </div>
       </div>
 
-      {/* Filter and search bar */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-center">
-        {/* Search */}
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-2.5 h-4.5 w-4.5 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by student name, code, or roll number..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value)
-              setPage(1)
-            }}
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 transition-all"
-          />
-        </div>
-
-        {/* Grade Filter */}
-        <div className="w-full md:w-48">
-          <select
-            value={gradeFilter}
-            onChange={(e) => {
-              setGradeFilter(e.target.value)
-              setPage(1)
-            }}
-            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 transition-all"
-          >
-            <option value="">All Grades</option>
-            {GRADE_OPTIONS.map((g) => (
-              <option key={g.value} value={g.value}>
-                {g.label}
-              </option>
+      {/* ── STATUS TABS ── */}
+      <div className="px-4 sm:px-6">
+        <div className="overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex gap-1 border-b border-slate-200 min-w-max">
+            {STATUS_TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => {
+                  setActiveStatus(tab.key)
+                  setPage(1)
+                }}
+                className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap flex-shrink-0 border-b-2 transition-colors ${
+                  activeStatus === tab.key
+                    ? 'border-[#1565D8] text-[#1565D8]'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}>
+                {tab.label}
+                <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${
+                  activeStatus === tab.key
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {tab.key === ''
+                    ? total
+                    : (statusCounts[tab.key] ?? 0)
+                  }
+                </span>
+              </button>
             ))}
-          </select>
+          </div>
         </div>
       </div>
 
-      {/* Table Container */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="p-6">
-            <TableSkeleton rows={8} />
+      {/* ── FILTER BAR ── */}
+      <div className="px-4 sm:px-6 pt-4">
+        <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col gap-2">
+
+          {/* Search */}
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by name, ID, guardian..."
+              value={search}
+              onChange={e => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
+              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
           </div>
-        ) : students.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-50">
-            <GraduationCap className="h-12 w-12 text-slate-350 mb-3" />
-            <h3 className="text-base font-bold text-slate-700">No Students Found</h3>
-            <p className="text-sm text-slate-500 max-w-sm mt-1">There are no student profiles matching your current filters.</p>
+
+          {/* Filters row */}
+          <div className="flex items-center gap-2">
+
+            {/* Scrollable filters */}
+            <div
+              className="flex items-center gap-2 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              style={{
+                WebkitOverflowScrolling: 'touch'
+              }}>
+
+              {/* Grade filter */}
+              <select
+                value={gradeLabel}
+                onChange={e => {
+                  setGradeLabel(e.target.value)
+                  setPage(1)
+                }}
+                className="flex-shrink-0 whitespace-nowrap text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">
+                  All Grades
+                </option>
+                {GRADE_OPTIONS.map(g => (
+                  <option
+                    key={g.value}
+                    value={g.value}>
+                    {g.label}
+                  </option>
+                ))}
+              </select>
+
+            </div>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left">
+        </div>
+      </div>
+
+      {/* ── TABLE ── */}
+      <div className="px-4 sm:px-6 pt-4 pb-8 flex-1">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+
+          {/* Table wrapper */}
+          <div className="w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <table className="w-full min-w-[780px]">
+
+              {/* Header */}
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Student ID</th>
-                  <th className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Student</th>
-                  <th className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Roll No</th>
-                  <th className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Grade/Class</th>
-                  <th className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Guardian</th>
-                  <th className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Status</th>
-                  <th className="px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 text-right">Actions</th>
+                  <th className="w-10 px-3 py-2.5 text-left">
+                    <input
+                      type="checkbox"
+                      checked={
+                        selectedIds.length === students.length &&
+                        students.length > 0
+                      }
+                      onChange={e => {
+                        setSelectedIds(
+                          e.target.checked
+                            ? students.map(s => s.id)
+                            : []
+                        )
+                      }}
+                      className="rounded border-slate-300" />
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Student
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Grade
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Connect
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Status
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Guardian
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Date
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Action
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {students.map((student) => (
-                  <tr
-                    key={student.id}
-                    onMouseEnter={() => router.prefetch(`/student-management/${student.id}`)}
-                    onClick={() => router.push(`/student-management/${student.id}`)}
-                    className="hover:bg-slate-50/70 transition cursor-pointer"
-                  >
-                    <td className="px-3 py-2.5 text-xs text-slate-400 font-mono">
-                      {student.studentCode}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs uppercase shadow-sm">
-                          {student.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-slate-800">{student.name}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2.5 text-xs text-slate-500">
-                      {student.rollNumber || '-'}
-                    </td>
-                    <td className="px-3 py-2.5 text-xs text-slate-500 font-medium">
-                      {getGradeLabel(student.gradeLabel || '') || student.gradeLabel || '-'}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-slate-700">{student.guardianName || '-'}</span>
-                        {student.guardianPhone && (
-                          <span className="text-xs text-slate-400">{student.guardianPhone}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                        student.status === 'ACTIVE' ? 'bg-green-50 text-green-700 border-green-100' :
-                        student.status === 'ALUMNI' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                        'bg-slate-100 text-slate-600 border-slate-200'
-                      }`}>
-                        {student.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2.5 text-right">
-                      <Link
-                        href={`/student-management/${student.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-xs text-[#1565D8] hover:text-blue-800 font-semibold inline-flex items-center gap-1 hover:underline"
-                      >
-                        <span>View Profile</span>
-                        <ArrowRight className="h-3 w-3" />
-                      </Link>
+
+              <tbody>
+                {isLoading ? (
+                  /* Loading rows */
+                  Array.from({ length: 8 }).map(
+                    (_, i) => (
+                      <tr key={i} className="border-b border-slate-100 animate-pulse">
+                        <td className="px-3 py-2.5" colSpan={8}>
+                          <div className="h-8 bg-slate-100 rounded" />
+                        </td>
+                      </tr>
+                    )
+                  )
+                ) : students.length === 0 ? (
+                  /* Empty state */
+                  <tr>
+                    <td colSpan={8} className="px-3 py-16 text-center text-sm text-slate-400">
+                      No students found
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  <>
+                    {students.map(student => {
+                      const config =
+                        STATUS_CONFIG[
+                          student.status as keyof typeof STATUS_CONFIG
+                        ] ?? STATUS_CONFIG.ACTIVE
+
+                      /* Avatar initials */
+                      const initials =
+                        student.name
+                          .split(' ')
+                          .map(n => n[0])
+                          .join('')
+                          .substring(0, 2)
+                          .toUpperCase()
+
+                      /* Avatar color */
+                      const colors = [
+                        'bg-blue-500',
+                        'bg-green-500',
+                        'bg-purple-500',
+                        'bg-amber-500',
+                        'bg-red-500',
+                        'bg-indigo-500'
+                      ]
+                      const colorIndex =
+                        student.name.charCodeAt(0) % colors.length
+                      const avatarColor = colors[colorIndex]
+
+                      return (
+                        <tr
+                          key={student.id}
+                          onClick={() => router.push(`/student-management/${student.id}`)}
+                          className={`border-b border-slate-100 border-l-2 ${config.border} hover:bg-slate-50/80 transition-colors cursor-pointer`}>
+
+                          {/* Checkbox */}
+                          <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(student.id)}
+                              onChange={e => {
+                                e.stopPropagation()
+                                setSelectedIds(prev =>
+                                  e.target.checked
+                                    ? [...prev, student.id]
+                                    : prev.filter(id => id !== student.id)
+                                )
+                              }}
+                              className="rounded border-slate-300" />
+                          </td>
+
+                          {/* Student */}
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-2.5">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${avatarColor}`}>
+                                {initials}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-slate-800 truncate">
+                                  {student.name}
+                                </p>
+                                <p className="text-xs text-slate-400 truncate">
+                                  {student.studentCode}
+                                  {student.rollNumber && ` · Roll: ${student.rollNumber}`}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Grade */}
+                          <td className="px-3 py-2.5">
+                            {student.gradeLabel ? (
+                              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                                {student.gradeLabel}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-400">
+                                —
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Connect */}
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  if (student.guardianPhone)
+                                    window.open(`mailto:${student.guardianPhone}`)
+                                }}
+                                className="text-slate-400 hover:text-blue-500 transition-colors">
+                                <Mail className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  if (student.guardianPhone)
+                                    window.open(`https://wa.me/91${student.guardianPhone}`)
+                                }}
+                                className="text-slate-400 hover:text-green-500 transition-colors">
+                                <MessageCircle className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  if (student.guardianPhone)
+                                    window.open(`tel:${student.guardianPhone}`)
+                                }}
+                                className="text-slate-400 hover:text-blue-500 transition-colors">
+                                <Phone className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-3 py-2.5">
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${config.badge}`}>
+                              {config.label}
+                            </span>
+                          </td>
+
+                          {/* Guardian */}
+                          <td className="px-3 py-2.5">
+                            <p className="text-sm text-slate-700 font-medium truncate max-w-[140px]">
+                              {student.guardianName ?? '—'}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {student.guardianPhone ?? ''}
+                            </p>
+                          </td>
+
+                          {/* Date */}
+                          <td className="px-3 py-2.5">
+                            <span className="text-xs text-slate-500 whitespace-nowrap">
+                              {format(new Date(student.createdAt), 'd MMM')}
+                            </span>
+                          </td>
+
+                          {/* Action */}
+                          <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
+                            <button
+                              onClick={e => handleActionClick(e, student.id)}
+                              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+
+                    {/* Empty placeholder rows */}
+                    {Array.from({ length: emptyRowCount }).map((_, i) => (
+                      <tr key={`empty-${i}`} className="border-b border-slate-100 border-l-2 border-l-transparent">
+                        <td colSpan={8} className="px-3 py-2.5 h-[52px]" />
+                      </tr>
+                    ))}
+                  </>
+                )}
               </tbody>
             </table>
           </div>
-        )}
 
-        {/* Pagination footer */}
-        {!loading && totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
-            <span className="text-xs text-slate-500">
-              Page {page} of {totalPages}
-            </span>
-            <div className="flex gap-2">
+          {/* ── PAGINATION ── */}
+          <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between gap-4">
+            <p className="text-xs text-slate-500 flex-shrink-0">
+              Showing {students.length === 0
+                ? '0'
+                : `${(page - 1) * 25 + 1}–${Math.min(page * 25, total)}`
+              } of {total} students
+            </p>
+            <div className="flex items-center gap-2">
               <button
-                disabled={page <= 1}
-                onClick={() => setPage(p => p - 1)}
-                className="px-3 py-1.5 bg-white border border-slate-200 rounded text-xs font-semibold text-slate-650 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
-              >
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors">
                 Previous
               </button>
+              <span className="w-8 h-8 flex items-center justify-center bg-[#1565D8] text-white text-sm font-semibold rounded-lg">
+                {page}
+              </span>
               <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1.5 bg-white border border-slate-200 rounded text-xs font-semibold text-slate-650 hover:bg-slate-50 disabled:opacity-50 transition cursor-pointer"
-              >
+                className="px-3 py-1.5 text-sm border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors">
                 Next
               </button>
             </div>
           </div>
-        )}
+        </div>
       </div>
+
+      {/* ── ACTION PORTAL MENU ── */}
+      {actionMenuId && typeof window !== 'undefined' &&
+        createPortal(
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setActionMenuId(null)}
+            />
+            {/* Menu */}
+            <div
+              className="fixed z-50 bg-white rounded-xl shadow-lg border border-slate-200 py-1 w-40"
+              style={{
+                top: menuPosition.top,
+                left: menuPosition.left
+              }}>
+              <button
+                onClick={() => {
+                  router.push(`/student-management/${actionMenuId}`)
+                  setActionMenuId(null)
+                }}
+                className="w-full px-4 py-2 text-sm text-left text-slate-700 hover:bg-slate-50 transition-colors">
+                View
+              </button>
+              <button
+                onClick={() => {
+                  router.push(`/student-management/${actionMenuId}/edit`)
+                  setActionMenuId(null)
+                }}
+                className="w-full px-4 py-2 text-sm text-left text-slate-700 hover:bg-slate-50 transition-colors">
+                Edit
+              </button>
+              <button
+                onClick={() => handleDelete(actionMenuId)}
+                className="w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50 transition-colors">
+                Delete
+              </button>
+            </div>
+          </>,
+          document.body
+        )
+      }
+
     </div>
   )
 }

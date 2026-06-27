@@ -1388,54 +1388,53 @@ export default function AdmissionManagementPage() {
           </div>
           )}
           {/* STAGE TABS */}
-          <div 
-            className="flex items-center gap-0.5 px-4 pt-1 pb-0 border-b border-slate-100 overflow-x-auto scrollbar-none -webkit-overflow-scrolling: touch mx-4 mb-4"
-            style={{ scrollbarWidth: 'none' }}
-          >
-            <button
-              onClick={() => {
-                setActiveStageId('all')
-                setCurrentPage(1)
-              }}
-              className={`px-3 py-2.5 text-sm font-medium cursor-pointer relative transition-all duration-200 flex-shrink-0 ${
-                activeStageId === 'all'
-                  ? 'text-[#1565D8] border-b-2 border-[#1565D8] mb-[-1px]'
-                  : 'text-slate-500 hover:text-slate-700 border-b-2 border-transparent'
-              }`}
-            >
-              All
-              <span className={`ml-2 text-xs font-semibold px-1.5 py-0.5 rounded-full ${
-                activeStageId === 'all'
-                  ? 'bg-[#1565D8] text-white'
-                  : 'bg-slate-100 text-slate-500'
-              }`}>
-                {Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
-              </span>
-            </button>
-
-            {stages.map(stage => (
+          <div className="overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent -mx-4 px-4 sm:mx-0 sm:px-0 mb-4">
+            <div className="flex gap-1 min-w-max border-b border-slate-200 pb-0">
               <button
-                key={stage.id}
                 onClick={() => {
-                  setActiveStageId(stage.id)
+                  setActiveStageId('all')
                   setCurrentPage(1)
                 }}
-                className={`px-3 py-2.5 text-sm font-medium cursor-pointer relative transition-all duration-200 flex-shrink-0 ${
-                  activeStageId === stage.id
+                className={`px-3 py-2.5 text-sm font-medium cursor-pointer relative transition-all duration-200 flex-shrink-0 whitespace-nowrap ${
+                  activeStageId === 'all'
                     ? 'text-[#1565D8] border-b-2 border-[#1565D8] mb-[-1px]'
                     : 'text-slate-500 hover:text-slate-700 border-b-2 border-transparent'
                 }`}
               >
-                {stage.name}
+                All
                 <span className={`ml-2 text-xs font-semibold px-1.5 py-0.5 rounded-full ${
-                  activeStageId === stage.id
+                  activeStageId === 'all'
                     ? 'bg-[#1565D8] text-white'
                     : 'bg-slate-100 text-slate-500'
                 }`}>
-                  {stageCounts[stage.id] || 0}
+                  {Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
                 </span>
               </button>
-            ))}
+
+              {stages.map(stage => (
+                <button
+                  key={stage.id}
+                  onClick={() => {
+                    setActiveStageId(stage.id)
+                    setCurrentPage(1)
+                  }}
+                  className={`px-3 py-2.5 text-sm font-medium cursor-pointer relative transition-all duration-200 flex-shrink-0 whitespace-nowrap ${
+                    activeStageId === stage.id
+                      ? 'text-[#1565D8] border-b-2 border-[#1565D8] mb-[-1px]'
+                      : 'text-slate-500 hover:text-slate-700 border-b-2 border-transparent'
+                  }`}
+                >
+                  {stage.name}
+                  <span className={`ml-2 text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                    activeStageId === stage.id
+                      ? 'bg-[#1565D8] text-white'
+                      : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {stageCounts[stage.id] || 0}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* SECTION 3 — FILTER BAR / SEARCH / TABLE / PAGINATION CARD */}

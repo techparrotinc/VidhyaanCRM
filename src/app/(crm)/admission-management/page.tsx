@@ -1265,16 +1265,16 @@ export default function AdmissionManagementPage() {
       <div className="p-3 sm:p-4 lg:p-6 space-y-3 max-w-7xl mx-auto w-full select-none bg-white min-h-screen">
           
           {/* SECTION 1 — PAGE HEADER SECTION */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 mb-3">
-            <h1 className="text-xl font-bold text-slate-900">
+          <div className="flex items-center justify-between gap-2 mb-6">
+            <h1 className="text-xl font-bold text-slate-900 flex-1 min-w-0">
               Admission Management
             </h1>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={handleExport}
                 disabled={isExporting}
-                className="flex items-center gap-2 h-8 px-4 text-sm font-medium border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
               >
                 {isExporting ? (
                   <Loader2 className="animate-spin" size={14} />
@@ -1289,7 +1289,7 @@ export default function AdmissionManagementPage() {
                   router.push('/admission-management/create')
                 }}
                 disabled={isNavigating}
-                className="h-9 px-4 text-sm font-semibold bg-[#1565D8] text-white rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
               >
                 {isNavigating ? (
                   <Loader2 className="animate-spin" size={14} />
@@ -1308,31 +1308,31 @@ export default function AdmissionManagementPage() {
                 className="flex items-center justify-between px-4 py-2.5 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-[#1565D8]/30 hover:bg-blue-50/20 transition-colors"
                 onClick={() => togglePipeline(true)}
               >
-                <div className="flex items-center gap-3">
-                  <BarChart2 className="size-14 text-[#1565D8]" />
-                  <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                    ADMISSION PIPELINE
-                  </span>
-                  <div className="flex items-center gap-4 ml-4 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                    <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
-                      <span className="text-xs text-slate-400">Total:</span>
-                      <span className="text-xs font-bold text-slate-800">
-                        {Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
-                      <span className="text-xs text-slate-400 font-sans">Conversion:</span>
-                      <span className="text-xs font-bold text-green-600">{conversionRate}%</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
-                      <span className="text-xs text-slate-400 font-sans">Admitted:</span>
-                      <span className="text-xs font-bold text-blue-600">
-                        {displayAdmittedCount}
-                      </span>
-                    </div>
+                <div className="flex items-center gap-3 overflow-x-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  <div className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap">
+                    <BarChart2 className="size-14 text-[#1565D8]" />
+                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      ADMISSION PIPELINE
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
+                    <span className="text-xs text-slate-400">Total:</span>
+                    <span className="text-xs font-bold text-slate-800">
+                      {Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
+                    <span className="text-xs text-slate-400 font-sans">Conversion:</span>
+                    <span className="text-xs font-bold text-green-600">{conversionRate}%</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
+                    <span className="text-xs text-slate-400 font-sans">Admitted:</span>
+                    <span className="text-xs font-bold text-blue-600">
+                      {displayAdmittedCount}
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                <div className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap ml-auto">
                   <span className="text-xs text-[#1565D8] font-medium font-sans">View Pipeline</span>
                   <ChevronDown size={14} className="text-slate-400" />
                 </div>
@@ -1489,7 +1489,10 @@ export default function AdmissionManagementPage() {
                   {/* Row 2: Filters + Toggle */}
                   <div className="flex items-center gap-2 w-full">
                     {/* Filter buttons — horizontally scrollable */}
-                    <div className="flex items-center gap-2 overflow-x-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative">
+                    <div
+                      className="flex items-center gap-2 overflow-x-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative"
+                      style={{ WebkitOverflowScrolling: 'touch' }}
+                    >
                     {/* Applying For */}
                     <div className="relative w-full sm:w-auto flex-shrink-0">
                       <button

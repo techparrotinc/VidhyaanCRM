@@ -15,15 +15,14 @@ export default function CreateStudentPage() {
 
   const [formData, setFormData] = useState({
     name: '',
-    phone: '',
-    email: '',
-    currentClass: '',
-    section: '',
+    gradeLabel: '',
     rollNumber: '',
     dateOfBirth: '',
     gender: '',
     academicYearId: '',
-    guardianName: ''
+    guardianName: '',
+    guardianPhone: '',
+    guardianEmail: ''
   })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -50,15 +49,14 @@ export default function CreateStudentPage() {
         },
         body: JSON.stringify({
           name: formData.name.trim(),
-          phone: formData.phone.trim() || undefined,
-          email: formData.email.trim() || undefined,
-          currentClass: formData.currentClass || undefined,
-          section: formData.section.trim() || undefined,
-          rollNumber: formData.rollNumber.trim() || undefined,
-          dateOfBirth: formData.dateOfBirth || undefined,
           gender: formData.gender || undefined,
+          dateOfBirth: formData.dateOfBirth || undefined,
+          gradeLabel: formData.gradeLabel || undefined,
+          rollNumber: formData.rollNumber.trim() || undefined,
           academicYearId: formData.academicYearId || undefined,
-          guardianName: formData.guardianName.trim() || undefined
+          guardianName: formData.guardianName.trim() || undefined,
+          guardianPhone: formData.guardianPhone.trim() || undefined,
+          guardianEmail: formData.guardianEmail.trim() || undefined
         }),
       })
 
@@ -220,8 +218,8 @@ export default function CreateStudentPage() {
                 Grade / Class
               </label>
               <select
-                name="currentClass"
-                value={formData.currentClass}
+                name="gradeLabel"
+                value={formData.gradeLabel}
                 onChange={handleInputChange}
                 className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition"
               >
@@ -276,9 +274,9 @@ export default function CreateStudentPage() {
               </label>
               <input
                 type="tel"
-                name="phone"
+                name="guardianPhone"
                 maxLength={10}
-                value={formData.phone}
+                value={formData.guardianPhone}
                 onChange={handleInputChange}
                 placeholder="10-digit phone"
                 className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] placeholder:text-slate-400 transition"
@@ -291,8 +289,8 @@ export default function CreateStudentPage() {
               </label>
               <input
                 type="email"
-                name="email"
-                value={formData.email}
+                name="guardianEmail"
+                value={formData.guardianEmail}
                 onChange={handleInputChange}
                 placeholder="Guardian's email"
                 className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] placeholder:text-slate-400 transition"

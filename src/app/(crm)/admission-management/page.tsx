@@ -1265,16 +1265,16 @@ export default function AdmissionManagementPage() {
       <div className="p-3 sm:p-4 lg:p-6 space-y-3 max-w-7xl mx-auto w-full select-none bg-white min-h-screen">
           
           {/* SECTION 1 — PAGE HEADER SECTION */}
-          <div className="flex items-center justify-between gap-2 mb-6">
-            <h1 className="text-xl font-bold text-slate-900 flex-1 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <h1 className="text-xl font-bold text-slate-900 truncate">
               Admission Management
             </h1>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 onClick={handleExport}
                 disabled={isExporting}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors cursor-pointer whitespace-nowrap"
               >
                 {isExporting ? (
                   <Loader2 className="animate-spin" size={14} />
@@ -1289,7 +1289,7 @@ export default function AdmissionManagementPage() {
                   router.push('/admission-management/create')
                 }}
                 disabled={isNavigating}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer whitespace-nowrap"
               >
                 {isNavigating ? (
                   <Loader2 className="animate-spin" size={14} />
@@ -1311,30 +1311,30 @@ export default function AdmissionManagementPage() {
                 {/* LEFT: Icon + Label — never shrinks */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <BarChart2 className="size-14 text-[#1565D8]" />
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 whitespace-nowrap">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 whitespace-nowrap hidden sm:inline">
                     Admission Pipeline
                   </span>
                 </div>
 
                 {/* CENTER: Stats — scrollable on mobile */}
-                <div className="flex items-center gap-4 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-1"
                   style={{ WebkitOverflowScrolling: 'touch' }}
                 >
-                  <span className="flex-shrink-0 whitespace-nowrap text-sm text-slate-600">
+                  <span className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm text-slate-600">
                     Total:{' '}
                     <span className="font-bold text-slate-900">
                       {Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
                     </span>
                   </span>
 
-                  <span className="flex-shrink-0 whitespace-nowrap text-sm text-slate-600">
+                  <span className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm text-slate-600">
                     Conversion:{' '}
                     <span className="font-bold text-green-600">
                       {conversionRate}%
                     </span>
                   </span>
 
-                  <span className="flex-shrink-0 whitespace-nowrap text-sm text-slate-600">
+                  <span className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm text-slate-600">
                     Admitted:{' '}
                     <span className="font-bold text-blue-600">
                       {displayAdmittedCount}

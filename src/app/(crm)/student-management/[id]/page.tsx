@@ -1,12 +1,15 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import {
   ArrowLeft, Pencil, Trash2,
   Mail, MessageCircle, Phone,
   User, GraduationCap, Calendar,
-  Hash, BookOpen
+  Hash, BookOpen,
+  MessageSquare, PhoneCall,
+  Clock, CheckCircle
 } from 'lucide-react'
 import { useStudent } from '@/hooks/useStudent'
 import { getGradeLabel } from '@/constants/grades'
@@ -34,12 +37,128 @@ const STATUS_CONFIG = {
   }
 } as const
 
+const ACTIVITY_TABS = [
+  {
+    key: 'NOTE' as const,
+    label: 'Note',
+    icon: MessageSquare,
+    color: 'text-slate-600',
+    activeColor: 'text-blue-600',
+    activeBg: 'bg-blue-50'
+  },
+  {
+    key: 'CALL' as const,
+    label: 'Call',
+    icon: PhoneCall,
+    color: 'text-slate-600',
+    activeColor: 'text-green-600',
+    activeBg: 'bg-green-50'
+  },
+  {
+    key: 'WHATSAPP' as const,
+    label: 'WhatsApp',
+    icon: MessageCircle,
+    color: 'text-slate-600',
+    activeColor: 'text-emerald-600',
+    activeBg: 'bg-emerald-50'
+  },
+  {
+    key: 'EMAIL' as const,
+    label: 'Email',
+    icon: Mail,
+    color: 'text-slate-600',
+    activeColor: 'text-purple-600',
+    activeBg: 'bg-purple-50'
+  }
+]
+
+const ACTIVITY_TYPE_CONFIG = {
+  NOTE: {
+    icon: MessageSquare,
+    color: 'text-slate-500',
+    bg: 'bg-slate-100',
+    label: 'Note'
+  },
+  CALL: {
+    icon: PhoneCall,
+    color: 'text-green-600',
+    bg: 'bg-green-50',
+    label: 'Call'
+  },
+  WHATSAPP: {
+    icon: MessageCircle,
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-50',
+    label: 'WhatsApp'
+  },
+  EMAIL: {
+    icon: Mail,
+    color: 'text-purple-600',
+    bg: 'bg-purple-50',
+    label: 'Email'
+  },
+  SYSTEM: {
+    icon: CheckCircle,
+    color: 'text-blue-600',
+    bg: 'bg-blue-50',
+    label: 'System'
+  },
+  STAGE_CHANGE: {
+    icon: Clock,
+    color: 'text-amber-600',
+    bg: 'bg-amber-50',
+    label: 'Stage Change'
+  }
+} as const
+
 export default function StudentDetailPage() {
   const params = useParams()
   const id = params?.id as string
   const router = useRouter()
 
-  const { student, isLoading } = useStudent(id)
+  const { student, isLoading, mutate } = useStudent(id)
+
+  const [activeTab, setActiveTab] = useState<'NOTE' | 'CALL' | 'WHATSAPP' | 'EMAIL'>('NOTE')
+  const [activityNote, setActivityNote] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [activities, setActivities] = useState<any[]>([])
+
+  useEffect(() => {
+    if (student?.activities) {
+      setActivities(student.activities)
+    }
+  }, [student?.activities])
+
+  const handleSaveActivity = async () => {
+    if (!activityNote.trim()) return
+    setIsSaving(true)
+    try {
+      const res = await fetch(
+        `/api/v1/students/${id}/activities`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            type: activeTab,
+            summary: activityNote.trim(),
+            note: activityNote.trim()
+          })
+        }
+      )
+      if (res.ok) {
+        const data = await res.json()
+        setActivities(prev => [data.data ?? data, ...prev])
+        setActivityNote('')
+        mutate()
+      }
+    } catch (err) {
+      console.error('Activity save error:', err)
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const handleDelete = async () => {
     if (!confirm('Delete this student? This cannot be undone.')) return
@@ -252,6 +371,106 @@ export default function StudentDetailPage() {
 
           {/* ── CARD 2: Guardian + Invoices ── */}
           <div className="flex flex-col gap-6">
+
+            {/* ── LOG ACTIVITY CARD ── */}
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
+                Log Activity
+              </h2>
+
+              {/* Activity type tabs */}
+              <div className="flex items-center gap-1 mb-3 overflow-x-auto scrollbar-none pb-1">
+                {ACTIVITY_TABS.map(tab => {
+                  const Icon = tab.icon
+                  const isActive = activeTab === tab.key
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveTab(tab.key)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ${
+                        isActive
+                          ? `${tab.activeBg} ${tab.activeColor}`
+                          : 'hover:bg-slate-100 text-slate-500'
+                      }`}>
+                      <Icon className="w-3.5 h-3.5" />
+                      {tab.label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Note textarea */}
+              <textarea
+                value={activityNote}
+                onChange={e => setActivityNote(e.target.value)}
+                placeholder={
+                  activeTab === 'NOTE'
+                    ? 'Add a note...'
+                    : activeTab === 'CALL'
+                    ? 'Log call summary...'
+                    : activeTab === 'WHATSAPP'
+                    ? 'Log WhatsApp message...'
+                    : 'Log email summary...'
+                }
+                rows={3}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none mb-3" />
+
+              {/* Save button */}
+              <button
+                onClick={handleSaveActivity}
+                disabled={isSaving || !activityNote.trim()}
+                className="w-full py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                {isSaving ? 'Saving...' : 'Save Activity'}
+              </button>
+            </div>
+
+            {/* ── ACTIVITY TIMELINE CARD ── */}
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                Activity Timeline
+              </h2>
+
+              {activities.length === 0 ? (
+                <p className="text-sm text-slate-400">No activity logged yet.</p>
+              ) : (
+                <div className="flex flex-col gap-0 relative">
+                  {/* Timeline line */}
+                  <div className="absolute left-4 top-4 bottom-0 w-px bg-slate-100" />
+
+                  {activities.map((activity, i) => {
+                    const typeKey = activity.type as keyof typeof ACTIVITY_TYPE_CONFIG
+                    const typeConfig = ACTIVITY_TYPE_CONFIG[typeKey] ?? ACTIVITY_TYPE_CONFIG.NOTE
+                    const Icon = typeConfig.icon
+
+                    return (
+                      <div key={activity.id ?? i} className="flex gap-3 pb-4 relative">
+                        {/* Icon dot */}
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 z-10 ${typeConfig.bg}`}>
+                          <Icon className={`w-4 h-4 ${typeConfig.color}`} />
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0 pt-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-medium text-slate-700 flex-1 break-words">
+                              {activity.summary}
+                            </p>
+                            <span className="text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0">
+                              {format(new Date(activity.createdAt), 'd MMM, h:mm a')}
+                            </span>
+                          </div>
+                          {activity.performedBy && (
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              by {activity.performedBy.name}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Guardian Card */}
             <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">

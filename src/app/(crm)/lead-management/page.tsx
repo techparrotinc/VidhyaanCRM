@@ -293,7 +293,7 @@ export default function LeadManagementPage() {
   const [pagination, setPagination] = useState({
     total: 0,
     page: 1,
-    limit: 10,
+    limit: 25,
     totalPages: 0
   })
   const [filters, setFilters] = useState({
@@ -325,7 +325,7 @@ export default function LeadManagementPage() {
   const params = useMemo(() => {
     return new URLSearchParams({
       page: String(currentPage),
-      limit: '10',
+      limit: '25',
       ...(search && { search }),
       ...(statusFilter && { status: statusFilter }),
       ...(counsellorFilter && { assignedToId: counsellorFilter }),

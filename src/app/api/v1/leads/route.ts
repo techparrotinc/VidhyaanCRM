@@ -21,7 +21,7 @@ export const GET = route({
     const { searchParams } = new URL(req.url)
 
     const page = Number(searchParams.get('page') ?? 1)
-    const limit = Number(searchParams.get('limit') ?? 10)
+    const limit = Number(searchParams.get('limit') ?? 25)
     const status = searchParams.get('status') ?? undefined
     const source = searchParams.get('source') ?? undefined
     const counsellorId = searchParams.get('counsellorId') ?? searchParams.get('assignedToId') ?? undefined

@@ -38,6 +38,17 @@ interface StudentDetail {
     dueDate: string | null
     createdAt: string
   }[]
+  activities?: {
+    id: string
+    type: string
+    summary: string
+    note: string | null
+    createdAt: string
+    performedBy: {
+      id: string
+      name: string
+    } | null
+  }[]
 }
 
 interface StudentResponse {

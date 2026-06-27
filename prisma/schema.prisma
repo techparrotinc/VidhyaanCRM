@@ -627,6 +627,7 @@ model User {
   communicationLogs CommunicationLog[]
   notificationPrefs NotificationPreference[]
   parent            Parent?
+  studentActivities  StudentActivity[]            @relation("StudentActivityPerformedBy")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -1703,6 +1704,7 @@ model Student {
   concessions  Concession[]
   siblingLinksA SiblingLink[] @relation("SiblingPrimary")
   siblingLinksB SiblingLink[] @relation("SiblingRelated")
+  activities    StudentActivity[]
 
   @@unique([orgId, studentCode])
   @@index([orgId])
@@ -1711,6 +1713,24 @@ model Student {
   @@index([status])
   @@index([batchId])
   @@map("students")
+  @@schema("crm")
+}
+
+model StudentActivity {
+  id            String   @id @default(cuid())
+  studentId     String   @map("student_id")
+  type          ActivityType
+  summary       String
+  note          String?
+  performedById String?  @map("performed_by_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  performedBy   User?    @relation(name: "StudentActivityPerformedBy", fields: [performedById], references: [id])
+
+  @@index([studentId])
+  @@index([performedById])
+  @@map("student_activities")
   @@schema("crm")
 }
 

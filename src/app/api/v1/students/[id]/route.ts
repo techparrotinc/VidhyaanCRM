@@ -30,6 +30,18 @@ const studentInclude = {
       dueDate: true,
       createdAt: true
     }
+  },
+  activities: {
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+    include: {
+      performedBy: {
+        select: {
+          id: true,
+          name: true
+        }
+      }
+    }
   }
 } as const
 

@@ -58,17 +58,16 @@ export const GET = route({
 
 const updateStudentSchema = z.object({
   name: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().optional(),
-  currentClass: z.string().optional(),
-  section: z.string().optional(),
-  rollNumber: z.string().optional(),
-  dateOfBirth: z.string().optional(),
   gender: z.string().optional(),
-  status: z.enum(['ACTIVE', 'ALUMNI', 'TRANSFERRED', 'SUSPENDED', 'DROPPED_OUT']).optional(),
+  dateOfBirth: z.string().optional(),
+  gradeLabel: z.string().optional(),
+  rollNumber: z.string().optional(),
+  guardianName: z.string().optional(),
+  guardianPhone: z.string().optional(),
+  guardianEmail: z.string().optional(),
   academicYearId: z.string().optional(),
   batchId: z.string().optional(),
-  guardianName: z.string().optional()
+  status: z.enum(['ACTIVE', 'ALUMNI', 'TRANSFERRED', 'SUSPENDED', 'DROPPED_OUT']).optional()
 })
 
 export const PUT = route({
@@ -91,9 +90,9 @@ export const PUT = route({
 
     const updateData: any = {}
     if (body.name !== undefined) updateData.name = body.name
-    if (body.phone !== undefined) updateData.guardianPhone = body.phone
-    if (body.email !== undefined) updateData.guardianEmail = body.email
-    if (body.currentClass !== undefined) updateData.gradeLabel = body.currentClass
+    if (body.guardianPhone !== undefined) updateData.guardianPhone = body.guardianPhone
+    if (body.guardianEmail !== undefined) updateData.guardianEmail = body.guardianEmail
+    if (body.gradeLabel !== undefined) updateData.gradeLabel = body.gradeLabel
     if (body.rollNumber !== undefined) updateData.rollNumber = body.rollNumber
     if (body.dateOfBirth !== undefined) {
       updateData.dateOfBirth = body.dateOfBirth ? new Date(body.dateOfBirth) : null

@@ -83,16 +83,23 @@ export const GET = route({
 
 const createStudentSchema = z.object({
   name: z.string().min(1),
-  phone: z.string().optional(),
-  email: z.string().optional(),
-  currentClass: z.string().optional(),
-  section: z.string().optional(),
-  rollNumber: z.string().optional(),
-  dateOfBirth: z.string().optional(),
   gender: z.string().optional(),
-  admissionId: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  gradeLabel: z.string().optional(),
+  rollNumber: z.string().optional(),
+  guardianName: z.string().optional(),
+  guardianPhone: z.string().optional(),
+  guardianEmail: z.string().optional(),
   academicYearId: z.string().optional(),
-  guardianName: z.string().optional()
+  admissionId: z.string().optional(),
+  status: z.enum([
+    'ACTIVE',
+    'ALUMNI',
+    'TRANSFERRED',
+    'SUSPENDED',
+    'DROPPED_OUT'
+  ]).optional().default('ACTIVE'),
+  notes: z.string().optional()
 })
 
 export const POST = route({
@@ -115,15 +122,20 @@ export const POST = route({
         studentCode,
         name: body.name,
         guardianName: body.guardianName ?? null,
-        guardianPhone: body.phone ?? null,
-        guardianEmail: body.email ?? null,
-        gradeLabel: body.currentClass ?? null,
+        guardianPhone: body.guardianPhone ?? null,
+        guardianEmail: body.guardianEmail ?? null,
+        gradeLabel: body.gradeLabel ?? null,
         rollNumber: body.rollNumber ?? null,
-        dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : null,
-        gender: body.gender ? (body.gender.toUpperCase() as Gender) : null,
+        dateOfBirth: body.dateOfBirth
+          ? new Date(body.dateOfBirth)
+          : null,
+        gender: body.gender
+          ? (body.gender.toUpperCase() as Gender)
+          : null,
         admissionId: body.admissionId ?? null,
-        academicYearId: body.academicYearId ?? academicYearId ?? null,
-        status: 'ACTIVE' as StudentStatus
+        academicYearId: body.academicYearId
+          ?? academicYearId ?? null,
+        status: (body.status ?? 'ACTIVE') as StudentStatus,
       }
     })
 

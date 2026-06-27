@@ -158,7 +158,21 @@ export default async function middleware(request: NextRequest) {
     }
   }
 
-  return addSecurityHeaders(NextResponse.next())
+  const requestHeaders = new Headers(request.headers)
+  if (session?.user) {
+    requestHeaders.set('x-user-id', session.user.id || '')
+    requestHeaders.set('x-user-role', session.user.role || '')
+    requestHeaders.set('x-org-id', session.user.orgId || '')
+    requestHeaders.set('x-user-name', session.user.name || '')
+  }
+
+  return addSecurityHeaders(
+    NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      }
+    })
+  )
 }
 
 export const config = {

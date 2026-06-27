@@ -41,16 +41,31 @@ export function route(config: RouteConfig) {
   ): Promise<NextResponse> {
     try {
       // STEP 1: Get auth session
-      const session = await auth()
-      if (!session?.user) {
-        throw Errors.unauthenticated()
-      }
+      const userId = req.headers.get('x-user-id')
+      const userRole = req.headers.get('x-user-role')
+      const orgId = req.headers.get('x-org-id')
+      const userName = req.headers.get('x-user-name')
 
-      const user = {
-        id: session.user.id,
-        role: session.user.role,
-        orgId: session.user.orgId,
-        name: session.user.name ?? ''
+      let user: { id: string; role: string; orgId: string; name: string }
+
+      if (userId && orgId && userRole) {
+        user = {
+          id: userId,
+          role: userRole,
+          orgId: orgId,
+          name: userName ?? ''
+        }
+      } else {
+        const session = await auth()
+        if (!session?.user) {
+          throw Errors.unauthenticated()
+        }
+        user = {
+          id: session.user.id,
+          role: session.user.role,
+          orgId: session.user.orgId,
+          name: session.user.name ?? ''
+        }
       }
 
       // STEP 2: Check role

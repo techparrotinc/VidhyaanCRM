@@ -91,7 +91,8 @@ const createStudentSchema = z.object({
   dateOfBirth: z.string().optional(),
   gender: z.string().optional(),
   admissionId: z.string().optional(),
-  academicYearId: z.string().optional()
+  academicYearId: z.string().optional(),
+  guardianName: z.string().optional()
 })
 
 export const POST = route({
@@ -113,6 +114,7 @@ export const POST = route({
         orgId: user.orgId,
         studentCode,
         name: body.name,
+        guardianName: body.guardianName ?? null,
         guardianPhone: body.phone ?? null,
         guardianEmail: body.email ?? null,
         gradeLabel: body.currentClass ?? null,

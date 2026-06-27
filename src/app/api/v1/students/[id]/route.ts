@@ -67,7 +67,8 @@ const updateStudentSchema = z.object({
   gender: z.string().optional(),
   status: z.enum(['ACTIVE', 'ALUMNI', 'TRANSFERRED', 'SUSPENDED', 'DROPPED_OUT']).optional(),
   academicYearId: z.string().optional(),
-  batchId: z.string().optional()
+  batchId: z.string().optional(),
+  guardianName: z.string().optional()
 })
 
 export const PUT = route({
@@ -103,6 +104,7 @@ export const PUT = route({
     if (body.status !== undefined) updateData.status = body.status as StudentStatus
     if (body.academicYearId !== undefined) updateData.academicYearId = body.academicYearId
     if (body.batchId !== undefined) updateData.batchId = body.batchId
+    if (body.guardianName !== undefined) updateData.guardianName = body.guardianName
 
     const updated = await db.student.update({
       where: { id },

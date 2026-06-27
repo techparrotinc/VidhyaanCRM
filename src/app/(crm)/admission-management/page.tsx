@@ -1305,37 +1305,51 @@ export default function AdmissionManagementPage() {
           {!pipelineExpanded ? (
             <div className="mx-4 mb-3">
               <div 
-                className="flex items-center justify-between px-4 py-2.5 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-[#1565D8]/30 hover:bg-blue-50/20 transition-colors"
+                className="flex items-center gap-3 px-4 py-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-[#1565D8]/30 hover:bg-blue-50/20 transition-colors min-w-0"
                 onClick={() => togglePipeline(true)}
               >
-                <div className="flex items-center gap-3 overflow-x-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  <div className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap">
-                    <BarChart2 className="size-14 text-[#1565D8]" />
-                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                      ADMISSION PIPELINE
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
-                    <span className="text-xs text-slate-400">Total:</span>
-                    <span className="text-xs font-bold text-slate-800">
+                {/* LEFT: Icon + Label — never shrinks */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <BarChart2 className="size-14 text-[#1565D8]" />
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 whitespace-nowrap">
+                    Admission Pipeline
+                  </span>
+                </div>
+
+                {/* CENTER: Stats — scrollable on mobile */}
+                <div className="flex items-center gap-4 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                  style={{ WebkitOverflowScrolling: 'touch' }}
+                >
+                  <span className="flex-shrink-0 whitespace-nowrap text-sm text-slate-600">
+                    Total:{' '}
+                    <span className="font-bold text-slate-900">
                       {Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
                     </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
-                    <span className="text-xs text-slate-400 font-sans">Conversion:</span>
-                    <span className="text-xs font-bold text-green-600">{conversionRate}%</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
-                    <span className="text-xs text-slate-400 font-sans">Admitted:</span>
-                    <span className="text-xs font-bold text-blue-600">
+                  </span>
+
+                  <span className="flex-shrink-0 whitespace-nowrap text-sm text-slate-600">
+                    Conversion:{' '}
+                    <span className="font-bold text-green-600">
+                      {conversionRate}%
+                    </span>
+                  </span>
+
+                  <span className="flex-shrink-0 whitespace-nowrap text-sm text-slate-600">
+                    Admitted:{' '}
+                    <span className="font-bold text-blue-600">
                       {displayAdmittedCount}
                     </span>
-                  </div>
+                  </span>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap ml-auto">
-                  <span className="text-xs text-[#1565D8] font-medium font-sans">View Pipeline</span>
+
+                {/* RIGHT: View Pipeline — never shrinks */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); togglePipeline(true); }}
+                  className="flex items-center gap-1 text-sm font-medium text-[#1565D8] hover:underline flex-shrink-0 whitespace-nowrap ml-auto cursor-pointer"
+                >
+                  View Pipeline
                   <ChevronDown size={14} className="text-slate-400" />
-                </div>
+                </button>
               </div>
             </div>
           ) : (
@@ -1486,11 +1500,11 @@ export default function AdmissionManagementPage() {
                     </div>
                   </div>
 
-                  {/* Row 2: Filters + Toggle */}
-                  <div className="flex items-center gap-2 w-full">
-                    {/* Filter buttons — horizontally scrollable */}
+                  {/* Filters row */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    {/* Scrollable buttons zone */}
                     <div
-                      className="flex items-center gap-2 overflow-x-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative"
+                      className="flex items-center gap-2 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                       style={{ WebkitOverflowScrolling: 'touch' }}
                     >
                     {/* Applying For */}

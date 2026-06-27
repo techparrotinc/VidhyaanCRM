@@ -1388,7 +1388,7 @@ export default function AdmissionManagementPage() {
           </div>
           )}
           {/* STAGE TABS */}
-          <div className="overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent -mx-4 px-4 sm:mx-0 sm:px-0 mb-4">
+          <div className="overflow-x-auto overflow-y-hidden -mx-4 px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] mb-4">
             <div className="flex gap-1 min-w-max border-b border-slate-200 pb-0">
               <button
                 onClick={() => {
@@ -1445,9 +1445,10 @@ export default function AdmissionManagementPage() {
               <div className="bg-white border border-slate-200 rounded-xl overflow-hidden mx-4 mb-4 shadow-sm">
                 
                 {/* Search and filter row */}
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100 flex-wrap justify-between bg-white w-full">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 border-b border-slate-100 bg-white w-full">
                   {/* Search Input */}
-                  <div className="relative flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-4 flex-1 min-w-0 max-w-xs sm:max-w-sm h-10 sm:h-9">
+                  <div className="w-full mb-2 sm:mb-0 sm:w-auto sm:flex-1 sm:max-w-xs">
+                    <div className="relative flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-4 w-full h-10 sm:h-9">
                     <Search size={15} className="text-slate-400" strokeWidth={1.5} />
                     <input
                       type="text"
@@ -1482,12 +1483,13 @@ export default function AdmissionManagementPage() {
                         <X size={14} />
                       </button>
                     )}
+                    </div>
                   </div>
 
                   {/* Filter Buttons */}
-                  <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto relative">
+                  <div className="flex flex-row gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex-shrink-0 w-full sm:w-auto relative">
                     {/* Applying For */}
-                    <div className="relative w-full sm:w-auto">
+                    <div className="relative w-full sm:w-auto flex-shrink-0">
                       <button
                         onClick={() => {
                           setShowApplyingForDropdown(!showApplyingForDropdown)
@@ -1496,7 +1498,7 @@ export default function AdmissionManagementPage() {
                           setShowDateFilterDropdown(false)
                           setShowPriorityFilterDropdown(false)
                         }}
-                        className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
+                        className="flex-shrink-0 whitespace-nowrap flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
                       >
                         <span>{filterApplyingFor ? `${config.applyingForLabel[type]}: ${getGradeLabel(filterApplyingFor)}` : `${config.applyingForLabel[type]} ▾`}</span>
                       </button>
@@ -1525,7 +1527,7 @@ export default function AdmissionManagementPage() {
                     </div>
 
                     {/* Counsellor */}
-                    <div className="relative w-full sm:w-auto">
+                    <div className="relative w-full sm:w-auto flex-shrink-0">
                       <button
                         onClick={() => {
                           setShowCounsellorFilterDropdown(!showCounsellorFilterDropdown)
@@ -1534,7 +1536,7 @@ export default function AdmissionManagementPage() {
                           setShowDateFilterDropdown(false)
                           setShowPriorityFilterDropdown(false)
                         }}
-                        className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
+                        className="flex-shrink-0 whitespace-nowrap flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
                       >
                         <span>{filterCounsellor ? `Counsellor: ${filterCounsellor}` : 'Counsellor ▾'}</span>
                       </button>
@@ -1565,7 +1567,7 @@ export default function AdmissionManagementPage() {
 
 
                     {/* Date Range */}
-                    <div className="relative w-full sm:w-auto">
+                    <div className="relative w-full sm:w-auto flex-shrink-0">
                       <button
                         onClick={() => {
                           setShowDateFilterDropdown(!showDateFilterDropdown)
@@ -1574,7 +1576,7 @@ export default function AdmissionManagementPage() {
                           setShowStageFilterDropdown(false)
                           setShowPriorityFilterDropdown(false)
                         }}
-                        className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
+                        className="flex-shrink-0 whitespace-nowrap flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
                       >
                         <span>{filterDateRange ? `Date: ${filterDateRange}` : 'Date Range ▾'}</span>
                       </button>
@@ -1603,7 +1605,7 @@ export default function AdmissionManagementPage() {
                     </div>
 
                     {/* Priority */}
-                    <div className="relative w-full sm:w-auto">
+                    <div className="relative w-full sm:w-auto flex-shrink-0">
                       <button
                         onClick={() => {
                           setShowPriorityFilterDropdown(!showPriorityFilterDropdown)
@@ -1612,7 +1614,7 @@ export default function AdmissionManagementPage() {
                           setShowStageFilterDropdown(false)
                           setShowDateFilterDropdown(false)
                         }}
-                        className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
+                        className="flex-shrink-0 whitespace-nowrap flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
                       >
                         <span>{filterPriority ? `Priority: ${filterPriority}` : 'Priority ▾'}</span>
                       </button>
@@ -1644,7 +1646,7 @@ export default function AdmissionManagementPage() {
                     {isAnyFilterActive && (
                       <button
                         onClick={handleClearAllFilters}
-                        className="text-xs font-medium text-slate-400 hover:text-red-500 flex items-center gap-1 px-1.5 py-1.5 font-sans cursor-pointer w-full sm:w-auto justify-center sm:justify-start"
+                        className="flex-shrink-0 whitespace-nowrap text-xs font-medium text-slate-400 hover:text-red-500 flex items-center gap-1 px-1.5 py-1.5 font-sans cursor-pointer w-full sm:w-auto justify-center sm:justify-start"
                       >
                         <X size={13} />
                         Clear Filters
@@ -1653,7 +1655,7 @@ export default function AdmissionManagementPage() {
                   </div>
 
                   {/* Right group */}
-                  <div className="flex gap-2 flex-wrap w-full sm:w-auto justify-end mt-2 sm:mt-0">
+                  <div className="flex-shrink-0 ml-auto">
                     {/* View Toggle */}
                     <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-1 w-full sm:w-auto justify-center sm:justify-start">
                       {/* List */}
@@ -1709,7 +1711,7 @@ export default function AdmissionManagementPage() {
 
 
                  {/* Desktop/Tablet Table View */}
-                <div className="hidden sm:block w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                <div className="hidden sm:block w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <table className="w-full min-w-[800px] border-collapse text-left">
                     {/* TABLE HEADER */}
                     <thead>

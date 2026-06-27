@@ -908,8 +908,39 @@ export default function AdmissionManagementPage() {
     const applicant = applicants.find((a: any) => a.id === applicantId)
     if (!applicant) return
 
+    const dbStageId = getDatabaseStageId(targetStage.label) || targetStageId
+    const selectedStage = stages.find(s => s.id === dbStageId)
+
+    const previousData = admissionsData
+    const rawAdmissions = admissionsData?.admissions || admissionsData?.data || []
+
+    const updatedAdmissions = rawAdmissions.map((a: any) =>
+      a.id === applicantId
+        ? {
+            ...a,
+            stageId: dbStageId,
+            stage: selectedStage ? {
+              id: selectedStage.id,
+              name: selectedStage.name,
+              color: selectedStage.color || '#e2e8f0',
+              isWon: selectedStage.isWon || false,
+              isLost: selectedStage.isLost || false
+            } : a.stage
+          }
+        : a
+    )
+
+    // Optimistic SWR cache update
+    mutate(
+      {
+        ...admissionsData,
+        data: updatedAdmissions,
+        admissions: updatedAdmissions
+      },
+      { revalidate: false }
+    )
+
     try {
-      const dbStageId = getDatabaseStageId(targetStage.label)
       const res = await fetch(
         '/api/v1/admissions/' + applicantId,
         {
@@ -918,13 +949,29 @@ export default function AdmissionManagementPage() {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            stageId: dbStageId || targetStageId
+            stageId: dbStageId
           })
         }
       )
       if (!res.ok) throw new Error('Failed to update stage')
 
-      fetchAdmissions()
+      const data = await res.json()
+      if (data.admission) {
+        const finalAdmissions = rawAdmissions.map((a: any) =>
+          a.id === applicantId ? data.admission : a
+        )
+        mutate(
+          {
+            ...admissionsData,
+            data: finalAdmissions,
+            admissions: finalAdmissions
+          },
+          { revalidate: true }
+        )
+      } else {
+        mutate()
+      }
+
       fetchPipeline()
 
       const dbStage = pipeline.find((p: any) => p.id === dbStageId)
@@ -936,10 +983,11 @@ export default function AdmissionManagementPage() {
       } else if (isLost) {
         setShowRejectModal(applicant)
       } else {
-        showToast(`Moved to ${targetStage.label}`)
+        showToast('Stage updated', 'success')
       }
     } catch (err: any) {
-      console.error('Stage update failed', err)
+      // Rollback on failure
+      mutate(previousData, { revalidate: false })
       showToast(err.message || 'Failed to update stage', 'error')
     }
     setStageDropdownId(null)
@@ -1700,7 +1748,6 @@ export default function AdmissionManagementPage() {
                     </thead>
 
                     {/* TABLE BODY */}
-                    {/* TABLE BODY */}
                     <tbody className="divide-y divide-slate-100">
                       {filteredApplicants.map((admission: any) => {
                         admission.applicantName = admission.fullName;
@@ -1810,46 +1857,90 @@ export default function AdmissionManagementPage() {
                                 <select
                                   value={admission.stageId || ''}
                                   onChange={async (e) => {
-                                    e.stopPropagation()
-                                    const newStageId = e.target.value
-                                    if (!newStageId) return
+                                      e.stopPropagation()
+                                      const newStageId = e.target.value
+                                      if (!newStageId) return
 
-                                    try {
-                                      const res = await fetch(
-                                        `/api/v1/admissions/${admission.id}`,
-                                        {
-                                          method: 'PUT',
-                                          headers: {
-                                            'Content-Type': 'application/json'
-                                          },
-                                          body: JSON.stringify({
-                                            stageId: newStageId
-                                          })
-                                        }
+                                      const selectedStage = stages.find(s => s.id === newStageId)
+                                      const previousData = admissionsData
+                                      const rawAdmissions = admissionsData?.admissions || admissionsData?.data || []
+
+                                      const updatedAdmissions = rawAdmissions.map((a: any) =>
+                                        a.id === admission.id
+                                          ? {
+                                              ...a,
+                                              stageId: newStageId,
+                                              stage: selectedStage ? {
+                                                id: selectedStage.id,
+                                                name: selectedStage.name,
+                                                color: selectedStage.color || '#e2e8f0',
+                                                isWon: selectedStage.isWon || false,
+                                                isLost: selectedStage.isLost || false
+                                              } : a.stage
+                                            }
+                                          : a
                                       )
 
-                                      if (!res.ok) {
-                                        const err = await res.json()
-                                        throw new Error(
-                                          err.message || 'Update failed'
+                                      // Optimistic update
+                                      mutate(
+                                        {
+                                          ...admissionsData,
+                                          data: updatedAdmissions,
+                                          admissions: updatedAdmissions
+                                        },
+                                        { revalidate: false }
+                                      )
+
+                                      try {
+                                        const res = await fetch(
+                                          `/api/v1/admissions/${admission.id}`,
+                                          {
+                                            method: 'PUT',
+                                            headers: {
+                                              'Content-Type': 'application/json'
+                                            },
+                                            body: JSON.stringify({
+                                              stageId: newStageId
+                                            })
+                                          }
+                                        )
+
+                                        if (!res.ok) {
+                                          const err = await res.json()
+                                          throw new Error(
+                                            err.message || 'Update failed'
+                                          )
+                                        }
+
+                                        const data = await res.json()
+                                        if (data.admission) {
+                                          const finalAdmissions = rawAdmissions.map((a: any) =>
+                                            a.id === admission.id ? data.admission : a
+                                          )
+                                          mutate(
+                                            {
+                                              ...admissionsData,
+                                              data: finalAdmissions,
+                                              admissions: finalAdmissions
+                                            },
+                                            { revalidate: true }
+                                          )
+                                        } else {
+                                          mutate()
+                                        }
+
+                                        fetchPipeline()
+                                        showToast('Stage updated', 'success')
+
+                                      } catch (err: any) {
+                                        // Rollback on failure
+                                        mutate(previousData, { revalidate: false })
+                                        showToast(
+                                          err.message || 'Failed to update stage',
+                                          'error'
                                         )
                                       }
-
-                                      await Promise.all([
-                                        fetchAdmissions(),
-                                        fetchPipeline(),
-                                      ])
-
-                                      showToast('Stage updated', 'success')
-
-                                    } catch (err: any) {
-                                      showToast(
-                                        err.message || 'Failed to update stage',
-                                        'error'
-                                      )
-                                      fetchAdmissions()
-                                    }
-                                  }}
+                                    }}
                                   className="text-[11px] font-semibold pl-2 pr-6 py-1 rounded-full border-0 cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20"
                                   style={{
                                     backgroundColor:
@@ -2057,6 +2148,36 @@ export default function AdmissionManagementPage() {
                                 const newStageId = e.target.value
                                 if (!newStageId) return
 
+                                const selectedStage = stages.find(s => s.id === newStageId)
+                                const previousData = admissionsData
+                                const rawAdmissions = admissionsData?.admissions || admissionsData?.data || []
+
+                                const updatedAdmissions = rawAdmissions.map((a: any) =>
+                                  a.id === admission.id
+                                    ? {
+                                        ...a,
+                                        stageId: newStageId,
+                                        stage: selectedStage ? {
+                                          id: selectedStage.id,
+                                          name: selectedStage.name,
+                                          color: selectedStage.color || '#e2e8f0',
+                                          isWon: selectedStage.isWon || false,
+                                          isLost: selectedStage.isLost || false
+                                        } : a.stage
+                                      }
+                                    : a
+                                )
+
+                                // Optimistic update
+                                mutate(
+                                  {
+                                    ...admissionsData,
+                                    data: updatedAdmissions,
+                                    admissions: updatedAdmissions
+                                  },
+                                  { revalidate: false }
+                                )
+
                                 try {
                                   const res = await fetch(
                                     `/api/v1/admissions/${admission.id}`,
@@ -2078,19 +2199,33 @@ export default function AdmissionManagementPage() {
                                     )
                                   }
 
-                                  await Promise.all([
-                                    fetchAdmissions(),
-                                    fetchPipeline(),
-                                  ])
+                                  const data = await res.json()
+                                  if (data.admission) {
+                                    const finalAdmissions = rawAdmissions.map((a: any) =>
+                                      a.id === admission.id ? data.admission : a
+                                    )
+                                    mutate(
+                                      {
+                                        ...admissionsData,
+                                        data: finalAdmissions,
+                                        admissions: finalAdmissions
+                                      },
+                                      { revalidate: true }
+                                    )
+                                  } else {
+                                    mutate()
+                                  }
 
+                                  fetchPipeline()
                                   showToast('Stage updated', 'success')
 
                                 } catch (err: any) {
+                                  // Rollback on failure
+                                  mutate(previousData, { revalidate: false })
                                   showToast(
                                     err.message || 'Failed to update stage',
                                     'error'
                                   )
-                                  fetchAdmissions()
                                 }
                               }}
                               className="text-[11px] font-semibold pl-2 pr-6 py-1 rounded-full border-0 cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20"

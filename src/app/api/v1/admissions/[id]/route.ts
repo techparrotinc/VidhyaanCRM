@@ -1,4 +1,5 @@
 import { route } from '@/lib/api/compose'
+import { NextResponse } from 'next/server'
 import { ok } from '@/lib/api/respond'
 import { redis } from '@/lib/redis'
 import { Errors, AppError } from '@/lib/api/errors'
@@ -281,7 +282,56 @@ export const PUT = route({
       console.error('Failed to invalidate pipeline cache:', err)
     }
 
-    return ok(updated)
+    const updatedAdmission = await db.admission.findFirst({
+      where: {
+        id,
+        orgId: user.orgId
+      },
+      select: {
+        id: true,
+        admissionCode: true,
+        applicantName: true,
+        parentName: true,
+        phone: true,
+        email: true,
+        gradeSought: true,
+        status: true,
+        stageId: true,
+        createdAt: true,
+        lead: {
+          select: {
+            priority: true
+          }
+        },
+        stage: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            isWon: true,
+            isLost: true
+          }
+        },
+        assignedTo: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    })
+
+    const responseAdmission = updatedAdmission
+      ? {
+          ...updatedAdmission,
+          priority: updatedAdmission.lead?.priority || 'MEDIUM'
+        }
+      : null
+
+    return NextResponse.json({
+      success: true,
+      admission: responseAdmission
+    })
   }
 })
 

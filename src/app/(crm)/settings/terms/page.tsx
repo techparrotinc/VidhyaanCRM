@@ -163,6 +163,9 @@ export default function TermsSettingsPage() {
             </option>
           ))}
         </select>
+        <p className="text-xs text-slate-400 mt-2">
+          3 default terms are created for you. Rename or adjust dates as needed. You can also add more terms.
+        </p>
       </div>
 
       {/* ── ADD / EDIT FORM ── */}
@@ -296,7 +299,7 @@ export default function TermsSettingsPage() {
                       {term.name}
                     </p>
                     <p className="text-xs text-slate-400">
-                      Term {i + 1}
+                      Term {term.order}
                     </p>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600">

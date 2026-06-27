@@ -23,13 +23,77 @@ export const GET = route({
     const { searchParams } = new URL(req.url)
     const yearId = searchParams.get('academicYearId') ?? academicYearId
 
-    const terms = await db.term.findMany({
+    let terms = await db.term.findMany({
       where: {
         orgId: user.orgId,
         academicYearId: yearId ?? undefined
       },
       orderBy: { order: 'asc' }
     })
+
+    if (terms.length === 0 && yearId) {
+      try {
+        const org = await db.organization.findUnique({
+          where: { id: user.orgId },
+          select: { institutionType: true }
+        })
+        const isSchool = org?.institutionType !== 'LEARNING_CENTER'
+
+        if (isSchool) {
+          const academicYear = await db.academicYear.findFirst({
+            where: { id: yearId }
+          })
+
+          const yearMatch = academicYear?.name.match(/\d{4}/)
+          const yr = yearMatch ? parseInt(yearMatch[0]) : new Date().getFullYear()
+
+          const defaultTerms = [
+            {
+              name: 'Term 1',
+              startDate: new Date(`${yr}-04-01`),
+              endDate: new Date(`${yr}-06-30`),
+              order: 1,
+              isActive: true,
+              academicYearId: yearId,
+              orgId: user.orgId
+            },
+            {
+              name: 'Term 2',
+              startDate: new Date(`${yr}-07-01`),
+              endDate: new Date(`${yr}-09-30`),
+              order: 2,
+              isActive: true,
+              academicYearId: yearId,
+              orgId: user.orgId
+            },
+            {
+              name: 'Term 3',
+              startDate: new Date(`${yr}-10-01`),
+              endDate: new Date(`${yr + 1}-03-31`),
+              order: 3,
+              isActive: true,
+              academicYearId: yearId,
+              orgId: user.orgId
+            }
+          ]
+
+          await db.term.createMany({
+            data: defaultTerms,
+            skipDuplicates: true
+          })
+
+          terms = await db.term.findMany({
+            where: {
+              orgId: user.orgId,
+              academicYearId: yearId
+            },
+            orderBy: { order: 'asc' }
+          })
+        }
+      } catch (err) {
+        console.error('Failed to auto-seed terms:', err)
+      }
+    }
 
     return ok(terms)
   }

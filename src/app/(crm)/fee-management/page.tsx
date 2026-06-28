@@ -675,7 +675,7 @@ export default function FeeManagementPage() {
               </button>
               <button
                 onClick={() => {
-                  router.push(`/fee-management/${actionMenuId}`)
+                  router.push(`/fee-management/${actionMenuId}?pay=true`)
                   setActionMenuId(null)
                 }}
                 className="w-full px-4 py-2 text-sm text-left text-slate-700 hover:bg-slate-50 transition-colors">

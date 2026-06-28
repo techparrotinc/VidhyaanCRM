@@ -2,7 +2,7 @@
 
 import { useState, useEffect,
   useCallback } from 'react'
-import { useParams, useRouter }
+import { useParams, useRouter, useSearchParams }
   from 'next/navigation'
 import { format } from 'date-fns'
 import {
@@ -107,13 +107,14 @@ export default function InvoiceDetailPage() {
   const params = useParams()
   const id = params?.id as string
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [invoice, setInvoice] =
     useState<InvoiceDetail | null>(null)
   const [isLoading, setIsLoading] =
     useState(true)
   const [showPaymentForm, setShowPaymentForm] =
-    useState(false)
+    useState(searchParams.get('pay') === 'true')
   const [paymentForm, setPaymentForm] =
     useState({
       amount: '',
@@ -149,6 +150,19 @@ export default function InvoiceDetailPage() {
   useEffect(() => {
     fetchInvoice()
   }, [fetchInvoice])
+
+  useEffect(() => {
+    if (searchParams.get('pay') === 'true') {
+      setTimeout(() => {
+        document
+          .getElementById('payment-form')
+          ?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          })
+      }, 500)
+    }
+  }, [])
 
   const handleRecordPayment = async () => {
     if (!paymentForm.amount ||
@@ -494,7 +508,7 @@ export default function InvoiceDetailPage() {
 
             {/* Record Payment Form */}
             {showPaymentForm && (
-              <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <div id="payment-form" className="bg-white rounded-xl border border-slate-200 p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                     Record Payment

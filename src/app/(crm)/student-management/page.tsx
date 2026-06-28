@@ -144,15 +144,6 @@ export default function StudentListingPage() {
         </h1>
 
         <div className="flex items-center gap-2 flex-shrink-0">
-
-          {/* Export button */}
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-slate-200 rounded-lg bg-white hover:bg-slate-50 transition-colors whitespace-nowrap flex-shrink-0">
-            <Download className="w-4 h-4" />
-            Export
-          </button>
-
           {/* New Student button */}
           <button
             onClick={() => router.push('/student-management/create')}
@@ -160,7 +151,6 @@ export default function StudentListingPage() {
             <Plus className="w-4 h-4" />
             New Student
           </button>
-
         </div>
       </div>
 
@@ -199,53 +189,50 @@ export default function StudentListingPage() {
 
       {/* ── FILTER BAR ── */}
       <div className="px-4 sm:px-6 pt-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col gap-2">
+        <div className="bg-white border border-slate-200 rounded-xl p-3">
+          <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
-          {/* Search */}
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search by name, ID, guardian..."
-              value={search}
-              onChange={e => {
-                setSearch(e.target.value)
-                setPage(1)
-              }}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-          </div>
-
-          {/* Filters row */}
-          <div className="flex items-center gap-2">
-
-            {/* Scrollable filters */}
-            <div
-              className="flex items-center gap-2 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-              style={{
-                WebkitOverflowScrolling: 'touch'
-              }}>
-
-              {/* Grade filter */}
-              <select
-                value={gradeLabel}
+            {/* Search */}
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search students..."
+                value={search}
                 onChange={e => {
-                  setGradeLabel(e.target.value)
+                  setSearch(e.target.value)
                   setPage(1)
                 }}
-                className="flex-shrink-0 whitespace-nowrap text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">
-                  All Grades
-                </option>
-                {GRADE_OPTIONS.map(g => (
-                  <option
-                    key={g.value}
-                    value={g.value}>
-                    {g.label}
-                  </option>
-                ))}
-              </select>
-
+                className="w-full h-9 pl-9 pr-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition placeholder:text-slate-400"
+              />
             </div>
+
+            {/* Grade filter */}
+            <select
+              value={gradeLabel}
+              onChange={e => {
+                setGradeLabel(e.target.value)
+                setPage(1)
+              }}
+              className="h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:border-[#1565D8] transition flex-shrink-0 min-w-[120px]"
+            >
+              <option value="">All Grades</option>
+              {GRADE_OPTIONS.map(g => (
+                <option key={g.value} value={g.label}>
+                  {g.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Export button */}
+            <button
+              onClick={handleExport}
+              className="h-9 w-9 flex items-center justify-center border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-50 transition flex-shrink-0"
+              title="Export CSV"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+
           </div>
         </div>
       </div>
@@ -487,10 +474,13 @@ export default function StudentListingPage() {
           {/* ── PAGINATION ── */}
           <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between gap-4">
             <p className="text-xs text-slate-500 flex-shrink-0">
-              Showing {students.length === 0
-                ? '0'
-                : `${(page - 1) * 25 + 1}–${Math.min(page * 25, total)}`
-              } of {total} students
+              {total === 0
+                ? 'No students found'
+                : `Showing ${(page - 1) * 25 + 1}–${Math.min(
+                    page * 25,
+                    total
+                  )} of ${total} students`
+              }
             </p>
             <div className="flex items-center gap-2">
               <button

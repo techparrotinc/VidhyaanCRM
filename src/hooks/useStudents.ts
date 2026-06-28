@@ -39,11 +39,16 @@ interface Student {
 }
 
 interface StudentsResponse {
+  success: boolean
   data: Student[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
 }
 
 export function useStudents(
@@ -75,10 +80,10 @@ export function useStudents(
 
   return {
     students: data?.data ?? [],
-    total: data?.total ?? 0,
-    page: data?.page ?? 1,
-    limit: data?.limit ?? 25,
-    totalPages: data?.totalPages ?? 0,
+    total: data?.pagination?.total ?? 0,
+    page: data?.pagination?.page ?? 1,
+    limit: data?.pagination?.limit ?? 25,
+    totalPages: data?.pagination?.totalPages ?? 0,
     isLoading,
     error,
     mutate

@@ -384,34 +384,29 @@ export default function PreviewPage({
                     Fee Heads
                   </h3>
 
-                  <div className="overflow-x-auto min-w-[500px]">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-left">
-                          <th className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 pb-2 w-1/2">
-                            Name
-                          </th>
-                          <th className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 pb-2 w-1/4">
-                            Applies To
-                          </th>
-                          <th className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 pb-2 text-right w-1/5">
-                            Amount
-                          </th>
-                          <th className="w-8 pb-2"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {section.feeHeads.map(head => (
-                          <FeeHeadRow
-                            key={head.id}
-                            head={head}
-                            onUpdate={updated => updateFeeHead(index, head.id, updated)}
-                            onRemove={() => removeFeeHead(index, head.id)}
-                          />
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                    <div className="flex items-center gap-2 px-0 py-1.5 mb-1">
+                      <span className="flex-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                        Item Name
+                      </span>
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 flex-shrink-0 w-[100px]">
+                        Applies To
+                      </span>
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 flex-shrink-0 w-24 text-right">
+                        Amount
+                      </span>
+                      <span className="w-6 flex-shrink-0" />
+                    </div>
+
+                    <div className="divide-y divide-slate-100">
+                      {section.feeHeads.map(head => (
+                        <FeeHeadRow
+                          key={head.id}
+                          head={head}
+                          onUpdate={updated => updateFeeHead(index, head.id, updated)}
+                          onRemove={() => removeFeeHead(index, head.id)}
+                        />
+                      ))}
+                    </div>
 
                   <button
                     type="button"

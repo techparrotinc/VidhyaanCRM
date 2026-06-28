@@ -129,6 +129,7 @@ export default function FeeManagementPage() {
   const [isBatchLoading, setIsBatchLoading] = useState(false)
   const [batchSearch, setBatchSearch] = useState('')
   const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const [pendingBatchFetch, setPendingBatchFetch] = useState<string | null>(null)
 
   const triggerToast = useCallback((msg: string) => {
     setToastMsg(msg)
@@ -151,16 +152,24 @@ export default function FeeManagementPage() {
     }
   }, [triggerToast])
 
+  // Effect 1: Read sessionStorage once on mount only.
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const lastBatchId = sessionStorage.getItem('vidhyaan_last_batch_id')
-      if (lastBatchId) {
-        sessionStorage.removeItem('vidhyaan_last_batch_id')
-        setBatchId(lastBatchId)
-        fetchBatchSummary(lastBatchId)
-      }
+    if (typeof window === 'undefined') return
+    const lastBatchId = sessionStorage.getItem('vidhyaan_last_batch_id')
+    if (lastBatchId) {
+      sessionStorage.removeItem('vidhyaan_last_batch_id')
+      setBatchId(lastBatchId)
+      setPendingBatchFetch(lastBatchId)
     }
-  }, [fetchBatchSummary])
+  }, [])
+
+  // Effect 2: Trigger fetch when pendingBatchFetch is set.
+  useEffect(() => {
+    if (pendingBatchFetch) {
+      fetchBatchSummary(pendingBatchFetch)
+      setPendingBatchFetch(null)
+    }
+  }, [pendingBatchFetch, fetchBatchSummary])
 
   const fetchInvoices = useCallback(
     async () => {

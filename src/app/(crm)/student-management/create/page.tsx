@@ -235,7 +235,7 @@ export default function CreateStudentPage() {
               >
                 <option value="">Select Grade</option>
                 {GRADE_OPTIONS.map(g => (
-                  <option key={g.value} value={g.value}>
+                  <option key={g.value} value={g.label}>
                     {g.label}
                   </option>
                 ))}

@@ -21,7 +21,33 @@ export const GET = route({
     const page = Number(searchParams.get('page') ?? 1)
     const limit = Number(searchParams.get('limit') ?? 25)
     const status = searchParams.get('status') ?? undefined
-    const gradeLabel = searchParams.get('gradeLabel') ?? searchParams.get('grade') ?? undefined
+    const GRADE_LABEL_MAP: Record<string, string> = {
+      'pre_kg': 'Pre-KG',
+      'nursery': 'Nursery',
+      'lkg': 'LKG',
+      'ukg': 'UKG',
+      'class_1': 'Class 1',
+      'class_2': 'Class 2',
+      'class_3': 'Class 3',
+      'class_4': 'Class 4',
+      'class_5': 'Class 5',
+      'class_6': 'Class 6',
+      'class_7': 'Class 7',
+      'class_8': 'Class 8',
+      'class_9': 'Class 9',
+      'class_10': 'Class 10',
+      'class_11_science': 'Class 11 - Science',
+      'class_11_commerce': 'Class 11 - Commerce',
+      'class_11_arts': 'Class 11 - Arts',
+      'class_12_science': 'Class 12 - Science',
+      'class_12_commerce': 'Class 12 - Commerce',
+      'class_12_arts': 'Class 12 - Arts',
+      'other': 'Other',
+    }
+    const rawGradeParam = searchParams.get('gradeLabel') ?? searchParams.get('grade') ?? undefined
+    const gradeLabel = rawGradeParam
+      ? (GRADE_LABEL_MAP[rawGradeParam] ?? rawGradeParam)
+      : undefined
     const search = searchParams.get('search') ?? undefined
     const academicYearId = searchParams.get('academicYearId') ?? undefined
     const countOnly = searchParams.get('countOnly') === 'true'

@@ -70,7 +70,7 @@ export default function ClassModeForm({ onSubmit }: ClassModeFormProps) {
     return getGradeLabel(mapped).replace(/^Class\s+/i, 'Grade ')
   }
 
-  const selectedGradeLabel = grade ? getGradeLabel(mapGradeValue(grade)) : ''
+  const selectedGradeLabel = grade ? getGradeLabel(grade) : ''
 
   // Fetch active student count for selected grade
   const { data: studentCountData, isLoading: isCountLoading } = useSWR<{ success: boolean; data: { count: number } }>(

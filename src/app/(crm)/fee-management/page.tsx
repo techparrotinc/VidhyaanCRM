@@ -386,7 +386,7 @@ export default function FeeManagementPage() {
                           <td className="px-3 py-2.5">
                             <p className="text-sm font-semibold text-slate-800 font-sans">{inv.student?.name || '—'}</p>
                             <p className="text-xs text-slate-400 mt-0.5 font-semibold">
-                              {(inv.student as any)?.grade || inv.student?.gradeLabel || '—'}
+                              {inv.student?.gradeLabel || '—'}
                             </p>
                           </td>
                           <td className="px-3 py-2.5 text-sm text-slate-600 font-semibold font-sans">

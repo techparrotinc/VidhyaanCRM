@@ -2,6 +2,7 @@ import { Prisma, LeadStatus, LeadSource, StudentStatus, EnrollmentStatus } from 
 import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
+import { prisma } from '@/lib/db/client'
 
 export const GET = route({
   module: 'campaign_management',
@@ -9,14 +10,25 @@ export const GET = route({
     const { searchParams } = new URL(req.url)
     const pool = searchParams.get('pool')
 
-    if (!pool || !['LEADS', 'STUDENTS', 'BOTH'].includes(pool)) {
-      throw Errors.businessRule('Missing or invalid required query parameter: pool')
-    }
-
     const filtersRaw = searchParams.get('filters')
     const filters: Array<{ field: string; value: string }> = filtersRaw
       ? JSON.parse(filtersRaw)
       : []
+
+    const orgId = user.orgId
+    console.log('=== AUDIENCE COUNT DEBUG ===')
+    console.log('orgId from context:', orgId)
+    console.log('pool param:', pool)
+    console.log('filters param:', filters)
+    console.log('session user:', {
+      userId:  user.id,
+      orgId:   user.orgId,
+      role:    user.role
+    })
+
+    if (!pool || !['LEADS', 'STUDENTS', 'BOTH'].includes(pool)) {
+      throw Errors.businessRule('Missing or invalid required query parameter: pool')
+    }
 
     let leadCount = 0
     let studentCount = 0
@@ -51,6 +63,15 @@ export const GET = route({
       }
 
       leadCount = await db.lead.count({ where: leadWhere })
+
+      const leads = await prisma.lead.findMany({
+        where: leadWhere
+      })
+      console.log('leadWhere clause:', 
+        JSON.stringify(leadWhere, null, 2))
+      console.log('leads found:', leads.length)
+      console.log('first lead orgId:', 
+        leads[0]?.orgId ?? 'NO LEADS')
     }
 
     if (pool === 'STUDENTS' || pool === 'BOTH') {

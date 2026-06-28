@@ -47,35 +47,6 @@ export default function NewCampaignPage() {
       .catch((e) => console.error('Failed to fetch org config:', e))
   }, [])
 
-  // Live Recipient Count debounced call
-  useEffect(() => {
-    if (!audiencePool) {
-      setRecipientCount(0)
-      return
-    }
-
-    setIsCountLoading(true)
-    const delayDebounce = setTimeout(async () => {
-      try {
-        const query = new URLSearchParams({
-          pool: audiencePool,
-          filters: JSON.stringify(audienceFilters)
-        })
-        const res = await fetch(`/api/v1/campaigns/audience-count?${query}`)
-        if (res.ok) {
-          const json = await res.json()
-          setRecipientCount(json.data?.total ?? 0)
-        }
-      } catch (e) {
-        console.error('Error fetching recipient count:', e)
-      } finally {
-        setIsCountLoading(false)
-      }
-    }, 300)
-
-    return () => clearTimeout(delayDebounce)
-  }, [audiencePool, audienceFilters])
-
   const handleBack = () => {
     if (currentStep === 1) {
       router.push('/campaign-management')
@@ -235,6 +206,8 @@ export default function NewCampaignPage() {
             onPoolChange={setAudiencePool}
             onFiltersChange={setAudienceFilters}
             onNext={handleNext}
+            onCountChange={setRecipientCount}
+            onCountLoadingChange={setIsCountLoading}
           />
         )}
         {currentStep === 3 && (

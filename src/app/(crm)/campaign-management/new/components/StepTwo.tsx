@@ -65,6 +65,8 @@ interface StepTwoProps {
   onPoolChange: (pool: 'LEADS' | 'STUDENTS' | 'BOTH' | null) => void
   onFiltersChange: (filters: Array<{ field: string; value: string }>) => void
   onNext: () => void
+  onCountChange: (count: number) => void
+  onCountLoadingChange: (loading: boolean) => void
 }
 
 export function StepTwo({
@@ -75,7 +77,9 @@ export function StepTwo({
   isCountLoading,
   onPoolChange,
   onFiltersChange,
-  onNext
+  onNext,
+  onCountChange,
+  onCountLoadingChange
 }: StepTwoProps) {
   const { counsellors } = useCounsellors()
   const { years } = useAcademicYears()
@@ -92,6 +96,42 @@ export function StepTwo({
       })
       .catch((e) => console.error('Failed to fetch courses:', e))
   }, [])
+
+  // Fetch recipient count when pool or filters change
+  useEffect(() => {
+    if (!audiencePool) {
+      onCountChange(0)
+      return
+    }
+
+    onCountLoadingChange(true)
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams()
+        params.set('pool', audiencePool)
+        if (audienceFilters.length > 0) {
+          params.set(
+            'filters',
+            JSON.stringify(audienceFilters)
+          )
+        }
+        const url = `/api/v1/campaigns/audience-count?${params}`
+
+        const res = await fetch(url)
+        if (res.ok) {
+          const result = await res.json()
+          const count = result.data?.total ?? 0
+          onCountChange(count)
+        }
+      } catch (e) {
+        console.error('Error fetching recipient count:', e)
+      } finally {
+        onCountLoadingChange(false)
+      }
+    }, 300)
+
+    return () => clearTimeout(delayDebounce)
+  }, [audiencePool, audienceFilters, onCountChange, onCountLoadingChange])
 
   const handleAddFilter = () => {
     onFiltersChange([...audienceFilters, { field: '', value: '' }])

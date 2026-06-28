@@ -134,6 +134,41 @@ export async function GET(req: NextRequest) {
     const activatedCount = scheduledUpdateResult.count
     console.log(`Activated ${activatedCount} scheduled invoices.`)
 
+    // ── Activate scheduled campaigns ──────────────
+    const scheduledCampaigns = await prisma.campaign.findMany({
+      where: {
+        status:      'SCHEDULED',
+        scheduledAt: { lte: new Date() },
+        deletedAt:   null
+      },
+      include: {
+        organization: { select: { name: true } }
+      }
+    })
+
+    let campaignsActivatedCount = 0
+    for (const campaign of scheduledCampaigns) {
+      try {
+        // Trigger the send API internally
+        await fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL}/api/v1/campaigns/${campaign.id}/send`,
+          {
+            method:  'POST',
+            headers: {
+              'Content-Type':  'application/json',
+              'Authorization': `Bearer ${process.env.CRON_SECRET}`
+            },
+            body: JSON.stringify({})
+          }
+        )
+        campaignsActivatedCount++
+      } catch (err) {
+        console.error(
+          `Failed to activate campaign ${campaign.id}:`, err
+        )
+      }
+    }
+
     return NextResponse.json({
       success: true,
       processed: dueEnrollments.length,
@@ -141,7 +176,8 @@ export async function GET(req: NextRequest) {
       failed,
       errors,
       courseInvoicesGenerated: generated,
-      scheduledInvoicesActivated: activatedCount
+      scheduledInvoicesActivated: activatedCount,
+      scheduledCampaignsActivated: campaignsActivatedCount
     })
   } catch (err: any) {
     return NextResponse.json(

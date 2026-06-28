@@ -46,7 +46,7 @@ export const GET = route({
         where: {
           ...where,
           status: {
-            in: ['UNPAID', 'PARTIALLY_PAID', 'OVERDUE']
+            in: ['UNPAID', 'PARTIALLY_PAID', 'OVERDUE', 'SCHEDULED']
           }
         },
         _sum: {

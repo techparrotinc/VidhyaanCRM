@@ -21,13 +21,14 @@ export const GET = route({
     const page = Number(searchParams.get('page') ?? 1)
     const limit = Number(searchParams.get('limit') ?? 25)
     const status = searchParams.get('status') ?? undefined
-    const gradeLabel = searchParams.get('gradeLabel') ?? undefined
+    const gradeLabel = searchParams.get('gradeLabel') ?? searchParams.get('grade') ?? undefined
     const search = searchParams.get('search') ?? undefined
     const academicYearId = searchParams.get('academicYearId') ?? undefined
+    const countOnly = searchParams.get('countOnly') === 'true'
 
     const skip = (page - 1) * limit
 
-    const where: any = {}
+    const where: any = { deletedAt: null }
     if (status) where.status = status as StudentStatus
     if (gradeLabel) {
       where.gradeLabel = gradeLabel
@@ -41,6 +42,11 @@ export const GET = route({
         { studentCode: { contains: search, mode: 'insensitive' } },
         { guardianPhone: { contains: search, mode: 'insensitive' } }
       ]
+    }
+
+    if (countOnly) {
+      const count = await db.student.count({ where })
+      return ok({ count })
     }
 
     const [students, total] = await Promise.all([

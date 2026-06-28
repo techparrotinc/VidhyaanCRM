@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, DollarSign, X } from 'lucide-react'
 import { GRADE_OPTIONS } from '@/constants/grades'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 
 const FREQUENCY_LABELS: Record<string, string> = {
   ONE_TIME: 'One Time',
@@ -27,6 +28,17 @@ type FeeHead = {
   amount: number
   isOptional: boolean
   appliesTo: string
+  assignedTermOrder?: number | null
+}
+
+const getAppliesToLabel = (head: FeeHead) => {
+  if (head.appliesTo === 'CUSTOM') {
+    if (head.assignedTermOrder === 1) return 'Term 1'
+    if (head.assignedTermOrder === 2) return 'Term 2'
+    if (head.assignedTermOrder === 3) return 'Term 3'
+    return 'Custom (unassigned)'
+  }
+  return APPLIES_TO_LABELS[head.appliesTo] || head.appliesTo
 }
 
 type FeePlan = {
@@ -59,7 +71,8 @@ export default function FeePlansSettingsPage() {
     frequency: 'MONTHLY',
     amount: '',
     isOptional: false,
-    appliesTo: 'ALL_TERMS'
+    appliesTo: 'ALL_TERMS',
+    assignedTermOrder: null as number | null
   })
 
   const fetchPlans = useCallback(async () => {
@@ -83,6 +96,11 @@ export default function FeePlansSettingsPage() {
     if (!newHead.name.trim() || !newHead.amount || isNaN(Number(newHead.amount))) {
       return
     }
+    if (newHead.appliesTo === 'CUSTOM' && !newHead.assignedTermOrder) {
+      setError('Please select which term this fee head applies to.')
+      return
+    }
+    setError(null)
     setHeads(prev => [
       ...prev,
       {
@@ -91,7 +109,8 @@ export default function FeePlansSettingsPage() {
         frequency: newHead.frequency,
         amount: Number(newHead.amount),
         isOptional: newHead.isOptional,
-        appliesTo: newHead.appliesTo
+        appliesTo: newHead.appliesTo,
+        assignedTermOrder: newHead.appliesTo === 'CUSTOM' ? newHead.assignedTermOrder : null
       }
     ])
     setNewHead({
@@ -99,7 +118,8 @@ export default function FeePlansSettingsPage() {
       frequency: 'MONTHLY',
       amount: '',
       isOptional: false,
-      appliesTo: 'ALL_TERMS'
+      appliesTo: 'ALL_TERMS',
+      assignedTermOrder: null
     })
   }
 
@@ -156,7 +176,8 @@ export default function FeePlansSettingsPage() {
       frequency: 'MONTHLY',
       amount: '',
       isOptional: false,
-      appliesTo: 'ALL_TERMS'
+      appliesTo: 'ALL_TERMS',
+      assignedTermOrder: null
     })
     setEditingPlan(null)
     setShowForm(false)
@@ -281,7 +302,7 @@ export default function FeePlansSettingsPage() {
                           </span>
                         )}
                         <span className="text-[11px] text-slate-400">
-                          {APPLIES_TO_LABELS[head.appliesTo]}
+                          {getAppliesToLabel(head)}
                         </span>
                       </div>
                       <p className="text-sm font-bold text-slate-900 mt-0.5">
@@ -346,7 +367,14 @@ export default function FeePlansSettingsPage() {
                 <div className="flex flex-col gap-1">
                   <select
                     value={newHead.appliesTo}
-                    onChange={e => setNewHead(prev => ({ ...prev, appliesTo: e.target.value }))}
+                    onChange={e => {
+                      const val = e.target.value
+                      setNewHead(prev => ({
+                        ...prev,
+                        appliesTo: val,
+                        assignedTermOrder: val === 'CUSTOM' ? 1 : null
+                      }))
+                    }}
                     className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
                     {Object.entries(APPLIES_TO_LABELS).map(([val, label]) => (
@@ -356,6 +384,28 @@ export default function FeePlansSettingsPage() {
                     ))}
                   </select>
                 </div>
+
+                {/* Assign to Term */}
+                {newHead.appliesTo === 'CUSTOM' && (
+                  <div className="flex flex-col gap-1">
+                    <Select
+                      value={newHead.assignedTermOrder ? String(newHead.assignedTermOrder) : ''}
+                      onValueChange={val => setNewHead(prev => ({ ...prev, assignedTermOrder: val ? Number(val) : null }))}
+                    >
+                      <SelectTrigger className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left h-[38px] flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-slate-500 font-medium">Assign to Term:</span>
+                          <SelectValue placeholder="Select Term" />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Term 1</SelectItem>
+                        <SelectItem value="2">Term 2</SelectItem>
+                        <SelectItem value="3">Term 3</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {/* Optional toggle */}
                 <div className="flex items-center gap-2">
@@ -507,7 +557,7 @@ export default function FeePlansSettingsPage() {
                             {FREQUENCY_LABELS[head.frequency]}
                           </td>
                           <td className="py-2 text-xs text-slate-500">
-                            {APPLIES_TO_LABELS[head.appliesTo]}
+                            {getAppliesToLabel(head)}
                           </td>
                           <td className="py-2 text-sm font-bold text-slate-900 text-right">
                             ₹{head.amount.toLocaleString('en-IN')}

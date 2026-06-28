@@ -24,7 +24,13 @@ const feePlanSchema = z.object({
         'FIRST_TERM',
         'LAST_TERM',
         'CUSTOM'
-      ]).default('ALL_TERMS')
+      ]).default('ALL_TERMS'),
+      assignedTermOrder: z.union([
+        z.literal(1),
+        z.literal(2),
+        z.literal(3),
+        z.null()
+      ]).optional().nullable()
     }))
   }).nullable().optional()
 })
@@ -64,6 +70,13 @@ export const POST = route({
   ],
   handler: async ({ req, db, user }) => {
     const body = feePlanSchema.parse(await req.json())
+
+    if (body.structure?.heads) {
+      body.structure.heads = body.structure.heads.map(head => ({
+        ...head,
+        assignedTermOrder: head.appliesTo === 'CUSTOM' ? (head.assignedTermOrder ?? null) : null
+      }))
+    }
 
     let instType = body.institutionType
     if (!instType) {

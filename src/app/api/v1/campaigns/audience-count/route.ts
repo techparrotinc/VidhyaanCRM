@@ -33,7 +33,7 @@ export const GET = route({
         if (!f.value) return
         if (f.field === 'status') {
           leadWhere.status = f.value as LeadStatus
-        } else if (f.field === 'gradeSought') {
+        } else if (f.field === 'gradeSought' || f.field === 'gradeLabel') {
           leadWhere.gradeSought = f.value
         } else if (f.field === 'source') {
           leadWhere.source = f.value as LeadSource
@@ -62,7 +62,7 @@ export const GET = route({
 
       filters.forEach((f) => {
         if (!f.value) return
-        if (f.field === 'gradeLabel') {
+        if (f.field === 'gradeLabel' || f.field === 'gradeSought') {
           studentWhere.gradeLabel = f.value
         } else if (f.field === 'status') {
           studentWhere.status = f.value as StudentStatus

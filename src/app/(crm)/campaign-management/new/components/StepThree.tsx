@@ -117,62 +117,65 @@ export function StepThree({
   const router = useRouter()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Local state for split Email subject and body
-  const [subject, setSubject] = useState('')
-  const [emailBody, setEmailBody] = useState('')
-
   // WhatsApp templates fetching
   const { templates, isLoading: isTemplatesLoading } = useWhatsappTemplates()
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
 
-  // Sync split Email subject and body on mount/update
+  // Local state inside StepThree for subject and body separately
+  const [subject, setSubject] = useState('')
+  const [emailBody, setEmailBody] = useState('')
+  const [smsBody, setSmsBody] = useState(templateBody ?? '')
+
+  // Initialise from templateBody prop on mount only
   useEffect(() => {
-    if (channel === 'EMAIL') {
+    if (channel === 'EMAIL' && templateBody) {
       const lines = templateBody.split('\n')
-      const firstLine = lines[0]?.trim() || ''
+      const firstLine = lines[0] ?? ''
       if (firstLine.startsWith('Subject:')) {
         setSubject(firstLine.replace('Subject:', '').trim())
-        setEmailBody(lines.slice(1).join('\n').trim())
+        setEmailBody(lines.slice(2).join('\n').trim())
       } else {
-        setSubject('')
         setEmailBody(templateBody)
       }
+    } else if (channel === 'SMS') {
+      setSmsBody(templateBody ?? '')
     }
-  }, [templateBody, channel])
+  }, [])
 
-  const handleSubjectChange = (val: string) => {
-    setSubject(val)
-    onBodyChange(`Subject: ${val}\n\n${emailBody}`)
-  }
-
-  const handleEmailBodyChange = (val: string) => {
-    setEmailBody(val)
-    onBodyChange(`Subject: ${subject}\n\n${val}`)
-  }
-
-  const insertAtCursor = (variable: string) => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const text = textarea.value
-    const before = text.substring(0, start)
-    const after = text.substring(end, text.length)
-
-    const newValue = before + variable + after
-
+  function insertAtCursor(variable: string) {
     if (channel === 'EMAIL') {
-      handleEmailBodyChange(newValue)
-    } else {
-      onBodyChange(newValue)
+      const textarea = textareaRef.current
+      if (!textarea) {
+        setEmailBody((prev) => prev + variable)
+        return
+      }
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const newBody = emailBody.slice(0, start) + variable + emailBody.slice(end)
+      setEmailBody(newBody)
+      requestAnimationFrame(() => {
+        textarea.selectionStart = start + variable.length
+        textarea.selectionEnd = start + variable.length
+        textarea.focus()
+      })
+      onBodyChange(`Subject: ${subject}\n\n${newBody}`)
+    } else if (channel === 'SMS') {
+      const textarea = textareaRef.current
+      if (!textarea) {
+        setSmsBody((prev) => prev + variable)
+        return
+      }
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const newBody = smsBody.slice(0, start) + variable + smsBody.slice(end)
+      setSmsBody(newBody)
+      requestAnimationFrame(() => {
+        textarea.selectionStart = start + variable.length
+        textarea.selectionEnd = start + variable.length
+        textarea.focus()
+      })
+      onBodyChange(newBody)
     }
-
-    // Focus and place cursor after inserted variable
-    setTimeout(() => {
-      textarea.focus()
-      textarea.selectionStart = textarea.selectionEnd = start + variable.length
-    }, 0)
   }
 
   const selectedTemplate = templates.find((t: any) => t.id === selectedTemplateId)
@@ -194,7 +197,8 @@ export function StepThree({
               </label>
               <input
                 value={subject}
-                onChange={(e) => handleSubjectChange(e.target.value)}
+                onChange={(e) => setSubject(e.target.value)}
+                onBlur={() => onBodyChange(`Subject: ${subject}\n\n${emailBody}`)}
                 placeholder="Email subject line..."
                 className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8]"
               />
@@ -206,7 +210,8 @@ export function StepThree({
               <textarea
                 ref={textareaRef}
                 value={emailBody}
-                onChange={(e) => handleEmailBodyChange(e.target.value)}
+                onChange={(e) => setEmailBody(e.target.value)}
+                onBlur={() => onBodyChange(`Subject: ${subject}\n\n${emailBody}`)}
                 rows={8}
                 placeholder="Dear {{parentName}},&#10;&#10;Your message here..."
                 className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8]"
@@ -220,8 +225,9 @@ export function StepThree({
           <div>
             <textarea
               ref={textareaRef}
-              value={templateBody}
-              onChange={(e) => onBodyChange(e.target.value)}
+              value={smsBody}
+              onChange={(e) => setSmsBody(e.target.value)}
+              onBlur={() => onBodyChange(smsBody)}
               rows={4}
               maxLength={320}
               placeholder="Your SMS message here..."
@@ -230,14 +236,14 @@ export function StepThree({
             <div className="flex items-center justify-between mt-1">
               <span
                 className={`text-xs ${
-                  templateBody.length > 160 ? 'text-amber-600 font-medium' : 'text-slate-400'
+                  smsBody.length > 160 ? 'text-amber-600 font-medium' : 'text-slate-400'
                 }`}
               >
-                {templateBody.length} / 160 characters
+                {smsBody.length} / 160 characters
               </span>
-              {templateBody.length > 160 && (
+              {smsBody.length > 160 && (
                 <span className="text-xs text-amber-600 font-medium">
-                  ⚠️ Will be sent as {Math.ceil(templateBody.length / 160)} SMS per recipient
+                  ⚠️ Will be sent as {Math.ceil(smsBody.length / 160)} SMS per recipient
                 </span>
               )}
             </div>

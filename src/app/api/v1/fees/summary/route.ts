@@ -2,6 +2,7 @@ import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
+import { startOfMonth, endOfMonth, parseISO } from 'date-fns'
 
 export const GET = route({
   module: MODULES.FEE_MANAGEMENT,
@@ -10,13 +11,42 @@ export const GET = route({
     ROLES.BRANCH_ADMIN,
     ROLES.ACCOUNTANT
   ],
-  handler: async ({ db, user, academicYearId }) => {
-    const where: any = {
+  handler: async ({ req, db, user, academicYearId }) => {
+    const { searchParams } = new URL(req.url)
+    const termId = searchParams.get('termId') ?? undefined
+    const month = searchParams.get('month') ?? undefined
+    const courseId = searchParams.get('courseId') ?? undefined
+    const gradeLabel = searchParams.get('gradeLabel') ?? undefined
+    const status = searchParams.get('status') ?? undefined
+
+    const baseWhere: any = {
       orgId: user.orgId,
       deletedAt: null
     }
     if (academicYearId) {
-      where.academicYearId = academicYearId
+      baseWhere.academicYearId = academicYearId
+    }
+    if (termId && termId !== 'all') {
+      baseWhere.termId = termId
+    }
+    if (courseId && courseId !== 'all') {
+      baseWhere.courseId = courseId
+    }
+    if (gradeLabel && gradeLabel !== 'all') {
+      baseWhere.student = {
+        gradeLabel
+      }
+    }
+    if (month) {
+      baseWhere.createdAt = {
+        gte: startOfMonth(parseISO(month + '-01')),
+        lte: endOfMonth(parseISO(month + '-01'))
+      }
+    }
+
+    const where = { ...baseWhere }
+    if (status && status !== '') {
+      where.status = status
     }
 
     const [
@@ -28,7 +58,7 @@ export const GET = route({
       db.invoice.count({ where }),
       db.invoice.groupBy({
         by: ['status'],
-        where,
+        where: baseWhere,
         _count: { id: true }
       }),
       db.payment.aggregate({
@@ -36,15 +66,13 @@ export const GET = route({
           orgId: user.orgId,
           status: 'SUCCESS',
           deletedAt: null,
-          invoice: {
-            academicYearId: academicYearId ?? undefined
-          }
+          invoice: baseWhere
         },
         _sum: { amount: true }
       }),
       db.invoice.aggregate({
         where: {
-          ...where,
+          ...baseWhere,
           status: {
             in: ['UNPAID', 'PARTIALLY_PAID', 'OVERDUE', 'SCHEDULED']
           }

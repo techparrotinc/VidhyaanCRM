@@ -6,6 +6,7 @@ import { ROLES } from '@/constants/roles'
 import { redis } from '@/lib/redis'
 import { prisma } from '@/lib/db/client'
 import { NextResponse } from 'next/server'
+import { startOfMonth, endOfMonth, parseISO } from 'date-fns'
 
 export const GET = route({
   module: MODULES.FEE_MANAGEMENT,
@@ -27,25 +28,31 @@ export const GET = route({
     const invoiceType = searchParams.get('invoiceType') ?? undefined
     const search = searchParams.get('search') ?? undefined
     const gradeLabel = searchParams.get('gradeLabel') ?? undefined
+    const month = searchParams.get('month') ?? undefined
 
     const skip = (page - 1) * limit
 
-    const where: any = {
+    const baseWhere: any = {
       orgId: user.orgId,
       deletedAt: null
     }
-    if (status) where.status = status
-    if (studentId) where.studentId = studentId
-    if (termId) where.termId = termId
-    if (courseId) where.courseId = courseId
-    if (invoiceType) where.invoiceType = invoiceType
-    if (gradeLabel) {
-      where.student = {
+    if (studentId) baseWhere.studentId = studentId
+    if (termId && termId !== 'all') baseWhere.termId = termId
+    if (courseId && courseId !== 'all') baseWhere.courseId = courseId
+    if (invoiceType) baseWhere.invoiceType = invoiceType
+    if (gradeLabel && gradeLabel !== 'all') {
+      baseWhere.student = {
         gradeLabel
       }
     }
+    if (month) {
+      baseWhere.createdAt = {
+        gte: startOfMonth(parseISO(month + '-01')),
+        lte: endOfMonth(parseISO(month + '-01'))
+      }
+    }
     if (search) {
-      where.OR = [
+      baseWhere.OR = [
         { invoiceNumber: { contains: search } },
         {
           student: {
@@ -58,7 +65,10 @@ export const GET = route({
       ]
     }
 
-    const [invoices, total] = await Promise.all([
+    const where = { ...baseWhere }
+    if (status && status !== '') where.status = status
+
+    const [invoices, total, statusCountsRaw] = await Promise.all([
       db.invoice.findMany({
         where,
         skip,
@@ -98,10 +108,39 @@ export const GET = route({
           }
         }
       }),
-      db.invoice.count({ where })
+      db.invoice.count({ where }),
+      db.invoice.groupBy({
+        by: ['status'],
+        where: baseWhere,
+        _count: { id: true }
+      })
     ])
 
-    return paginated(invoices, total, page, limit)
+    const statusCounts: Record<string, number> = {
+      ALL: 0,
+      SCHEDULED: 0,
+      UNPAID: 0,
+      PARTIALLY_PAID: 0,
+      PAID: 0,
+      OVERDUE: 0,
+      WAIVED: 0
+    }
+
+    let allCount = 0
+    statusCountsRaw.forEach((item: any) => {
+      const cnt = item._count.id
+      statusCounts[item.status] = cnt
+      allCount += cnt
+    })
+    statusCounts.ALL = allCount
+
+    return NextResponse.json({
+      success: true,
+      data: invoices,
+      total,
+      totalPages: Math.ceil(total / limit),
+      statusCounts
+    })
   }
 })
 

@@ -3,6 +3,8 @@ import { route } from '@/lib/api/compose'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 
+import { startOfMonth, endOfMonth, parseISO } from 'date-fns'
+
 export const GET = route({
   module: MODULES.FEE_MANAGEMENT,
   roles: [
@@ -15,16 +17,25 @@ export const GET = route({
 
     const status = searchParams.get('status') ?? undefined
     const termId = searchParams.get('termId') ?? undefined
+    const courseId = searchParams.get('courseId') ?? undefined
     const gradeLabel = searchParams.get('gradeLabel') ?? undefined
+    const month = searchParams.get('month') ?? undefined
 
     const where: any = {
       orgId: user.orgId,
       deletedAt: null
     }
-    if (status) where.status = status
-    if (termId) where.termId = termId
-    if (gradeLabel) {
+    if (status && status !== '') where.status = status
+    if (termId && termId !== 'all') where.termId = termId
+    if (courseId && courseId !== 'all') where.courseId = courseId
+    if (gradeLabel && gradeLabel !== 'all') {
       where.student = { gradeLabel }
+    }
+    if (month) {
+      where.createdAt = {
+        gte: startOfMonth(parseISO(month + '-01')),
+        lte: endOfMonth(parseISO(month + '-01'))
+      }
     }
 
     const invoices = await db.invoice.findMany({

@@ -3,7 +3,7 @@
 import { useState, useEffect,
   useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { format } from 'date-fns'
+import { format, subMonths, addMonths } from 'date-fns'
 import {
   Download, Plus, Search,
   Mail, MessageCircle, Phone,
@@ -12,7 +12,7 @@ import {
 import { createPortal } from 'react-dom'
 import { useAcademicYears }
   from '@/hooks/useAcademicYears'
-import { GRADE_OPTIONS }
+import { GRADE_OPTIONS, getGradeLabel }
   from '@/constants/grades'
 
 const STATUS_CONFIG = {
@@ -116,12 +116,25 @@ export default function FeeManagementPage() {
     useState('')
   const [search, setSearch] = useState('')
   const [gradeLabel, setGradeLabel] =
-    useState('')
+    useState('all')
   const [page, setPage] = useState(1)
   const [actionMenuId, setActionMenuId] =
     useState<string | null>(null)
   const [menuPosition, setMenuPosition] =
     useState({ top: 0, left: 0 })
+
+  // New Filters State
+  const [institutionType, setInstitutionType] = useState<'SCHOOL' | 'LEARNING_CENTER'>('SCHOOL')
+  const [termFilter, setTermFilter] = useState('')
+  const [monthFilter, setMonthFilter] = useState(() => format(new Date(), 'yyyy-MM'))
+  const [courseFilter, setCourseFilter] = useState('all')
+  const [isInitialized, setIsInitialized] = useState(false)
+
+  // Dropdowns lists
+  const [termsList, setTermsList] = useState<any[]>([])
+  const [coursesList, setCoursesList] = useState<any[]>([])
+  const [gradesList, setGradesList] = useState<string[]>([])
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({})
 
   // Batch Summary State
   const [batchId, setBatchId] = useState<string | null>(null)
@@ -175,16 +188,28 @@ export default function FeeManagementPage() {
     async () => {
       setIsLoading(true)
       try {
-        const params =
-          new URLSearchParams()
+        const params = new URLSearchParams()
         params.set('page', String(page))
         params.set('limit', '25')
         if (activeStatus)
           params.set('status', activeStatus)
         if (search)
           params.set('search', search)
-        if (gradeLabel)
+        if (gradeLabel && gradeLabel !== 'all')
           params.set('gradeLabel', gradeLabel)
+
+        if (institutionType === 'SCHOOL') {
+          if (termFilter && termFilter !== 'all') {
+            params.set('termId', termFilter)
+          }
+        } else {
+          if (courseFilter && courseFilter !== 'all') {
+            params.set('courseId', courseFilter)
+          }
+        }
+        if (monthFilter) {
+          params.set('month', monthFilter)
+        }
 
         const res = await fetch(
           `/api/v1/fees/invoices?${params}`
@@ -193,36 +218,105 @@ export default function FeeManagementPage() {
         setInvoices(data.data ?? [])
         setTotal(data.total ?? 0)
         setTotalPages(data.totalPages ?? 1)
+        setStatusCounts(data.statusCounts ?? {})
       } catch (err) {
         console.error(err)
       } finally {
         setIsLoading(false)
       }
-    }, [page, activeStatus, search,
-      gradeLabel]
+    }, [page, activeStatus, search, gradeLabel, termFilter, monthFilter, courseFilter, institutionType]
   )
 
   const fetchSummary = useCallback(
     async () => {
       try {
+        const params = new URLSearchParams()
+        if (activeStatus)
+          params.set('status', activeStatus)
+        if (gradeLabel && gradeLabel !== 'all')
+          params.set('gradeLabel', gradeLabel)
+
+        if (institutionType === 'SCHOOL') {
+          if (termFilter && termFilter !== 'all') {
+            params.set('termId', termFilter)
+          }
+        } else {
+          if (courseFilter && courseFilter !== 'all') {
+            params.set('courseId', courseFilter)
+          }
+        }
+        if (monthFilter) {
+          params.set('month', monthFilter)
+        }
+
         const res = await fetch(
-          '/api/v1/fees/summary'
+          `/api/v1/fees/summary?${params}`
         )
         const data = await res.json()
         setSummary(data.data ?? null)
       } catch (err) {
         console.error(err)
       }
-    }, []
+    }, [activeStatus, gradeLabel, termFilter, monthFilter, courseFilter, institutionType]
   )
 
+  // One-time initial configurations on mount
   useEffect(() => {
-    fetchInvoices()
-  }, [fetchInvoices])
+    const initData = async () => {
+      try {
+        const orgRes = await fetch('/api/v1/settings/org-type')
+        const orgJson = await orgRes.json()
+        const instType = orgJson.data?.institutionType || 'SCHOOL'
+        setInstitutionType(instType)
+
+        if (instType === 'SCHOOL') {
+          const termsRes = await fetch('/api/v1/settings/terms')
+          const termsJson = await termsRes.json()
+          const terms = termsJson.data || []
+          setTermsList(terms)
+
+          const today = new Date()
+          const activeTerm = terms.find((t: any) => {
+            const start = new Date(t.startDate)
+            const end = new Date(t.endDate)
+            return today >= start && today <= end
+          })
+          if (activeTerm) {
+            setTermFilter(activeTerm.id)
+          } else {
+            setTermFilter('all')
+          }
+        } else {
+          const coursesRes = await fetch('/api/v1/settings/courses')
+          const coursesJson = await coursesRes.json()
+          setCoursesList(coursesJson.data || [])
+          setCourseFilter('all')
+        }
+
+        const gradesRes = await fetch('/api/v1/fees/invoices/grades')
+        const gradesJson = await gradesRes.json()
+        setGradesList(gradesJson.data?.grades || [])
+      } catch (err) {
+        console.error('Initialization error:', err)
+      } finally {
+        setIsInitialized(true)
+      }
+    }
+
+    initData()
+  }, [])
 
   useEffect(() => {
-    fetchSummary()
-  }, [fetchSummary])
+    if (isInitialized) {
+      fetchInvoices()
+    }
+  }, [fetchInvoices, isInitialized])
+
+  useEffect(() => {
+    if (isInitialized) {
+      fetchSummary()
+    }
+  }, [fetchSummary, isInitialized])
 
   const filteredBatchInvoices = useMemo(() => {
     if (!batchSearch.trim()) return batchInvoices
@@ -233,12 +327,40 @@ export default function FeeManagementPage() {
   }, [batchInvoices, batchSearch])
 
   const tabCounts = useMemo<Record<string, number>>(() => {
-    if (!summary) return {}
     return {
-      '': total,
-      ...summary.statusCounts
+      '': statusCounts.ALL ?? total,
+      ...statusCounts
     }
-  }, [summary, total])
+  }, [statusCounts, total])
+
+  const monthsOptions = useMemo(() => {
+    const list = []
+    const now = new Date()
+    for (let i = -11; i <= 3; i++) {
+      const date = i < 0 ? subMonths(now, Math.abs(i)) : addMonths(now, i)
+      list.push({
+        value: format(date, 'yyyy-MM'),
+        label: format(date, 'MMMM yyyy')
+      })
+    }
+    return list.sort((a, b) => a.value.localeCompare(b.value))
+  }, [])
+
+  const getSummaryHeaderLabel = () => {
+    if (institutionType === 'SCHOOL') {
+      if (termFilter && termFilter !== 'all') {
+        const term = termsList.find(t => t.id === termFilter)
+        return term ? `${term.name} Overview` : 'Overview'
+      }
+      return 'Overview'
+    } else {
+      if (monthFilter) {
+        const option = monthsOptions.find(o => o.value === monthFilter)
+        return option ? `${option.label} Overview` : 'Overview'
+      }
+      return 'Overview'
+    }
+  }
 
   const handleActionClick = useCallback((
     e: React.MouseEvent,
@@ -277,13 +399,25 @@ export default function FeeManagementPage() {
     const params = new URLSearchParams()
     if (activeStatus)
       params.set('status', activeStatus)
-    if (gradeLabel)
+    if (gradeLabel && gradeLabel !== 'all')
       params.set('gradeLabel', gradeLabel)
+    if (institutionType === 'SCHOOL') {
+      if (termFilter && termFilter !== 'all') {
+        params.set('termId', termFilter)
+      }
+    } else {
+      if (courseFilter && courseFilter !== 'all') {
+        params.set('courseId', courseFilter)
+      }
+    }
+    if (monthFilter) {
+      params.set('month', monthFilter)
+    }
     window.open(
       `/api/v1/fees/invoices/export?${params}`,
       '_blank'
     )
-  }, [activeStatus, gradeLabel])
+  }, [activeStatus, gradeLabel, institutionType, termFilter, courseFilter, monthFilter])
 
   const MIN_ROWS = 8
   const emptyRowCount = Math.max(
@@ -309,12 +443,6 @@ export default function FeeManagementPage() {
           Fee Management
         </h1>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-slate-200 rounded-lg bg-white hover:bg-slate-50 transition-colors whitespace-nowrap">
-            <Download className="w-4 h-4" />
-            Export
-          </button>
           <button
             onClick={() => router.push('/fee-management/create')}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap">
@@ -448,6 +576,9 @@ export default function FeeManagementPage() {
           {/* ── SUMMARY BAR ── */}
           {summary && (
             <div className="px-4 sm:px-6 pb-4">
+              <h2 className="text-sm font-bold text-slate-800 mb-2 font-sans select-none">
+                {getSummaryHeaderLabel()}
+              </h2>
               <div className="bg-white rounded-xl border border-slate-200 p-4">
                 <div
                   className="flex items-center gap-6 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
@@ -530,7 +661,7 @@ export default function FeeManagementPage() {
                         : 'bg-slate-100 text-slate-500'
                     }`}>
                       {tab.key === ''
-                        ? total
+                        ? (statusCounts.ALL ?? total)
                         : (tabCounts[tab.key] ?? 0)
                       }
                     </span>
@@ -542,49 +673,107 @@ export default function FeeManagementPage() {
 
           {/* ── FILTER BAR ── */}
           <div className="px-4 sm:px-6 pt-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-3 flex flex-col gap-2">
-
+            <div className="bg-white rounded-xl border border-slate-200 p-2 flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {/* Search */}
-              <div className="relative w-full">
+              <div className="relative flex-1 min-w-[200px] h-9">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search by student name or invoice number..."
+                  placeholder="Search student or invoice..."
                   value={search}
                   onChange={e => {
                     setSearch(e.target.value)
                     setPage(1)
                   }}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-full pl-9 pr-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-sans"
                 />
               </div>
 
-              {/* Filters */}
-              <div className="flex items-center gap-2">
-                <div
-                  className="flex items-center gap-2 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-                  style={{
-                    WebkitOverflowScrolling: 'touch'
-                  }}>
+              {/* Grade dropdown */}
+              <select
+                value={gradeLabel}
+                onChange={e => {
+                  setGradeLabel(e.target.value)
+                  setPage(1)
+                }}
+                className="flex-shrink-0 h-9 whitespace-nowrap text-sm border border-slate-200 rounded-lg px-3 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[110px] w-auto font-sans"
+              >
+                <option value="all">All Grades</option>
+                {gradesList.map(g => (
+                  <option key={g} value={g}>
+                    {getGradeLabel(g)}
+                  </option>
+                ))}
+              </select>
 
-                  {/* Grade filter */}
+              {/* SCHOOL Dropdowns */}
+              {institutionType === 'SCHOOL' && (
+                <>
+                  {/* Term dropdown */}
                   <select
-                    value={gradeLabel}
+                    value={termFilter}
                     onChange={e => {
-                      setGradeLabel(e.target.value)
+                      setTermFilter(e.target.value)
                       setPage(1)
                     }}
-                    className="flex-shrink-0 whitespace-nowrap text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">All Grades</option>
-                    {GRADE_OPTIONS.map(g => (
-                      <option key={g.value} value={g.value}>
-                        {g.label}
+                    className="flex-shrink-0 h-9 whitespace-nowrap text-sm border border-slate-200 rounded-lg px-3 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[110px] w-auto font-sans"
+                  >
+                    <option value="all">All Terms</option>
+                    {termsList.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
                       </option>
                     ))}
                   </select>
+                </>
+              )}
 
-                </div>
-              </div>
+              {/* LEARNING CENTER Dropdowns */}
+              {institutionType === 'LEARNING_CENTER' && (
+                <>
+                  {/* Course dropdown */}
+                  <select
+                    value={courseFilter}
+                    onChange={e => {
+                      setCourseFilter(e.target.value)
+                      setPage(1)
+                    }}
+                    className="flex-shrink-0 h-9 whitespace-nowrap text-sm border border-slate-200 rounded-lg px-3 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[110px] w-auto font-sans"
+                  >
+                    <option value="all">All Courses</option>
+                    {coursesList.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+
+              {/* Month dropdown */}
+              <select
+                value={monthFilter}
+                onChange={e => {
+                  setMonthFilter(e.target.value)
+                  setPage(1)
+                }}
+                className="flex-shrink-0 h-9 whitespace-nowrap text-sm border border-slate-200 rounded-lg px-3 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[110px] w-auto font-sans"
+              >
+                {monthsOptions.map(m => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+
+              {/* Export button */}
+              <button
+                onClick={handleExport}
+                title="Export CSV"
+                className="flex-shrink-0 flex items-center justify-center w-9 h-9 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-700 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
@@ -734,13 +923,13 @@ export default function FeeManagementPage() {
                               </td>
 
                               {/* Type / Term */}
-                              <td className="px-3 py-2.5">
+                              <td className="px-3 py-2.5 font-sans">
                                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                                   {inv.invoiceType}
                                 </span>
-                                {inv.term && (
+                                {(inv.term || inv.invoiceType === 'TERM') && (
                                   <p className="text-xs text-slate-400 mt-0.5">
-                                    {inv.term.name}
+                                    {inv.term?.name || '—'}
                                   </p>
                                 )}
                                 {inv.course && (

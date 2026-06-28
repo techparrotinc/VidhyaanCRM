@@ -110,13 +110,9 @@ export function StepTwo({
         const params = new URLSearchParams()
         params.set('pool', audiencePool)
         if (audienceFilters.length > 0) {
-          params.set(
-            'filters',
-            JSON.stringify(audienceFilters)
-          )
+          params.set('filters', JSON.stringify(audienceFilters))
         }
         const url = `/api/v1/campaigns/audience-count?${params}`
-
         const res = await fetch(url)
         if (res.ok) {
           const result = await res.json()
@@ -131,7 +127,8 @@ export function StepTwo({
     }, 300)
 
     return () => clearTimeout(delayDebounce)
-  }, [audiencePool, audienceFilters, onCountChange, onCountLoadingChange])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audiencePool, JSON.stringify(audienceFilters)])
 
   const handleAddFilter = () => {
     onFiltersChange([...audienceFilters, { field: '', value: '' }])

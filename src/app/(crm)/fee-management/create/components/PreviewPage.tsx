@@ -408,13 +408,7 @@ export default function PreviewPage({
                       ))}
                     </div>
 
-                  <button
-                    type="button"
-                    onClick={() => addBlankFeeHead(index)}
-                    className="w-full py-2.5 text-xs font-semibold text-[#1565D8] border border-dashed border-blue-200 rounded-lg hover:bg-blue-50/30 transition-colors mt-2 text-center"
-                  >
-                    + Add Item
-                  </button>
+
                 </div>
 
                 {/* Due Date & Schedule Fields */}
@@ -469,17 +463,29 @@ export default function PreviewPage({
                   </div>
                 </div>
 
-                {/* Note / Total Summary */}
-                <div className="flex flex-col border-t border-slate-100 pt-4 mt-1 select-none">
-                  <div className="flex items-center justify-between font-bold text-slate-800 text-sm">
-                    <span>{section.term.name} Total:</span>
-                    <span>₹{termTotal.toLocaleString('en-IN')} each</span>
+                {/* Add Item + Term Total — single row */}
+                <div className="flex items-center justify-between border-t border-slate-100 pt-3 mt-2 gap-3">
+                  {/* Add Item button — left side, compact */}
+                  <button
+                    type="button"
+                    onClick={() => addBlankFeeHead(index)}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[#1565D8] border border-dashed border-blue-200 rounded-lg hover:bg-blue-50/30 transition-colors px-3 py-1.5 flex-shrink-0"
+                  >
+                    <span className="text-base leading-none">+</span>
+                    Add Item
+                  </button>
+
+                  {/* Term total — right side */}
+                  <div className="flex flex-col items-end select-none">
+                    <span className="text-sm font-bold text-slate-800">
+                      {section.term.name} Total:&nbsp;₹{termTotal.toLocaleString('en-IN')} each
+                    </span>
+                    {mode === 'class' && (
+                      <p className="text-[11px] text-slate-400 mt-0.5 font-semibold text-right">
+                        * Edits apply to all {studentCount} students in this term
+                      </p>
+                    )}
                   </div>
-                  {mode === 'class' && (
-                    <p className="text-[11px] text-slate-400 mt-1 font-semibold">
-                      * Edits apply to all {studentCount} students in this term
-                    </p>
-                  )}
                 </div>
               </div>
             )

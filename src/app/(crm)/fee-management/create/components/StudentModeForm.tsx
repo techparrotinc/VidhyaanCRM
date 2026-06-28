@@ -532,31 +532,39 @@ export default function StudentModeForm({ onSubmit }: StudentModeFormProps) {
           )}
 
           {/* Add Manual Item Inputs */}
-          <div className="border border-dashed border-slate-300 rounded-xl p-4 flex flex-col gap-3">
-            <p className="text-xs font-medium text-slate-500">Add Item</p>
-            <input
-              type="text"
-              placeholder="Fee head name e.g. Book Set"
-              value={newItemName}
-              onChange={e => setNewItemName(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            />
-            <div className="flex gap-2">
+          <div className="border border-dashed border-slate-300 rounded-xl p-3">
+            <div className="flex items-center gap-2">
+              {/* Item name — flex-1 */}
               <input
-                type="number"
-                placeholder="Amount (₹)"
-                value={newItemAmount}
-                onChange={e => setNewItemAmount(e.target.value)}
-                min={0}
-                className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                type="text"
+                placeholder="Item name e.g. Book Set"
+                value={newItemName}
+                onChange={e => setNewItemName(e.target.value)}
+                className="flex-1 min-w-0 h-9 px-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               />
+
+              {/* Amount — fixed width */}
+              <div className="relative flex-shrink-0 w-28">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none select-none">₹</span>
+                <input
+                  type="number"
+                  placeholder="Amount"
+                  value={newItemAmount}
+                  onChange={e => setNewItemAmount(e.target.value)}
+                  min={0}
+                  className="w-full h-9 pl-7 pr-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                />
+              </div>
+
+              {/* Add button — icon + label */}
               <button
                 type="button"
                 onClick={handleAddManualItem}
                 disabled={!newItemName.trim() || !newItemAmount}
-                className="px-4 py-2 text-sm font-medium border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0 bg-white"
+                className="h-9 px-3 flex items-center gap-1 text-sm font-medium border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0 bg-white"
               >
-                <Plus className="w-4 h-4 inline mr-1" /> Add
+                <Plus className="w-4 h-4" />
+                Add
               </button>
             </div>
           </div>

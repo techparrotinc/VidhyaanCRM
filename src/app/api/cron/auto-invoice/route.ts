@@ -116,12 +116,32 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Activate SCHEDULED invoices
+    const now = new Date()
+    const scheduledUpdateResult = await prisma.invoice.updateMany({
+      where: {
+        status: 'SCHEDULED',
+        scheduledDate: {
+          lte: now
+        }
+      },
+      data: {
+        status: 'UNPAID',
+        scheduledDate: null
+      }
+    })
+
+    const activatedCount = scheduledUpdateResult.count
+    console.log(`Activated ${activatedCount} scheduled invoices.`)
+
     return NextResponse.json({
       success: true,
       processed: dueEnrollments.length,
       generated,
       failed,
-      errors
+      errors,
+      courseInvoicesGenerated: generated,
+      scheduledInvoicesActivated: activatedCount
     })
   } catch (err: any) {
     return NextResponse.json(

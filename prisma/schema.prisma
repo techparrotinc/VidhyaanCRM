@@ -326,6 +326,7 @@ enum InvoiceStatus {
   PAID
   OVERDUE
   WAIVED
+  SCHEDULED
 
   @@schema("crm")
 }
@@ -1900,6 +1901,8 @@ model Invoice {
   termId         String?       @map("term_id")
   courseId       String?       @map("course_id")
   dueDate        DateTime?     @map("due_date")
+  scheduledDate  DateTime?     @map("scheduled_date")
+  batchId        String?       @map("batch_id")
   notes          String?
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
@@ -1922,6 +1925,7 @@ model Invoice {
   @@index([dueDate])
   @@index([termId])
   @@index([courseId])
+  @@index([batchId])
   @@map("invoices")
   @@schema("crm")
 }

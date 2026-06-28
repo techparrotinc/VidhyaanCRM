@@ -147,6 +147,13 @@ export function CampaignCard({ campaign, onDelete, onCancel, onDuplicate }: Camp
               Edit
             </button>
             <span className="text-slate-300">·</span>
+            <span
+              onClick={() => onDuplicate(campaign.id)}
+              className="text-sm text-slate-500 font-medium hover:underline cursor-pointer"
+            >
+              Duplicate
+            </span>
+            <span className="text-slate-300">·</span>
             <button
               onClick={() => onDelete(campaign.id)}
               className="text-red-500 font-medium hover:underline cursor-pointer"
@@ -171,6 +178,13 @@ export function CampaignCard({ campaign, onDelete, onCancel, onDuplicate }: Camp
             >
               Cancel
             </button>
+            <span className="text-slate-300">·</span>
+            <span
+              onClick={() => onDuplicate(campaign.id)}
+              className="text-sm text-slate-500 font-medium hover:underline cursor-pointer"
+            >
+              Duplicate
+            </span>
             <span className="text-slate-300">·</span>
             <button
               onClick={() => router.push(`/campaign-management/${campaign.id}/analytics`)}

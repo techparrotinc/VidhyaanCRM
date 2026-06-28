@@ -38,6 +38,23 @@ interface StudentDetail {
     dueDate: string | null
     createdAt: string
   }[]
+  enrollments?: {
+    id: string
+    courseId: string
+    status: string
+    startDate: string
+    endDate: string | null
+    nextBillingDate: string | null
+    createdAt: string
+    course: {
+      id: string
+      name: string
+      amount: number
+      frequency: string
+      billingDay: number
+      category: string | null
+    }
+  }[]
   activities?: {
     id: string
     type: string

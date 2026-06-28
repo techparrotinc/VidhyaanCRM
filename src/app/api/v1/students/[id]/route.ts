@@ -42,6 +42,22 @@ const studentInclude = {
         }
       }
     }
+  },
+  courseEnrollments: {
+    where: { status: 'ACTIVE' },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      course: {
+        select: {
+          id: true,
+          name: true,
+          amount: true,
+          frequency: true,
+          billingDay: true,
+          category: true
+        }
+      }
+    }
   }
 } as const
 
@@ -54,7 +70,8 @@ export const GET = route({
     ROLES.RECEPTIONIST
   ],
   handler: async ({ db, params }) => {
-    const id = params?.id
+    const resolvedParams = await params
+    const id = resolvedParams?.id
     const student = await db.student.findFirst({
       where: { id },
       include: studentInclude
@@ -64,7 +81,10 @@ export const GET = route({
       throw Errors.notFound('Student')
     }
 
-    return ok(student)
+    return ok({
+      ...student,
+      enrollments: student.courseEnrollments
+    })
   }
 })
 
@@ -89,7 +109,8 @@ export const PUT = route({
     ROLES.BRANCH_ADMIN
   ],
   handler: async ({ req, db, params }) => {
-    const id = params?.id
+    const resolvedParams = await params
+    const id = resolvedParams?.id
     const body = updateStudentSchema.parse(await req.json())
 
     const existing = await db.student.findFirst({
@@ -134,7 +155,8 @@ export const DELETE = route({
     ROLES.BRANCH_ADMIN
   ],
   handler: async ({ db, params }) => {
-    const id = params?.id
+    const resolvedParams = await params
+    const id = resolvedParams?.id
     const existing = await db.student.findFirst({
       where: { id }
     })

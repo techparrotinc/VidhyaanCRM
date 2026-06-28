@@ -593,9 +593,19 @@ export default function AdmissionDetailPage() {
       if (!res.ok) {
         throw new Error(json.error || 'Failed to convert to student record')
       }
-      showToast(`Student record created: ${json.data.studentCode || 'STU-XXXXX'}`)
-      setShowConvertModal(false)
-      router.push(`/student-management/${json.data.id}`)
+      
+      const studentId = json.data?.student?.id
+      const studentCode = json.data?.student?.studentCode
+
+      if (studentId) {
+        showToast(`Student record created: ${studentCode || 'STU-XXXXX'}`)
+        setShowConvertModal(false)
+        router.push(`/student-management/${studentId}`)
+      } else {
+        showToast('Student created. Go to Student Management.')
+        setShowConvertModal(false)
+        router.push('/student-management')
+      }
     } catch (err: any) {
       console.error(err)
       setConvertError(err.message || 'Failed to convert to student')

@@ -373,21 +373,16 @@ enum CampaignStatus {
   DRAFT
   SCHEDULED
   SENDING
-  SENT
-  PAUSED
+  COMPLETED
   FAILED
-
   @@schema("crm")
 }
 
-enum RecipientStatus {
-  QUEUED
+enum CampaignSendStatus {
+  PENDING
   SENT
   DELIVERED
-  READ
   FAILED
-  OPTED_OUT
-
   @@schema("crm")
 }
 
@@ -595,6 +590,7 @@ model Organization {
   terms                Term[]
   courses              Course[]
   courseEnrollments    CourseEnrollment[]
+  whatsappTemplates    WhatsappTemplate[]
 
   @@index([status])
   @@index([institutionType])
@@ -2061,22 +2057,22 @@ model EventRsvp {
 
 /// Bulk outreach campaign (Email/SMS/WhatsApp via MSG91/Resend).
 model Campaign {
-  id             String         @id @default(cuid())
-  orgId          String         @map("org_id")
-  branchId       String?        @map("branch_id")
-  academicYearId String?        @map("academic_year_id")
+  id             String          @id @default(cuid())
+  orgId          String          @map("org_id")
+  branchId       String?         @map("branch_id")
+  academicYearId String?         @map("academic_year_id")
   name           String
   channel        CampaignChannel
-  status         CampaignStatus @default(DRAFT)
-  templateBody   String?        @map("template_body")
-  scheduledAt    DateTime?      @map("scheduled_at")
-  sentAt         DateTime?      @map("sent_at")
-  audienceFilter Json?          @map("audience_filter")
-  stats          Json? // sent/delivered/read counts
-  createdById    String?        @map("created_by_id") // soft reference
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
-  deletedAt      DateTime?      @map("deleted_at")
+  status         CampaignStatus  @default(DRAFT)
+  templateBody   String?         @map("template_body")
+  scheduledAt    DateTime?       @map("scheduled_at")
+  sentAt         DateTime?       @map("sent_at")
+  audienceFilter Json?           @map("audience_filter")
+  stats          Json?
+  createdById    String?         @map("created_by_id")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  deletedAt      DateTime?       @map("deleted_at")
 
   organization Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch       Branch?             @relation(fields: [branchId], references: [id])
@@ -2089,25 +2085,45 @@ model Campaign {
   @@schema("crm")
 }
 
-/// Individual recipient row for a campaign. Dependent child.
 model CampaignRecipient {
-  id           String          @id @default(cuid())
-  orgId        String          @map("org_id")
-  campaignId   String          @map("campaign_id")
-  recipientType String         @map("recipient_type") // LEAD, PARENT, STUDENT_GUARDIAN
-  recipientId  String?         @map("recipient_id") // soft reference
-  contact      String // phone/email used
-  status       RecipientStatus @default(QUEUED)
-  providerRef  String?         @map("provider_ref")
-  sentAt       DateTime?       @map("sent_at")
-  createdAt    DateTime        @default(now()) @map("created_at")
+  id            String               @id @default(cuid())
+  orgId         String               @map("org_id")
+  campaignId    String               @map("campaign_id")
+  recipientType String               @map("recipient_type")
+  recipientId   String?              @map("recipient_id")
+  name          String?
+  phone         String?
+  email         String?
+  status        CampaignSendStatus   @default(PENDING)
+  sentAt        DateTime?            @map("sent_at")
+  deliveredAt   DateTime?            @map("delivered_at")
+  failureReason String?              @map("failure_reason")
+  createdAt     DateTime             @default(now()) @map("created_at")
 
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
   @@index([campaignId])
-  @@index([status])
   @@map("campaign_recipients")
+  @@schema("crm")
+}
+
+/// DLT-approved WhatsApp templates saved by org admin.
+model WhatsappTemplate {
+  id               String    @id @default(cuid())
+  orgId            String    @map("org_id")
+  name             String
+  msg91TemplateId  String    @map("msg91_template_id")
+  body             String
+  createdById      String?   @map("created_by_id")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@map("whatsapp_templates")
   @@schema("crm")
 }
 

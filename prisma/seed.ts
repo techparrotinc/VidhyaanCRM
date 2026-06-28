@@ -61,6 +61,16 @@ async function main() {
     )
   )
 
+  // Seed whatsapp_addon module
+  await prisma.module.create({
+    data: {
+      id: 'cmqxu0bcnr6us00009yha8q0n',
+      name: 'WhatsApp',
+      slug: 'whatsapp_addon',
+      description: 'WhatsApp campaign sending via MSG91'
+    }
+  })
+
   // STEP 3: Create Plans (4 plans)
   console.log('Creating plans...')
   const freePlan = await prisma.plan.create({

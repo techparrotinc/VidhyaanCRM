@@ -3,7 +3,9 @@ import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { AlertCircle, Plus, X, Search } from 'lucide-react'
+import { AlertCircle, Plus, X, Search, Info, Users } from 'lucide-react'
+import { mapGradeValue } from '@/lib/utils/gradeMapping'
+import { getGradeLabel } from '@/constants/grades'
 
 interface Student {
   id: string
@@ -73,6 +75,14 @@ export default function StudentModeForm({ onSubmit }: StudentModeFormProps) {
   const [newItemName, setNewItemName] = useState('')
   const [newItemAmount, setNewItemAmount] = useState('')
 
+  const [isPlanDropdownExpanded, setIsPlanDropdownExpanded] = useState(false)
+  const [hasManuallyChangedPlan, setHasManuallyChangedPlan] = useState(false)
+
+  const getGradeDisplayLabel = (val: string) => {
+    const mapped = mapGradeValue(val)
+    return getGradeLabel(mapped).replace(/^Class\s+/i, 'Grade ')
+  }
+
   // SWR Fetches
   const { data: termsData } = useSWR<{ success: boolean; data: Term[] }>(
     currentYear?.id ? `/api/v1/settings/terms?academicYearId=${currentYear.id}` : null,
@@ -117,14 +127,21 @@ export default function StudentModeForm({ onSubmit }: StudentModeFormProps) {
   useEffect(() => {
     if (!selectedStudent?.gradeLabel || invoiceType !== 'TERM') {
       setSelectedPlanId('')
+      setHasManuallyChangedPlan(false)
+      setIsPlanDropdownExpanded(false)
       return
     }
     if (filteredPlans.length === 1) {
       setSelectedPlanId(filteredPlans[0].id)
+      setHasManuallyChangedPlan(false)
+    } else if (filteredPlans.length > 1) {
+      if (!hasManuallyChangedPlan) {
+        setSelectedPlanId('')
+      }
     } else {
       setSelectedPlanId('')
     }
-  }, [selectedStudent, invoiceType, filteredPlans])
+  }, [selectedStudent, invoiceType, filteredPlans, hasManuallyChangedPlan])
 
   // Get active items to submit
   const getSubmittingItems = (): any[] => {
@@ -239,9 +256,9 @@ export default function StudentModeForm({ onSubmit }: StudentModeFormProps) {
           <div className="flex items-center justify-between gap-3 p-3.5 bg-blue-50/50 rounded-xl border border-blue-200">
             <div className="min-w-0">
               <p className="text-sm font-bold text-slate-800">{selectedStudent.name}</p>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5 font-semibold">
                 {selectedStudent.studentCode}
-                {selectedStudent.gradeLabel && ` · Grade ${selectedStudent.gradeLabel}`}
+                {selectedStudent.gradeLabel && ` · ${getGradeDisplayLabel(selectedStudent.gradeLabel)}`}
               </p>
             </div>
             <button
@@ -285,7 +302,7 @@ export default function StudentModeForm({ onSubmit }: StudentModeFormProps) {
                     >
                       <p className="text-sm font-bold text-slate-800">{s.name}</p>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        Code: {s.studentCode} {s.gradeLabel && `· Grade ${s.gradeLabel}`}
+                        Code: {s.studentCode} {s.gradeLabel && ` · ${getGradeDisplayLabel(s.gradeLabel)}`}
                       </p>
                     </button>
                   ))
@@ -375,39 +392,99 @@ export default function StudentModeForm({ onSubmit }: StudentModeFormProps) {
         </div>
       )}
 
-      {/* Fee Plan (Term mode only) */}
+      {/* Smart Auto-Apply Fee Plan Info Line (Term mode only) */}
       {invoiceType === 'TERM' && selectedStudent?.gradeLabel && (
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            Fee Plan
-          </label>
-          {filteredPlans.length === 0 ? (
-            <div className="flex items-start gap-2.5 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm">
-              <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
-              <div>
-                <p className="font-semibold">No fee plan found for Grade {selectedStudent.gradeLabel}.</p>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  You can add items manually below.
-                </p>
+        <div className="flex flex-col gap-1.5 animate-fadeIn">
+          {filteredPlans.length === 1 ? (
+            /* SCENARIO A: Exactly one plan matches */
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex flex-col gap-2 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Info className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span className="text-sm text-slate-600 font-medium">
+                    Using fee plan: <strong className="text-slate-800">"{filteredPlans[0].name}"</strong>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPlanDropdownExpanded(prev => !prev)}
+                  className="text-xs text-[#1565D8] underline hover:text-blue-800 transition-colors font-bold cursor-pointer select-none shrink-0"
+                >
+                  {hasManuallyChangedPlan ? 'Using custom plan ✓' : 'Change Plan ↓'}
+                </button>
+              </div>
+
+              {isPlanDropdownExpanded && (
+                <div className="mt-1 pt-2 border-t border-slate-200 flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-slate-500">
+                    Select a different plan
+                  </label>
+                  <Select
+                    value={selectedPlanId}
+                    onValueChange={(val) => {
+                      setSelectedPlanId(val)
+                      setHasManuallyChangedPlan(true)
+                    }}
+                  >
+                    <SelectTrigger className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left h-10 flex items-center justify-between">
+                      <SelectValue placeholder="Select plan..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredPlans.map(plan => (
+                        <SelectItem key={plan.id} value={plan.id}>
+                          {plan.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          ) : filteredPlans.length > 1 ? (
+            /* SCENARIO B: Multiple plans found */
+            <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-3 flex flex-col gap-2 shadow-sm">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                <span className="text-xs text-amber-700 font-bold select-none">
+                  Multiple plans found for {getGradeDisplayLabel(selectedStudent.gradeLabel)}
+                </span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-amber-800">
+                  Select one:
+                </label>
+                <Select
+                  value={selectedPlanId}
+                  onValueChange={(val) => {
+                    setSelectedPlanId(val)
+                    setHasManuallyChangedPlan(true)
+                  }}
+                >
+                  <SelectTrigger className="w-full px-3 py-2 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left h-10 flex items-center justify-between text-amber-900 font-semibold shadow-sm">
+                    <SelectValue placeholder="Select fee plan ▼" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredPlans.map(plan => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {plan.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-1.5">
-              <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
-                <SelectTrigger className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left h-10 flex items-center justify-between">
-                  <SelectValue placeholder="Select fee plan..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredPlans.map(plan => (
-                    <SelectItem key={plan.id} value={plan.id}>
-                      {plan.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-slate-400">
-                Fee heads will be auto-populated from the selected plan
-              </p>
+            /* SCENARIO C: No plan matches */
+            <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-3.5 flex items-start gap-2.5 shadow-sm">
+              <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-bold text-amber-800 select-none">
+                  No fee plan found for {getGradeDisplayLabel(selectedStudent.gradeLabel)}
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5 select-none font-medium">
+                  You can add items manually in the preview
+                </p>
+              </div>
             </div>
           )}
         </div>

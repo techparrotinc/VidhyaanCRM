@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
-import { GRADE_OPTIONS } from '@/constants/grades'
+import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { AlertCircle, Plus, X } from 'lucide-react'
+import { AlertCircle, Plus, X, Users, Info } from 'lucide-react'
+import { mapGradeValue } from '@/lib/utils/gradeMapping'
 
 interface Term {
   id: string
@@ -60,6 +61,23 @@ export default function ClassModeForm({ onSubmit }: ClassModeFormProps) {
   const [newItemName, setNewItemName] = useState('')
   const [newItemAmount, setNewItemAmount] = useState('')
 
+  const [isPlanDropdownExpanded, setIsPlanDropdownExpanded] = useState(false)
+  const [hasManuallyChangedPlan, setHasManuallyChangedPlan] = useState(false)
+
+  const getGradeDisplayLabel = (val: string) => {
+    const mapped = mapGradeValue(val)
+    return getGradeLabel(mapped).replace(/^Class\s+/i, 'Grade ')
+  }
+
+  // Fetch active student count for selected grade
+  const { data: studentCountData, isLoading: isCountLoading } = useSWR<{ success: boolean; total: number }>(
+    grade
+      ? `/api/v1/students?grade=${grade}&status=ACTIVE&limit=1&countOnly=true`
+      : null,
+    fetcher
+  )
+  const activeStudentCount = studentCountData?.total ?? 0
+
   // SWR Fetches
   const { data: termsData } = useSWR<{ success: boolean; data: Term[] }>(
     currentYear?.id ? `/api/v1/settings/terms?academicYearId=${currentYear.id}` : null,
@@ -81,14 +99,21 @@ export default function ClassModeForm({ onSubmit }: ClassModeFormProps) {
   useEffect(() => {
     if (!grade || invoiceType !== 'TERM') {
       setSelectedPlanId('')
+      setHasManuallyChangedPlan(false)
+      setIsPlanDropdownExpanded(false)
       return
     }
     if (filteredPlans.length === 1) {
       setSelectedPlanId(filteredPlans[0].id)
+      setHasManuallyChangedPlan(false)
+    } else if (filteredPlans.length > 1) {
+      if (!hasManuallyChangedPlan) {
+        setSelectedPlanId('')
+      }
     } else {
       setSelectedPlanId('')
     }
-  }, [grade, invoiceType, filteredPlans])
+  }, [grade, invoiceType, filteredPlans, hasManuallyChangedPlan])
 
   // Get active items to submit
   const getSubmittingItems = (): any[] => {
@@ -152,6 +177,7 @@ export default function ClassModeForm({ onSubmit }: ClassModeFormProps) {
   // Form Validation
   const isFormValid =
     grade !== '' &&
+    (!isCountLoading && activeStudentCount > 0) &&
     (invoiceType === 'ADHOC'
       ? manualItems.length > 0
       : selectedTermIds.length > 0 && (selectedPlanId !== '' || manualItems.length > 0))
@@ -199,11 +225,50 @@ export default function ClassModeForm({ onSubmit }: ClassModeFormProps) {
           <SelectContent>
             {GRADE_OPTIONS.map(g => (
               <SelectItem key={g.value} value={g.value}>
-                {g.label}
+                {getGradeDisplayLabel(g.value)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+
+        {grade && (
+          <div className="mt-2">
+            {isCountLoading ? (
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex items-center gap-2">
+                <Users className="w-4 h-4 text-blue-500 animate-pulse" />
+                <div>
+                  <p className="text-sm font-semibold text-blue-800 leading-none">
+                    {getGradeDisplayLabel(grade)}
+                  </p>
+                  <p className="text-xs text-blue-400 mt-1 select-none font-semibold">
+                    Loading...
+                  </p>
+                </div>
+              </div>
+            ) : activeStudentCount === 0 ? (
+              <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 flex items-center gap-2">
+                <Users className="w-4 h-4 text-amber-500" />
+                <div>
+                  <p className="text-xs text-amber-600 font-bold select-none">
+                    No active students found in {getGradeDisplayLabel(grade)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex items-center gap-2">
+                <Users className="w-4 h-4 text-blue-500" />
+                <div>
+                  <p className="text-sm font-semibold text-blue-800 leading-none">
+                    {getGradeDisplayLabel(grade)}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1 font-semibold select-none">
+                    {activeStudentCount} active students will be invoiced
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Invoice Type */}
@@ -285,39 +350,99 @@ export default function ClassModeForm({ onSubmit }: ClassModeFormProps) {
         </div>
       )}
 
-      {/* Fee Plan (Term mode only) */}
+      {/* Smart Auto-Apply Fee Plan Info Line (Term mode only) */}
       {invoiceType === 'TERM' && grade && (
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            Fee Plan
-          </label>
-          {filteredPlans.length === 0 ? (
-            <div className="flex items-start gap-2.5 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm">
-              <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
-              <div>
-                <p className="font-semibold">No fee plan found for this grade.</p>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  You can add items manually below.
-                </p>
+        <div className="flex flex-col gap-1.5 animate-fadeIn">
+          {filteredPlans.length === 1 ? (
+            /* SCENARIO A: Exactly one plan matches */
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex flex-col gap-2 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Info className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span className="text-sm text-slate-600 font-medium">
+                    Using fee plan: <strong className="text-slate-800">"{filteredPlans[0].name}"</strong>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPlanDropdownExpanded(prev => !prev)}
+                  className="text-xs text-[#1565D8] underline hover:text-blue-800 transition-colors font-bold cursor-pointer select-none shrink-0"
+                >
+                  {hasManuallyChangedPlan ? 'Using custom plan ✓' : 'Change Plan ↓'}
+                </button>
+              </div>
+
+              {isPlanDropdownExpanded && (
+                <div className="mt-1 pt-2 border-t border-slate-200 flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-slate-500">
+                    Select a different plan
+                  </label>
+                  <Select
+                    value={selectedPlanId}
+                    onValueChange={(val) => {
+                      setSelectedPlanId(val)
+                      setHasManuallyChangedPlan(true)
+                    }}
+                  >
+                    <SelectTrigger className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left h-10 flex items-center justify-between">
+                      <SelectValue placeholder="Select plan..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredPlans.map(plan => (
+                        <SelectItem key={plan.id} value={plan.id}>
+                          {plan.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          ) : filteredPlans.length > 1 ? (
+            /* SCENARIO B: Multiple plans found */
+            <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-3 flex flex-col gap-2 shadow-sm">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                <span className="text-xs text-amber-700 font-bold select-none">
+                  Multiple plans found for {getGradeDisplayLabel(grade)}
+                </span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-amber-800">
+                  Select one:
+                </label>
+                <Select
+                  value={selectedPlanId}
+                  onValueChange={(val) => {
+                    setSelectedPlanId(val)
+                    setHasManuallyChangedPlan(true)
+                  }}
+                >
+                  <SelectTrigger className="w-full px-3 py-2 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left h-10 flex items-center justify-between text-amber-900 font-semibold shadow-sm">
+                    <SelectValue placeholder="Select fee plan ▼" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredPlans.map(plan => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {plan.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-1.5">
-              <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
-                <SelectTrigger className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-left h-10 flex items-center justify-between">
-                  <SelectValue placeholder="Select fee plan..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredPlans.map(plan => (
-                    <SelectItem key={plan.id} value={plan.id}>
-                      {plan.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-slate-400">
-                Fee heads will be auto-populated from the selected plan
-              </p>
+            /* SCENARIO C: No plan matches */
+            <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-3.5 flex items-start gap-2.5 shadow-sm">
+              <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-bold text-amber-800 select-none">
+                  No fee plan found for {getGradeDisplayLabel(grade)}
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5 select-none font-medium">
+                  You can add items manually in the preview
+                </p>
+              </div>
             </div>
           )}
         </div>

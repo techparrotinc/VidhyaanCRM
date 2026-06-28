@@ -10,7 +10,9 @@ import {
   CalendarDays,
   Key,
   Receipt,
-  BookOpen
+  BookOpen,
+  MessageCircle,
+  Lock
 } from 'lucide-react'
 
 export default function SettingsLayout({
@@ -20,13 +22,19 @@ export default function SettingsLayout({
 }) {
   const pathname = usePathname()
   const [institutionType, setInstitutionType] = useState<'SCHOOL' | 'LEARNING_CENTER'>('SCHOOL')
+  const [isWhatsappActive, setIsWhatsappActive] = useState(false)
 
   useEffect(() => {
     fetch('/api/v1/settings/org-type')
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && data.data?.institutionType) {
-          setInstitutionType(data.data.institutionType)
+        if (data.success) {
+          if (data.data?.institutionType) {
+            setInstitutionType(data.data.institutionType)
+          }
+          if (data.data?.isWhatsappActive !== undefined) {
+            setIsWhatsappActive(data.data.isWhatsappActive)
+          }
         }
       })
       .catch((err) => console.error('Failed to fetch org type:', err))
@@ -56,6 +64,7 @@ export default function SettingsLayout({
     ] : []),
 
     { name: 'Notification Preferences', path: '/settings/notifications', icon: Bell },
+    { name: 'WhatsApp Templates', path: '/settings/whatsapp-templates', icon: MessageCircle },
     { name: 'API Keys', path: '/settings/api-keys', icon: Key },
     { name: 'Billing & Subscription', path: '/settings/billing', icon: Receipt }
   ]
@@ -73,6 +82,22 @@ export default function SettingsLayout({
           System Settings
         </div>
         {menuItems.map((item) => {
+          if (item.path === '/settings/whatsapp-templates' && !isWhatsappActive) {
+            return (
+              <span
+                key={item.path}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-400 cursor-not-allowed rounded-lg select-none group relative"
+              >
+                <MessageCircle className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+                <span className="flex-1">WhatsApp Templates</span>
+                <Lock className="w-3 h-3 flex-shrink-0" />
+                <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                  Upgrade to unlock WhatsApp
+                </span>
+              </span>
+            )
+          }
+
           const Icon = item.icon
           const active = isActive(item.path)
           return (

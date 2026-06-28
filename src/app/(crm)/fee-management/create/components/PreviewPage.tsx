@@ -5,6 +5,8 @@ import { fetcher } from '@/lib/fetcher'
 import { ArrowLeft, Plus, Calendar, CheckCircle2, AlertCircle, XCircle } from 'lucide-react'
 import DateSelector from '@/components/ui/DateSelector'
 import FeeHeadRow, { FeeHead } from './FeeHeadRow'
+import { mapGradeValue } from '@/lib/utils/gradeMapping'
+import { getGradeLabel } from '@/constants/grades'
 
 interface Student {
   id: string
@@ -33,6 +35,7 @@ interface TermSection {
 interface PreviewPageProps {
   mode: 'class' | 'student'
   grade?: string
+  selectedGradeLabel?: string
   student?: Student
   invoiceType: 'TERM' | 'ADHOC'
   selectedTerms: Term[]
@@ -44,6 +47,7 @@ interface PreviewPageProps {
 export default function PreviewPage({
   mode,
   grade,
+  selectedGradeLabel,
   student,
   invoiceType,
   selectedTerms,
@@ -51,6 +55,7 @@ export default function PreviewPage({
   initialItems,
   onBack
 }: PreviewPageProps) {
+  const resolvedGradeLabel = selectedGradeLabel || (grade ? getGradeLabel(mapGradeValue(grade)) : '')
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittingProgressText, setSubmittingProgressText] = useState('')
@@ -70,11 +75,11 @@ export default function PreviewPage({
   }
 
   // Get active student count using the lightweight API call we modified
-  const { data: studentCountData } = useSWR<{ success: boolean; count: number }>(
-    mode === 'class' && grade ? `/api/v1/students?grade=${grade}&status=ACTIVE&limit=1&countOnly=true` : null,
+  const { data: studentCountData } = useSWR<{ success: boolean; data?: { count: number }; count?: number }>(
+    mode === 'class' && grade ? `/api/v1/students?gradeLabel=${encodeURIComponent(resolvedGradeLabel)}&status=ACTIVE&limit=1&countOnly=true` : null,
     fetcher
   )
-  const studentCount = mode === 'class' ? (studentCountData?.count ?? 0) : 1
+  const studentCount = mode === 'class' ? (studentCountData?.data?.count ?? studentCountData?.count ?? 0) : 1
 
   // Distribute Fee Heads to each selected term section based on layout logic
   const [sections, setSections] = useState<TermSection[]>(() => {
@@ -247,12 +252,12 @@ export default function PreviewPage({
       if (mode === 'class') {
         // Fetch all active students in class up to 500 limit
         const stdRes = await fetch(
-          `/api/v1/students?grade=${grade}&status=ACTIVE&limit=500`
+          `/api/v1/students?gradeLabel=${encodeURIComponent(resolvedGradeLabel)}&status=ACTIVE&limit=500`
         )
         const stdData = await stdRes.json()
         const students: Student[] = stdData.data || []
         if (students.length === 0) {
-          throw new Error(`No active students found in Grade ${grade}`)
+          throw new Error(`No active students found in Grade ${resolvedGradeLabel}`)
         }
         finalStudentIds = students.map(s => s.id)
       } else if (student) {

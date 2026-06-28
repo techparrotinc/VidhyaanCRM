@@ -40,6 +40,7 @@ interface ManualItem {
 interface ClassModeFormProps {
   onSubmit: (data: {
     grade: string
+    selectedGradeLabel?: string
     invoiceType: 'TERM' | 'ADHOC'
     selectedTerms: Term[]
     selectedPlanId: string | null
@@ -69,14 +70,16 @@ export default function ClassModeForm({ onSubmit }: ClassModeFormProps) {
     return getGradeLabel(mapped).replace(/^Class\s+/i, 'Grade ')
   }
 
+  const selectedGradeLabel = grade ? getGradeLabel(mapGradeValue(grade)) : ''
+
   // Fetch active student count for selected grade
-  const { data: studentCountData, isLoading: isCountLoading } = useSWR<{ success: boolean; total: number }>(
+  const { data: studentCountData, isLoading: isCountLoading } = useSWR<{ success: boolean; data: { count: number } }>(
     grade
-      ? `/api/v1/students?grade=${grade}&status=ACTIVE&limit=1&countOnly=true`
+      ? `/api/v1/students?gradeLabel=${encodeURIComponent(selectedGradeLabel)}&status=ACTIVE&limit=1&countOnly=true`
       : null,
     fetcher
   )
-  const activeStudentCount = studentCountData?.total ?? 0
+  const activeStudentCount = studentCountData?.data?.count ?? 0
 
   // SWR Fetches
   const { data: termsData } = useSWR<{ success: boolean; data: Term[] }>(
@@ -93,7 +96,7 @@ export default function ClassModeForm({ onSubmit }: ClassModeFormProps) {
   const plans = React.useMemo(() => plansData?.data || [], [plansData])
 
   // Filter plans matching grade
-  const filteredPlans = React.useMemo(() => plans.filter(p => p.gradeLabel === grade), [plans, grade])
+  const filteredPlans = React.useMemo(() => plans.filter(p => p.gradeLabel === selectedGradeLabel), [plans, selectedGradeLabel])
 
   // Auto-suggest fee plan logic
   useEffect(() => {
@@ -192,6 +195,7 @@ export default function ClassModeForm({ onSubmit }: ClassModeFormProps) {
 
     onSubmit({
       grade,
+      selectedGradeLabel,
       invoiceType,
       selectedTerms: selectedTermsList,
       selectedPlanId: invoiceType === 'TERM' && selectedPlanId ? selectedPlanId : null,

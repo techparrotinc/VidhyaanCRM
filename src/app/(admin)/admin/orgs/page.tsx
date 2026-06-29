@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import {
   Search,
   ChevronDown,
@@ -12,9 +13,15 @@ import {
   ShieldAlert,
   Loader2,
   MoreVertical,
-  Activity,
-  UserCheck,
-  Plus
+  ArrowUp,
+  ArrowDown,
+  Plus,
+  Filter,
+  Download,
+  AlertCircle,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -32,36 +39,68 @@ interface Organization {
   plan: {
     name: string
     slug: string
+    monthlyPrice: number
+  } | null
+  subscription: {
+    status: string
+    amount: number
+  } | null
+  school: {
+    id: string
+    name: string
+    slug: string
   } | null
   _count: {
     users: number
     leads: number
+    admissions: number
   }
 }
 
 export default function AdminOrgsPage() {
+  const { data: session } = useSession()
+  const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN'
+
   const [orgs, setOrgs] = useState<Organization[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
-  // Search & Filter State
+  // Pagination & Filter State
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [planFilter, setPlanFilter] = useState('ALL')
+  const [typeFilter, setTypeFilter] = useState('ALL')
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+  const [sortBy, setSortBy] = useState('createdAt')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
+
+  // Modals/Actions State
+  const [impersonatingId, setImpersonatingId] = useState<string | null>(null)
+  const [impersonationToken, setImpersonationToken] = useState<string | null>(null)
 
   const fetchOrgs = async () => {
     try {
+      setLoading(true)
       const queryParams = new URLSearchParams()
+      queryParams.append('page', page.toString())
+      queryParams.append('limit', limit.toString())
+      queryParams.append('sortBy', sortBy)
+      queryParams.append('sortOrder', sortOrder)
+
       if (search.trim()) queryParams.append('search', search)
-      if (statusFilter !== 'ALL') {
-        const mappedStatus = statusFilter === 'PENDING' ? 'PENDING_VERIFICATION' : statusFilter
-        queryParams.append('status', mappedStatus)
-      }
+      if (statusFilter !== 'ALL') queryParams.append('status', statusFilter)
+      if (planFilter !== 'ALL') queryParams.append('planId', planFilter)
+      if (typeFilter !== 'ALL') queryParams.append('institutionType', typeFilter)
 
       const res = await fetch(`/api/admin/organizations?${queryParams.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch organizations')
       const json = await res.json()
       setOrgs(json.data ?? [])
+      setTotal(json.pagination?.total ?? 0)
+      setError(null)
     } catch (err: any) {
       setError(err.message || 'Error fetching organizations')
     } finally {
@@ -71,12 +110,14 @@ export default function AdminOrgsPage() {
 
   useEffect(() => {
     fetchOrgs()
-  }, [statusFilter])
+  }, [statusFilter, planFilter, typeFilter, page, limit, sortBy, sortOrder])
 
+  // Debounced search trigger
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
+      setPage(1)
       fetchOrgs()
-    }, 500)
+    }, 400)
 
     return () => clearTimeout(delayDebounceFn)
   }, [search])
@@ -87,232 +128,439 @@ export default function AdminOrgsPage() {
     return () => window.removeEventListener('click', closeMenu)
   }, [])
 
-  const handleApprove = async (id: string) => {
-    try {
-      const res = await fetch(`/api/admin/organizations/${id}/approve`, {
-        method: 'POST'
-      })
-      if (!res.ok) throw new Error('Failed to approve organization')
-      alert('Organization approved successfully')
-      await fetchOrgs()
-    } catch (err: any) {
-      alert(err.message || 'Could not approve organization')
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(field)
+      setSortOrder('desc')
     }
+    setPage(1)
   }
 
-  const handleExtendTrial = async (orgItem: Organization) => {
+  const handleStatusChange = async (orgId: string, newStatus: string) => {
     try {
-      const currentEnd = orgItem.trialEndsAt ? new Date(orgItem.trialEndsAt) : new Date()
-      currentEnd.setDate(currentEnd.getDate() + 7)
-
-      const res = await fetch(`/api/admin/organizations/${orgItem.id}`, {
+      const res = await fetch(`/api/admin/organizations/${orgId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trialEndsAt: currentEnd.toISOString() })
+        body: JSON.stringify({ status: newStatus })
       })
-
-      if (!res.ok) throw new Error('Failed to extend trial')
-      alert('Trial extended by 7 days')
+      if (!res.ok) {
+        const errJson = await res.json()
+        throw new Error(errJson.error || 'Failed to update organization status')
+      }
       await fetchOrgs()
     } catch (err: any) {
-      alert(err.message || 'Could not extend trial')
+      alert(err.message || 'Could not update organization status')
     }
   }
 
-  const handleSuspend = async (id: string) => {
-    if (!confirm('Are you sure you want to suspend this organization?')) return
-
+  const handleImpersonate = async (orgId: string) => {
     try {
-      const res = await fetch(`/api/admin/organizations/${id}`, {
-        method: 'PUT',
+      // 1. Fetch organization details to get a target user ID
+      const orgRes = await fetch(`/api/admin/organizations/${orgId}`)
+      if (!orgRes.ok) throw new Error('Failed to fetch organization users')
+      const orgData = await orgRes.json()
+      const firstUser = orgData.organization?.users?.[0]
+
+      if (!firstUser) {
+        throw new Error('No user accounts exist in this organization')
+      }
+
+      // 2. Post impersonation request
+      const impersonateRes = await fetch('/api/admin/impersonate', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'SUSPENDED' })
+        body: JSON.stringify({ orgId, userId: firstUser.id })
       })
 
-      if (!res.ok) throw new Error('Failed to suspend organization')
-      alert('Organization suspended')
-      await fetchOrgs()
+      if (!impersonateRes.ok) {
+        const errJson = await impersonateRes.json()
+        throw new Error(errJson.error || 'Impersonation failed')
+      }
+
+      const impData = await impersonateRes.json()
+      setImpersonatingId(orgId)
+      setImpersonationToken(impData.token)
     } catch (err: any) {
-      alert(err.message || 'Could not suspend organization')
+      alert(err.message || 'Failed to initiate impersonation')
     }
   }
 
-  const handleImpersonate = (name: string) => {
-    alert(`Impersonating Admin session for "${name}" (development session started)`)
+  const handleExportCSV = () => {
+    const headers = ['ID', 'Name', 'Type', 'Email', 'Phone', 'Status', 'Plan', 'Leads', 'Joined']
+    const rows = orgs.map(o => [
+      o.id,
+      o.name,
+      o.institutionType,
+      o.email,
+      o.phone,
+      o.status,
+      o.plan?.name || 'Free',
+      o._count.leads,
+      new Date(o.createdAt).toLocaleDateString()
+    ])
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n")
+    
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement("a")
+    link.setAttribute("href", encodedUri)
+    link.setAttribute("download", `organizations_export_${new Date().toISOString().split('T')[0]}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
-  const getStatusBadgeStyle = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return 'bg-green-100 text-green-800'
+        return 'bg-green-50 text-green-700 border-green-200'
       case 'TRIAL':
-        return 'bg-blue-100 text-blue-800'
-      case 'PENDING_VERIFICATION':
-        return 'bg-amber-100 text-amber-800'
+        return 'bg-amber-50 text-amber-700 border-amber-200'
       case 'SUSPENDED':
-        return 'bg-red-100 text-red-800'
+        return 'bg-red-50 text-red-700 border-red-200'
       default:
-        return 'bg-slate-100 text-slate-600'
+        return 'bg-slate-100 text-slate-700 border-slate-200'
     }
+  }
+
+  const getPlanStyle = (slug: string) => {
+    switch (slug) {
+      case 'free':
+        return 'bg-slate-100 text-slate-650'
+      case 'starter':
+        return 'bg-blue-50 text-blue-700'
+      case 'growth':
+        return 'bg-emerald-50 text-emerald-700'
+      case 'enterprise':
+        return 'bg-purple-50 text-purple-700'
+      default:
+        return 'bg-slate-100 text-slate-750'
+    }
+  }
+
+  const formatDaysLeft = (endsAtStr: string | null) => {
+    if (!endsAtStr) return ''
+    const ends = new Date(endsAtStr)
+    const now = new Date()
+    const diff = ends.getTime() - now.getTime()
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
+    return days > 0 ? ` (${days}d left)` : ' (Expired)'
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-8 space-y-6 select-none font-sans antialiased text-slate-800 animate-fade-in">
-      {/* Page Header */}
-      <div className="flex justify-between items-center border-b border-slate-200 pb-5">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 font-sans">
-            Manage Organizations
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Browse, approve listing verification, extend trial sessions, and toggle premium access.
-          </p>
+    <div className="p-6 md:p-8 space-y-6 select-none bg-slate-50 min-h-screen">
+      {/* Impersonation Modal */}
+      {impersonationToken && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <Card className="p-6 max-w-md w-full bg-white space-y-4 shadow-2xl border-slate-200 animate-scale-in">
+            <div className="flex items-center gap-3 text-amber-600">
+              <ShieldAlert className="w-8 h-8" />
+              <h3 className="text-lg font-black tracking-tight">Impersonation Session Active</h3>
+            </div>
+            <p className="text-sm text-slate-500 leading-relaxed">
+              Super Admin impersonation session generated. Use the special session token below to act as an administrator for the target organization.
+            </p>
+            <div className="p-3 bg-slate-100 rounded-lg text-xs font-mono break-all text-slate-700 border border-slate-200 select-all">
+              {impersonationToken}
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button onClick={() => setImpersonationToken(null)} className="bg-slate-900 text-white hover:bg-slate-800 font-semibold px-4 py-2 text-xs">
+                Acknowledge
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 font-sans">Organizations</h2>
+          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-150">
+            {total} Total
+          </span>
+        </div>
+        <div className="flex items-center gap-3 self-start">
+          <Button onClick={handleExportCSV} className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold py-2 px-3.5 flex items-center gap-2 shadow-xs">
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-3.5 flex items-center gap-1.5 shadow-md shadow-blue-500/10">
+            <Plus className="w-4 h-4" /> Add Organization
+          </Button>
         </div>
       </div>
 
-      {/* Filter Row */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        {/* Search */}
-        <div className="relative flex items-center bg-white border border-slate-300 rounded-lg px-3 py-2 w-full sm:w-80 shadow-sm">
-          <Search className="w-4 h-4 text-slate-400 shrink-0 mr-2" strokeWidth={1.5} />
-          <input
-            type="text"
-            placeholder="Search by name or email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="bg-transparent border-0 outline-none text-sm text-slate-700 placeholder-slate-400 w-full"
-          />
-        </div>
+      {/* Filter Bar */}
+      <Card className="p-4 bg-white border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center gap-4 justify-between">
+        <div className="flex-1 flex flex-col sm:flex-row gap-3">
+          {/* Search Box */}
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-4 text-xs font-semibold text-slate-700 outline-hidden hover:border-slate-350 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-150"
+            />
+          </div>
 
-        {/* Status Filter */}
-        <div className="flex gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 [&::-webkit-scrollbar]:hidden">
-          {['ALL', 'ACTIVE', 'TRIAL', 'PENDING', 'SUSPENDED'].map((status) => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition cursor-pointer shrink-0 ${
-                statusFilter === status
-                  ? 'bg-[#1565D8] border-[#1565D8] text-white shadow-sm'
-                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
+          {/* Status Dropdown */}
+          <div className="relative">
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              className="appearance-none bg-white rounded-lg border border-slate-200 py-2 pl-3 pr-8 text-xs font-semibold text-slate-700 outline-hidden hover:border-slate-350 focus:border-blue-500 transition duration-150"
             >
-              {status}
-            </button>
-          ))}
-        </div>
-      </div>
+              <option value="ALL">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="TRIAL">Trial</option>
+              <option value="SUSPENDED">Suspended</option>
+              <option value="PENDING_VERIFICATION">Pending Verification</option>
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 w-3.5 h-3.5 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          </div>
 
-      {/* Grid List Table */}
-      {loading && orgs.length === 0 ? (
-        <div className="flex justify-center items-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-[#1565D8]" />
+          {/* Institution Type Dropdown */}
+          <div className="relative">
+            <select
+              value={typeFilter}
+              onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+              className="appearance-none bg-white rounded-lg border border-slate-200 py-2 pl-3 pr-8 text-xs font-semibold text-slate-700 outline-hidden hover:border-slate-350 focus:border-blue-500 transition duration-150"
+            >
+              <option value="ALL">All Types</option>
+              <option value="SCHOOL">School</option>
+              <option value="LEARNING_CENTER">Learning Center</option>
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 w-3.5 h-3.5 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          </div>
+        </div>
+
+        {/* Clear Filters */}
+        {(search || statusFilter !== 'ALL' || typeFilter !== 'ALL') && (
+          <Button
+            onClick={() => { setSearch(''); setStatusFilter('ALL'); setTypeFilter('ALL'); setPage(1); }}
+            className="text-xs text-blue-600 hover:text-blue-800 font-bold bg-blue-50/50 hover:bg-blue-50 px-3 py-1.5"
+          >
+            Clear Filters
+          </Button>
+        )}
+      </Card>
+
+      {/* Main Content Area */}
+      {loading ? (
+        <div className="flex h-64 items-center justify-center bg-white border border-slate-200 rounded-xl shadow-sm">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </div>
       ) : error ? (
-        <div className="text-center py-20 text-red-500">
-          <p>{error}</p>
-          <Button onClick={fetchOrgs} className="mt-4 bg-[#1565D8] text-white">Retry</Button>
+        <div className="flex h-64 flex-col items-center justify-center p-6 text-center bg-white border border-slate-200 rounded-xl shadow-sm text-red-500">
+          <AlertCircle className="w-8 h-8 mb-2" />
+          <p className="font-bold text-sm">{error}</p>
+        </div>
+      ) : orgs.length === 0 ? (
+        <div className="flex flex-col h-64 items-center justify-center text-center p-6 bg-white border border-slate-200 rounded-xl shadow-sm">
+          <Building2 className="w-10 h-10 text-slate-300 mb-3" />
+          <h4 className="text-sm font-bold text-slate-700">No Organizations Found</h4>
+          <p className="text-xs text-slate-400 mt-1 max-w-sm">No organizations matched your current filters. Try refining your parameters.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/50 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  <th className="py-3.5 pl-4">Organization Name</th>
-                  <th className="py-3.5">Institution Type</th>
-                  <th className="py-3.5">Billing Plan</th>
-                  <th className="py-3.5 text-center">Users</th>
-                  <th className="py-3.5 text-center">Leads</th>
-                  <th className="py-3.5">Status</th>
-                  <th className="py-3.5">Created Date</th>
-                  <th className="py-3.5 pr-4 text-right">Action</th>
+                <tr className="border-b border-slate-200 bg-slate-50/70 text-[10px] font-bold uppercase tracking-wider text-slate-400 select-none">
+                  <th className="py-3 px-4 pl-6 cursor-pointer" onClick={() => handleSort('name')}>
+                    <span className="flex items-center gap-1">
+                      Organization
+                      {sortBy === 'name' ? (sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />) : null}
+                    </span>
+                  </th>
+                  <th className="py-3 px-4">Type</th>
+                  <th className="py-3 px-4">Plan</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 cursor-pointer" onClick={() => handleSort('leads')}>
+                    <span className="flex items-center gap-1">
+                      Leads
+                      {sortBy === 'leads' ? (sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />) : null}
+                    </span>
+                  </th>
+                  <th className="py-3 px-4 cursor-pointer" onClick={() => handleSort('createdAt')}>
+                    <span className="flex items-center gap-1">
+                      Joined
+                      {sortBy === 'createdAt' ? (sortOrder === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />) : null}
+                    </span>
+                  </th>
+                  <th className="py-3 px-4 text-right pr-6">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {orgs.map((org) => (
-                  <tr key={org.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className="py-4 pl-4 font-semibold text-slate-800">
-                      <div>{org.name}</div>
-                      <div className="text-xs text-slate-400 font-normal mt-0.5">{org.email}</div>
-                    </td>
-                    <td className="py-4 text-xs text-slate-500 font-semibold uppercase">{org.institutionType}</td>
-                    <td className="py-4">
-                      <span className="text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
-                        {org.plan?.name ?? 'Free'}
-                      </span>
-                    </td>
-                    <td className="py-4 text-center font-semibold text-slate-700">{org._count.users}</td>
-                    <td className="py-4 text-center font-semibold text-slate-700">{org._count.leads}</td>
-                    <td className="py-4">
-                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${getStatusBadgeStyle(org.status)}`}>
-                        {org.status.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td className="py-4 text-xs text-slate-400 font-medium">
-                      {new Date(org.createdAt).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
-                    </td>
-                    <td className="py-4 pr-4 text-right relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setActiveMenuId(activeMenuId === org.id ? null : org.id)
-                        }}
-                        className="p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-800 cursor-pointer"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
+              <tbody className="divide-y divide-slate-100">
+                {orgs.map((org, index) => {
+                  const isMenuOpen = activeMenuId === org.id
+                  const isTrial = org.status === 'TRIAL'
+                  const displayPlan = org.plan?.name || 'Free'
 
-                      {/* Dropdown Options */}
-                      {activeMenuId === org.id && (
-                        <div className="absolute right-4 mt-1 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-30 py-1.5 text-left text-xs font-semibold animate-fade-in">
-                          <Link href={`/admin/orgs/${org.id}`} className="block px-4 py-2 text-slate-700 hover:bg-slate-50">
-                            View Details
-                          </Link>
-
-                          {org.status === 'PENDING_VERIFICATION' && (
-                            <button
-                              onClick={() => handleApprove(org.id)}
-                              className="w-full text-left px-4 py-2 text-green-700 hover:bg-green-50 border-t border-slate-100"
-                            >
-                              Approve Listing
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() => handleExtendTrial(org)}
-                            className="w-full text-left px-4 py-2 text-blue-700 hover:bg-blue-50 border-t border-slate-100"
-                          >
-                            Extend Trial (+7 days)
-                          </button>
-
-                          {org.status !== 'SUSPENDED' && (
-                            <button
-                              onClick={() => handleSuspend(org.id)}
-                              className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50"
-                            >
-                              Suspend Account
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() => handleImpersonate(org.name)}
-                            className="w-full text-left px-4 py-2 text-slate-700 hover:bg-slate-50 border-t border-slate-100"
-                          >
-                            Impersonate Admin
-                          </button>
+                  return (
+                    <tr key={org.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'} hover:bg-slate-50/60 transition`}>
+                      {/* Name */}
+                      <td className="py-3.5 px-4 pl-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-black">
+                            {org.name[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <Link href={`/admin/orgs/${org.id}`} className="font-bold text-slate-900 hover:text-blue-600 hover:underline leading-none">
+                              {org.name}
+                            </Link>
+                            <span className="text-[10px] text-slate-400 block mt-1">{org.email}</span>
+                          </div>
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+
+                      {/* Institution Type */}
+                      <td className="py-3.5 px-4 text-xs font-semibold text-slate-650">
+                        <span className="capitalize">{org.institutionType.toLowerCase().replace('_', ' ')}</span>
+                      </td>
+
+                      {/* Plan Badge */}
+                      <td className="py-3.5 px-4">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${getPlanStyle(org.plan?.slug || 'free')}`}>
+                          {displayPlan}
+                        </span>
+                      </td>
+
+                      {/* Status Badge */}
+                      <td className="py-3.5 px-4">
+                        <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${getStatusStyle(org.status)}`}>
+                          {org.status}
+                          {isTrial && formatDaysLeft(org.trialEndsAt)}
+                        </span>
+                      </td>
+
+                      {/* Leads Count */}
+                      <td className="py-3.5 px-4 font-bold text-slate-800 text-xs">
+                        {org._count.leads}
+                      </td>
+
+                      {/* Joined Date */}
+                      <td className="py-3.5 px-4 text-slate-400 font-semibold text-xs">
+                        {new Date(org.createdAt).toLocaleDateString()}
+                      </td>
+
+                      {/* Actions Menu */}
+                      <td className="py-3.5 px-4 text-right pr-6 relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setActiveMenuId(isMenuOpen ? null : org.id)
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+
+                        {/* Dropdown Menu */}
+                        {isMenuOpen && (
+                          <div
+                            className="absolute right-6 top-10 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-1.5 divide-y divide-slate-100 animate-slide-in-up"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="py-1">
+                              <Link
+                                href={`/admin/orgs/${org.id}`}
+                                className="flex items-center px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+                              >
+                                View Details
+                              </Link>
+                              <Link
+                                href={`/admin/orgs/${org.id}`}
+                                className="flex items-center px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+                              >
+                                Toggle Modules
+                              </Link>
+                            </div>
+
+                            <div className="py-1">
+                              {org.status === 'SUSPENDED' ? (
+                                <button
+                                  onClick={() => handleStatusChange(org.id, 'ACTIVE')}
+                                  className="w-full text-left flex items-center px-4 py-2 text-xs font-bold text-green-600 hover:bg-green-50 transition"
+                                >
+                                  Unsuspend Account
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleStatusChange(org.id, 'SUSPENDED')}
+                                  className="w-full text-left flex items-center px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition"
+                                >
+                                  Suspend Account
+                                </button>
+                              )}
+
+                              {isSuperAdmin && (
+                                <button
+                                  onClick={() => handleImpersonate(org.id)}
+                                  className="w-full text-left flex items-center px-4 py-2 text-xs font-bold text-amber-600 hover:bg-amber-50 transition"
+                                >
+                                  Impersonate User
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
-        </div>
+
+          {/* Pagination Controls */}
+          <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
+            {/* Limit Selector */}
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-semibold text-slate-400">Rows per page:</span>
+              <div className="relative">
+                <select
+                  value={limit}
+                  onChange={(e) => { setLimit(parseInt(e.target.value)); setPage(1); }}
+                  className="appearance-none bg-white rounded-lg border border-slate-200 py-1.5 pl-2.5 pr-7 text-xs font-semibold text-slate-700 outline-hidden hover:border-slate-350"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 w-3.5 h-3.5 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Navigation Buttons */}
+            <div className="flex items-center gap-4">
+              <span className="text-xs font-bold text-slate-500">
+                {(page - 1) * limit + 1}-{Math.min(page * limit, total)} of {total}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 disabled:opacity-40 transition"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setPage(p => Math.min(Math.ceil(total / limit), p + 1))}
+                  disabled={page >= Math.ceil(total / limit)}
+                  className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 disabled:opacity-40 transition"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </Card>
       )}
     </div>
   )

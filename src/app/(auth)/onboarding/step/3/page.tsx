@@ -3,24 +3,26 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, AlertCircle, Plus, Trash2 } from 'lucide-react'
+import {
+  INSTITUTION_CONFIG,
+  type InstitutionType,
+} from '@/constants/institutionConfig'
 
 const boardsList = ['CBSE', 'ICSE', 'State Board', 'IB', 'Cambridge', 'IGCSE', 'Other']
 
 const facilitiesList = [
   { id: 'Library', label: '📚 Library' },
-  { id: 'Sports Ground', label: '🏃 Sports Ground' },
   { id: 'Science Lab', label: '🔬 Science Lab' },
   { id: 'Computer Lab', label: '💻 Computer Lab' },
-  { id: 'Transport', label: '🚌 Transport' },
-  { id: 'Cafeteria', label: '🍽 Cafeteria / Canteen' },
-  { id: 'Medical Room', label: '🏥 Medical Room' },
+  { id: 'Playground', label: '⚽ Sports Ground / Playground' },
+  { id: 'Smart Classes', label: '🖥️ Smart Classrooms' },
   { id: 'Auditorium', label: '🎭 Auditorium' },
-  { id: 'Swimming Pool', label: '🏊 Swimming Pool' },
-  { id: 'Music Room', label: '🎵 Music Room' },
-  { id: 'Art Room', label: '🎨 Art Room' },
-  { id: 'CCTV Security', label: '📷 CCTV Security' },
-  { id: 'Special Needs', label: '♿ Special Needs Support' },
-  { id: 'Smart Classrooms', label: '🌐 Smart Classrooms' }
+  { id: 'Art Room', label: '🎨 Fine Arts / Craft Room' },
+  { id: 'Music Room', label: '🎵 Music / Dance Room' },
+  { id: 'Cafeteria', label: '🍎 Cafeteria / Canteen' },
+  { id: 'Transport', label: '🚌 School Bus / Transport' },
+  { id: 'Hostel', label: '🏢 Hostel / Boarding' },
+  { id: 'CCTV', label: '🔒 CCTV / Security' }
 ]
 
 interface FeeRow {
@@ -37,6 +39,10 @@ export default function OnboardingStep3() {
 
   // Institution Type flag (default school)
   const [isLC, setIsLC] = useState(false)
+  const [institutionType, setInstitutionType] = useState('SCHOOL')
+  const config = INSTITUTION_CONFIG[
+    institutionType as InstitutionType
+  ] ?? INSTITUTION_CONFIG['SCHOOL']
 
   // Form Fields
   const [selectedBoards, setSelectedBoards] = useState<string[]>([])
@@ -64,6 +70,9 @@ export default function OnboardingStep3() {
         if (data.success && data.school) {
           const s = data.school
           setIsLC(s.institutionType === 'LEARNING_CENTER' || s.institutionType === 'COACHING_CENTER')
+          if (s.institutionType) {
+            setInstitutionType(s.institutionType)
+          }
           
           if (s.affiliations) {
             setSelectedBoards(s.affiliations.map((a: any) => a.board))
@@ -353,7 +362,7 @@ export default function OnboardingStep3() {
                     <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
                       Annual Fee Range <span className="text-slate-400 font-medium text-xs">(Optional)</span>
                     </h3>
-                    <p className="text-slate-400 text-xs mt-0.5">Helps parents filter schools by tuition budget</p>
+                    <p className="text-slate-400 text-xs mt-0.5">Helps parents filter {config.genericLabel.toLowerCase()}s by tuition budget</p>
                   </div>
                   <button
                     type="button"

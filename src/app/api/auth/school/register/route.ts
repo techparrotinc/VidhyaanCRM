@@ -1,12 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
-import { UserRole, UserStatus, OtpChannel, OtpPurpose, AuditAction } from '@prisma/client'
+import { UserRole, UserStatus, OtpChannel, OtpPurpose, AuditAction, InstitutionType } from '@prisma/client'
+import { redis } from '@/lib/redis'
+import crypto from 'crypto'
+import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
+import { welcomeSchoolTemplate } from '@/lib/mail/templates'
+
+function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { name, phone, email, role, schoolId } = body
+    const { name, phone, email, role, schoolId, schoolName, institutionType } = body
 
     if (!name || !phone || !email || !role) {
       return NextResponse.json(
@@ -30,10 +44,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 2. Find Organization if schoolId is provided
-    let org = null
+    // 2. Find Organization if schoolId is provided, or create one if schoolName/institutionType is provided
+    let org: any = null
+    let school = null
+    let branch = null
+
     if (schoolId) {
-      const school = await prisma.school.findUnique({
+      school = await prisma.school.findUnique({
         where: { id: schoolId }
       })
       if (!school) {
@@ -57,12 +74,171 @@ export async function POST(req: NextRequest) {
           { status: 404 }
         )
       }
+    } else if (schoolName && institutionType) {
+      const mappedInstType = institutionType.toUpperCase().replace(/\s+/g, '_') as InstitutionType
+      const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      const orgSlug = slugify(schoolName) || 'school-org'
+      
+      let uniqueOrgSlug = orgSlug
+      let count = 1
+      while (true) {
+        const existing = await prisma.organization.findUnique({
+          where: { slug: uniqueOrgSlug }
+        })
+        if (!existing) break
+        uniqueOrgSlug = `${orgSlug}-${count}`
+        count++
+      }
+
+      let freePlan = await prisma.plan.findUnique({
+        where: { slug: 'free' }
+      })
+      if (!freePlan) {
+        freePlan = await prisma.plan.findFirst()
+      }
+
+      org = await prisma.organization.create({
+        data: {
+          name: schoolName,
+          slug: uniqueOrgSlug,
+          institutionType: mappedInstType,
+          email,
+          phone,
+          status: 'ACTIVE',
+          trialEndsAt,
+          planId: freePlan?.id || null,
+          settings: {
+            adminRoleDesignation: role,
+            onboardingStep: 1,
+            onboardingCompletedSteps: [],
+            profileCompletePct: 0,
+            onboardingIsComplete: false
+          }
+        }
+      })
+
+      branch = await prisma.branch.create({
+        data: {
+          orgId: org.id,
+          name: 'Main Branch',
+          isDefault: true,
+          city: 'Unknown'
+        }
+      })
+
+      const schoolSlug = slugify(schoolName) || 'school'
+      let uniqueSchoolSlug = schoolSlug
+      count = 1
+      while (true) {
+        const existing = await prisma.school.findUnique({
+          where: { slug: uniqueSchoolSlug }
+        })
+        if (!existing) break
+        uniqueSchoolSlug = `${schoolSlug}-${count}`
+        count++
+      }
+
+      school = await prisma.school.create({
+        data: {
+          orgId: org.id,
+          name: schoolName,
+          slug: uniqueSchoolSlug,
+          institutionType: mappedInstType,
+          isPublished: false,
+          verificationStatus: 'PENDING'
+        }
+      })
+
+      await prisma.schoolLocation.create({
+        data: {
+          schoolId: school.id,
+          orgId: org.id,
+          city: 'Unknown',
+          isPrimary: true,
+          label: 'Main Campus'
+        }
+      })
+
+      if (mappedInstType !== 'LEARNING_CENTER') {
+        await prisma.schoolAffiliation.create({
+          data: {
+            schoolId: school.id,
+            orgId: org.id,
+            board: 'Other'
+          }
+        })
+      }
+
+      await prisma.schoolContact.create({
+        data: {
+          schoolId: school.id,
+          orgId: org.id,
+          type: 'email',
+          value: email,
+          isPrimary: true
+        }
+      })
+
+      await prisma.schoolContact.create({
+        data: {
+          schoolId: school.id,
+          orgId: org.id,
+          type: 'phone',
+          value: phone,
+          isPrimary: true
+        }
+      })
+
+      try {
+        const isSchool = mappedInstType !== 'LEARNING_CENTER'
+        const coreModuleSlugs = [
+          'lead_management',
+          'student_management',
+          'fee_management',
+          'campaign_management',
+          ...(isSchool ? ['admission_management'] : [])
+        ]
+        const dbModules = await prisma.module.findMany({
+          where: { slug: { in: coreModuleSlugs } }
+        })
+        await prisma.organizationModule.createMany({
+          data: dbModules.map(m => ({
+            orgId: org.id,
+            moduleId: m.id,
+            enabled: true,
+            enabledAt: new Date()
+          })),
+          skipDuplicates: true
+        })
+      } catch (err) {
+        console.error('Failed to create org modules:', err)
+      }
+
+      if (freePlan) {
+        await prisma.subscription.create({
+          data: {
+            orgId: org.id,
+            planId: freePlan.id,
+            status: 'TRIALING',
+            billingCycle: 'MONTHLY',
+            amount: freePlan.monthlyPrice,
+            trialEndsAt,
+            startedAt: new Date(),
+            currentPeriodEnd: trialEndsAt
+          }
+        })
+      }
+    } else {
+      return NextResponse.json(
+        { success: false, error: 'Either schoolId or schoolName + institutionType is required' },
+        { status: 400 }
+      )
     }
 
     // Check if email already registered in this organization
     const existingEmailUser = await prisma.user.findFirst({
       where: {
-        orgId: org ? org.id : null,
+        orgId: org.id,
         email,
         deletedAt: null
       }
@@ -82,9 +258,37 @@ export async function POST(req: NextRequest) {
         email,
         role: UserRole.ORG_ADMIN,
         status: UserStatus.ACTIVE,
-        orgId: org ? org.id : null
+        orgId: org.id
       }
     })
+
+    // Send welcome email to ORG_ADMIN
+    try {
+      const finalSchoolName = schoolName || school?.name || org.name
+      await sendTransactionalEmail({
+        to: email,
+        subject: "Welcome to Vidhyaan! 🎉",
+        htmlBody: welcomeSchoolTemplate({
+          schoolName: finalSchoolName,
+          adminName: name,
+          loginUrl: `${process.env.NEXTAUTH_URL || 'https://vidhyaan.com'}/login`,
+          trialDays: 7
+        }),
+        textBody: `Welcome to Vidhyaan! ${finalSchoolName} is registered. Admin Name: ${name}.`
+      })
+    } catch (emailErr) {
+      console.error('Failed to send school registration welcome email:', emailErr)
+    }
+
+    if (branch) {
+      await prisma.userBranchAccess.create({
+        data: {
+          userId: user.id,
+          branchId: branch.id,
+          role: UserRole.ORG_ADMIN
+        }
+      })
+    }
 
     // Store designation role in Organization settings if org exists
     if (org && role) {
@@ -113,13 +317,13 @@ export async function POST(req: NextRequest) {
       ipAddress
     )
 
-    await sendOTP(phone, otpCode, OtpChannel.SMS)
+    await sendOTP(phone, otpCode, OtpChannel.SMS, OtpPurpose.SIGNUP)
 
     // 5. Create audit log
     await prisma.auditLog.create({
       data: {
         userId: user.id,
-        orgId: org ? org.id : null,
+        orgId: org.id,
         action: AuditAction.CREATE,
         entityType: 'USER',
         entityId: user.id,
@@ -136,9 +340,14 @@ export async function POST(req: NextRequest) {
       }
     }).catch(e => console.error('Failed to write registration audit log:', e))
 
+    // 6. Generate temporary token for automatic sign in (NextAuth PIN credentials path)
+    const tempToken = crypto.randomUUID()
+    await redis.set(`pin_auth_token:${tempToken}`, user.id, 'EX', 60)
+
     return NextResponse.json({
       success: true,
-      userId: user.id
+      userId: user.id,
+      token: tempToken
     })
 
   } catch (error: any) {

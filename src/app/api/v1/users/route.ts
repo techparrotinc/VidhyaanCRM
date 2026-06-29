@@ -5,6 +5,9 @@ import { Errors } from '@/lib/api/errors'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
 import { UserRole, UserStatus } from '@prisma/client'
+import { cleanPhoneNumber } from '@/lib/utils'
+import { redis } from '@/lib/redis'
+
 
 export const GET = route({
   roles: [
@@ -39,7 +42,7 @@ export const POST = route({
   handler: async ({ req, user }) => {
     const body = z.object({
       name: z.string().min(1),
-      phone: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number'),
+      phone: z.preprocess(cleanPhoneNumber, z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number')),
       email: z.string().email().optional().or(z.literal('')),
       role: z.enum([
         'BRANCH_ADMIN',
@@ -79,6 +82,9 @@ export const POST = route({
         status: 'INVITED' as UserStatus
       }
     })
+
+    // Invalidate counsellors cache
+    await redis.del(`counsellors:${user.orgId}`)
 
     return created({
       user: newUser,

@@ -65,6 +65,7 @@ enum OrgStatus {
   GRACE_PERIOD
   SUSPENDED
   CANCELLED
+  TRIAL_EXPIRED
 
   @@schema("platform")
 }
@@ -102,6 +103,9 @@ enum AuditAction {
   EXPORT
   MODULE_TOGGLE
   PERMISSION_CHANGE
+  PIN_SET
+  PIN_RESET
+  IMPERSONATION_START
 
   @@schema("platform")
 }
@@ -237,10 +241,10 @@ enum DocumentReviewStatus {
 
 enum StudentStatus {
   ACTIVE
-  INACTIVE
   ALUMNI
   TRANSFERRED
-  WITHDRAWN
+  SUSPENDED
+  DROPPED_OUT
 
   @@schema("crm")
 }
@@ -285,12 +289,44 @@ enum FeeFrequency {
   @@schema("crm")
 }
 
+enum InvoiceType {
+  TERM
+  ADHOC
+  COURSE
+
+  @@schema("crm")
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+
+  @@schema("crm")
+}
+
+enum CenterCategory {
+  MUSIC
+  DANCE
+  ART
+  ABACUS
+  COACHING
+  SPORTS
+  LANGUAGE
+  STEM
+  OTHER
+
+  @@schema("crm")
+}
+
 enum InvoiceStatus {
   UNPAID
   PARTIALLY_PAID
   PAID
   OVERDUE
   WAIVED
+  SCHEDULED
 
   @@schema("crm")
 }
@@ -337,21 +373,16 @@ enum CampaignStatus {
   DRAFT
   SCHEDULED
   SENDING
-  SENT
-  PAUSED
+  COMPLETED
   FAILED
-
   @@schema("crm")
 }
 
-enum RecipientStatus {
-  QUEUED
+enum CampaignSendStatus {
+  PENDING
   SENT
   DELIVERED
-  READ
   FAILED
-  OPTED_OUT
-
   @@schema("crm")
 }
 
@@ -510,6 +541,7 @@ model Organization {
   gstNumber        String?         @map("gst_number")
   status           OrgStatus       @default(PENDING_VERIFICATION)
   trialEndsAt      DateTime?       @map("trial_ends_at")
+  trialReminderSent DateTime?      @map("trial_reminder_sent")
   leadCap          Int             @default(10) @map("lead_cap") // free-plan cap, configurable by super admin
   planId           String?         @map("plan_id")
   settings         Json? // institution-type adaptive config, prefixes, thresholds
@@ -517,6 +549,7 @@ model Organization {
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
   deletedAt        DateTime?       @map("deleted_at")
+  centerCategory   String?         @map("center_category")
 
   plan                 Plan?                    @relation(fields: [planId], references: [id])
   branches             Branch[]
@@ -554,6 +587,10 @@ model Organization {
   notificationPrefs    NotificationPreference[]
   counsellorTargets    CounsellorTarget[]
   communicationLogs    CommunicationLog[]
+  terms                Term[]
+  courses              Course[]
+  courseEnrollments    CourseEnrollment[]
+  whatsappTemplates    WhatsappTemplate[]
 
   @@index([status])
   @@index([institutionType])
@@ -608,6 +645,7 @@ model User {
   role      UserRole
   status    UserStatus @default(ACTIVE)
   pinHash   String?    @map("pin_hash") // optional PIN for trusted devices
+  pinSetAt  DateTime?  @map("pin_set_at")
   lastLoginAt DateTime? @map("last_login_at")
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")
@@ -621,6 +659,7 @@ model User {
   communicationLogs CommunicationLog[]
   notificationPrefs NotificationPreference[]
   parent            Parent?
+  studentActivities  StudentActivity[]            @relation("StudentActivityPerformedBy")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -665,14 +704,15 @@ model Module {
 
 /// Per-org enablement of a module, toggled by Vidhyaan super admin.
 model OrganizationModule {
-  id        String    @id @default(cuid())
-  orgId     String    @map("org_id")
-  moduleId  String    @map("module_id")
-  enabled   Boolean   @default(false)
-  config    Json? // per-module limits/config (e.g., lead cap override)
-  enabledAt DateTime? @map("enabled_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  id         String    @id @default(cuid())
+  orgId      String    @map("org_id")
+  moduleId   String    @map("module_id")
+  enabled    Boolean   @default(false)
+  config     Json? // per-module limits/config (e.g., lead cap override)
+  enabledAt  DateTime? @map("enabled_at")
+  disabledAt DateTime? @map("disabled_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   module       Module       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
@@ -826,9 +866,14 @@ model School {
   dataSource         DataSource         @default(SCRAPED) @map("data_source")
   qualityScore       Int                @default(0) @map("quality_score") // data-completeness/quality 0-100
   claimedAt          DateTime?          @map("claimed_at")
+  verifiedAt         DateTime?          @map("verified_at")
+  rejectionReason    String?            @map("rejection_reason")
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
   deletedAt          DateTime?          @map("deleted_at")
+  centerCategory     String?            @map("center_category")
+  examFocus          String[]           @map("exam_focus")
+  mediumOfInstructionList String[]      @map("medium_of_instruction_list")
 
   // For Learning Centers
   trialClassAvailable   Boolean   @default(false) @map("trial_class_available")
@@ -850,6 +895,9 @@ model School {
   schoolType           String?            @map("school_type")
   gender               String?            @map("gender")
   gradesOffered        String?            @map("grades_offered")
+  academicYear         String?            @map("academic_year")
+  admissionDeadline    DateTime?          @map("admission_deadline")
+  admissionFormLink    String?            @map("admission_form_link")
   isManagedBySchool    Boolean            @default(false) @map("is_managed_by_school")
   isPublished          Boolean            @default(false) @map("is_published")
   isClaimed            Boolean            @default(false) @map("is_claimed")
@@ -1418,6 +1466,7 @@ model AcademicYear {
   events              Event[]
   campaigns           Campaign[]
   counsellorTargets   CounsellorTarget[]
+  terms               Term[]
 
   @@unique([orgId, name])
   @@index([orgId])
@@ -1450,6 +1499,15 @@ model Lead {
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
   deletedAt      DateTime?  @map("deleted_at")
+
+  childAge       Int?       @map("child_age")
+  currentSchool  String?    @map("current_school")
+  expectedJoinDate DateTime? @map("expected_join_date")
+  siblingInSchool Boolean?  @default(false) @map("sibling_in_school")
+  course         String?
+  batch          String?
+  studentAge     String?    @map("student_age")
+  startDate      DateTime?  @map("start_date")
 
   organization  Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch        Branch?        @relation(fields: [branchId], references: [id])
@@ -1521,6 +1579,7 @@ model Admission {
   stageId        String?         @map("stage_id")
   status         AdmissionStatus @default(IN_PROGRESS)
   applicantName  String          @map("applicant_name")
+  parentName     String?         @map("parent_name")
   gradeSought    String?         @map("grade_sought")
   phone          String?
   email          String?
@@ -1681,6 +1740,8 @@ model Student {
   concessions  Concession[]
   siblingLinksA SiblingLink[] @relation("SiblingPrimary")
   siblingLinksB SiblingLink[] @relation("SiblingRelated")
+  activities    StudentActivity[]
+  courseEnrollments CourseEnrollment[]
 
   @@unique([orgId, studentCode])
   @@index([orgId])
@@ -1689,6 +1750,24 @@ model Student {
   @@index([status])
   @@index([batchId])
   @@map("students")
+  @@schema("crm")
+}
+
+model StudentActivity {
+  id            String   @id @default(cuid())
+  studentId     String   @map("student_id")
+  type          ActivityType
+  summary       String
+  note          String?
+  performedById String?  @map("performed_by_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  performedBy   User?    @relation(name: "StudentActivityPerformedBy", fields: [performedById], references: [id])
+
+  @@index([studentId])
+  @@index([performedById])
+  @@map("student_activities")
   @@schema("crm")
 }
 
@@ -1759,13 +1838,15 @@ model SiblingLink {
 
 /// Reusable fee structure template (org-level).
 model FeePlanTemplate {
-  id        String    @id @default(cuid())
-  orgId     String    @map("org_id")
-  name      String
-  structure Json // array of { head, amount, frequency }
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id              String    @id @default(cuid())
+  orgId           String    @map("org_id")
+  name            String
+  gradeLabel      String?   @map("grade_label")
+  institutionType String?   @map("institution_type")
+  structure       Json // array of { head, amount, frequency }
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   feePlans     FeePlan[]
@@ -1814,7 +1895,12 @@ model Invoice {
   paidAmount     Decimal       @default(0) @map("paid_amount") @db.Decimal(12, 2)
   lateFeeAmount  Decimal       @default(0) @map("late_fee_amount") @db.Decimal(12, 2)
   status         InvoiceStatus @default(UNPAID)
+  invoiceType    InvoiceType   @default(ADHOC) @map("invoice_type")
+  termId         String?       @map("term_id")
+  courseId       String?       @map("course_id")
   dueDate        DateTime?     @map("due_date")
+  scheduledDate  DateTime?     @map("scheduled_date")
+  batchId        String?       @map("batch_id")
   notes          String?
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
@@ -1824,6 +1910,8 @@ model Invoice {
   branch       Branch?       @relation(fields: [branchId], references: [id])
   academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
   student      Student       @relation(fields: [studentId], references: [id])
+  term         Term?         @relation(fields: [termId], references: [id])
+  course       Course?       @relation(fields: [courseId], references: [id])
   items        InvoiceItem[]
   payments     Payment[]
   concessions  Concession[]
@@ -1833,6 +1921,9 @@ model Invoice {
   @@index([studentId])
   @@index([status])
   @@index([dueDate])
+  @@index([termId])
+  @@index([courseId])
+  @@index([batchId])
   @@map("invoices")
   @@schema("crm")
 }
@@ -1968,22 +2059,22 @@ model EventRsvp {
 
 /// Bulk outreach campaign (Email/SMS/WhatsApp via MSG91/Resend).
 model Campaign {
-  id             String         @id @default(cuid())
-  orgId          String         @map("org_id")
-  branchId       String?        @map("branch_id")
-  academicYearId String?        @map("academic_year_id")
+  id             String          @id @default(cuid())
+  orgId          String          @map("org_id")
+  branchId       String?         @map("branch_id")
+  academicYearId String?         @map("academic_year_id")
   name           String
   channel        CampaignChannel
-  status         CampaignStatus @default(DRAFT)
-  templateBody   String?        @map("template_body")
-  scheduledAt    DateTime?      @map("scheduled_at")
-  sentAt         DateTime?      @map("sent_at")
-  audienceFilter Json?          @map("audience_filter")
-  stats          Json? // sent/delivered/read counts
-  createdById    String?        @map("created_by_id") // soft reference
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
-  deletedAt      DateTime?      @map("deleted_at")
+  status         CampaignStatus  @default(DRAFT)
+  templateBody   String?         @map("template_body")
+  scheduledAt    DateTime?       @map("scheduled_at")
+  sentAt         DateTime?       @map("sent_at")
+  audienceFilter Json?           @map("audience_filter")
+  stats          Json?
+  createdById    String?         @map("created_by_id")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  deletedAt      DateTime?       @map("deleted_at")
 
   organization Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch       Branch?             @relation(fields: [branchId], references: [id])
@@ -1996,25 +2087,45 @@ model Campaign {
   @@schema("crm")
 }
 
-/// Individual recipient row for a campaign. Dependent child.
 model CampaignRecipient {
-  id           String          @id @default(cuid())
-  orgId        String          @map("org_id")
-  campaignId   String          @map("campaign_id")
-  recipientType String         @map("recipient_type") // LEAD, PARENT, STUDENT_GUARDIAN
-  recipientId  String?         @map("recipient_id") // soft reference
-  contact      String // phone/email used
-  status       RecipientStatus @default(QUEUED)
-  providerRef  String?         @map("provider_ref")
-  sentAt       DateTime?       @map("sent_at")
-  createdAt    DateTime        @default(now()) @map("created_at")
+  id            String               @id @default(cuid())
+  orgId         String               @map("org_id")
+  campaignId    String               @map("campaign_id")
+  recipientType String               @map("recipient_type")
+  recipientId   String?              @map("recipient_id")
+  name          String?
+  phone         String?
+  email         String?
+  status        CampaignSendStatus   @default(PENDING)
+  sentAt        DateTime?            @map("sent_at")
+  deliveredAt   DateTime?            @map("delivered_at")
+  failureReason String?              @map("failure_reason")
+  createdAt     DateTime             @default(now()) @map("created_at")
 
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
   @@index([campaignId])
-  @@index([status])
   @@map("campaign_recipients")
+  @@schema("crm")
+}
+
+/// DLT-approved WhatsApp templates saved by org admin.
+model WhatsappTemplate {
+  id               String    @id @default(cuid())
+  orgId            String    @map("org_id")
+  name             String
+  msg91TemplateId  String    @map("msg91_template_id")
+  body             String
+  createdById      String?   @map("created_by_id")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@map("whatsapp_templates")
   @@schema("crm")
 }
 
@@ -2029,6 +2140,7 @@ model Notification {
   body         String?
   data         Json?
   readAt       DateTime?           @map("read_at")
+  deletedAt    DateTime?           @map("deleted_at")
   createdAt    DateTime            @default(now()) @map("created_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -2145,17 +2257,20 @@ model NotificationQueue {
 
 /// Subscription plan catalog (canonical; referenced by platform.organizations).
 model Plan {
-  id           String    @id @default(cuid())
-  slug         String    @unique // free, growth, pro, enterprise
-  name         String
-  description  String?
-  monthlyPrice Decimal   @map("monthly_price") @db.Decimal(12, 2)
-  leadCap      Int?      @map("lead_cap") // null = unlimited
-  isPublic     Boolean   @default(true) @map("is_public")
-  sortOrder    Int       @default(0) @map("sort_order")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  deletedAt    DateTime? @map("deleted_at")
+  id             String    @id @default(cuid())
+  slug           String    @unique // free, growth, pro, enterprise
+  name           String
+  description    String?
+  monthlyPrice   Decimal   @map("monthly_price") @db.Decimal(12, 2)
+  quarterlyPrice Decimal?  @map("quarterly_price") @db.Decimal(12, 2)
+  annualPrice    Decimal?  @map("annual_price") @db.Decimal(12, 2)
+  leadCap        Int?      @map("lead_cap") // null = unlimited
+  isPublic       Boolean   @default(true) @map("is_public")
+  isActive       Boolean   @default(true) @map("is_active")
+  sortOrder      Int       @default(0) @map("sort_order")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
 
   organizations Organization[]
   planModules   PlanModule[]
@@ -2268,4 +2383,100 @@ model Referral {
   @@index([status])
   @@map("referrals")
   @@schema("billing")
+}
+
+model PlatformSettings {
+  id                      String   @id @default("default")
+  freePlanLeadCap         Int      @default(10) @map("free_plan_lead_cap")
+  trialDurationDays       Int      @default(7) @map("trial_duration_days")
+  defaultOtpTtlMinutes    Int      @default(10) @map("default_otp_ttl_minutes")
+  enableWhatsapp          Boolean  @default(false) @map("enable_whatsapp")
+  enableCampaignModule    Boolean  @default(false) @map("enable_campaign_module")
+  enableAiFeatures        Boolean  @default(false) @map("enable_ai_features")
+  enablePublicApiAccess   Boolean  @default(false) @map("enable_public_api_access")
+  maintenanceMode         Boolean  @default(false) @map("maintenance_mode")
+  fromEmailAddress        String?  @map("from_email_address")
+  supportEmail            String?  @map("support_email")
+  fromName                String?  @map("from_name")
+  opsAlertEmail           String?  @map("ops_alert_email")
+  slackWebhookUrl         String?  @map("slack_webhook_url")
+  razorpayLiveKey         String?  @map("razorpay_live_key")
+  razorpayWebhookSecret   String?  @map("razorpay_webhook_secret")
+  doSpacesEndpoint        String?  @map("do_spaces_endpoint")
+  doSpacesBucket          String?  @map("do_spaces_bucket")
+  doSpacesCdnUrl          String?  @map("do_spaces_cdn_url")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
+  @@schema("platform")
+}
+
+model Term {
+  id             String    @id @default(cuid())
+  orgId          String    @map("org_id")
+  academicYearId String    @map("academic_year_id")
+  name           String
+  startDate      DateTime  @map("start_date")
+  endDate        DateTime  @map("end_date")
+  order          Int       @default(0)
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  invoices       Invoice[]
+
+  @@index([orgId])
+  @@index([academicYearId])
+  @@map("terms")
+  @@schema("crm")
+}
+
+model Course {
+  id            String        @id @default(cuid())
+  orgId         String        @map("org_id")
+  name          String
+  description   String?
+  category      CenterCategory?
+  amount        Decimal       @db.Decimal(10, 2)
+  frequency     FeeFrequency  @default(MONTHLY)
+  billingDay    Int           @default(1) @map("billing_day")
+  durationMonths Int?         @map("duration_months")
+  isActive      Boolean       @default(true) @map("is_active")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  deletedAt     DateTime?     @map("deleted_at")
+
+  organization  Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  enrollments   CourseEnrollment[]
+  invoices      Invoice[]
+
+  @@index([orgId])
+  @@map("courses")
+  @@schema("crm")
+}
+
+model CourseEnrollment {
+  id          String           @id @default(cuid())
+  orgId       String           @map("org_id")
+  studentId   String           @map("student_id")
+  courseId    String           @map("course_id")
+  startDate   DateTime         @map("start_date")
+  endDate     DateTime?        @map("end_date")
+  status      EnrollmentStatus @default(ACTIVE)
+  nextBillingDate DateTime?    @map("next_billing_date")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  organization Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  student      Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course       Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+  @@index([orgId])
+  @@index([studentId])
+  @@index([courseId])
+  @@map("course_enrollments")
+  @@schema("crm")
 }

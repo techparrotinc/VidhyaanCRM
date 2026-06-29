@@ -9,7 +9,7 @@ import { signIn } from 'next-auth/react'
 export default function ParentVerifyOtpPage() {
   const router = useRouter()
   const [phone, setPhone] = useState('')
-  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', ''])
+  const [otp, setOtp] = useState<string[]>(['', '', '', ''])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -74,7 +74,7 @@ export default function ParentVerifyOtpPage() {
     newOtp[index] = digit
     setOtp(newOtp)
 
-    if (digit && index < 5) {
+    if (digit && index < 3) {
       inputRefs.current[index + 1]?.focus()
     }
   }
@@ -95,18 +95,18 @@ export default function ParentVerifyOtpPage() {
 
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault()
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4)
     if (!pastedData) return
 
     const newOtp = [...otp]
-    for (let j = 0; j < 6; j++) {
+    for (let j = 0; j < 4; j++) {
       if (j < pastedData.length) {
         newOtp[j] = pastedData[j]
       }
     }
     setOtp(newOtp)
 
-    const focusIndex = Math.min(pastedData.length, 5)
+    const focusIndex = Math.min(pastedData.length, 3)
     inputRefs.current[focusIndex]?.focus()
   }
 
@@ -132,7 +132,7 @@ export default function ParentVerifyOtpPage() {
       setSuccess('OTP resent successfully!')
       setExpiresIn(data.expiresIn || 600)
       setResendCooldown(30)
-      setOtp(['', '', '', '', '', ''])
+      setOtp(['', '', '', ''])
       setTimeout(() => inputRefs.current[0]?.focus(), 50)
     } catch (err) {
       console.error(err)
@@ -148,8 +148,8 @@ export default function ParentVerifyOtpPage() {
     setSuccess(null)
 
     const otpCode = otp.join('')
-    if (otpCode.length < 6) {
-      setError('Please fill in all 6 OTP digits')
+    if (otpCode.length < 4) {
+      setError('Please fill in all 4 OTP digits')
       return
     }
 
@@ -164,7 +164,7 @@ export default function ParentVerifyOtpPage() {
 
       if (res?.error) {
         setError('Invalid or expired OTP')
-        setOtp(['', '', '', '', '', ''])
+        setOtp(['', '', '', ''])
         inputRefs.current[0]?.focus()
         return
       }
@@ -181,7 +181,7 @@ export default function ParentVerifyOtpPage() {
     }
   }
 
-  const otpIsComplete = otp.join('').length === 6
+  const otpIsComplete = otp.join('').length === 4
 
   return (
     <main className="min-h-screen w-full flex items-center justify-center bg-[#F1F5F9] font-sans antialiased px-4">

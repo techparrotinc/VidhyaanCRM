@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
+import { OtpPurpose } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { cleanPhoneNumber } from '@/lib/utils'
 
 export async function GET(req: NextRequest) {
   try {
@@ -59,7 +61,9 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { name, email, city, phone } = body
+    const { name, email, city, phone: rawPhone } = body
+    const phone = rawPhone ? (cleanPhoneNumber(rawPhone) as string) : undefined
+
 
     if (!name || name.trim().length < 2) {
       return NextResponse.json(
@@ -112,11 +116,10 @@ export async function PUT(req: NextRequest) {
       if (!code) {
         // Send OTP code
         const channel = 'SMS'
-        const purpose = 'SIGNUP'
         const ipAddress = req.headers.get('x-forwarded-for') ?? undefined
 
-        const otpCode = await createOTP(phone, channel, purpose, ipAddress)
-        await sendOTP(phone, otpCode, channel)
+        const otpCode = await createOTP(phone, channel, OtpPurpose.SIGNUP, ipAddress)
+        await sendOTP(phone, otpCode, channel, OtpPurpose.SIGNUP)
 
         return NextResponse.json({
           success: true,

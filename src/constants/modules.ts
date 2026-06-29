@@ -11,7 +11,8 @@ export const MODULES = {
   ADMISSION_WORKFLOW: 'admission_workflow',
   STUDENT_LIFECYCLE: 'student_lifecycle',
   API_ACCESS: 'api_access',
-  CUSTOM_DOMAIN: 'custom_domain'
+  CUSTOM_DOMAIN: 'custom_domain',
+  WHATSAPP_ADDON: 'whatsapp_addon'
 } as const
 
 export type ModuleSlug = typeof MODULES[keyof typeof MODULES]

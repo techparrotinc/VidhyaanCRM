@@ -9,7 +9,7 @@ const MESSAGES = [
   "Fetching lead information...",
   "Preparing fee overview...",
   "Syncing student data...",
-  "Loading your school profile...",
+  "Loading your institution profile...",
   "Fetching calendar events...",
   "Preparing reports...",
   "Loading counsellor assignments...",

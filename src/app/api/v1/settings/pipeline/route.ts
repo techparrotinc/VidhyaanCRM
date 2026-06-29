@@ -2,6 +2,8 @@ import { z } from 'zod'
 import { route } from '@/lib/api/compose'
 import { ok, created } from '@/lib/api/respond'
 import { ROLES } from '@/constants/roles'
+import { NextResponse } from 'next/server'
+import { redis } from '@/lib/redis'
 
 export const GET = route({
   roles: [
@@ -9,11 +11,29 @@ export const GET = route({
     ROLES.BRANCH_ADMIN
   ],
   handler: async ({ db, user }) => {
+    const cacheKey = `pipeline:${user.orgId}`
+    const cached = await redis.get(cacheKey)
+    if (cached) {
+      const parsed = JSON.parse(cached)
+      return NextResponse.json({
+        success: true,
+        stages: parsed,
+        data: parsed
+      })
+    }
+
     const stages = await db.admissionStage.findMany({
       where: { orgId: user.orgId },
       orderBy: { sortOrder: 'asc' }
     })
-    return ok(stages)
+
+    await redis.set(cacheKey, JSON.stringify(stages), 'EX', 300)
+
+    return NextResponse.json({
+      success: true,
+      stages,
+      data: stages
+    })
   }
 })
 
@@ -44,6 +64,9 @@ export const POST = route({
         isLost: false
       }
     })
+
+    // Invalidate settings cache
+    await redis.del(`pipeline:${user.orgId}`)
 
     return created(stage)
   }

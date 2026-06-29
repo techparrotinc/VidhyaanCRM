@@ -5,6 +5,7 @@ import { Errors } from '@/lib/api/errors'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
 import { UserRole, UserStatus } from '@prisma/client'
+import { redis } from '@/lib/redis'
 
 export const GET = route({
   roles: [ROLES.ORG_ADMIN],
@@ -83,6 +84,9 @@ export const PUT = route({
       }
     })
 
+    // Invalidate counsellors cache
+    await redis.del(`counsellors:${user.orgId}`)
+
     return ok(updated)
   }
 })
@@ -117,6 +121,9 @@ export const DELETE = route({
         deletedAt: new Date()
       }
     })
+
+    // Invalidate counsellors cache
+    await redis.del(`counsellors:${user.orgId}`)
 
     return ok({
       deactivated: true,

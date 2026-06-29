@@ -3,6 +3,15 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, AlertCircle } from 'lucide-react'
+import {
+  INSTITUTION_CONFIG,
+  CENTER_CATEGORIES,
+  EXAM_FOCUS_OPTIONS,
+  INDIAN_LANGUAGES,
+  type InstitutionType,
+} from '@/constants/institutionConfig'
+import { LanguageTagInput } from '@/components/ui/LanguageTagInput'
+import { ExamFocusTagInput } from '@/components/ui/ExamFocusTagInput'
 
 const institutionTypes = [
   { value: 'SCHOOL', label: 'School' },
@@ -10,16 +19,6 @@ const institutionTypes = [
   { value: 'JUNIOR_COLLEGE', label: 'Junior College' },
   { value: 'COACHING_CENTER', label: 'Coaching Center' }
 ]
-
-const schoolTypes = [
-  'Private School',
-  'Government School',
-  'Government-Aided School',
-  'International School',
-  'Special Education'
-]
-
-const languages = ['English', 'Tamil', 'Hindi', 'Other']
 
 const grades = [
   'Playgroup', 'Nursery', 'LKG', 'UKG',
@@ -37,7 +36,9 @@ export default function OnboardingStep1() {
   // Form Fields
   const [name, setName] = useState('')
   const [institutionType, setInstitutionType] = useState('SCHOOL')
-  const [schoolType, setSchoolType] = useState('Private School')
+  const [schoolType, setSchoolType] = useState('PRIVATE')
+  const [centerCategory, setCenterCategory] = useState('')
+  const [examFocus, setExamFocus] = useState<string[]>([])
   const [establishedYear, setEstablishedYear] = useState('')
   const [description, setDescription] = useState('')
   const [totalStudents, setTotalStudents] = useState('')
@@ -46,6 +47,10 @@ export default function OnboardingStep1() {
   const [gender, setGender] = useState('Co-Educational')
   const [gradeFrom, setGradeFrom] = useState('LKG')
   const [gradeTo, setGradeTo] = useState('Class 10')
+
+  const config = INSTITUTION_CONFIG[
+    institutionType as InstitutionType
+  ] ?? INSTITUTION_CONFIG['SCHOOL']
 
   useEffect(() => {
     // Fetch onboarding status to prefill details
@@ -56,7 +61,9 @@ export default function OnboardingStep1() {
           const s = data.school
           setName(s.name || '')
           setInstitutionType(s.institutionType || 'SCHOOL')
-          setSchoolType(s.schoolType || 'Private School')
+          setSchoolType(s.schoolType || 'PRIVATE')
+          setCenterCategory(s.centerCategory || '')
+          setExamFocus(s.examFocus || [])
           setEstablishedYear(s.establishedYear ? s.establishedYear.toString() : '')
           setDescription(s.description || '')
           setTotalStudents(s.totalStudents ? s.totalStudents.toString() : '')
@@ -78,17 +85,21 @@ export default function OnboardingStep1() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleLangToggle = (lang: string) => {
-    setMediumOfInstruction((prev) =>
-      prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
-    )
-  }
+  // Update school type if institution type changes and makes previous value invalid
+  useEffect(() => {
+    if (config.showSchoolType && config.schoolTypeOptions.length > 0) {
+      const isValid = config.schoolTypeOptions.some(opt => opt.value === schoolType)
+      if (!isValid) {
+        setSchoolType(config.schoolTypeOptions[0].value)
+      }
+    }
+  }, [institutionType, config])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    if (!name || !institutionType || !schoolType || !establishedYear) {
+    if (!name || !institutionType || (config.showSchoolType && !schoolType) || (config.showCenterCategory && !centerCategory) || !establishedYear) {
       setError('Please fill in all required fields')
       return
     }
@@ -111,15 +122,17 @@ export default function OnboardingStep1() {
           data: {
             name,
             institutionType,
-            schoolType,
+            schoolType: config.showSchoolType ? schoolType : null,
+            centerCategory: config.showCenterCategory ? centerCategory : null,
+            examFocus: config.showExamFocus ? examFocus : [],
             establishedYear: yearNum,
             description,
             totalStudents: totalStudents ? parseInt(totalStudents) : null,
             totalTeachers: totalTeachers ? parseInt(totalTeachers) : null,
-            mediumOfInstruction,
-            gender,
-            gradeFrom,
-            gradeTo
+            mediumOfInstruction: config.showMediumOfInstruction ? mediumOfInstruction : [],
+            gender: config.showGender ? gender : null,
+            gradeFrom: config.showGradesOffered ? (config.gradesLocked ? 'Class 11' : gradeFrom) : null,
+            gradeTo: config.showGradesOffered ? (config.gradesLocked ? 'Class 12' : gradeTo) : null
           }
         })
       })
@@ -151,7 +164,7 @@ export default function OnboardingStep1() {
     <div className="space-y-6 flex-1 flex flex-col justify-between">
       <div>
         <div className="space-y-1 mb-6">
-          <h2 className="text-2xl font-extrabold text-slate-800">Tell us about your school</h2>
+          <h1 className="text-2xl font-extrabold text-slate-800">{config.headingLabel}</h1>
           <p className="text-sm text-slate-500">This information will appear on your public profile</p>
         </div>
 
@@ -166,7 +179,7 @@ export default function OnboardingStep1() {
           {/* School Name */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              School / Center Name <span className="text-red-500">*</span>
+              {config.nameFieldLabel.toUpperCase()} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -204,22 +217,45 @@ export default function OnboardingStep1() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* School Type Dropdown */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                School Type <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={schoolType}
-                onChange={(e) => setSchoolType(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
-              >
-                {schoolTypes.map((st) => (
-                  <option key={st} value={st}>
-                    {st}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {config.showSchoolType && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  School Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={schoolType}
+                  onChange={(e) => setSchoolType(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
+                >
+                  {config.schoolTypeOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Center Category Dropdown */}
+            {config.showCenterCategory && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Center Category <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={centerCategory}
+                  onChange={(e) => setCenterCategory(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer bg-white"
+                >
+                  <option value="">Select category...</option>
+                  {CENTER_CATEGORIES.map(cat => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Year Established */}
             <div className="space-y-1.5">
@@ -238,6 +274,24 @@ export default function OnboardingStep1() {
               />
             </div>
           </div>
+
+          {/* Exam Focus field */}
+          {config.showExamFocus && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                EXAM / COURSE FOCUS
+                <span className="text-slate-400 font-normal ml-1">(optional)</span>
+              </label>
+              <ExamFocusTagInput
+                value={examFocus ?? []}
+                onChange={(vals) => setExamFocus(vals)}
+                options={EXAM_FOCUS_OPTIONS}
+              />
+              <p className="text-xs text-slate-400 mt-0.5">
+                Select all that apply — helps students find your center
+              </p>
+            </div>
+          )}
 
           {/* School Description */}
           <div className="space-y-1.5">
@@ -275,7 +329,7 @@ export default function OnboardingStep1() {
             {/* Total Teachers */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Total Teachers <span className="text-slate-400 font-medium">(Optional)</span>
+                {config.teacherLabel} <span className="text-slate-400 font-medium">(Optional)</span>
               </label>
               <input
                 type="number"
@@ -288,79 +342,83 @@ export default function OnboardingStep1() {
           </div>
 
           {/* Medium of Instruction Checkboxes */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Medium of Instruction
-            </label>
-            <div className="flex flex-wrap gap-4 pt-1">
-              {languages.map((l) => (
-                <label key={l} className="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={mediumOfInstruction.includes(l)}
-                    onChange={() => handleLangToggle(l)}
-                    className="w-4.5 h-4.5 rounded text-[#1565D8] border-slate-300 focus:ring-[#1565D8]"
-                  />
-                  <span>{l}</span>
-                </label>
-              ))}
+          {config.showMediumOfInstruction && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                MEDIUM OF INSTRUCTION
+              </label>
+              <LanguageTagInput
+                value={mediumOfInstruction ?? []}
+                onChange={(vals) => setMediumOfInstruction(vals)}
+                options={INDIAN_LANGUAGES}
+              />
             </div>
-          </div>
+          )}
 
           {/* Gender Radio Buttons */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Gender
-            </label>
-            <div className="flex flex-wrap gap-5 pt-1">
-              {['Co-Educational', 'Boys Only', 'Girls Only'].map((g) => (
-                <label key={g} className="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer select-none">
-                  <input
-                    type="radio"
-                    name="gender"
-                    checked={gender === g}
-                    onChange={() => setGender(g)}
-                    className="w-4.5 h-4.5 text-[#1565D8] border-slate-300 focus:ring-[#1565D8]"
-                  />
-                  <span>{g}</span>
-                </label>
-              ))}
+          {config.showGender && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Gender
+              </label>
+              <div className="flex flex-wrap gap-5 pt-1">
+                {['Co-Educational', 'Boys Only', 'Girls Only'].map((g) => (
+                  <label key={g} className="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer select-none">
+                    <input
+                      type="radio"
+                      name="gender"
+                      checked={gender === g}
+                      onChange={() => setGender(g)}
+                      className="w-4.5 h-4.5 text-[#1565D8] border-slate-300 focus:ring-[#1565D8]"
+                    />
+                    <span>{g}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Grades Offered Dropdowns */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Grades Offered
-            </label>
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">From</span>
-                <select
-                  value={gradeFrom}
-                  onChange={(e) => setGradeFrom(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] text-xs cursor-pointer"
-                >
-                  {grades.map((g) => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </div>
-              <span className="text-slate-400 font-bold self-end pb-3 text-sm">to</span>
-              <div className="flex-1">
-                <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">To</span>
-                <select
-                  value={gradeTo}
-                  onChange={(e) => setGradeTo(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] text-xs cursor-pointer"
-                >
-                  {grades.map((g) => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </div>
+          {config.showGradesOffered && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Grades Offered
+              </label>
+              {config.gradesLocked ? (
+                <div className="px-3 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm text-slate-600">
+                  {config.lockedGradeLabel}
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">From</span>
+                    <select
+                      value={gradeFrom}
+                      onChange={(e) => setGradeFrom(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] text-xs cursor-pointer"
+                    >
+                      {grades.map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <span className="text-slate-400 font-bold self-end pb-3 text-sm">to</span>
+                  <div className="flex-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">To</span>
+                    <select
+                      value={gradeTo}
+                      onChange={(e) => setGradeTo(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] text-xs cursor-pointer"
+                    >
+                      {grades.map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </form>
       </div>
 

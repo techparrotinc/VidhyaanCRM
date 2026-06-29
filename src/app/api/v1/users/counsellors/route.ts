@@ -2,6 +2,8 @@ import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
+import { NextResponse } from 'next/server'
+import { redis } from '@/lib/redis'
 
 export const GET = route({
   roles: [
@@ -11,6 +13,17 @@ export const GET = route({
     ROLES.RECEPTIONIST
   ],
   handler: async ({ user }) => {
+    const cacheKey = `counsellors:${user.orgId}`
+    const cached = await redis.get(cacheKey)
+    if (cached) {
+      const parsed = JSON.parse(cached)
+      return NextResponse.json({
+        success: true,
+        counsellors: parsed,
+        data: parsed
+      })
+    }
+
     const counsellors = await prisma.user.findMany({
       where: {
         orgId: user.orgId,
@@ -34,6 +47,12 @@ export const GET = route({
       orderBy: { name: 'asc' }
     })
 
-    return ok(counsellors)
+    await redis.set(cacheKey, JSON.stringify(counsellors), 'EX', 120)
+
+    return NextResponse.json({
+      success: true,
+      counsellors,
+      data: counsellors
+    })
   }
 })

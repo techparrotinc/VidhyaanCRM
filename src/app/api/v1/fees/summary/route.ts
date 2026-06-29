@@ -2,7 +2,7 @@ import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
-import { InvoiceStatus, PaymentStatus } from '@prisma/client'
+import { startOfMonth, endOfMonth, parseISO } from 'date-fns'
 
 export const GET = route({
   module: MODULES.FEE_MANAGEMENT,
@@ -11,81 +11,98 @@ export const GET = route({
     ROLES.BRANCH_ADMIN,
     ROLES.ACCOUNTANT
   ],
-  handler: async ({ db, user }) => {
-    const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+  handler: async ({ req, db, user, academicYearId }) => {
+    const { searchParams } = new URL(req.url)
+    const termId = searchParams.get('termId') ?? undefined
+    const month = searchParams.get('month') ?? undefined
+    const courseId = searchParams.get('courseId') ?? undefined
+    const gradeLabel = searchParams.get('gradeLabel') ?? undefined
+    const status = searchParams.get('status') ?? undefined
+    const studentId = searchParams.get('studentId') ?? undefined
+
+    const baseWhere: any = {
+      orgId: user.orgId,
+      deletedAt: null
+    }
+    if (studentId) {
+      baseWhere.studentId = studentId
+    }
+    if (academicYearId) {
+      baseWhere.academicYearId = academicYearId
+    }
+    if (termId && termId !== 'all') {
+      baseWhere.termId = termId
+    }
+    if (courseId && courseId !== 'all') {
+      baseWhere.courseId = courseId
+    }
+    if (gradeLabel && gradeLabel !== 'all') {
+      baseWhere.student = {
+        gradeLabel
+      }
+    }
+    if (month) {
+      baseWhere.createdAt = {
+        gte: startOfMonth(parseISO(month + '-01')),
+        lte: endOfMonth(parseISO(month + '-01'))
+      }
+    }
+
+    const where = { ...baseWhere }
+    if (status && status !== '') {
+      where.status = status
+    }
 
     const [
-      collected,
-      overdue,
-      upcoming,
-      paidCount,
-      overdueCount,
-      dueSoonCount
+      totalInvoices,
+      statusCounts,
+      totalCollected,
+      totalOutstanding
     ] = await Promise.all([
+      db.invoice.count({ where }),
+      db.invoice.groupBy({
+        by: ['status'],
+        where: baseWhere,
+        _count: { id: true }
+      }),
       db.payment.aggregate({
         where: {
-          status: 'SUCCESS' as PaymentStatus,
-          paidAt: {
-            gte: startOfMonth,
-            lte: endOfMonth
-          }
+          orgId: user.orgId,
+          status: 'SUCCESS',
+          deletedAt: null,
+          invoice: baseWhere
         },
         _sum: { amount: true }
       }),
       db.invoice.aggregate({
         where: {
-          status: 'OVERDUE' as InvoiceStatus,
-          deletedAt: null
+          ...baseWhere,
+          status: {
+            in: ['UNPAID', 'PARTIALLY_PAID', 'OVERDUE', 'SCHEDULED']
+          }
         },
-        _sum: { totalAmount: true }
-      }),
-      db.invoice.aggregate({
-        where: {
-          status: 'UNPAID' as InvoiceStatus,
-          dueDate: {
-            gte: now,
-            lte: next7Days
-          },
-          deletedAt: null
-        },
-        _sum: { totalAmount: true }
-      }),
-      db.invoice.count({
-        where: {
-          status: 'PAID' as InvoiceStatus,
-          deletedAt: null
-        }
-      }),
-      db.invoice.count({
-        where: {
-          status: 'OVERDUE' as InvoiceStatus,
-          deletedAt: null
-        }
-      }),
-      db.invoice.count({
-        where: {
-          status: 'UNPAID' as InvoiceStatus,
-          dueDate: {
-            gte: now,
-            lte: next7Days
-          },
-          deletedAt: null
+        _sum: {
+          totalAmount: true,
+          paidAmount: true
         }
       })
     ])
 
+    const outstanding =
+      Number(totalOutstanding._sum.totalAmount ?? 0) -
+      Number(totalOutstanding._sum.paidAmount ?? 0)
+
     return ok({
-      collected: Number(collected._sum.amount ?? 0),
-      overdue: Number(overdue._sum.totalAmount ?? 0),
-      upcoming: Number(upcoming._sum.totalAmount ?? 0),
-      students: {
-        paid: paidCount,
-        overdue: overdueCount,
-        dueSoon: dueSoonCount
-      }
+      totalInvoices,
+      collected: Number(totalCollected._sum.amount ?? 0),
+      outstanding,
+      statusCounts: statusCounts.reduce(
+        (acc, s) => ({
+          ...acc,
+          [s.status]: s._count.id
+        }),
+        {} as Record<string, number>
+      )
     })
   }
 })

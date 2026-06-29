@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { ok, errorResponse } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
+import { redis } from '@/lib/redis'
 import { z } from 'zod'
 
 export async function GET(
@@ -92,6 +93,7 @@ export async function PUT(
       throw Errors.notFound('Module')
     }
 
+    const now = new Date()
     const updated = await prisma.organizationModule.upsert({
       where: {
         orgId_moduleId: {
@@ -103,11 +105,13 @@ export async function PUT(
         orgId: id,
         moduleId: moduleRecord.id,
         enabled: body.isEnabled,
-        enabledAt: body.isEnabled ? new Date() : null
+        enabledAt: body.isEnabled ? now : null,
+        disabledAt: !body.isEnabled ? now : null
       },
       update: {
         enabled: body.isEnabled,
-        enabledAt: body.isEnabled ? new Date() : null
+        enabledAt: body.isEnabled ? now : undefined,
+        disabledAt: !body.isEnabled ? now : undefined
       }
     })
 
@@ -123,7 +127,117 @@ export async function PUT(
       }
     })
 
+    // Invalidate module cache
+    try {
+      await redis.del(`org:${id}:module:${body.moduleSlug}`)
+    } catch (err) {
+      console.error('Failed to invalidate module cache:', err)
+    }
+
     return ok(updated)
+
+  } catch (error) {
+    return errorResponse(error)
+  }
+}
+
+export async function POST(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth()
+    if (!session?.user) {
+      throw Errors.unauthenticated()
+    }
+
+    const platformRoles = ['SUPER_ADMIN', 'OPERATIONS_ADMIN']
+    if (!platformRoles.includes(session.user.role)) {
+      throw Errors.forbidden('Platform admin write access required')
+    }
+
+    const { id } = await context.params
+
+    const body = z.object({
+      modules: z.array(
+        z.object({
+          slug: z.string(),
+          isEnabled: z.boolean()
+        })
+      )
+    }).parse(await req.json())
+
+    const org = await prisma.organization.findUnique({
+      where: { id }
+    })
+
+    if (!org) {
+      throw Errors.notFound('Organization')
+    }
+
+    const now = new Date()
+    const results = await Promise.all(
+      body.modules.map(async (mod) => {
+        const moduleRecord = await prisma.module.findUnique({
+          where: { slug: mod.slug }
+        })
+        if (!moduleRecord) {
+          throw Errors.notFound(`Module with slug ${mod.slug}`)
+        }
+
+        const updated = await prisma.organizationModule.upsert({
+          where: {
+            orgId_moduleId: {
+              orgId: id,
+              moduleId: moduleRecord.id
+            }
+          },
+          create: {
+            orgId: id,
+            moduleId: moduleRecord.id,
+            enabled: mod.isEnabled,
+            enabledAt: mod.isEnabled ? now : null,
+            disabledAt: !mod.isEnabled ? now : null
+          },
+          update: {
+            enabled: mod.isEnabled,
+            enabledAt: mod.isEnabled ? now : undefined,
+            disabledAt: !mod.isEnabled ? now : undefined
+          }
+        })
+
+        return {
+          id: updated.id,
+          slug: mod.slug,
+          enabled: updated.enabled,
+          enabledAt: updated.enabledAt,
+          disabledAt: updated.disabledAt
+        }
+      })
+    )
+
+    // Log audit log for bulk module toggle
+    await prisma.auditLog.create({
+      data: {
+        orgId: id,
+        userId: session.user.id,
+        action: 'MODULE_TOGGLE',
+        entityType: 'OrganizationModule',
+        entityId: id,
+        after: { modules: body.modules }
+      }
+    })
+
+    // Invalidate module caches
+    try {
+      await Promise.all(
+        body.modules.map(mod => redis.del(`org:${id}:module:${mod.slug}`))
+      )
+    } catch (err) {
+      console.error('Failed to invalidate module caches:', err)
+    }
+
+    return ok(results)
 
   } catch (error) {
     return errorResponse(error)

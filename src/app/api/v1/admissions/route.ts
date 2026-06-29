@@ -1,10 +1,11 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { route } from '@/lib/api/compose'
 import { ok, created, paginated } from '@/lib/api/respond'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
+import { redis } from '@/lib/redis'
 
 export const GET = route({
   module: MODULES.ADMISSION_MANAGEMENT,
@@ -14,41 +15,64 @@ export const GET = route({
     ROLES.COUNSELLOR,
     ROLES.RECEPTIONIST
   ],
-  handler: async ({ req, db }) => {
+  handler: async ({ req, db, user }) => {
     const { searchParams } = new URL(req.url)
 
     const page = Number(searchParams.get('page') ?? 1)
-    const limit = Number(searchParams.get('limit') ?? 10)
-    const stageId = searchParams.get('stageId') ?? undefined
-    const counsellorId = searchParams.get('counsellorId') ?? undefined
+    const limit = Number(searchParams.get('limit') ?? 25)
+    const stageId = searchParams.get('stageId')
+    const assignedToId = searchParams.get('assignedToId') ?? searchParams.get('counsellorId') ?? undefined
+    const priority = searchParams.get('priority') ?? undefined
+    const dateFrom = searchParams.get('dateFrom') ?? undefined
+    const status = searchParams.get('status') ?? undefined
     const search = searchParams.get('search') ?? undefined
     const academicYearId = searchParams.get('academicYearId') ?? undefined
 
     const skip = (page - 1) * limit
 
-    const where: any = {}
-    if (stageId) where.stageId = stageId
-    if (counsellorId) {
-      where.assignedToId = counsellorId
-    }
-    if (academicYearId) {
-      where.academicYearId = academicYearId
-    }
-    if (search) {
-      where.OR = [
-        {
-          applicantName: {
-            contains: search,
-            mode: 'insensitive'
-          }
-        },
-        { phone: { contains: search } },
-        {
-          admissionCode: {
-            contains: search
-          }
+    const where: any = {
+      orgId: user.orgId,
+      deletedAt: null,
+      ...(stageId && {
+        stageId: stageId
+      }),
+      ...(search && {
+        OR: [
+          { applicantName: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          },
+          { admissionCode: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          },
+          { phone: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          },
+        ]
+      }),
+      ...(assignedToId && {
+        assignedToId
+      }),
+      ...(priority && {
+        lead: {
+          priority: priority as any
         }
-      ]
+      }),
+      ...(dateFrom && {
+        createdAt: { gte: new Date(dateFrom) }
+      }),
+      ...(status && { status }),
+      ...(academicYearId && {
+        OR: [
+          { academicYearId: academicYearId },
+          { academicYearId: null }
+        ]
+      }),
     }
 
     const [admissions, total] = await Promise.all([
@@ -57,7 +81,22 @@ export const GET = route({
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
+        select: {
+          id: true,
+          admissionCode: true,
+          applicantName: true,
+          parentName: true,
+          phone: true,
+          email: true,
+          gradeSought: true,
+          status: true,
+          stageId: true,
+          createdAt: true,
+          lead: {
+            select: {
+              priority: true
+            }
+          },
           stage: {
             select: {
               id: true,
@@ -73,8 +112,17 @@ export const GET = route({
               name: true
             }
           },
+          academicYear: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
           _count: {
-            select: { documents: true }
+            select: {
+              activities: true,
+              documents: true
+            }
           }
         }
       }),
@@ -83,6 +131,7 @@ export const GET = route({
 
     const admissionsWithIsTerminal = admissions.map((adm: any) => ({
       ...adm,
+      priority: adm.lead?.priority || 'MEDIUM',
       stage: adm.stage
         ? {
             ...adm.stage,
@@ -91,22 +140,87 @@ export const GET = route({
         : null
     }))
 
-    return paginated(admissionsWithIsTerminal, total, page, limit)
+    const paginatedRes = paginated(admissionsWithIsTerminal, total, page, limit)
+    const json = await paginatedRes.json()
+    return NextResponse.json({
+      ...json,
+      admissions: json.data
+    })
   }
 })
 
 const createAdmissionSchema = z.object({
-  applicantName: z.string().min(1),
-  phone: z.string().optional(),
-  email: z.string().email().optional().or(z.literal('')),
-  gradeSought: z.string().optional(),
-  source: z.string().optional(),
-  stageId: z.string().optional(),
-  assignedToId: z.string().optional(),
-  leadId: z.string().optional(),
-  academicYearId: z.string().optional(),
-  priority: z.string().default('MEDIUM'),
-  notes: z.string().optional()
+  applicantName: z.string().min(1,
+    'Applicant name is required'),
+  parentName: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  phone: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  email: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  gradeSought: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  academicYearId: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  stageId: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  assignedToId: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  priority: z.string()
+    .optional()
+    .default('MEDIUM'),
+  notes: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  leadId: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  expectedJoinDate: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  currentSchool: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
 })
 
 export const POST = route({
@@ -142,16 +256,59 @@ export const POST = route({
     const admissionCode =
       prefix + '-' + year + '-' + String(count + 1).padStart(5, '0')
 
-    const { notes, priority, ...admissionData } = body
+    let leadId = body.leadId
+    if (!leadId) {
+      const year = new Date().getFullYear()
+      const count = await db.lead.count({
+        where: { orgId: user.orgId }
+      })
+      const leadCode = 'LD-' + year + '-' + String(count + 1).padStart(5, '0')
+
+      const newLead = await db.lead.create({
+        data: {
+          orgId: user.orgId,
+          branchId: null,
+          academicYearId: body.academicYearId || academicYearId || null,
+          leadCode,
+          kidName: body.applicantName,
+          parentName: body.parentName ?? "",
+          phone: body.phone ?? "",
+          email: body.email ?? null,
+          status: 'CONVERTED',
+          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+          currentSchool: body.currentSchool ?? null,
+          priority: (body.priority ?? 'MEDIUM') as any,
+          gradeSought: body.gradeSought ?? null
+        }
+      })
+      leadId = newLead.id
+    } else {
+      await db.lead.update({
+        where: { id: leadId },
+        data: {
+          status: 'CONVERTED',
+          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+          currentSchool: body.currentSchool ?? null,
+          priority: (body.priority ?? 'MEDIUM') as any
+        }
+      })
+    }
 
     // Create admission
     const admission = await db.admission.create({
       data: {
-        ...admissionData,
+        applicantName: body.applicantName,
+        parentName: body.parentName ?? null,
+        phone: body.phone ?? null,
+        email: body.email ?? null,
+        gradeSought: body.gradeSought ?? null,
         orgId: user.orgId,
         admissionCode,
         stageId: stageId ?? null,
-        academicYearId: body.academicYearId ?? academicYearId ?? null
+        assignedToId: body.assignedToId ?? null,
+        academicYearId: body.academicYearId ?? academicYearId ?? null,
+        leadId,
+        status: 'IN_PROGRESS'
       },
       include: {
         stage: true
@@ -169,12 +326,16 @@ export const POST = route({
       }
     })
 
-    // If created from lead update lead
-    if (body.leadId) {
-      await db.lead.update({
-        where: { id: body.leadId },
-        data: { status: 'CONVERTED' }
-      })
+    // Invalidate pipeline cache
+    try {
+      const ayId = body.academicYearId || academicYearId
+      await redis.del(`pipeline:${user.orgId}`)
+      await redis.del(`admissions_pipeline:${user.orgId}:all`)
+      if (ayId) {
+        await redis.del(`admissions_pipeline:${user.orgId}:${ayId}`)
+      }
+    } catch (err) {
+      console.error('Failed to invalidate pipeline cache:', err)
     }
 
     return created(admission)

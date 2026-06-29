@@ -1,9 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Shield, Loader2, AlertCircle, ArrowRight, MapPin, Building, Award, CheckCircle2 } from 'lucide-react'
+import {
+  INSTITUTION_CONFIG,
+  CENTER_CATEGORIES,
+  EXAM_FOCUS_OPTIONS,
+  INDIAN_LANGUAGES,
+  type InstitutionType,
+} from '@/constants/institutionConfig'
+import { LanguageTagInput } from '@/components/ui/LanguageTagInput'
+import { ExamFocusTagInput } from '@/components/ui/ExamFocusTagInput'
+
+const institutionTypeLabels: Record<string, string> = {
+  SCHOOL: 'School',
+  LEARNING_CENTER: 'Learning Center',
+  JUNIOR_COLLEGE: 'Junior College',
+  COACHING_CENTER: 'Coaching Center'
+}
 
 interface SimilarSchool {
   id: string
@@ -13,6 +29,13 @@ interface SimilarSchool {
   locations: Array<{ address: string; city: string }>
   affiliations: Array<{ board: string }>
 }
+
+const grades = [
+  'Playgroup', 'Nursery', 'LKG', 'UKG',
+  'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
+  'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10',
+  'Class 11', 'Class 12'
+]
 
 export default function RegisterSchoolPage() {
   const router = useRouter()
@@ -27,6 +50,29 @@ export default function RegisterSchoolPage() {
   const [board, setBoard] = useState('CBSE')
   const [establishedYear, setEstablishedYear] = useState('')
   const [role, setRole] = useState('')
+  const [centerCategory, setCenterCategory] = useState('')
+
+  // New fields from Step 1 Onboarding
+  const [schoolType, setSchoolType] = useState('PRIVATE')
+  const [totalTeachers, setTotalTeachers] = useState('')
+  const [mediumOfInstruction, setMediumOfInstruction] = useState<string[]>(['ENGLISH'])
+  const [examFocus, setExamFocus] = useState<string[]>([])
+  const [gradeFrom, setGradeFrom] = useState('LKG')
+  const [gradeTo, setGradeTo] = useState('Class 10')
+
+  const config = INSTITUTION_CONFIG[
+    institutionType as InstitutionType
+  ] ?? INSTITUTION_CONFIG['SCHOOL']
+
+  // Update school type if institution type changes and makes previous value invalid
+  useEffect(() => {
+    if (config.showSchoolType && config.schoolTypeOptions.length > 0) {
+      const isValid = config.schoolTypeOptions.some(opt => opt.value === schoolType)
+      if (!isValid) {
+        setSchoolType(config.schoolTypeOptions[0].value)
+      }
+    }
+  }, [institutionType, config])
 
   // Similar school warning state
   const [similarSchool, setSimilarSchool] = useState<SimilarSchool | null>(null)
@@ -46,7 +92,10 @@ export default function RegisterSchoolPage() {
     e.preventDefault()
     setError(null)
 
-    if (!schoolName || !institutionType || !city || !board || !role) {
+    const needsBoard = config.showSchoolType
+    const needsCenterCategory = config.showCenterCategory
+
+    if (!schoolName || !institutionType || !city || (needsBoard && !board) || (needsCenterCategory && !centerCategory) || !role) {
       setError('Please fill in all required fields')
       return
     }
@@ -62,7 +111,7 @@ export default function RegisterSchoolPage() {
         setSimilarSchool(data.data[0])
         setShowWarning(true)
       } else {
-        // No similar school, proceed directly to Step 2
+        // No similar school, proceed to Step 2
         setStep(2)
       }
     } catch (err: any) {
@@ -106,8 +155,15 @@ export default function RegisterSchoolPage() {
           schoolName,
           institutionType,
           city,
-          board,
-          establishedYear: establishedYear ? parseInt(establishedYear) : null
+          board: config.showSchoolType ? board : null,
+          schoolType: config.showSchoolType ? schoolType : null,
+          centerCategory: config.showCenterCategory ? centerCategory : null,
+          establishedYear: establishedYear ? parseInt(establishedYear) : null,
+          mediumOfInstruction,
+          examFocus: config.showExamFocus ? examFocus : [],
+          gradeFrom: config.showGradesOffered ? (config.gradesLocked ? 'Class 11' : gradeFrom) : null,
+          gradeTo: config.showGradesOffered ? (config.gradesLocked ? 'Class 12' : gradeTo) : null,
+          totalTeachers: totalTeachers ? parseInt(totalTeachers) : null
         })
       })
 
@@ -130,7 +186,7 @@ export default function RegisterSchoolPage() {
   }
 
   const progressSteps = [
-    { number: 1, label: 'School Details' },
+    { number: 1, label: 'Institution Details' },
     { number: 2, label: 'Admin Account' }
   ]
 
@@ -178,10 +234,10 @@ export default function RegisterSchoolPage() {
 
           <div className="text-center">
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Register Your School
+              {config.showCenterCategory ? 'Register Your Learning Center' : 'Register Your Institution'}
             </h1>
             <p className="text-slate-500 mt-2 text-sm max-w-[400px]">
-              Create your free profile on Vidhyaan in minutes.
+              {config.showCenterCategory ? 'Create your free learning center profile on Vidhyaan in minutes.' : 'Create your free institution profile on Vidhyaan in minutes.'}
             </p>
           </div>
         </div>
@@ -201,7 +257,7 @@ export default function RegisterSchoolPage() {
               <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex gap-3 text-xs leading-relaxed">
                 <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <span className="font-bold text-amber-800 block text-sm">We found a similar school on file:</span>
+                  <span className="font-bold text-amber-800 block text-sm">We found a similar institution on file:</span>
                   <div className="bg-white p-3.5 rounded-xl border border-amber-200/60 space-y-1.5 my-2">
                     <span className="font-extrabold text-slate-800 text-sm block">{similarSchool.name}</span>
                     <span className="text-slate-500 text-xs flex items-center gap-1">
@@ -215,9 +271,9 @@ export default function RegisterSchoolPage() {
                       </span>
                     )}
                   </div>
-                  <span className="font-bold text-slate-700 block">Is this your school?</span>
+                  <span className="font-bold text-slate-700 block">Is this your institution?</span>
                   <p className="text-slate-500">
-                    If this is your school, claiming it is faster than registering a duplicate listing.
+                    If this is your institution, claiming it is faster than registering a duplicate listing.
                   </p>
                 </div>
               </div>
@@ -227,23 +283,22 @@ export default function RegisterSchoolPage() {
                   onClick={() => router.push(`/claim-profile/verify/${similarSchool.id}`)}
                   className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                 >
-                  <span>Yes, Claim This School</span>
+                  <span>Yes, Claim This Institution</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleContinueRegistering}
                   className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-all cursor-pointer text-center"
                 >
-                  No, Continue Registering New School
+                  No, Continue Registering New Institution
                 </button>
               </div>
             </div>
           ) : step === 1 ? (
-            /* STEP 1 FORM: School Details */
             <form onSubmit={handleNext} className="space-y-5">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  School / Center Name <span className="text-red-500">*</span>
+                  {config.nameFieldLabel.toUpperCase()} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -261,7 +316,7 @@ export default function RegisterSchoolPage() {
                   Institution Type <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2 bg-slate-50 border border-slate-100 p-1.5 rounded-2xl">
-                  {['SCHOOL', 'LEARNING_CENTER'].map((typeVal) => (
+                  {['SCHOOL', 'LEARNING_CENTER', 'JUNIOR_COLLEGE', 'COACHING_CENTER'].map((typeVal) => (
                     <button
                       key={typeVal}
                       type="button"
@@ -272,7 +327,7 @@ export default function RegisterSchoolPage() {
                           : 'text-slate-600 hover:bg-slate-100'
                       }`}
                     >
-                      {typeVal === 'SCHOOL' ? 'School' : 'Learning Center'}
+                      {institutionTypeLabels[typeVal]}
                     </button>
                   ))}
                 </div>
@@ -299,26 +354,158 @@ export default function RegisterSchoolPage() {
                   </select>
                 </div>
 
+                {config.showSchoolType && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Board / Curriculum <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={board}
+                      onChange={(e) => setBoard(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
+                      required
+                    >
+                      <option value="CBSE">CBSE</option>
+                      <option value="ICSE">ICSE</option>
+                      <option value="State Board">State Board</option>
+                      <option value="IB">IB</option>
+                      <option value="Cambridge">Cambridge</option>
+                      <option value="IGCSE">IGCSE</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                )}
+
+                {config.showCenterCategory && (
+                  <div className="space-y-1.5 animate-fadeIn">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Center Category <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={centerCategory}
+                      onChange={(e) => setCenterCategory(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer bg-white"
+                      required
+                    >
+                      <option value="">Select category</option>
+                      {CENTER_CATEGORIES.map(cat => (
+                        <option key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Dynamic School Type selector */}
+              {config.showSchoolType && (
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Board / Curriculum <span className="text-red-500">*</span>
+                    School Type <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={board}
-                    onChange={(e) => setBoard(e.target.value)}
+                    value={schoolType}
+                    onChange={(e) => setSchoolType(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
                     required
                   >
-                    <option value="CBSE">CBSE</option>
-                    <option value="ICSE">ICSE</option>
-                    <option value="State Board">State Board</option>
-                    <option value="IB">IB</option>
-                    <option value="Cambridge">Cambridge</option>
-                    <option value="IGCSE">IGCSE</option>
-                    <option value="Other">Other</option>
+                    {config.schoolTypeOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
+              )}
+
+              {/* Total Teachers field */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  {config.teacherLabel} <span className="text-slate-400 font-medium">(Optional)</span>
+                </label>
+                <input
+                  type="number"
+                  value={totalTeachers}
+                  onChange={(e) => setTotalTeachers(e.target.value)}
+                  placeholder="e.g. 25"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm"
+                />
               </div>
+
+              {/* Medium of instruction */}
+              {config.showMediumOfInstruction && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    MEDIUM OF INSTRUCTION
+                  </label>
+                  <LanguageTagInput
+                    value={mediumOfInstruction ?? []}
+                    onChange={(vals) => setMediumOfInstruction(vals)}
+                    options={INDIAN_LANGUAGES}
+                  />
+                </div>
+              )}
+
+              {/* Exam focus tag input */}
+              {config.showExamFocus && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    EXAM / COURSE FOCUS
+                    <span className="text-slate-400 font-normal ml-1">(optional)</span>
+                  </label>
+                  <ExamFocusTagInput
+                    value={examFocus ?? []}
+                    onChange={(vals) => setExamFocus(vals)}
+                    options={EXAM_FOCUS_OPTIONS}
+                  />
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Select all that apply — helps students find your center
+                  </p>
+                </div>
+              )}
+
+              {/* Grades offered */}
+              {config.showGradesOffered && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Grades Offered
+                  </label>
+                  {config.gradesLocked ? (
+                    <div className="px-3 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm text-slate-600">
+                      {config.lockedGradeLabel}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">From</span>
+                        <select
+                          value={gradeFrom}
+                          onChange={(e) => setGradeFrom(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] text-xs cursor-pointer"
+                        >
+                          {grades.map((g) => (
+                            <option key={g} value={g}>{g}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <span className="text-slate-400 font-bold self-end pb-3 text-sm">to</span>
+                      <div className="flex-1">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">To</span>
+                        <select
+                          value={gradeTo}
+                          onChange={(e) => setGradeTo(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] text-xs cursor-pointer"
+                        >
+                          {grades.map((g) => (
+                            <option key={g} value={g}>{g}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -335,7 +522,7 @@ export default function RegisterSchoolPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Your Role at School <span className="text-red-500">*</span>
+                  {config.roleLabel} <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={role}
@@ -433,7 +620,7 @@ export default function RegisterSchoolPage() {
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Registering School...
+                    Registering Institution...
                   </>
                 ) : (
                   'Create Account'
@@ -445,7 +632,7 @@ export default function RegisterSchoolPage() {
                 onClick={() => setStep(1)}
                 className="w-full text-center text-xs font-bold text-slate-500 hover:text-slate-800 bg-transparent border-none cursor-pointer"
               >
-                ← Back to School Details
+                ← Back to Institution Details
               </button>
             </form>
           )}

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { UserRole, UserStatus, OtpChannel, OtpPurpose, InstitutionType } from '@prisma/client'
+import { createDefaultCourses } from '@/lib/utils/createDefaultCourses'
 
 function slugify(text: string): string {
   return text
@@ -66,10 +67,17 @@ export async function POST(req: NextRequest) {
       institutionType,
       city,
       board,
-      establishedYear
+      establishedYear,
+      centerCategory,
+      schoolType,
+      mediumOfInstruction,
+      examFocus,
+      gradeFrom,
+      gradeTo,
+      totalTeachers
     } = body
 
-    if (!name || !phone || !email || !role || !schoolName || !institutionType || !city || !board) {
+    if (!name || !phone || !email || !role || !schoolName || !institutionType || !city || (institutionType !== 'LEARNING_CENTER' && institutionType !== 'COACHING_CENTER' && !board)) {
       return NextResponse.json(
         { success: false, error: 'Missing required registration details' },
         { status: 400 }
@@ -112,6 +120,7 @@ export async function POST(req: NextRequest) {
         name: schoolName,
         slug: orgSlug,
         institutionType: mappedInstType,
+        centerCategory: mappedInstType === 'LEARNING_CENTER' || mappedInstType === 'COACHING_CENTER' ? centerCategory : null,
         email,
         phone,
         status: 'ACTIVE',
@@ -145,6 +154,13 @@ export async function POST(req: NextRequest) {
         name: schoolName,
         slug: schoolSlug,
         institutionType: mappedInstType,
+        schoolType: schoolType || null,
+        centerCategory: mappedInstType === 'LEARNING_CENTER' || mappedInstType === 'COACHING_CENTER' ? centerCategory : null,
+        examFocus: Array.isArray(examFocus) ? examFocus : [],
+        mediumOfInstructionList: Array.isArray(mediumOfInstruction) ? mediumOfInstruction : [],
+        mediumOfInstruction: Array.isArray(mediumOfInstruction) ? mediumOfInstruction.join(', ') : mediumOfInstruction || null,
+        gradesOffered: (gradeFrom && gradeTo) ? `${gradeFrom} to ${gradeTo}` : null,
+        totalTeachers: totalTeachers ? parseInt(totalTeachers) : null,
         isPublished: false,
         verificationStatus: 'PENDING',
         establishedYear: establishedYear ? parseInt(establishedYear) : null
@@ -163,13 +179,15 @@ export async function POST(req: NextRequest) {
     })
 
     // Create school board affiliation
-    await prisma.schoolAffiliation.create({
-      data: {
-        schoolId: school.id,
-        orgId: org.id,
-        board
-      }
-    })
+    if (board && mappedInstType !== 'LEARNING_CENTER') {
+      await prisma.schoolAffiliation.create({
+        data: {
+          schoolId: school.id,
+          orgId: org.id,
+          board
+        }
+      })
+    }
 
     // Create school initial email contact
     await prisma.schoolContact.create({
@@ -193,19 +211,30 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    // 5. Enable free plan modules: lead_management only
-    const leadModule = await prisma.module.findUnique({
-      where: { slug: 'lead_management' }
-    })
-    if (leadModule) {
-      await prisma.organizationModule.create({
-        data: {
+    // 5. Enable modules based on institutionType
+    try {
+      const isSchool = mappedInstType !== 'LEARNING_CENTER'
+      const coreModuleSlugs = [
+        'lead_management',
+        'student_management',
+        'fee_management',
+        'campaign_management',
+        ...(isSchool ? ['admission_management'] : [])
+      ]
+      const dbModules = await prisma.module.findMany({
+        where: { slug: { in: coreModuleSlugs } }
+      })
+      await prisma.organizationModule.createMany({
+        data: dbModules.map(m => ({
           orgId: org.id,
-          moduleId: leadModule.id,
+          moduleId: m.id,
           enabled: true,
           enabledAt: new Date()
-        }
+        })),
+        skipDuplicates: true
       })
+    } catch (err) {
+      console.error('Failed to create org modules:', err)
     }
 
     // 6. Create free plan Subscription
@@ -254,7 +283,20 @@ export async function POST(req: NextRequest) {
       ipAddress
     )
 
-    await sendOTP(phone, otpCode, OtpChannel.SMS)
+    await sendOTP(phone, otpCode, OtpChannel.SMS, OtpPurpose.SIGNUP)
+
+    // Trigger default courses
+    const needsCourses =
+      mappedInstType === 'LEARNING_CENTER' ||
+      mappedInstType === 'COACHING_CENTER'
+
+    if (needsCourses && centerCategory) {
+      await createDefaultCourses(
+        org.id,
+        centerCategory,
+        user.id
+      )
+    }
 
     return NextResponse.json({
       success: true,

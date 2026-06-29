@@ -1,10 +1,17 @@
 import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { LeadStatus, PaymentStatus, InvoiceStatus } from '@prisma/client'
+import { redis } from '@/lib/redis'
 
 export const GET = route({
   handler: async ({ db, user, org }) => {
     const orgId = user.orgId
+    const cacheKey = `dashboard:summary:${orgId}`
+    const cached = await redis.get(cacheKey)
+    if (cached) {
+      return ok(JSON.parse(cached))
+    }
+
     const now = new Date()
     const startOfMonth = new Date(
       now.getFullYear(),
@@ -32,7 +39,8 @@ export const GET = route({
       feeOverdue,
       feeUpcoming,
       recentActivities,
-      upcomingFollowUps
+      upcomingFollowUps,
+      allStages
     ] = await Promise.all([
 
       // Total leads
@@ -179,28 +187,21 @@ export const GET = route({
             }
           }
         }
+      }),
+
+      // Get all active stages
+      db.admissionStage.findMany({
+        select: {
+          id: true,
+          name: true,
+          color: true
+        }
       })
     ])
 
-    // Get stage labels for admissions
-    const stageIds = admissionsByStage
-      .map(a => a.stageId)
-      .filter(Boolean) as string[]
-
-    const stages = stageIds.length > 0
-      ? await db.admissionStage.findMany({
-          where: { id: { in: stageIds } },
-          select: {
-            id: true,
-            name: true,
-            color: true
-          }
-        })
-      : []
-
     const admissionsByStageWithLabel =
       admissionsByStage.map(a => {
-        const stage = stages.find(s => s.id === a.stageId)
+        const stage = allStages.find(s => s.id === a.stageId)
         return {
           stageId: a.stageId,
           count: a._count.stageId,
@@ -221,7 +222,7 @@ export const GET = route({
         )
       : 0
 
-    return ok({
+    const result = {
       leads: {
         total: totalLeads,
         new: newLeads,
@@ -249,6 +250,9 @@ export const GET = route({
       },
       recentActivity: recentActivities,
       upcomingFollowUps
-    })
+    }
+
+    await redis.set(cacheKey, JSON.stringify(result), 'EX', 60)
+    return ok(result)
   }
 })

@@ -27,6 +27,9 @@ function isPublicRoute(pathname: string): boolean {
     '/api/location',
     '/parent/register',
     '/parent/verify-otp',
+    '/register',
+    '/claim-profile',
+    '/forgot-pin',
     '/_next',
     '/fonts',
     '/images',
@@ -123,6 +126,22 @@ export default async function middleware(request: NextRequest) {
     if (!isPlatformRole(role)) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
+
+    // SUPPORT_ADMIN restrictions: cannot access settings, revenue, or impersonation
+    if (role === 'SUPPORT_ADMIN') {
+      const blockedPaths = ['/admin/settings', '/admin/revenue', '/admin/impersonate']
+      if (blockedPaths.some((prefix) => pathname === prefix || pathname.startsWith(prefix + '/'))) {
+        return NextResponse.redirect(new URL('/admin', request.url))
+      }
+    }
+
+    // OPERATIONS_ADMIN restrictions: cannot impersonate
+    if (role === 'OPERATIONS_ADMIN') {
+      const blockedPaths = ['/admin/impersonate']
+      if (blockedPaths.some((prefix) => pathname === prefix || pathname.startsWith(prefix + '/'))) {
+        return NextResponse.redirect(new URL('/admin', request.url))
+      }
+    }
   }
 
   // 5. Parent routes → parent role only
@@ -139,7 +158,21 @@ export default async function middleware(request: NextRequest) {
     }
   }
 
-  return addSecurityHeaders(NextResponse.next())
+  const requestHeaders = new Headers(request.headers)
+  if (session?.user) {
+    requestHeaders.set('x-user-id', session.user.id || '')
+    requestHeaders.set('x-user-role', session.user.role || '')
+    requestHeaders.set('x-org-id', session.user.orgId || '')
+    requestHeaders.set('x-user-name', session.user.name || '')
+  }
+
+  return addSecurityHeaders(
+    NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      }
+    })
+  )
 }
 
 export const config = {

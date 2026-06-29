@@ -6,6 +6,7 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
 import { PaymentMethod, PaymentStatus, InvoiceStatus } from '@prisma/client'
+import { createNotification } from '@/lib/services/notifications'
 
 export const POST = route({
   module: MODULES.FEE_MANAGEMENT,
@@ -30,7 +31,7 @@ export const POST = route({
 
     const invoice = await db.invoice.findFirst({
       where: { id: params?.id },
-      include: { payments: true }
+      include: { payments: true, student: true }
     })
 
     if (!invoice) {
@@ -112,6 +113,36 @@ export const POST = route({
         paidAmount: newTotalPaid
       }
     })
+
+    // Create in-app notification for the ORG_ADMIN
+    const orgAdmin = await db.user.findFirst({
+      where: {
+        orgId: user.orgId,
+        role: 'ORG_ADMIN',
+        status: 'ACTIVE'
+      },
+      select: { id: true }
+    })
+
+    if (orgAdmin) {
+      try {
+        const studentName = invoice.student ? invoice.student.name : 'Student'
+        await createNotification({
+          orgId: user.orgId,
+          recipientType: 'USER',
+          recipientId: orgAdmin.id,
+          type: 'FEE_PAYMENT_RECEIVED',
+          title: 'Payment Received',
+          body: `₹${body.amount} received for ${studentName}`,
+          data: {
+            invoiceId: invoice.id,
+            href: `/settings/billing`
+          }
+        })
+      } catch (e) {
+        console.error('Failed to trigger payment received notification:', e)
+      }
+    }
 
     return created({
       payment: updatedPayment,

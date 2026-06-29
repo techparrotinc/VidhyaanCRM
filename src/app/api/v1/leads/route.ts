@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { route } from '@/lib/api/compose'
 import { ok, created, paginated } from '@/lib/api/respond'
@@ -6,6 +6,8 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
 import { LeadSource, LeadStatus, LeadPriority } from '@prisma/client'
+import { createNotification } from '@/lib/services/notifications'
+import { cleanPhoneNumber } from '@/lib/utils'
 
 export const GET = route({
   module: MODULES.LEAD_MANAGEMENT,
@@ -19,10 +21,10 @@ export const GET = route({
     const { searchParams } = new URL(req.url)
 
     const page = Number(searchParams.get('page') ?? 1)
-    const limit = Number(searchParams.get('limit') ?? 10)
+    const limit = Number(searchParams.get('limit') ?? 25)
     const status = searchParams.get('status') ?? undefined
     const source = searchParams.get('source') ?? undefined
-    const counsellorId = searchParams.get('counsellorId') ?? undefined
+    const counsellorId = searchParams.get('counsellorId') ?? searchParams.get('assignedToId') ?? undefined
     const search = searchParams.get('search') ?? undefined
     const priority = searchParams.get('priority') ?? undefined
 
@@ -51,39 +53,112 @@ export const GET = route({
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
+        select: {
+          id: true,
+          leadCode: true,
+          parentName: true,
+          phone: true,
+          email: true,
+          kidName: true,
+          status: true,
+          priority: true,
+          source: true,
+          gradeSought: true,
+          nextFollowUpAt: true,
+          createdAt: true,
           assignedTo: {
             select: {
               id: true,
-              name: true
+              name: true,
+            }
+          },
+          academicYear: {
+            select: {
+              id: true,
+              name: true,
             }
           },
           _count: {
-            select: { activities: true }
+            select: {
+              activities: true,
+            }
           }
         }
       }),
       db.lead.count({ where })
     ])
 
-    return paginated(leads, total, page, limit)
+    const paginatedRes = paginated(leads, total, page, limit)
+    const json = await paginatedRes.json()
+    return NextResponse.json({
+      ...json,
+      leads: json.data
+    })
   }
 })
 
 const createLeadSchema = z.object({
-  firstName: z.string().min(1),
-  lastName: z.string().min(1).optional(),
-  phone: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number'),
-  email: z.string().email().optional().nullable(),
-  source: z.nativeEnum(LeadSource).default(LeadSource.WALK_IN),
-  status: z.nativeEnum(LeadStatus).default(LeadStatus.NEW),
-  priority: z.nativeEnum(LeadPriority).default(LeadPriority.MEDIUM),
-  gradeSought: z.string().optional().nullable(),
-  kidName: z.string().optional().nullable(),
-  assignedToId: z.string().optional().nullable(),
-  nextFollowUpAt: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  academicYearId: z.string().optional().nullable()
+  parentName: z.string().min(2,
+    'Name is required'),
+  phone: z.string().min(10).max(10),
+  email: z.string().email()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  kidName: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  childAge: z.union([
+    z.number(),
+    z.string().transform(v =>
+      v === '' ? null
+      : parseInt(v) || null
+    )
+  ]).optional().nullable(),
+  currentSchool: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  expectedJoinDate: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  source: z.string()
+    .default('WALK_IN'),
+  priority: z.string()
+    .default('MEDIUM'),
+  status: z.string()
+    .default('NEW'),
+  gradeSought: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  academicYearId: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  assignedToId: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  notes: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  nextFollowUpAt: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
 })
 
 export const POST = route({
@@ -97,23 +172,32 @@ export const POST = route({
   handler: async ({ req, db, user, org, academicYearId }) => {
     const body = createLeadSchema.parse(await req.json())
 
-    // Check lead cap for free plan
-    const leadCount = await db.lead.count()
+    const parentName = body.parentName
 
-    // Map body to DB fields
-    const { firstName, lastName, nextFollowUpAt, notes, ...bodyRest } = body
-    const parentName = lastName ? `${firstName} ${lastName}` : firstName
+    // 1. Check lead cap
+    const leadCount = await prisma.lead.count({
+      where: { orgId: user.orgId }
+    })
 
     if (org.leadCap !== null && leadCount >= org.leadCap) {
-      // Create lead in "JUNK" state or default since metadata/queued field doesn't exist
+      const leadCode = await generateLeadCode(user.orgId)
       const lead = await db.lead.create({
         data: {
-          ...bodyRest,
+          parentName: body.parentName,
+          phone: body.phone,
+          email: body.email || null,
+          kidName: body.kidName || null,
+          childAge: body.childAge || null,
+          currentSchool: body.currentSchool || null,
+          source: (body.source || 'WALK_IN') as LeadSource,
+          priority: (body.priority || 'MEDIUM') as LeadPriority,
+          status: 'NEW',
+          gradeSought: body.gradeSought || null,
+          leadCode,
           orgId: user.orgId,
-          parentName,
-          leadCode: await generateLeadCode(user.orgId),
-          nextFollowUpAt: nextFollowUpAt ? new Date(nextFollowUpAt) : null,
-          academicYearId: body.academicYearId ?? academicYearId ?? null
+          academicYearId: body.academicYearId || null,
+          nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
+          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
         }
       })
 
@@ -124,57 +208,109 @@ export const POST = route({
       }, undefined, 201)
     }
 
-    // Check for duplicate
-    const duplicate = await db.lead.findFirst({
-      where: { phone: body.phone }
+    // 2. Check for duplicate
+    const duplicate = await prisma.lead.findFirst({
+      where: {
+        phone: body.phone,
+        orgId: user.orgId,
+        deletedAt: null
+      }
     })
 
-    // Auto-assign counsellor if not provided
-    let assignedToId = body.assignedToId
-    if (!assignedToId) {
+    // 3. Resolve assignedToId safely
+    let finalAssignedToId: string | null = null
+
+    if (body.assignedToId) {
+      const validUser = await prisma.user.findFirst({
+        where: {
+          id: body.assignedToId,
+          orgId: user.orgId,
+          status: 'ACTIVE',
+        },
+        select: { id: true }
+      })
+      finalAssignedToId = validUser?.id || null
+    }
+
+    if (!finalAssignedToId) {
       const counsellors = await prisma.user.findMany({
         where: {
           orgId: user.orgId,
-          role: 'COUNSELLOR',
-          status: 'ACTIVE'
+          role: {
+            in: ['COUNSELLOR', 'ORG_ADMIN', 'BRANCH_ADMIN']
+          },
+          status: 'ACTIVE',
+          deletedAt: null
         },
         select: { id: true }
       })
 
       if (counsellors.length > 0) {
-        const count = await prisma.lead.count({
+        const totalLeads = await prisma.lead.count({
           where: { orgId: user.orgId }
         })
-        assignedToId = counsellors[count % counsellors.length].id
+        const index = totalLeads % counsellors.length
+        finalAssignedToId = counsellors[index].id
       }
     }
 
-    // Generate lead code
+    // 4. Generate lead code
     const leadCode = await generateLeadCode(user.orgId)
 
-    // Create lead
+    // 5. Create lead
     const lead = await db.lead.create({
       data: {
-        ...bodyRest,
-        orgId: user.orgId,
-        parentName,
+        parentName: body.parentName,
+        phone: body.phone,
+        email: body.email || null,
+        kidName: body.kidName || null,
+        childAge: body.childAge || null,
+        currentSchool: body.currentSchool || null,
+        source: (body.source || 'WALK_IN') as LeadSource,
+        priority: (body.priority || 'MEDIUM') as LeadPriority,
+        status: 'NEW',
+        gradeSought: body.gradeSought || null,
         leadCode,
-        assignedToId,
-        nextFollowUpAt: nextFollowUpAt ? new Date(nextFollowUpAt) : null,
-        academicYearId: body.academicYearId ?? academicYearId ?? null
+        orgId: user.orgId,
+        academicYearId: body.academicYearId || null,
+        nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
+        expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+        ...(finalAssignedToId && {
+          assignedToId: finalAssignedToId
+        }),
       }
     })
 
-    // Create activity log, incorporating notes if present
+    // 6. Create activity log
     await db.leadActivity.create({
       data: {
         orgId: user.orgId,
         leadId: lead.id,
         type: 'SYSTEM',
-        summary: notes ? `Lead created from ${body.source}. Note: ${notes}` : `Lead created from ${body.source}`,
+        summary: body.notes ? `Lead created from ${body.source}. Note: ${body.notes}` : `Lead created from ${body.source}`,
         performedById: user.id
       }
     })
+
+    // 7. Create in-app notification for the assigned counsellor
+    if (finalAssignedToId) {
+      try {
+        await createNotification({
+          orgId: user.orgId,
+          recipientType: 'USER',
+          recipientId: finalAssignedToId,
+          type: 'LEAD_RECEIVED',
+          title: 'New Lead Received',
+          body: `${parentName} enquired about ${body.gradeSought || 'N/A'}`,
+          data: {
+            leadId: lead.id,
+            href: `/lead-management/${lead.id}`
+          }
+        })
+      } catch (e) {
+        console.error('Failed to trigger lead notification:', e)
+      }
+    }
 
     return created({
       ...lead,
@@ -191,3 +327,4 @@ async function generateLeadCode(orgId: string): Promise<string> {
   })
   return 'LD-' + year + '-' + String(count + 1).padStart(5, '0')
 }
+

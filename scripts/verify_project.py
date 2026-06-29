@@ -16,7 +16,7 @@ def run_cmd(cmd, cwd=project_root):
 def get_stats():
     stats = {}
     # Count page lines
-    page_path = os.path.join(project_root, "src/app/dashboard/page.tsx")
+    page_path = os.path.join(project_root, "src/app/(crm)/dashboard/page.tsx")
     if os.path.exists(page_path):
         with open(page_path, "r") as f:
             stats["page_lines"] = len(f.readlines())
@@ -43,7 +43,7 @@ def main():
         status_str += f"    *Error Log Output*:\n    ```\n    {stderr[:200]}\n    ```\n"
         
     status_str += f"*   **Code Statistics**:\n"
-    status_str += f"    *   [Dashboard (page.tsx)](file://{project_root}/src/app/dashboard/page.tsx): `{stats['page_lines']} lines` (`{stats['page_size_kb']} KB`)\n"
+    status_str += f"    *   [Dashboard (page.tsx)](file://{project_root}/src/app/(crm)/dashboard/page.tsx): `{stats['page_lines']} lines` (`{stats['page_size_kb']} KB`)\n"
     status_str += f"    *   [Style Guide (globals.css)](file://{project_root}/src/app/globals.css): `{round(os.path.getsize(os.path.join(project_root, 'src/app/globals.css')) / 1024, 1)} KB`\n"
 
     # Read current CLAUDE.md

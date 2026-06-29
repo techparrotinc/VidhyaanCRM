@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { cleanPhoneNumber } from '@/lib/utils'
 
 export async function POST(
   req: NextRequest,
@@ -11,7 +12,7 @@ export async function POST(
 
     const {
       parentName,
-      phone,
+      phone: rawPhone,
       email,
       childName,
       childAge,
@@ -20,6 +21,9 @@ export async function POST(
       activityType,
       message
     } = body
+
+    const phone = typeof rawPhone === 'string' ? cleanPhoneNumber(rawPhone) as string : rawPhone
+
 
     // 1. Validation
     if (!parentName || parentName.trim().length < 2) {

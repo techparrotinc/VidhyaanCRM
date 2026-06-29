@@ -13,6 +13,8 @@ import {
 } from 'lucide-react'
 import { useStudent } from '@/hooks/useStudent'
 import { getGradeLabel } from '@/constants/grades'
+import { useSession } from 'next-auth/react'
+import CourseEnrollmentCard from './components/CourseEnrollmentCard'
 
 const STATUS_CONFIG = {
   ACTIVE: {
@@ -117,6 +119,44 @@ export default function StudentDetailPage() {
   const router = useRouter()
 
   const { student, isLoading, mutate } = useStudent(id)
+
+  const { data: session } = useSession()
+  const [institutionType, setInstitutionType] = useState<string>('SCHOOL')
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({
+    show: false,
+    message: '',
+    type: 'success'
+  })
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ show: true, message, type })
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }))
+    }, 3000)
+  }
+
+  const toastHelper = {
+    success: (msg: string) => showToast(msg, 'success'),
+    error: (msg: string) => showToast(msg, 'error')
+  }
+
+  useEffect(() => {
+    if (session?.user) {
+      const instType = (session.user as any).institutionType
+      if (instType) {
+        setInstitutionType(instType)
+        return
+      }
+    }
+    fetch('/api/v1/settings/org-type')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data?.institutionType) {
+          setInstitutionType(data.data.institutionType)
+        }
+      })
+      .catch(err => console.error(err))
+  }, [session])
 
   const [activeTab, setActiveTab] = useState<'NOTE' | 'CALL' | 'WHATSAPP' | 'EMAIL'>('NOTE')
   const [activityNote, setActivityNote] = useState('')
@@ -472,6 +512,16 @@ export default function StudentDetailPage() {
               )}
             </div>
 
+            {/* Courses / CourseEnrollmentCard */}
+            {institutionType === 'LEARNING_CENTER' && student && (
+              <CourseEnrollmentCard
+                studentId={student.id}
+                enrollments={(student as any).courseEnrollments ?? student.enrollments ?? []}
+                onRevalidate={mutate}
+                toast={toastHelper}
+              />
+            )}
+
             {/* Guardian Card */}
             <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
@@ -562,6 +612,19 @@ export default function StudentDetailPage() {
           </div>
         </div>
       </div>
+
+      {toast.show && (
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-semibold shadow-lg transition-all duration-300 ${
+          toast.type === 'error' ? 'bg-red-50 text-red-800 border-red-200' : 'bg-green-50 text-green-800 border-green-200'
+        }`}>
+          {toast.type === 'error' ? (
+            <span className="w-2 h-2 rounded-full bg-red-500" />
+          ) : (
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+          )}
+          <span>{toast.message}</span>
+        </div>
+      )}
     </div>
   )
 }

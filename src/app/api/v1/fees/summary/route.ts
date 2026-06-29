@@ -18,10 +18,14 @@ export const GET = route({
     const courseId = searchParams.get('courseId') ?? undefined
     const gradeLabel = searchParams.get('gradeLabel') ?? undefined
     const status = searchParams.get('status') ?? undefined
+    const studentId = searchParams.get('studentId') ?? undefined
 
     const baseWhere: any = {
       orgId: user.orgId,
       deletedAt: null
+    }
+    if (studentId) {
+      baseWhere.studentId = studentId
     }
     if (academicYearId) {
       baseWhere.academicYearId = academicYearId

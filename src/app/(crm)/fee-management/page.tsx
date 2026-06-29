@@ -2,7 +2,7 @@
 
 import { useState, useEffect,
   useCallback, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { format, subMonths, addMonths } from 'date-fns'
 import {
   Download, Plus, Search,
@@ -129,6 +129,8 @@ export default function FeeManagementPage() {
   const [monthFilter, setMonthFilter] = useState(() => format(new Date(), 'yyyy-MM'))
   const [courseFilter, setCourseFilter] = useState('all')
   const [isInitialized, setIsInitialized] = useState(false)
+  const searchParams = useSearchParams()
+  const [studentIdFilter, setStudentIdFilter] = useState<string | null>(null)
 
   // Dropdowns lists
   const [termsList, setTermsList] = useState<any[]>([])
@@ -197,6 +199,8 @@ export default function FeeManagementPage() {
           params.set('search', search)
         if (gradeLabel && gradeLabel !== 'all')
           params.set('gradeLabel', gradeLabel)
+        if (studentIdFilter)
+          params.set('studentId', studentIdFilter)
 
         if (institutionType === 'SCHOOL') {
           if (termFilter && termFilter !== 'all') {
@@ -224,7 +228,7 @@ export default function FeeManagementPage() {
       } finally {
         setIsLoading(false)
       }
-    }, [page, activeStatus, search, gradeLabel, termFilter, monthFilter, courseFilter, institutionType]
+    }, [page, activeStatus, search, gradeLabel, termFilter, monthFilter, courseFilter, institutionType, studentIdFilter]
   )
 
   const fetchSummary = useCallback(
@@ -235,6 +239,8 @@ export default function FeeManagementPage() {
           params.set('status', activeStatus)
         if (gradeLabel && gradeLabel !== 'all')
           params.set('gradeLabel', gradeLabel)
+        if (studentIdFilter)
+          params.set('studentId', studentIdFilter)
 
         if (institutionType === 'SCHOOL') {
           if (termFilter && termFilter !== 'all') {
@@ -257,13 +263,19 @@ export default function FeeManagementPage() {
       } catch (err) {
         console.error(err)
       }
-    }, [activeStatus, gradeLabel, termFilter, monthFilter, courseFilter, institutionType]
+    }, [activeStatus, gradeLabel, termFilter, monthFilter, courseFilter, institutionType, studentIdFilter]
   )
 
   // One-time initial configurations on mount
   useEffect(() => {
     const initData = async () => {
       try {
+        const urlStudentId = searchParams?.get('studentId')
+        const urlCourseId = searchParams?.get('courseId')
+        if (urlStudentId) {
+          setStudentIdFilter(urlStudentId)
+        }
+
         const orgRes = await fetch('/api/v1/settings/org-type')
         const orgJson = await orgRes.json()
         const instType = orgJson.data?.institutionType || 'SCHOOL'
@@ -290,7 +302,11 @@ export default function FeeManagementPage() {
           const coursesRes = await fetch('/api/v1/settings/courses')
           const coursesJson = await coursesRes.json()
           setCoursesList(coursesJson.data || [])
-          setCourseFilter('all')
+          if (urlCourseId) {
+            setCourseFilter(urlCourseId)
+          } else {
+            setCourseFilter('all')
+          }
         }
 
         const gradesRes = await fetch('/api/v1/fees/invoices/grades')
@@ -304,7 +320,7 @@ export default function FeeManagementPage() {
     }
 
     initData()
-  }, [])
+  }, [searchParams])
 
   useEffect(() => {
     if (isInitialized) {
@@ -645,6 +661,7 @@ export default function FeeManagementPage() {
                     key={tab.key}
                     onClick={() => {
                       setActiveStatus(tab.key)
+                      setStudentIdFilter(null)
                       setPage(1)
                     }}
                     className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap flex-shrink-0 border-b-2 transition-colors ${
@@ -683,6 +700,7 @@ export default function FeeManagementPage() {
                   value={search}
                   onChange={e => {
                     setSearch(e.target.value)
+                    setStudentIdFilter(null)
                     setPage(1)
                   }}
                   className="w-full h-full pl-9 pr-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-sans"
@@ -694,6 +712,7 @@ export default function FeeManagementPage() {
                 value={gradeLabel}
                 onChange={e => {
                   setGradeLabel(e.target.value)
+                  setStudentIdFilter(null)
                   setPage(1)
                 }}
                 className="flex-shrink-0 h-9 whitespace-nowrap text-sm border border-slate-200 rounded-lg px-3 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[110px] w-auto font-sans"
@@ -714,6 +733,7 @@ export default function FeeManagementPage() {
                     value={termFilter}
                     onChange={e => {
                       setTermFilter(e.target.value)
+                      setStudentIdFilter(null)
                       setPage(1)
                     }}
                     className="flex-shrink-0 h-9 whitespace-nowrap text-sm border border-slate-200 rounded-lg px-3 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[110px] w-auto font-sans"
@@ -736,6 +756,7 @@ export default function FeeManagementPage() {
                     value={courseFilter}
                     onChange={e => {
                       setCourseFilter(e.target.value)
+                      setStudentIdFilter(null)
                       setPage(1)
                     }}
                     className="flex-shrink-0 h-9 whitespace-nowrap text-sm border border-slate-200 rounded-lg px-3 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[110px] w-auto font-sans"
@@ -755,6 +776,7 @@ export default function FeeManagementPage() {
                 value={monthFilter}
                 onChange={e => {
                   setMonthFilter(e.target.value)
+                  setStudentIdFilter(null)
                   setPage(1)
                 }}
                 className="flex-shrink-0 h-9 whitespace-nowrap text-sm border border-slate-200 rounded-lg px-3 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[110px] w-auto font-sans"

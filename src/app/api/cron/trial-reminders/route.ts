@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
-import { sendTemplateEmail, trialEndingTemplate } from '@/lib/integrations/resend'
+import { prisma } from '@/lib/db/client'
+import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
+import { trialEndingTemplate } from '@/lib/mail/templates'
 import { createNotification } from '@/lib/services/notifications'
 
 export async function GET(req: NextRequest) {
@@ -47,16 +48,17 @@ export async function GET(req: NextRequest) {
 
       if (adminEmail) {
         try {
-          await sendTemplateEmail(
-            adminEmail,
-            `Your Vidhyaan trial is ending in 3 days! ⚠️`,
-            trialEndingTemplate({
+          await sendTransactionalEmail({
+            to: adminEmail,
+            subject: `Your Vidhyaan trial is ending in 3 days! ⚠️`,
+            htmlBody: trialEndingTemplate({
               schoolName: org.name,
               adminName,
               daysLeft: 3,
               upgradeUrl
-            })
-          )
+            }),
+            textBody: `Hi ${adminName}, your trial for ${org.name} is ending in 3 days.`
+          })
         } catch (emailErr) {
           console.error(`Failed to send trial ending email for org ${org.id}:`, emailErr)
         }
@@ -110,16 +112,17 @@ export async function GET(req: NextRequest) {
 
       if (adminEmail) {
         try {
-          await sendTemplateEmail(
-            adminEmail,
-            `Your Vidhyaan trial has expired! ❌`,
-            trialEndingTemplate({
+          await sendTransactionalEmail({
+            to: adminEmail,
+            subject: `Your Vidhyaan trial has expired! ❌`,
+            htmlBody: trialEndingTemplate({
               schoolName: org.name,
               adminName,
               daysLeft: 0,
               upgradeUrl
-            })
-          )
+            }),
+            textBody: `Hi ${adminName}, your trial for ${org.name} has expired.`
+          })
         } catch (emailErr) {
           console.error(`Failed to send trial expired email for org ${org.id}:`, emailErr)
         }

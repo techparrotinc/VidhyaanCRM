@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import { AuditAction, OrgStatus, VerificationStatus } from '@prisma/client'
-import { sendTemplateEmail, schoolVerifiedTemplate } from '@/lib/integrations/resend'
+import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
+import { schoolVerifiedTemplate } from '@/lib/mail/templates'
 
 export async function POST(
   req: NextRequest,
@@ -77,15 +78,16 @@ export async function POST(
       console.log(`[SuperAdmin Notification] School "${school.name}" verification approved. Sending live email to admin: ${adminEmail}`)
 
       try {
-        await sendTemplateEmail(
-          adminEmail,
-          "Your school is now live! 🎉",
-          schoolVerifiedTemplate({
+        await sendTransactionalEmail({
+          to: adminEmail,
+          subject: "Your school is now live! 🎉",
+          htmlBody: schoolVerifiedTemplate({
             schoolName: school.name,
             adminName,
             listingUrl
-          })
-        )
+          }),
+          textBody: `Hi ${adminName}, your school ${school.name} is now live on Vidhyaan.`
+        })
       } catch (emailErr) {
         console.error('Failed to send verification email:', emailErr)
       }

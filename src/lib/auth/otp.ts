@@ -1,7 +1,8 @@
 import bcrypt from 'bcryptjs'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import { OtpChannel, OtpPurpose } from '@prisma/client'
 import { sendOtpSms, sendOtpWhatsApp } from '@/lib/integrations/msg91'
+import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 
 export function generateOTP(): string {
   const array = new Uint32Array(1)
@@ -47,43 +48,34 @@ export async function createOTP(
 }
 
 async function sendOtpEmail(email: string, code: string): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    console.warn('Skipping email OTP send: RESEND_API_KEY is not configured')
+  const token = process.env.ZEPTOMAIL_API_TOKEN
+  if (!token) {
+    console.warn('Skipping email OTP send: ZEPTOMAIL_API_TOKEN is not configured')
     return
   }
-  const from = 'Vidhyaan <noreply@vidhyaan.com>'
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+      <h2 style="color: #1a365d; margin-bottom: 16px;">Verification Code</h2>
+      <p>Your Vidhyaan verification code is:</p>
+      <div style="background-color: #f7fafc; padding: 15px; font-size: 24px; font-weight: bold; letter-spacing: 2px; text-align: center; border-radius: 6px; margin: 20px 0; border: 1px solid #e2e8f0;">
+        ${code}
+      </div>
+      <p style="color: #718096; font-size: 14px;">This code is valid for 10 minutes. Please do not share it with anyone.</p>
+      <hr style="border: none; border-top: 1px solid #edf2f7; margin: 20px 0;" />
+      <p style="color: #a0aec0; font-size: 11px;">If you did not request this code, please ignore this email.</p>
+    </div>
+  `
+
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        from,
-        to: email,
-        subject: 'Vidhyaan - Verification Code',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-            <h2 style="color: #1a365d; margin-bottom: 16px;">Verification Code</h2>
-            <p>Your Vidhyaan verification code is:</p>
-            <div style="background-color: #f7fafc; padding: 15px; font-size: 24px; font-weight: bold; letter-spacing: 2px; text-align: center; border-radius: 6px; margin: 20px 0; border: 1px solid #e2e8f0;">
-              ${code}
-            </div>
-            <p style="color: #718096; font-size: 14px;">This code is valid for 10 minutes. Please do not share it with anyone.</p>
-            <hr style="border: none; border-top: 1px solid #edf2f7; margin: 20px 0;" />
-            <p style="color: #a0aec0; font-size: 11px;">If you did not request this code, please ignore this email.</p>
-          </div>
-        `
-      })
+    await sendTransactionalEmail({
+      to: email,
+      subject: 'Vidhyaan - Verification Code',
+      htmlBody: html,
+      textBody: `Your Vidhyaan verification code is: ${code}`
     })
-    if (!res.ok) {
-      const errText = await res.text()
-      console.error('Resend OTP Email failed:', errText)
-    }
   } catch (err) {
-    console.error('Failed to send OTP email:', err)
+    console.error('Failed to send OTP email via ZeptoMail:', err)
   }
 }
 

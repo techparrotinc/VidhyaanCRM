@@ -264,7 +264,7 @@ export default function AdminSettingsPage() {
           <Card className="p-5 bg-white border-slate-200 shadow-sm space-y-4">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                <Mail className="w-4 h-4 text-blue-650" /> Email Configurations (Resend)
+                <Mail className="w-4 h-4 text-blue-650" /> Email Configurations (ZeptoMail)
               </h3>
               <Button
                 type="button"

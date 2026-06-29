@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { UserRole, UserStatus, OtpChannel, OtpPurpose, AuditAction, InstitutionType } from '@prisma/client'
 import { redis } from '@/lib/redis'
 import crypto from 'crypto'
-import { sendTemplateEmail, welcomeSchoolTemplate } from '@/lib/integrations/resend'
+import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
+import { welcomeSchoolTemplate } from '@/lib/mail/templates'
 
 function slugify(text: string): string {
   return text
@@ -264,16 +265,17 @@ export async function POST(req: NextRequest) {
     // Send welcome email to ORG_ADMIN
     try {
       const finalSchoolName = schoolName || school?.name || org.name
-      await sendTemplateEmail(
-        email,
-        "Welcome to Vidhyaan! 🎉",
-        welcomeSchoolTemplate({
+      await sendTransactionalEmail({
+        to: email,
+        subject: "Welcome to Vidhyaan! 🎉",
+        htmlBody: welcomeSchoolTemplate({
           schoolName: finalSchoolName,
           adminName: name,
           loginUrl: `${process.env.NEXTAUTH_URL || 'https://vidhyaan.com'}/login`,
           trialDays: 7
-        })
-      )
+        }),
+        textBody: `Welcome to Vidhyaan! ${finalSchoolName} is registered. Admin Name: ${name}.`
+      })
     } catch (emailErr) {
       console.error('Failed to send school registration welcome email:', emailErr)
     }

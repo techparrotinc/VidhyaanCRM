@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
+import { AuditAction } from '@prisma/client'
+import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 
 export async function POST(req: NextRequest) {
   try {
@@ -68,34 +70,27 @@ export async function POST(req: NextRequest) {
       const from = `${fromName} <${fromEmail}>`
 
       const sendEmail = async (to: string) => {
-        if (!process.env.RESEND_API_KEY) {
-          console.warn('Skipping email send: RESEND_API_KEY is not configured')
+        if (!process.env.ZEPTOMAIL_API_TOKEN) {
+          console.warn('Skipping email send: ZEPTOMAIL_API_TOKEN is not configured')
           return false
         }
         try {
-          const res = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
-            },
-            body: JSON.stringify({
-              from,
-              to,
-              subject: title,
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-                  <h2 style="color: #1a365d; margin-bottom: 16px;">${title}</h2>
-                  <p style="font-size: 15px; color: #4a5568; line-height: 1.6; white-space: pre-wrap;">${message}</p>
-                  <hr style="border: none; border-top: 1px solid #edf2f7; margin: 20px 0;" />
-                  <p style="font-size: 12px; color: #718096;">This is an administrative alert from Vidhyaan Platform Operations.</p>
-                </div>
-              `
-            })
+          await sendTransactionalEmail({
+            to,
+            subject: title,
+            htmlBody: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <h2 style="color: #1a365d; margin-bottom: 16px;">${title}</h2>
+                <p style="font-size: 15px; color: #4a5568; line-height: 1.6; white-space: pre-wrap;">${message}</p>
+                <hr style="border: none; border-top: 1px solid #edf2f7; margin: 20px 0;" />
+                <p style="font-size: 12px; color: #718096;">This is an administrative alert from Vidhyaan Platform Operations.</p>
+              </div>
+            `,
+            textBody: message
           })
-          return res.ok
+          return true
         } catch (emailErr) {
-          console.error(`Failed to send Resend email to ${to}:`, emailErr)
+          console.error(`Failed to send ZeptoMail email to ${to}:`, emailErr)
           return false
         }
       }

@@ -1,4 +1,4 @@
-import { sendEmail } from '@/lib/integrations/resend'
+import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
@@ -47,11 +47,12 @@ export const POST = route({
       </div>
     `
 
-    await sendEmail(
-      invoice.student.guardianEmail,
-      `Fee Invoice ${invoice.invoiceNumber} - Vidhyaan`,
-      emailBody
-    )
+    await sendTransactionalEmail({
+      to: invoice.student.guardianEmail,
+      subject: `Fee Invoice ${invoice.invoiceNumber} - Vidhyaan`,
+      htmlBody: emailBody,
+      textBody: `Dear Parent/Guardian, fee invoice ${invoice.invoiceNumber} has been generated for ${invoice.student.name}. Total amount: ₹${Number(invoice.totalAmount).toLocaleString('en-IN')}.`
+    })
 
     return ok({ success: true, message: 'Email sent successfully' })
   }

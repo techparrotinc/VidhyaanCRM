@@ -1,6 +1,6 @@
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import { redis } from '@/lib/redis'
-import { sendEmail } from '@/lib/integrations/resend'
+import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 
 export type NotificationType =
   | 'LEAD_RECEIVED'
@@ -86,7 +86,7 @@ export async function createNotification(params: CreateNotificationParams) {
       }
     }
 
-    // 5. Send email via Resend if enabled and email address exists
+    // 5. Send email via ZeptoMail if enabled and email address exists
     if (emailEnabled && recipientEmail) {
       const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
       const relativeHref = data?.href || ''
@@ -109,7 +109,12 @@ export async function createNotification(params: CreateNotificationParams) {
         </div>
       `
       
-      await sendEmail(recipientEmail, title, htmlBody)
+      await sendTransactionalEmail({
+        to: recipientEmail,
+        subject: title,
+        htmlBody,
+        textBody: body
+      })
     }
 
     return notification

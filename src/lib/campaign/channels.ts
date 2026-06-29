@@ -1,4 +1,4 @@
-import { Resend } from 'resend'
+import { sendCampaignEmail as zeptoSendCampaignEmail } from '@/lib/integrations/zeptomail'
 
 export async function sendCampaignEmail(params: {
   to: string
@@ -7,13 +7,6 @@ export async function sendCampaignEmail(params: {
   fromName: string
   campaignName: string
 }): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    throw new Error('RESEND_API_KEY is not configured')
-  }
-
-  const resend = new Resend(apiKey)
-
   let subject = params.subject
   let bodyContent = params.body
 
@@ -32,16 +25,13 @@ export async function sendCampaignEmail(params: {
     ${bodyContent.replace(/\n/g, '<br/>')}
   </div>`
 
-  const res = await resend.emails.send({
-    from: `${params.fromName} <campaigns@vidhyaan.com>`,
+  await zeptoSendCampaignEmail({
     to: params.to,
+    toName: params.to,
     subject,
-    html
+    htmlBody: html,
+    textBody: html.replace(/<[^>]*>/g, '')
   })
-
-  if (res.error) {
-    throw new Error(res.error.message || 'Resend email failed')
-  }
 }
 
 export async function sendCampaignSMS(params: {

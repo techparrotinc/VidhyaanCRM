@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
-import { sendTemplateEmail, enquiryNotificationTemplate, enquiryConfirmationTemplate } from '@/lib/integrations/resend'
+import { prisma } from '@/lib/db/client'
+import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
+import { enquiryNotificationTemplate, enquiryConfirmationTemplate } from '@/lib/mail/templates'
 import { cleanPhoneNumber } from '@/lib/utils'
 
 export async function POST(
@@ -172,10 +173,10 @@ export async function POST(
       // Send to school admin
       if (schoolAdminEmail) {
         const crmLink = `${process.env.NEXTAUTH_URL || 'https://vidhyaan.com'}/lead-management`
-        await sendTemplateEmail(
-          schoolAdminEmail,
-          `New admission enquiry for ${school.name}! 🏫`,
-          enquiryNotificationTemplate({
+        await sendTransactionalEmail({
+          to: schoolAdminEmail,
+          subject: `New admission enquiry for ${school.name}! 🏫`,
+          htmlBody: enquiryNotificationTemplate({
             schoolName: school.name,
             parentName,
             phone,
@@ -183,8 +184,9 @@ export async function POST(
             gradeSought: gradeSought || 'Not specified',
             message: message || '',
             crmLink
-          })
-        )
+          }),
+          textBody: `New admission enquiry for ${school.name} from ${parentName}.`
+        })
       }
 
       // Send confirmation to parent (if email is provided)
@@ -198,16 +200,17 @@ export async function POST(
         })
         const schoolPhone = phoneContact?.value || 'Contact school directly'
 
-        await sendTemplateEmail(
-          email,
-          `Your enquiry to ${school.name} has been received!`,
-          enquiryConfirmationTemplate({
+        await sendTransactionalEmail({
+          to: email,
+          subject: `Your enquiry to ${school.name} has been received!`,
+          htmlBody: enquiryConfirmationTemplate({
             parentName,
             schoolName: school.name,
             schoolPhone,
             referenceId: enquiry.id
-          })
-        )
+          }),
+          textBody: `Dear ${parentName}, your enquiry to ${school.name} has been received. Reference ID: ${enquiry.id}.`
+        })
       }
     } catch (emailErr) {
       console.error('Failed to send enquiry email notifications:', emailErr)

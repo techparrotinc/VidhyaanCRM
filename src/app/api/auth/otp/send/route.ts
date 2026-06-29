@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { OtpChannel, OtpPurpose } from '@prisma/client'
 import { otpSendLimiter } from '@/lib/ratelimit'
-import { sendTemplateEmail, otpEmailTemplate } from '@/lib/integrations/resend'
+import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
+import { otpEmailTemplate } from '@/lib/mail/templates'
 import { cleanPhoneNumber } from '@/lib/utils'
 
 const schema = z.object({
@@ -65,15 +66,16 @@ export async function POST(req: NextRequest) {
     )
 
     if (channel === 'EMAIL') {
-      await sendTemplateEmail(
-        contactToUse,
-        "Your Vidhyaan OTP",
-        otpEmailTemplate({
+      await sendTransactionalEmail({
+        to: contactToUse,
+        subject: "Your Vidhyaan OTP",
+        htmlBody: otpEmailTemplate({
           otp: code,
           expiryMinutes: 10,
           purpose
-        })
-      )
+        }),
+        textBody: `Your Vidhyaan OTP code is: ${code}`
+      })
     } else {
       await sendOTP(contactToUse, code, channel)
     }

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import { verifyPayment } from '@/lib/integrations/razorpay'
-import { sendEmail } from '@/lib/integrations/resend'
+import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 import { AuditAction, SubscriptionStatus, BillingCycle } from '@prisma/client'
 import { redis } from '@/lib/redis'
 
@@ -199,11 +199,12 @@ export async function POST(req: NextRequest) {
       </div>
     `
 
-    await sendEmail(
-      orgEmail,
-      `Payment Successful: ${plan.name} Plan Activated!`,
-      paymentSuccessHtml
-    ).catch(err => console.error('Failed to send payment verification email:', err))
+    await sendTransactionalEmail({
+      to: orgEmail,
+      subject: `Payment Successful: ${plan.name} Plan Activated!`,
+      htmlBody: paymentSuccessHtml,
+      textBody: `Your payment was successful and the ${plan.name} Plan is activated.`
+    }).catch(err => console.error('Failed to send payment verification email:', err))
 
     // 10. Audit logging
     await prisma.auditLog.create({

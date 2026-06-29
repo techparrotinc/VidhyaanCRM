@@ -1,5 +1,6 @@
-import { prisma } from '@/lib/db'
-import { sendTemplateEmail, trialEndingTemplate, paymentFailedTemplate } from '@/lib/integrations/resend'
+import { prisma } from '@/lib/db/client'
+import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
+import { trialEndingTemplate, paymentFailedTemplate } from '@/lib/mail/templates'
 
 /**
  * Sends a trial ending warning email to the school admin.
@@ -31,16 +32,17 @@ export async function sendTrialEndingEmail(
   const adminName = org.users[0]?.name || 'Administrator'
   const upgradeUrl = `${process.env.NEXTAUTH_URL || 'https://vidhyaan.com'}/billing`
 
-  await sendTemplateEmail(
-    adminEmail,
-    `Your trial is ending in ${daysLeft} days! ⚠️`,
-    trialEndingTemplate({
+  await sendTransactionalEmail({
+    to: adminEmail,
+    subject: `Your trial is ending in ${daysLeft} days! ⚠️`,
+    htmlBody: trialEndingTemplate({
       schoolName: org.name,
       adminName,
       daysLeft,
       upgradeUrl
-    })
-  )
+    }),
+    textBody: `Hi ${adminName}, your trial for ${org.name} is ending in ${daysLeft} days.`
+  })
 }
 
 /**
@@ -72,13 +74,14 @@ export async function sendPaymentFailedEmail(
 
   const retryUrl = `${process.env.NEXTAUTH_URL || 'https://vidhyaan.com'}/billing`
 
-  await sendTemplateEmail(
-    adminEmail,
-    `Payment Failed: Action Required 🚨`,
-    paymentFailedTemplate({
+  await sendTransactionalEmail({
+    to: adminEmail,
+    subject: `Payment Failed: Action Required 🚨`,
+    htmlBody: paymentFailedTemplate({
       schoolName: org.name,
       amount,
       retryUrl
-    })
-  )
+    }),
+    textBody: `Payment Failed for ${org.name}. Amount due: INR ${amount}.`
+  })
 }

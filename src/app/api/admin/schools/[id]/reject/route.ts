@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import { AuditAction, VerificationStatus } from '@prisma/client'
+import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 
 export async function POST(
   req: NextRequest,
@@ -46,34 +47,27 @@ export async function POST(
     if (adminEmail) {
       console.log(`[SuperAdmin Notification] School "${school.name}" verification rejected. Reason: ${reason}. Sending email to admin: ${adminEmail}`)
 
-      if (process.env.RESEND_API_KEY) {
+      if (process.env.ZEPTOMAIL_API_TOKEN) {
         try {
-          await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
-            },
-            body: JSON.stringify({
-              from: 'Vidhyaan <noreply@vidhyaan.com>',
-              to: adminEmail,
-              subject: 'Update regarding your school listing on Vidhyaan',
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-                  <h2 style="color: #c53030;">Listing Status Update</h2>
-                  <p>Thank you for submitting your school <strong>${school.name}</strong> to Vidhyaan.</p>
-                  <p>Unfortunately, your verification request has been rejected for the following reason:</p>
-                  <blockquote style="background-color: #fffaf0; border-left: 4px solid #dd6b20; padding: 10px 15px; margin: 20px 0; font-style: italic;">
-                    ${reason}
-                  </blockquote>
-                  <p>Please address these concerns and resubmit your claim verification request.</p>
-                  <p style="color: #718096; font-size: 14px; margin-top: 20px;">If you have any questions, please contact Vidhyaan Support.</p>
-                </div>
-              `
-            })
+          await sendTransactionalEmail({
+            to: adminEmail,
+            subject: 'Update regarding your school listing on Vidhyaan',
+            htmlBody: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <h2 style="color: #c53030;">Listing Status Update</h2>
+                <p>Thank you for submitting your school <strong>${school.name}</strong> to Vidhyaan.</p>
+                <p>Unfortunately, your verification request has been rejected for the following reason:</p>
+                <blockquote style="background-color: #fffaf0; border-left: 4px solid #dd6b20; padding: 10px 15px; margin: 20px 0; font-style: italic;">
+                  ${reason}
+                </blockquote>
+                <p>Please address these concerns and resubmit your claim verification request.</p>
+                <p style="color: #718096; font-size: 14px; margin-top: 20px;">If you have any questions, please contact Vidhyaan Support.</p>
+              </div>
+            `,
+            textBody: `Your verification request for ${school.name} has been rejected. Reason: ${reason}`
           })
         } catch (emailErr) {
-          console.error('Failed to send Resend rejection email:', emailErr)
+          console.error('Failed to send ZeptoMail rejection email:', emailErr)
         }
       }
     }

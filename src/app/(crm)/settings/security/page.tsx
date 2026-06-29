@@ -34,7 +34,7 @@ export default function SecuritySettingsPage() {
   const [changePinSuccess, setChangePinSuccess] = useState(false)
 
   // Remove PIN Flow
-  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', ''])
+  const [otp, setOtp] = useState<string[]>(['', '', '', ''])
   const [otpError, setOtpError] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
@@ -229,7 +229,7 @@ export default function SecuritySettingsPage() {
       if (res.ok) {
         setOtpSent(true)
         setResendCooldown(30)
-        setOtp(['', '', '', '', '', ''])
+        setOtp(['', '', '', ''])
       } else {
         setApiError(data.error || 'Failed to send OTP code.')
       }
@@ -247,12 +247,12 @@ export default function SecuritySettingsPage() {
     newOtp[index] = digit
     setOtp(newOtp)
 
-    if (digit && index < 5) {
+    if (digit && index < 3) {
       otpRefs.current[index + 1]?.focus()
     }
 
     const otpCode = newOtp.join('')
-    if (otpCode.length === 6) {
+    if (otpCode.length === 4) {
       triggerRemovePin(otpCode)
     }
   }
@@ -273,21 +273,21 @@ export default function SecuritySettingsPage() {
 
   const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault()
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4)
     if (!pastedData) return
 
     const newOtp = [...otp]
-    for (let j = 0; j < 6; j++) {
+    for (let j = 0; j < 4; j++) {
       if (j < pastedData.length) {
         newOtp[j] = pastedData[j]
       }
     }
     setOtp(newOtp)
 
-    if (pastedData.length === 6) {
+    if (pastedData.length === 4) {
       triggerRemovePin(pastedData)
     } else {
-      const focusIndex = Math.min(pastedData.length, 5)
+      const focusIndex = Math.min(pastedData.length, 3)
       otpRefs.current[focusIndex]?.focus()
     }
   }
@@ -315,7 +315,7 @@ export default function SecuritySettingsPage() {
         }, 1500)
       } else {
         setOtpError(true)
-        setOtp(['', '', '', '', '', ''])
+        setOtp(['', '', '', ''])
         setTimeout(() => otpRefs.current[0]?.focus(), 50)
         setApiError(data.error || 'Incorrect OTP or verification expired.')
       }

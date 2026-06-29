@@ -15,12 +15,6 @@ const schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  console.log('OTP ROUTE HIT:', {
-    nodeEnv: process.env.NODE_ENV,
-    hasAuthKey: !!process.env.MSG91_AUTH_KEY,
-    hasTemplateId: !!process.env.MSG91_OTP_TEMPLATE_ID,
-    url: req.url,
-  })
   try {
     const body = await req.json()
     const { contact, purpose } = schema.parse(body)

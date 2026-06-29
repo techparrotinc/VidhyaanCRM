@@ -40,7 +40,7 @@ export default function ClaimVerifyPage() {
   
   // Method states
   const [otpSent, setOtpSent] = useState(false)
-  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', ''])
+  const [otp, setOtp] = useState<string[]>(['', '', '', ''])
   const [otpLoading, setOtpLoading] = useState(false)
   const [otpError, setOtpError] = useState<string | null>(null)
 
@@ -96,13 +96,13 @@ export default function ClaimVerifyPage() {
   const handleOtpChange = (value: string, index: number) => {
     if (value.length > 1) {
       // Handle paste
-      const pasted = value.slice(0, 6).split('')
+      const pasted = value.slice(0, 4).split('')
       const newOtp = [...otp]
       pasted.forEach((char, idx) => {
-        if (idx < 6) newOtp[idx] = char
+        if (idx < 4) newOtp[idx] = char
       })
       setOtp(newOtp)
-      const targetIdx = Math.min(pasted.length, 5)
+      const targetIdx = Math.min(pasted.length, 3)
       otpInputRefs.current[targetIdx]?.focus()
       return
     }
@@ -111,7 +111,7 @@ export default function ClaimVerifyPage() {
     newOtp[index] = value
     setOtp(newOtp)
 
-    if (value && index < 5) {
+    if (value && index < 3) {
       otpInputRefs.current[index + 1]?.focus()
     }
   }
@@ -192,8 +192,8 @@ export default function ClaimVerifyPage() {
   const verifyCode = async () => {
     if (!school || !selectedMethod) return
     const code = otp.join('')
-    if (code.length < 6) {
-      setOtpError('Please fill in all 6 OTP digits')
+    if (code.length < 4) {
+      setOtpError('Please fill in all 4 OTP digits')
       return
     }
 
@@ -227,7 +227,7 @@ export default function ClaimVerifyPage() {
     } catch (err: any) {
       console.error(err)
       setOtpError(err.message || 'Verification failed')
-      setOtp(['', '', '', '', '', ''])
+      setOtp(['', '', '', ''])
       otpInputRefs.current[0]?.focus()
     } finally {
       setOtpLoading(false)
@@ -336,7 +336,7 @@ export default function ClaimVerifyPage() {
                 if (otpSent || selectedMethod) {
                   setOtpSent(false)
                   setSelectedMethod(null)
-                  setOtp(['', '', '', '', '', ''])
+                  setOtp(['', '', '', ''])
                   setOtpError(null)
                 } else {
                   router.push('/claim-profile')
@@ -452,7 +452,7 @@ export default function ClaimVerifyPage() {
               <div className="space-y-1 text-center">
                 <h3 className="text-2xl font-bold text-slate-800">Enter Verification Code</h3>
                 <p className="text-sm text-slate-500">
-                  We've sent a 6-digit code to{' '}
+                  We've sent a 4-digit code to{' '}
                   <span className="font-bold text-slate-800">
                     {selectedMethod === 'EMAIL' && schoolEmail ? maskEmail(schoolEmail) : phoneInput}
                   </span>
@@ -474,7 +474,7 @@ export default function ClaimVerifyPage() {
                     value={digit}
                     onChange={(e) => handleOtpChange(e.target.value, idx)}
                     onKeyDown={(e) => handleOtpKeyDown(e, idx)}
-                    maxLength={6} // support pasting
+                    maxLength={4} // support pasting
                     className="w-12 h-14 bg-slate-50 border border-slate-200 rounded-xl text-center font-extrabold text-slate-800 text-xl focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all"
                   />
                 ))}
@@ -483,7 +483,7 @@ export default function ClaimVerifyPage() {
               <div className="space-y-3 max-w-[360px] mx-auto">
                 <button
                   onClick={verifyCode}
-                  disabled={otpLoading || otp.join('').length < 6}
+                  disabled={otpLoading || otp.join('').length < 4}
                   className="w-full py-3.5 bg-[#1565D8] hover:bg-[#1150ad] disabled:bg-[#1565D8]/50 text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed select-none text-base"
                 >
                   {otpLoading ? (

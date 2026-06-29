@@ -7,7 +7,7 @@ import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 export function generateOTP(): string {
   const array = new Uint32Array(1)
   crypto.getRandomValues(array)
-  return String((array[0] % 900000) + 100000)
+  return String((array[0] % 9000) + 1000)
 }
 
 export async function createOTP(

@@ -15,14 +15,6 @@ export async function sendOtpSms(
   }
 
   try {
-    console.log('MSG91 OTP request:', {
-      url: 'https://control.msg91.com/api/v5/otp',
-      templateId,
-      mobile: '91' + phone,
-      otpLength: otp.length,
-      hasAuthKey: !!authKey,
-    })
-
     const res = await axios.post(
       'https://control.msg91.com/api/v5/otp',
       {
@@ -42,8 +34,6 @@ export async function sendOtpSms(
     if (res.data?.type === 'error') {
       throw new Error(res.data?.message || 'MSG91 OTP SMS failed')
     }
-
-    console.log('MSG91 OTP API response:', res.data)
 
     return { success: true }
   } catch (error: any) {

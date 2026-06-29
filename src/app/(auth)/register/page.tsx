@@ -22,8 +22,7 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState('')
   const [agreeTerms, setAgreeTerms] = useState(false)
 
-  // Step 2: OTP
-  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', ''])
+  const [otp, setOtp] = useState<string[]>(['', '', '', ''])
   const [otpError, setOtpError] = useState(false)
   const [otpAttemptsLeft, setOtpAttemptsLeft] = useState<number | null>(null)
   const [otpSecondsLeft, setOtpSecondsLeft] = useState(600) // 10 minutes countdown
@@ -110,13 +109,13 @@ export default function RegisterPage() {
     newOtp[index] = digit
     setOtp(newOtp)
 
-    if (digit && index < 5) {
+    if (digit && index < 3) {
       otpRefs.current[index + 1]?.focus()
     }
 
     // Check if fully filled
     const otpCode = newOtp.join('')
-    if (otpCode.length === 6) {
+    if (otpCode.length === 4) {
       triggerOtpVerify(otpCode)
     }
   }
@@ -137,21 +136,21 @@ export default function RegisterPage() {
 
   const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault()
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4)
     if (!pastedData) return
 
     const newOtp = [...otp]
-    for (let j = 0; j < 6; j++) {
+    for (let j = 0; j < 4; j++) {
       if (j < pastedData.length) {
         newOtp[j] = pastedData[j]
       }
     }
     setOtp(newOtp)
 
-    if (pastedData.length === 6) {
+    if (pastedData.length === 4) {
       triggerOtpVerify(pastedData)
     } else {
-      const focusIndex = Math.min(pastedData.length, 5)
+      const focusIndex = Math.min(pastedData.length, 3)
       otpRefs.current[focusIndex]?.focus()
     }
   }
@@ -171,7 +170,7 @@ export default function RegisterPage() {
 
       if (!res.ok || !data.success) {
         setOtpError(true)
-        setOtp(['', '', '', '', '', ''])
+        setOtp(['', '', '', ''])
         setTimeout(() => otpRefs.current[0]?.focus(), 50)
         
         if (data.attemptsLeft !== undefined) {
@@ -211,7 +210,7 @@ export default function RegisterPage() {
       }
 
       setOtpSecondsLeft(data.expiresIn || 600)
-      setOtp(['', '', '', '', '', ''])
+      setOtp(['', '', '', ''])
       setTimeout(() => otpRefs.current[0]?.focus(), 50)
     } catch (err) {
       console.error(err)
@@ -556,7 +555,7 @@ export default function RegisterPage() {
                   onClick={() => {
                     setStep(1)
                     setPhone('')
-                    setOtp(['', '', '', '', '', ''])
+                    setOtp(['', '', '', ''])
                     setApiError(null)
                   }}
                   className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer"

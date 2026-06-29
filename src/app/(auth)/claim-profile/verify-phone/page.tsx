@@ -9,7 +9,7 @@ import { Shield, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 export default function ClaimVerifyPhonePage() {
   const router = useRouter()
   const [phone, setPhone] = useState<string | null>(null)
-  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', ''])
+  const [otp, setOtp] = useState<string[]>(['', '', '', ''])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -56,13 +56,13 @@ export default function ClaimVerifyPhonePage() {
 
   const handleOtpChange = (value: string, index: number) => {
     if (value.length > 1) {
-      const pasted = value.slice(0, 6).split('')
+      const pasted = value.slice(0, 4).split('')
       const newOtp = [...otp]
       pasted.forEach((char, idx) => {
-        if (idx < 6) newOtp[idx] = char
+        if (idx < 4) newOtp[idx] = char
       })
       setOtp(newOtp)
-      const targetIdx = Math.min(pasted.length, 5)
+      const targetIdx = Math.min(pasted.length, 3)
       inputRefs.current[targetIdx]?.focus()
       return
     }
@@ -71,7 +71,7 @@ export default function ClaimVerifyPhonePage() {
     newOtp[index] = value
     setOtp(newOtp)
 
-    if (value && index < 5) {
+    if (value && index < 3) {
       inputRefs.current[index + 1]?.focus()
     }
   }
@@ -103,7 +103,7 @@ export default function ClaimVerifyPhonePage() {
       setSuccess('OTP code resent successfully!')
       setExpiresIn(data.expiresIn || 600)
       setResendCooldown(30)
-      setOtp(['', '', '', '', '', ''])
+      setOtp(['', '', '', ''])
       setTimeout(() => inputRefs.current[0]?.focus(), 50)
     } catch (err: any) {
       console.error(err)
@@ -120,8 +120,8 @@ export default function ClaimVerifyPhonePage() {
     setSuccess(null)
 
     const otpCode = otp.join('')
-    if (otpCode.length < 6) {
-      setError('Please fill in all 6 OTP digits')
+    if (otpCode.length < 4) {
+      setError('Please fill in all 4 OTP digits')
       return
     }
 
@@ -135,7 +135,7 @@ export default function ClaimVerifyPhonePage() {
 
       if (res?.error) {
         setError('Invalid or expired OTP')
-        setOtp(['', '', '', '', '', ''])
+        setOtp(['', '', '', ''])
         inputRefs.current[0]?.focus()
         return
       }
@@ -244,7 +244,7 @@ export default function ClaimVerifyPhonePage() {
                     value={digit}
                     onChange={(e) => handleOtpChange(e.target.value, idx)}
                     onKeyDown={(e) => handleOtpKeyDown(e, idx)}
-                    maxLength={6}
+                    maxLength={4}
                     disabled={loading}
                     className="w-12 h-14 bg-slate-50 border border-slate-200 rounded-xl text-center font-extrabold text-slate-800 text-xl focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all"
                   />
@@ -269,7 +269,7 @@ export default function ClaimVerifyPhonePage() {
 
               <button
                 type="submit"
-                disabled={loading || otp.join('').length < 6}
+                disabled={loading || otp.join('').length < 4}
                 className="w-full flex items-center justify-center py-3.5 px-4 bg-[#1565D8] hover:bg-[#1150ad] disabled:bg-[#1565D8]/50 text-white font-bold rounded-xl shadow-md shadow-[#1565D8]/10 hover:shadow-lg hover:shadow-[#1565D8]/25 transition-all cursor-pointer disabled:cursor-not-allowed select-none text-base"
               >
                 {loading ? (

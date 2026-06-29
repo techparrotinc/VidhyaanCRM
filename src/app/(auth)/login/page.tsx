@@ -32,7 +32,7 @@ export default function LoginPage() {
   const [lockSecondsLeft, setLockSecondsLeft] = useState(0)
 
   // Step 3: OTP Fallback Login
-  const [otp, setOtp] = useState<string[]>(['', '', '', '', '', ''])
+  const [otp, setOtp] = useState<string[]>(['', '', '', ''])
   const [otpError, setOtpError] = useState(false)
   const [otpSecondsLeft, setOtpSecondsLeft] = useState(600) // 10 mins expiry
   const [resendCooldown, setResendCooldown] = useState(30) // 30s resend cooldown
@@ -152,7 +152,7 @@ export default function LoginPage() {
     }
     setOtpSecondsLeft(data.expiresIn || 600)
     setResendCooldown(30)
-    setOtp(['', '', '', '', '', ''])
+    setOtp(['', '', '', ''])
   }
 
   // --- STATE 2: PIN LOGIN ---
@@ -239,12 +239,12 @@ export default function LoginPage() {
     newOtp[index] = digit
     setOtp(newOtp)
 
-    if (digit && index < 5) {
+    if (digit && index < 3) {
       otpRefs.current[index + 1]?.focus()
     }
 
     const otpCode = newOtp.join('')
-    if (otpCode.length === 6) {
+    if (otpCode.length === 4) {
       triggerOtpVerify(otpCode)
     }
   }
@@ -265,21 +265,21 @@ export default function LoginPage() {
 
   const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault()
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4)
     if (!pastedData) return
 
     const newOtp = [...otp]
-    for (let j = 0; j < 6; j++) {
+    for (let j = 0; j < 4; j++) {
       if (j < pastedData.length) {
         newOtp[j] = pastedData[j]
       }
     }
     setOtp(newOtp)
 
-    if (pastedData.length === 6) {
+    if (pastedData.length === 4) {
       triggerOtpVerify(pastedData)
     } else {
-      const focusIndex = Math.min(pastedData.length, 5)
+      const focusIndex = Math.min(pastedData.length, 3)
       otpRefs.current[focusIndex]?.focus()
     }
   }
@@ -299,7 +299,7 @@ export default function LoginPage() {
 
       if (authRes?.error) {
         setOtpError(true)
-        setOtp(['', '', '', '', '', ''])
+        setOtp(['', '', '', ''])
         setTimeout(() => otpRefs.current[0]?.focus(), 50)
         setApiError('Incorrect OTP or session expired.')
         return

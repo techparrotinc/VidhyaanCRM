@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import bcrypt from 'bcryptjs'
 
 export async function POST(req: NextRequest) {
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Dev bypass
-    const isDevBypass = process.env.NODE_ENV === 'development' && code === '123456'
+    const isDevBypass = process.env.NODE_ENV === 'development' && code === '1234'
     
     if (isDevBypass) {
       return NextResponse.json({ success: true })

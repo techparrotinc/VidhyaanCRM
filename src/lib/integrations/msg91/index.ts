@@ -15,20 +15,27 @@ export async function sendOtpSms(
   }
 
   try {
+    console.log('MSG91 OTP request:', {
+      url: 'https://control.msg91.com/api/v5/otp',
+      templateId,
+      mobile: '91' + phone,
+      otpLength: otp.length,
+      hasAuthKey: !!authKey,
+    })
+
     const res = await axios.post(
       'https://control.msg91.com/api/v5/otp',
       {
         template_id: templateId,
         mobile: '91' + phone,
-        authkey: authKey,
-        otp: otp
+        otp: otp,
       },
       {
         headers: {
           authkey: authKey,
           accept: 'application/json',
-          'content-type': 'application/json'
-        }
+          'content-type': 'application/json',
+        },
       }
     )
 

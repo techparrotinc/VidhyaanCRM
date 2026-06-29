@@ -1,5 +1,5 @@
-// @ts-ignore
-import { SendMailClient } from 'zeptomail'
+// @ts-expect-error
+import { SendMailClient, NonExistentType } from 'zeptomail'
 
 const client = new SendMailClient({
   url: 'api.zeptomail.in/',

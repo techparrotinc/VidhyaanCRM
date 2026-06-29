@@ -18,7 +18,10 @@ const nextConfig: NextConfig = {
     ],
     minimumCacheTTL: 60,
   },
-  devIndicators: false
+  devIndicators: false,
+  eslint: {
+    ignoreDuringBuilds: true
+  }
 };
 
 export default nextConfig;

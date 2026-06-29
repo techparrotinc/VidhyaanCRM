@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, AlertCircle, ArrowRight, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react'
+import {
+  INSTITUTION_CONFIG,
+  type InstitutionType,
+} from '@/constants/institutionConfig'
 
 export default function OnboardingStep5() {
   const router = useRouter()
@@ -15,6 +19,11 @@ export default function OnboardingStep5() {
   const [school, setSchool] = useState<any>(null)
   const [verificationStatus, setVerificationStatus] = useState('UNCLAIMED')
   const [orgStatus, setOrgStatus] = useState('ACTIVE')
+
+  const institutionType = school?.institutionType || 'SCHOOL'
+  const config = INSTITUTION_CONFIG[
+    institutionType as InstitutionType
+  ] ?? INSTITUTION_CONFIG['SCHOOL']
 
   useEffect(() => {
     fetch('/api/v1/onboarding/status')
@@ -297,7 +306,7 @@ export default function OnboardingStep5() {
               <div className="space-y-0.5">
                 <span className="font-bold text-emerald-800 block">Instant Verification Active</span>
                 <p className="text-emerald-700">
-                  Your school is fully verified via email/phone credentials. Launching will immediately publish your listing page to parents on the marketplace directory.
+                  Your {config.nameLabel.toLowerCase()} is fully verified via email/phone credentials. Launching will immediately publish your listing page to parents on the marketplace directory.
                 </p>
               </div>
             </div>

@@ -6,8 +6,12 @@ import { Loader2, AlertCircle } from 'lucide-react'
 import {
   INSTITUTION_CONFIG,
   CENTER_CATEGORIES,
+  EXAM_FOCUS_OPTIONS,
+  INDIAN_LANGUAGES,
   type InstitutionType,
 } from '@/constants/institutionConfig'
+import { LanguageTagInput } from '@/components/ui/LanguageTagInput'
+import { ExamFocusTagInput } from '@/components/ui/ExamFocusTagInput'
 
 const institutionTypes = [
   { value: 'SCHOOL', label: 'School' },
@@ -15,16 +19,6 @@ const institutionTypes = [
   { value: 'JUNIOR_COLLEGE', label: 'Junior College' },
   { value: 'COACHING_CENTER', label: 'Coaching Center' }
 ]
-
-const schoolTypes = [
-  'Private School',
-  'Government School',
-  'Government-Aided School',
-  'International School',
-  'Special Education'
-]
-
-const languages = ['English', 'Tamil', 'Hindi', 'Other']
 
 const grades = [
   'Playgroup', 'Nursery', 'LKG', 'UKG',
@@ -42,8 +36,9 @@ export default function OnboardingStep1() {
   // Form Fields
   const [name, setName] = useState('')
   const [institutionType, setInstitutionType] = useState('SCHOOL')
-  const [schoolType, setSchoolType] = useState('Private School')
+  const [schoolType, setSchoolType] = useState('PRIVATE')
   const [centerCategory, setCenterCategory] = useState('')
+  const [examFocus, setExamFocus] = useState<string[]>([])
   const [establishedYear, setEstablishedYear] = useState('')
   const [description, setDescription] = useState('')
   const [totalStudents, setTotalStudents] = useState('')
@@ -66,8 +61,9 @@ export default function OnboardingStep1() {
           const s = data.school
           setName(s.name || '')
           setInstitutionType(s.institutionType || 'SCHOOL')
-          setSchoolType(s.schoolType || 'Private School')
+          setSchoolType(s.schoolType || 'PRIVATE')
           setCenterCategory(s.centerCategory || '')
+          setExamFocus(s.examFocus || [])
           setEstablishedYear(s.establishedYear ? s.establishedYear.toString() : '')
           setDescription(s.description || '')
           setTotalStudents(s.totalStudents ? s.totalStudents.toString() : '')
@@ -89,11 +85,15 @@ export default function OnboardingStep1() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleLangToggle = (lang: string) => {
-    setMediumOfInstruction((prev) =>
-      prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
-    )
-  }
+  // Update school type if institution type changes and makes previous value invalid
+  useEffect(() => {
+    if (config.showSchoolType && config.schoolTypeOptions.length > 0) {
+      const isValid = config.schoolTypeOptions.some(opt => opt.value === schoolType)
+      if (!isValid) {
+        setSchoolType(config.schoolTypeOptions[0].value)
+      }
+    }
+  }, [institutionType, config])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -124,14 +124,15 @@ export default function OnboardingStep1() {
             institutionType,
             schoolType: config.showSchoolType ? schoolType : null,
             centerCategory: config.showCenterCategory ? centerCategory : null,
+            examFocus: config.showExamFocus ? examFocus : [],
             establishedYear: yearNum,
             description,
             totalStudents: totalStudents ? parseInt(totalStudents) : null,
             totalTeachers: totalTeachers ? parseInt(totalTeachers) : null,
             mediumOfInstruction: config.showMediumOfInstruction ? mediumOfInstruction : [],
             gender: config.showGender ? gender : null,
-            gradeFrom: config.showGradesOffered ? gradeFrom : null,
-            gradeTo: config.showGradesOffered ? gradeTo : null
+            gradeFrom: config.showGradesOffered ? (config.gradesLocked ? 'Class 11' : gradeFrom) : null,
+            gradeTo: config.showGradesOffered ? (config.gradesLocked ? 'Class 12' : gradeTo) : null
           }
         })
       })
@@ -178,7 +179,7 @@ export default function OnboardingStep1() {
           {/* School Name */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              {config.nameLabel} <span className="text-red-500">*</span>
+              {config.nameFieldLabel.toUpperCase()} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -226,9 +227,9 @@ export default function OnboardingStep1() {
                   onChange={(e) => setSchoolType(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
                 >
-                  {schoolTypes.map((st) => (
-                    <option key={st} value={st}>
-                      {st}
+                  {config.schoolTypeOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
                     </option>
                   ))}
                 </select>
@@ -274,6 +275,24 @@ export default function OnboardingStep1() {
             </div>
           </div>
 
+          {/* Exam Focus field */}
+          {config.showExamFocus && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                EXAM / COURSE FOCUS
+                <span className="text-slate-400 font-normal ml-1">(optional)</span>
+              </label>
+              <ExamFocusTagInput
+                value={examFocus ?? []}
+                onChange={(vals) => setExamFocus(vals)}
+                options={EXAM_FOCUS_OPTIONS}
+              />
+              <p className="text-xs text-slate-400 mt-0.5">
+                Select all that apply — helps students find your center
+              </p>
+            </div>
+          )}
+
           {/* School Description */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
@@ -310,7 +329,7 @@ export default function OnboardingStep1() {
             {/* Total Teachers */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Total Teachers <span className="text-slate-400 font-medium">(Optional)</span>
+                {config.teacherLabel} <span className="text-slate-400 font-medium">(Optional)</span>
               </label>
               <input
                 type="number"
@@ -324,23 +343,15 @@ export default function OnboardingStep1() {
 
           {/* Medium of Instruction Checkboxes */}
           {config.showMediumOfInstruction && (
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Medium of Instruction
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                MEDIUM OF INSTRUCTION
               </label>
-              <div className="flex flex-wrap gap-4 pt-1">
-                {languages.map((l) => (
-                  <label key={l} className="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={mediumOfInstruction.includes(l)}
-                      onChange={() => handleLangToggle(l)}
-                      className="w-4.5 h-4.5 rounded text-[#1565D8] border-slate-300 focus:ring-[#1565D8]"
-                    />
-                    <span>{l}</span>
-                  </label>
-                ))}
-              </div>
+              <LanguageTagInput
+                value={mediumOfInstruction ?? []}
+                onChange={(vals) => setMediumOfInstruction(vals)}
+                options={INDIAN_LANGUAGES}
+              />
             </div>
           )}
 
@@ -373,33 +384,39 @@ export default function OnboardingStep1() {
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 Grades Offered
               </label>
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">From</span>
-                  <select
-                    value={gradeFrom}
-                    onChange={(e) => setGradeFrom(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] text-xs cursor-pointer"
-                  >
-                    {grades.map((g) => (
-                      <option key={g} value={g}>{g}</option>
-                    ))}
-                  </select>
+              {config.gradesLocked ? (
+                <div className="px-3 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm text-slate-600">
+                  {config.lockedGradeLabel}
                 </div>
-                <span className="text-slate-400 font-bold self-end pb-3 text-sm">to</span>
-                <div className="flex-1">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">To</span>
-                  <select
-                    value={gradeTo}
-                    onChange={(e) => setGradeTo(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] text-xs cursor-pointer"
-                  >
-                    {grades.map((g) => (
-                      <option key={g} value={g}>{g}</option>
-                    ))}
-                  </select>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">From</span>
+                    <select
+                      value={gradeFrom}
+                      onChange={(e) => setGradeFrom(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] text-xs cursor-pointer"
+                    >
+                      {grades.map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <span className="text-slate-400 font-bold self-end pb-3 text-sm">to</span>
+                  <div className="flex-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">To</span>
+                    <select
+                      value={gradeTo}
+                      onChange={(e) => setGradeTo(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] text-xs cursor-pointer"
+                    >
+                      {grades.map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </form>

@@ -274,7 +274,7 @@ export default function ClaimProfilePage() {
                             onClick={() => router.push(`/claim-profile/verify/${school.id}`)}
                             className="self-start md:self-auto px-4 py-2.5 bg-blue-50 text-[#1565D8] hover:bg-[#1565D8] hover:text-white font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 cursor-pointer group"
                           >
-                            <span>Claim This School</span>
+                            <span>Claim This Institution</span>
                             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                           </button>
                         )}
@@ -298,17 +298,17 @@ export default function ClaimProfilePage() {
               <div className="bg-blue-50/40 rounded-2xl border border-blue-50/80 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
                   <h4 className="font-bold text-slate-800 text-base">
-                    Can't find your school?
+                    Can't find your institution?
                   </h4>
                   <p className="text-slate-500 text-sm">
-                    Register your school on Vidhyaan for free to start managing your dashboard
+                    Register your institution on Vidhyaan for free to start managing your dashboard
                   </p>
                 </div>
                 <button
                   onClick={() => router.push('/register-school')}
                   className="px-5 py-2.5 bg-[#1565D8] hover:bg-[#1150ad] text-white font-bold rounded-xl text-sm shadow-sm transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
-                  <span>Register New School</span>
+                  <span>Register New Institution</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

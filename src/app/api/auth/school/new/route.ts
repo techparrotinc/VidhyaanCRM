@@ -68,10 +68,16 @@ export async function POST(req: NextRequest) {
       city,
       board,
       establishedYear,
-      centerCategory
+      centerCategory,
+      schoolType,
+      mediumOfInstruction,
+      examFocus,
+      gradeFrom,
+      gradeTo,
+      totalTeachers
     } = body
 
-    if (!name || !phone || !email || !role || !schoolName || !institutionType || !city || (institutionType !== 'LEARNING_CENTER' && !board)) {
+    if (!name || !phone || !email || !role || !schoolName || !institutionType || !city || (institutionType !== 'LEARNING_CENTER' && institutionType !== 'COACHING_CENTER' && !board)) {
       return NextResponse.json(
         { success: false, error: 'Missing required registration details' },
         { status: 400 }
@@ -148,7 +154,12 @@ export async function POST(req: NextRequest) {
         name: schoolName,
         slug: schoolSlug,
         institutionType: mappedInstType,
+        schoolType: schoolType || null,
         centerCategory: mappedInstType === 'LEARNING_CENTER' || mappedInstType === 'COACHING_CENTER' ? centerCategory : null,
+        examFocus: examFocus || [],
+        mediumOfInstruction: Array.isArray(mediumOfInstruction) ? mediumOfInstruction.join(', ') : mediumOfInstruction || null,
+        gradesOffered: (gradeFrom && gradeTo) ? `${gradeFrom} to ${gradeTo}` : null,
+        totalTeachers: totalTeachers ? parseInt(totalTeachers) : null,
         isPublished: false,
         verificationStatus: 'PENDING',
         establishedYear: establishedYear ? parseInt(establishedYear) : null

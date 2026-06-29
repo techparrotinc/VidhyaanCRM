@@ -872,6 +872,7 @@ model School {
   updatedAt          DateTime           @updatedAt @map("updated_at")
   deletedAt          DateTime?          @map("deleted_at")
   centerCategory     String?            @map("center_category")
+  examFocus          String[]           @map("exam_focus")
 
   // For Learning Centers
   trialClassAvailable   Boolean   @default(false) @map("trial_class_available")

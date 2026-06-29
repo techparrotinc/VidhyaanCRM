@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, AlertCircle, Upload, Camera, Trash2, CheckCircle } from 'lucide-react'
+import {
+  INSTITUTION_CONFIG,
+  type InstitutionType,
+} from '@/constants/institutionConfig'
 
 export default function OnboardingStep4() {
   const router = useRouter()
@@ -19,12 +23,20 @@ export default function OnboardingStep4() {
   const [uploadTarget, setUploadTarget] = useState<'logo' | 'cover' | number | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
 
+  const [institutionType, setInstitutionType] = useState('SCHOOL')
+  const config = INSTITUTION_CONFIG[
+    institutionType as InstitutionType
+  ] ?? INSTITUTION_CONFIG['SCHOOL']
+
   useEffect(() => {
     fetch('/api/v1/onboarding/status')
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.school) {
           const s = data.school
+          if (s.institutionType) {
+            setInstitutionType(s.institutionType)
+          }
           if (s.media) {
             const logo = s.media.find((m: any) => m.caption === 'logo')
             const cover = s.media.find((m: any) => m.caption === 'cover')
@@ -176,7 +188,7 @@ export default function OnboardingStep4() {
       <div>
         <div className="space-y-1 mb-6">
           <h2 className="text-2xl font-extrabold text-slate-800">Add Photos to Your Profile</h2>
-          <p className="text-sm text-slate-500">Schools with photos get 3x more enquiries</p>
+          <p className="text-sm text-slate-500">{config.nameLabel}s with photos get 3x more enquiries</p>
         </div>
 
         {error && (
@@ -192,7 +204,7 @@ export default function OnboardingStep4() {
             {/* SCHOOL LOGO UPLOAD */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                School Logo <span className="text-red-500">*</span> <span className="text-[10px] font-normal text-slate-400 font-sans">(Max 2MB)</span>
+                {config.nameLabel} Logo <span className="text-red-500">*</span> <span className="text-[10px] font-normal text-slate-400 font-sans">(Max 2MB)</span>
               </label>
               
               <div className="flex items-center gap-4">
@@ -283,7 +295,7 @@ export default function OnboardingStep4() {
                   Add Gallery Photos
                 </label>
                 <span className="text-[10px] text-slate-400 font-sans block">
-                  Free plan includes up to 3 gallery photos of your school campus.
+                  Free plan includes up to 3 gallery photos of your {config.nameLabel.toLowerCase()} campus.
                 </span>
               </div>
 

@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, AlertCircle, MapPin, ExternalLink, HelpCircle } from 'lucide-react'
+import {
+  INSTITUTION_CONFIG,
+  type InstitutionType,
+} from '@/constants/institutionConfig'
 
 const indianStates = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
@@ -22,6 +26,10 @@ export default function OnboardingStep2() {
   
   // School info for search maps query fallback
   const [schoolName, setSchoolName] = useState('')
+  const [institutionType, setInstitutionType] = useState('SCHOOL')
+  const config = INSTITUTION_CONFIG[
+    institutionType as InstitutionType
+  ] ?? INSTITUTION_CONFIG['SCHOOL']
 
   // Form Fields
   const [address1, setAddress1] = useState('')
@@ -44,6 +52,9 @@ export default function OnboardingStep2() {
         if (data.success && data.school) {
           const s = data.school
           setSchoolName(s.name || '')
+          if (s.institutionType) {
+            setInstitutionType(s.institutionType)
+          }
 
           if (s.locations && s.locations.length > 0) {
             const loc = s.locations.find((l: any) => l.isPrimary) || s.locations[0]
@@ -139,7 +150,7 @@ export default function OnboardingStep2() {
     return (
       <div className="flex flex-col items-center justify-center py-20 flex-1">
         <Loader2 className="w-8 h-8 text-[#1565D8] animate-spin mb-3" />
-        <p className="text-slate-500 text-sm font-semibold">Loading school location...</p>
+        <p className="text-slate-500 text-sm font-semibold">Loading location...</p>
       </div>
     )
   }
@@ -148,7 +159,7 @@ export default function OnboardingStep2() {
     <div className="space-y-6 flex-1 flex flex-col justify-between">
       <div>
         <div className="space-y-1 mb-6">
-          <h2 className="text-2xl font-extrabold text-slate-800">Where is your school located?</h2>
+          <h2 className="text-2xl font-extrabold text-slate-800">{config.locationHeading}</h2>
           <p className="text-sm text-slate-500">Provide address and contact information for parents</p>
         </div>
 
@@ -353,7 +364,7 @@ export default function OnboardingStep2() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. contact@school.edu"
+                placeholder={`e.g. contact@${config.genericLabel.toLowerCase()}.edu`}
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm"
                 required
               />
@@ -368,7 +379,7 @@ export default function OnboardingStep2() {
                 type="url"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
-                placeholder="e.g. https://www.school.edu"
+                placeholder={`e.g. https://www.${config.genericLabel.toLowerCase()}.edu`}
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm"
               />
             </div>

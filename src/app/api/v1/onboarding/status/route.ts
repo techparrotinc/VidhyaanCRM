@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 
 export async function GET(req: NextRequest) {
   try {
@@ -53,7 +53,8 @@ export async function GET(req: NextRequest) {
         contacts: { where: { deletedAt: null } },
         affiliations: true,
         media: { where: { deletedAt: null } },
-        feeRanges: true
+        feeRanges: true,
+        facilities: true
       }
     })
 

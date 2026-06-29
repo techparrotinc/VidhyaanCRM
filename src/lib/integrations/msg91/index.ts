@@ -36,9 +36,22 @@ export async function sendOtpSms(
       throw new Error(res.data?.message || 'MSG91 OTP SMS failed')
     }
 
+    console.log('MSG91 OTP API response:', res.data)
+
     return { success: true }
   } catch (error: any) {
-    console.error('MSG91 sendOtpSms error:', error.response?.data || error.message)
+    console.error('MSG91 sendOtpSms FULL ERROR:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      headers: error.response?.headers,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        data: error.config?.data,
+      }
+    })
     throw new Error(error.response?.data?.message || error.message || 'Failed to send OTP SMS via MSG91')
   }
 }

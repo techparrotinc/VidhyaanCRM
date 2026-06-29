@@ -106,7 +106,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    console.error('OTP send error:', error)
+    console.error('OTP send error FULL:', {
+      message: (error as any)?.message,
+      stack: (error as any)?.stack,
+      cause: (error as any)?.cause,
+    })
     return NextResponse.json(
       { success: false, error: 'Failed to send OTP' },
       { status: 500 }

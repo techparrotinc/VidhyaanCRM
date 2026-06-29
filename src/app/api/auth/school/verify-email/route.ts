@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
+import { OtpPurpose } from '@prisma/client'
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       ipAddress
     )
 
-    await sendOTP(emailAddress, code, 'EMAIL')
+    await sendOTP(emailAddress, code, 'EMAIL', OtpPurpose.VERIFY_EMAIL)
 
     return NextResponse.json({
       success: true,

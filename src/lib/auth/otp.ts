@@ -82,7 +82,8 @@ async function sendOtpEmail(email: string, code: string): Promise<void> {
 export async function sendOTP(
   contact: string,
   code: string,
-  channel: OtpChannel
+  channel: OtpChannel,
+  purpose?: OtpPurpose
 ): Promise<void> {
   const isDev = process.env.NODE_ENV === 'development'
 
@@ -91,15 +92,23 @@ export async function sendOTP(
     console.log('DEV OTP for:', contact)
     console.log('OTP Code:', code)
     console.log('Channel:', channel)
+    console.log('Purpose:', purpose)
     console.log('='.repeat(40))
     return
   }
 
   if (channel === 'SMS') {
+    let templateId = process.env.MSG91_OTP_TEMPLATE_ID!
+    if (purpose === 'SIGNUP' && process.env.MSG91_SIGNUP_TEMPLATE_ID) {
+      templateId = process.env.MSG91_SIGNUP_TEMPLATE_ID
+    } else if ((purpose === 'LOGIN' || purpose === 'VERIFY_PHONE') && process.env.MSG91_LOGIN_TEMPLATE_ID) {
+      templateId = process.env.MSG91_LOGIN_TEMPLATE_ID
+    }
+
     await sendOtpSms(
       contact,
       code,
-      process.env.MSG91_OTP_TEMPLATE_ID!
+      templateId
     )
 
     if (process.env.ENABLE_WHATSAPP === 'true') {

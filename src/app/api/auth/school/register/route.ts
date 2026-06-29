@@ -317,7 +317,7 @@ export async function POST(req: NextRequest) {
       ipAddress
     )
 
-    await sendOTP(phone, otpCode, OtpChannel.SMS)
+    await sendOTP(phone, otpCode, OtpChannel.SMS, OtpPurpose.SIGNUP)
 
     // 5. Create audit log
     await prisma.auditLog.create({

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { AuditAction, OtpChannel, OtpPurpose, UserRole, UserStatus } from '@prisma/client'
 import { cleanPhoneNumber } from '@/lib/utils'
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
       ipAddress
     )
 
-    await sendOTP(phone, code, channel)
+    await sendOTP(phone, code, channel, purpose)
 
     // 5. Create audit log entry
     await prisma.auditLog.create({

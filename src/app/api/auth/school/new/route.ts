@@ -283,7 +283,7 @@ export async function POST(req: NextRequest) {
       ipAddress
     )
 
-    await sendOTP(phone, otpCode, OtpChannel.SMS)
+    await sendOTP(phone, otpCode, OtpChannel.SMS, OtpPurpose.SIGNUP)
 
     // Trigger default courses
     const needsCourses =

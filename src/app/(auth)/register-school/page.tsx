@@ -4,6 +4,18 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Shield, Loader2, AlertCircle, ArrowRight, MapPin, Building, Award, CheckCircle2 } from 'lucide-react'
+import {
+  INSTITUTION_CONFIG,
+  CENTER_CATEGORIES,
+  type InstitutionType,
+} from '@/constants/institutionConfig'
+
+const institutionTypeLabels: Record<string, string> = {
+  SCHOOL: 'School',
+  LEARNING_CENTER: 'Learning Center',
+  JUNIOR_COLLEGE: 'Junior College',
+  COACHING_CENTER: 'Coaching Center'
+}
 
 interface SimilarSchool {
   id: string
@@ -29,6 +41,10 @@ export default function RegisterSchoolPage() {
   const [role, setRole] = useState('')
   const [centerCategory, setCenterCategory] = useState('')
 
+  const config = INSTITUTION_CONFIG[
+    institutionType as InstitutionType
+  ] ?? INSTITUTION_CONFIG['SCHOOL']
+
   // Similar school warning state
   const [similarSchool, setSimilarSchool] = useState<SimilarSchool | null>(null)
   const [showWarning, setShowWarning] = useState(false)
@@ -47,7 +63,10 @@ export default function RegisterSchoolPage() {
     e.preventDefault()
     setError(null)
 
-    if (!schoolName || !institutionType || !city || (institutionType !== 'LEARNING_CENTER' && !board) || (institutionType === 'LEARNING_CENTER' && !centerCategory) || !role) {
+    const needsBoard = config.showSchoolType
+    const needsCenterCategory = config.showCenterCategory
+
+    if (!schoolName || !institutionType || !city || (needsBoard && !board) || (needsCenterCategory && !centerCategory) || !role) {
       setError('Please fill in all required fields')
       return
     }
@@ -107,8 +126,8 @@ export default function RegisterSchoolPage() {
           schoolName,
           institutionType,
           city,
-          board: institutionType === 'LEARNING_CENTER' ? null : board,
-          centerCategory: institutionType === 'LEARNING_CENTER' ? centerCategory : null,
+          board: config.showSchoolType ? board : null,
+          centerCategory: config.showCenterCategory ? centerCategory : null,
           establishedYear: establishedYear ? parseInt(establishedYear) : null
         })
       })
@@ -180,10 +199,10 @@ export default function RegisterSchoolPage() {
 
           <div className="text-center">
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              {institutionType === 'LEARNING_CENTER' ? 'Register Your Learning Center' : 'Register Your School'}
+              {config.showCenterCategory ? 'Register Your Learning Center' : 'Register Your School'}
             </h1>
             <p className="text-slate-500 mt-2 text-sm max-w-[400px]">
-              {institutionType === 'LEARNING_CENTER' ? 'Create your free learning center profile on Vidhyaan in minutes.' : 'Create your free school profile on Vidhyaan in minutes.'}
+              {config.showCenterCategory ? 'Create your free learning center profile on Vidhyaan in minutes.' : 'Create your free school profile on Vidhyaan in minutes.'}
             </p>
           </div>
         </div>
@@ -241,11 +260,10 @@ export default function RegisterSchoolPage() {
               </div>
             </div>
           ) : step === 1 ? (
-            /* STEP 1 FORM: School Details */
             <form onSubmit={handleNext} className="space-y-5">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  School / Center Name <span className="text-red-500">*</span>
+                  {config.nameLabel} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -263,7 +281,7 @@ export default function RegisterSchoolPage() {
                   Institution Type <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2 bg-slate-50 border border-slate-100 p-1.5 rounded-2xl">
-                  {['SCHOOL', 'LEARNING_CENTER'].map((typeVal) => (
+                  {['SCHOOL', 'LEARNING_CENTER', 'JUNIOR_COLLEGE', 'COACHING_CENTER'].map((typeVal) => (
                     <button
                       key={typeVal}
                       type="button"
@@ -274,7 +292,7 @@ export default function RegisterSchoolPage() {
                           : 'text-slate-600 hover:bg-slate-100'
                       }`}
                     >
-                      {typeVal === 'SCHOOL' ? 'School' : 'Learning Center'}
+                      {institutionTypeLabels[typeVal]}
                     </button>
                   ))}
                 </div>
@@ -301,7 +319,7 @@ export default function RegisterSchoolPage() {
                   </select>
                 </div>
 
-                {institutionType !== 'LEARNING_CENTER' ? (
+                {config.showSchoolType && (
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                       Board / Curriculum <span className="text-red-500">*</span>
@@ -321,7 +339,9 @@ export default function RegisterSchoolPage() {
                       <option value="Other">Other</option>
                     </select>
                   </div>
-                ) : (
+                )}
+
+                {config.showCenterCategory && (
                   <div className="space-y-1.5 animate-fadeIn">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                       Center Category <span className="text-red-500">*</span>
@@ -329,19 +349,15 @@ export default function RegisterSchoolPage() {
                     <select
                       value={centerCategory}
                       onChange={(e) => setCenterCategory(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer bg-white"
                       required
                     >
                       <option value="">Select category</option>
-                      <option value="MUSIC">Music</option>
-                      <option value="DANCE">Dance</option>
-                      <option value="ART">Art</option>
-                      <option value="ABACUS">Abacus</option>
-                      <option value="COACHING">Coaching / Tuition</option>
-                      <option value="SPORTS">Sports</option>
-                      <option value="LANGUAGE">Language</option>
-                      <option value="STEM">STEM / Robotics</option>
-                      <option value="OTHER">Other</option>
+                      {CENTER_CATEGORIES.map(cat => (
+                        <option key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 )}
@@ -362,7 +378,7 @@ export default function RegisterSchoolPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  {institutionType === 'LEARNING_CENTER' ? 'Your Role at Center' : 'Your Role at School'} <span className="text-red-500">*</span>
+                  {config.roleLabel} <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={role}

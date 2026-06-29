@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { UserRole, UserStatus, OtpChannel, OtpPurpose, InstitutionType } from '@prisma/client'
+import { createDefaultCourses } from '@/lib/utils/createDefaultCourses'
 
 function slugify(text: string): string {
   return text
@@ -66,7 +67,8 @@ export async function POST(req: NextRequest) {
       institutionType,
       city,
       board,
-      establishedYear
+      establishedYear,
+      centerCategory
     } = body
 
     if (!name || !phone || !email || !role || !schoolName || !institutionType || !city || (institutionType !== 'LEARNING_CENTER' && !board)) {
@@ -112,6 +114,7 @@ export async function POST(req: NextRequest) {
         name: schoolName,
         slug: orgSlug,
         institutionType: mappedInstType,
+        centerCategory: mappedInstType === 'LEARNING_CENTER' || mappedInstType === 'COACHING_CENTER' ? centerCategory : null,
         email,
         phone,
         status: 'ACTIVE',
@@ -145,6 +148,7 @@ export async function POST(req: NextRequest) {
         name: schoolName,
         slug: schoolSlug,
         institutionType: mappedInstType,
+        centerCategory: mappedInstType === 'LEARNING_CENTER' || mappedInstType === 'COACHING_CENTER' ? centerCategory : null,
         isPublished: false,
         verificationStatus: 'PENDING',
         establishedYear: establishedYear ? parseInt(establishedYear) : null
@@ -268,6 +272,19 @@ export async function POST(req: NextRequest) {
     )
 
     await sendOTP(phone, otpCode, OtpChannel.SMS)
+
+    // Trigger default courses
+    const needsCourses =
+      mappedInstType === 'LEARNING_CENTER' ||
+      mappedInstType === 'COACHING_CENTER'
+
+    if (needsCourses && centerCategory) {
+      await createDefaultCourses(
+        org.id,
+        centerCategory,
+        user.id
+      )
+    }
 
     return NextResponse.json({
       success: true,

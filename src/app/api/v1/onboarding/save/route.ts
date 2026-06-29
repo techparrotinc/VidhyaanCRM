@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/db/client'
 import { InstitutionType } from '@prisma/client'
 import { redis } from '@/lib/redis'
+import { createDefaultCourses } from '@/lib/utils/createDefaultCourses'
 
 function slugify(text: string): string {
   return text
@@ -158,6 +159,15 @@ export async function POST(req: NextRequest) {
     if (step === 1) {
       const mappedInstType = data.institutionType ? mapInstitutionType(data.institutionType) : org.institutionType
 
+      // Update Organization model
+      org = await prisma.organization.update({
+        where: { id: org.id },
+        data: {
+          institutionType: mappedInstType,
+          centerCategory: data.centerCategory || null
+        }
+      })
+
       if (school) {
         school = await prisma.school.update({
           where: { id: school.id },
@@ -165,6 +175,7 @@ export async function POST(req: NextRequest) {
             name: data.name,
             institutionType: mappedInstType,
             schoolType: data.schoolType || null,
+            centerCategory: data.centerCategory || null,
             establishedYear: data.establishedYear ? parseInt(data.establishedYear) : null,
             description: data.description || null,
             totalStudents: data.totalStudents ? parseInt(data.totalStudents) : null,
@@ -183,6 +194,7 @@ export async function POST(req: NextRequest) {
             slug,
             institutionType: mappedInstType,
             schoolType: data.schoolType || null,
+            centerCategory: data.centerCategory || null,
             establishedYear: data.establishedYear ? parseInt(data.establishedYear) : null,
             description: data.description || null,
             totalStudents: data.totalStudents ? parseInt(data.totalStudents) : null,
@@ -194,6 +206,28 @@ export async function POST(req: NextRequest) {
             isVerified: true
           }
         })
+      }
+
+      // Trigger default courses
+      const needsCourses =
+        mappedInstType === 'LEARNING_CENTER' ||
+        mappedInstType === 'COACHING_CENTER'
+
+      if (needsCourses && data.centerCategory) {
+        const existingCourseCount = await prisma.course.count({
+          where: {
+            orgId: org.id,
+            deletedAt: null
+          }
+        })
+
+        if (existingCourseCount === 0) {
+          await createDefaultCourses(
+            org.id,
+            data.centerCategory,
+            user.id
+          )
+        }
       }
     }
 

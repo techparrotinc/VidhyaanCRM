@@ -33,6 +33,14 @@ export async function sendOtpSms(
       }
     )
 
+    console.log('MSG91 response:', {
+      requestId: res.data?.request_id,
+      type: res.data?.type,
+      templateId: templateId,
+      mobile: '91' + phone,
+      sender: process.env.MSG91_SENDER_ID,
+    })
+
     if (res.data?.type === 'error') {
       throw new Error(res.data?.message || 'MSG91 OTP SMS failed')
     }

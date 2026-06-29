@@ -21,6 +21,8 @@ export async function sendOtpSms(
         template_id: templateId,
         mobile: '91' + phone,
         otp: otp,
+        otp_expiry: 10,
+        sender: process.env.MSG91_SENDER_ID ?? 'VDHYVC',
       },
       {
         headers: {

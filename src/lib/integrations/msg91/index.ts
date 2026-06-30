@@ -34,7 +34,7 @@ export async function sendOtpSms(
       }
     )
     console.log('MSG91 response:', {
-      raw: res.data,
+      requestId: res.data?.message,
       type: res.data?.type,
       templateId: templateId,
       mobile: '91' + phone,

@@ -31,7 +31,9 @@ import {
   ShieldAlert,
   Zap,
   Cloud,
-  GraduationCap
+  GraduationCap,
+  Loader2,
+  Send
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -129,6 +131,8 @@ export default function SchoolsSearchPage() {
   const [selectedSchoolForEnquiry, setSelectedSchoolForEnquiry] = useState<School | null>(null)
   const [enquiryOpen, setEnquiryOpen] = useState(false)
   const [enquirySubmitted, setEnquirySubmitted] = useState(false)
+  const [enquiryLoading, setEnquiryLoading] = useState(false)
+  const [enquiryError, setEnquiryError] = useState<string | null>(null)
   const [enquiryForm, setEnquiryForm] = useState({
     parentName: '',
     parentEmail: '',
@@ -390,21 +394,49 @@ export default function SchoolsSearchPage() {
     setEnquiryOpen(true)
   }
 
-  const handleEnquirySubmit = (e: React.FormEvent) => {
+  const handleEnquirySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setEnquirySubmitted(true)
-    setTimeout(() => {
-      setEnquiryOpen(false)
-      setEnquirySubmitted(false)
-      setSelectedSchoolForEnquiry(null)
-      setEnquiryForm({
-        parentName: '',
-        parentEmail: '',
-        parentPhone: '',
-        gradeSought: 'Grade 1',
-        notes: ''
+    if (!selectedSchoolForEnquiry) return
+    setEnquiryLoading(true)
+    setEnquiryError(null)
+    try {
+      const res = await fetch(`/api/public/schools/${selectedSchoolForEnquiry.slug}/enquiry`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          parentName: enquiryForm.parentName,
+          phone: enquiryForm.parentPhone,
+          email: enquiryForm.parentEmail || undefined,
+          childName: undefined,
+          gradeSought: enquiryForm.gradeSought || undefined,
+          message: enquiryForm.notes || undefined,
+          source: 'VIDHYAAN'
+        })
       })
-    }, 2000)
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || data.message || 'Failed to submit enquiry')
+      }
+      setEnquirySubmitted(true)
+      setTimeout(() => {
+        setEnquiryOpen(false)
+        setEnquirySubmitted(false)
+        setSelectedSchoolForEnquiry(null)
+        setEnquiryForm({
+          parentName: '',
+          parentEmail: '',
+          parentPhone: '',
+          gradeSought: 'Grade 1',
+          notes: ''
+        })
+      }, 3000)
+    } catch (err: any) {
+      setEnquiryError(err.message || 'Something went wrong')
+    } finally {
+      setEnquiryLoading(false)
+    }
   }
 
   const getGradientByInitial = (name: string) => {
@@ -1251,6 +1283,11 @@ export default function SchoolsSearchPage() {
             </div>
           ) : (
             <form onSubmit={handleEnquirySubmit} className="space-y-4 mt-3">
+              {enquiryError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-655 rounded-xl text-xs font-semibold">
+                  {enquiryError}
+                </div>
+              )}
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Parent Name</label>
                 <input
@@ -1324,9 +1361,20 @@ export default function SchoolsSearchPage() {
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs h-auto px-6 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md border border-blue-500 cursor-pointer"
+                  disabled={enquiryLoading}
+                  className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs h-auto px-6 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md border border-blue-500 disabled:opacity-50 cursor-pointer"
                 >
-                  Submit Enquiry
+                  {enquiryLoading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      Submit Enquiry
+                    </>
+                  )}
                 </Button>
               </DialogFooter>
             </form>

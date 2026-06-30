@@ -13,16 +13,17 @@ export async function sendOtpSms(
   if (!authKey) {
     throw new Error('MSG91_AUTH_KEY is not configured')
   }
-
   try {
     const res = await axios.post(
-      'https://control.msg91.com/api/v5/otp',
+      'https://control.msg91.com/api/v5/flow/',
       {
         template_id: templateId,
-        mobile: '91' + phone,
-        otp: otp,
-        otp_expiry: 10,
-        sender: process.env.MSG91_SENDER_ID ?? 'VDHYVC',
+        recipients: [
+          {
+            mobiles: '91' + phone,
+            otp: otp,
+          },
+        ],
       },
       {
         headers: {
@@ -32,19 +33,15 @@ export async function sendOtpSms(
         },
       }
     )
-
     console.log('MSG91 response:', {
       requestId: res.data?.request_id,
       type: res.data?.type,
       templateId: templateId,
       mobile: '91' + phone,
-      sender: process.env.MSG91_SENDER_ID,
     })
-
-    if (res.data?.type === 'error') {
+    if (res.data?.type !== 'success') {
       throw new Error(res.data?.message || 'MSG91 OTP SMS failed')
     }
-
     return { success: true }
   } catch (error: any) {
     console.error('MSG91 sendOtpSms FULL ERROR:', {
@@ -52,12 +49,11 @@ export async function sendOtpSms(
       status: error.response?.status,
       statusText: error.response?.statusText,
       data: error.response?.data,
-      headers: error.response?.headers,
       config: {
         url: error.config?.url,
         method: error.config?.method,
         data: error.config?.data,
-      }
+      },
     })
     throw new Error(error.response?.data?.message || error.message || 'Failed to send OTP SMS via MSG91')
   }

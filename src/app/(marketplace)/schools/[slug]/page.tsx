@@ -56,6 +56,7 @@ import {
 import { Button } from '@/components/ui/button'
 import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
+import ParentRegisterModal from '@/components/parent-auth/ParentRegisterModal'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -175,11 +176,60 @@ interface SchoolProfile {
   }
 }
 
+interface GatedWrapperProps {
+  children: React.ReactNode
+  isGated: boolean
+  onRegister: () => void
+  showOverlay?: boolean
+  title?: string
+  subtext?: string
+}
+
+function GatedWrapper({
+  children,
+  isGated,
+  onRegister,
+  showOverlay = true,
+  title = 'Register to view full details',
+  subtext = 'Create a free parent account to see admissions, fees, facilities, and contact this school directly.'
+}: GatedWrapperProps) {
+  if (!isGated) return <>{children}</>
+
+  return (
+    <div className="relative overflow-hidden">
+      <div className="filter blur-sm pointer-events-none select-none opacity-60">
+        {children}
+      </div>
+      {showOverlay && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/10 p-6 text-center">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-slate-200/50 max-w-sm w-full space-y-4 animate-fade-in sticky top-[150px]">
+            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-[#1565D8] mx-auto shadow-sm">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider">{title}</h4>
+              <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">{subtext}</p>
+            </div>
+            <Button
+              onClick={onRegister}
+              className="w-full bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-xl h-auto shadow-md"
+            >
+              Register Now
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function SchoolProfilePage() {
   const params = useParams()
   const router = useRouter()
   const slug = params?.slug as string
-  const { data: session } = useSession()
+  const { data: session, update } = useSession()
+  const [registerModalOpen, setRegisterModalOpen] = useState(false)
+  const isGated = !session?.user || session.user.role !== 'PARENT'
 
   // Main Page States
   const [school, setSchool] = useState<SchoolProfile | null>(null)
@@ -210,6 +260,18 @@ export default function SchoolProfilePage() {
         parentName: session.user.name || '',
         phone: (session.user as any).phone || '',
         email: session.user.email || ''
+      }))
+    }
+  }, [session])
+
+  // Prefill enquiry form with session data when loaded
+  useEffect(() => {
+    if (session?.user) {
+      setEnquiryForm(prev => ({
+        ...prev,
+        parentName: session.user.name || prev.parentName,
+        parentPhone: (session.user as any).phone || prev.parentPhone,
+        parentEmail: session.user.email || prev.parentEmail
       }))
     }
   }, [session])
@@ -953,7 +1015,8 @@ export default function SchoolProfilePage() {
           </section>
 
           {/* SECTION: ACADEMICS */}
-          <section id="academics" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
+          <GatedWrapper isGated={isGated} onRegister={() => setRegisterModalOpen(true)}>
+            <section id="academics" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <div className="border-l-[3px] border-[#1565D8] pl-3">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">Academics</h3>
             </div>
@@ -977,9 +1040,11 @@ export default function SchoolProfilePage() {
               </div>
             </div>
           </section>
+          </GatedWrapper>
 
           {/* SECTION: FACILITIES */}
-          <section id="facilities" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
+          <GatedWrapper isGated={isGated} onRegister={() => setRegisterModalOpen(true)} showOverlay={false}>
+            <section id="facilities" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Facilities</h3>
             
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -1013,9 +1078,11 @@ export default function SchoolProfilePage() {
               })}
             </div>
           </section>
+          </GatedWrapper>
 
           {/* SECTION: GALLERY */}
-          <section id="gallery" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
+          <GatedWrapper isGated={isGated} onRegister={() => setRegisterModalOpen(true)} showOverlay={false}>
+            <section id="gallery" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Gallery</h3>
             
             {school.media && school.media.length > 0 ? (
@@ -1046,9 +1113,11 @@ export default function SchoolProfilePage() {
               </div>
             )}
           </section>
+          </GatedWrapper>
 
           {/* SECTION: FEE STRUCTURE */}
-          <section id="fees" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
+          <GatedWrapper isGated={isGated} onRegister={() => setRegisterModalOpen(true)} showOverlay={false}>
+            <section id="fees" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Fee Structure</h3>
             
             <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
@@ -1084,9 +1153,11 @@ export default function SchoolProfilePage() {
               </table>
             </div>
           </section>
+          </GatedWrapper>
 
           {/* SECTION: ADMISSIONS */}
-          <section id="admission" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
+          <GatedWrapper isGated={isGated} onRegister={() => setRegisterModalOpen(true)} showOverlay={false}>
+            <section id="admission" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Admissions</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1176,9 +1247,11 @@ export default function SchoolProfilePage() {
               </div>
             </div>
           </section>
+          </GatedWrapper>
 
           {/* SECTION: REVIEWS */}
-          <section id="reviews" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
+          <GatedWrapper isGated={isGated} onRegister={() => setRegisterModalOpen(true)} showOverlay={false}>
+            <section id="reviews" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">Parent Reviews</h3>
               <Button
@@ -1293,9 +1366,11 @@ export default function SchoolProfilePage() {
               )}
             </div>
           </section>
+          </GatedWrapper>
 
           {/* SECTION: LOCATION */}
-          <section id="location" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
+          <GatedWrapper isGated={isGated} onRegister={() => setRegisterModalOpen(true)} showOverlay={false}>
+            <section id="location" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Location & Contact</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1369,12 +1444,19 @@ export default function SchoolProfilePage() {
               </div>
             </div>
           </section>
+          </GatedWrapper>
 
         </div>
 
         {/* Right Column (35% width - sticky sidebar) */}
         <div className="space-y-6">
           <aside className="space-y-6 lg:sticky lg:top-28">
+            <GatedWrapper
+              isGated={isGated}
+              onRegister={() => setRegisterModalOpen(true)}
+              title="Unlock Admissions Form"
+              subtext="Create a free parent account to send enquiries and schedule campus visits."
+            >
             
             {/* CARD 1 — QUICK ENQUIRY */}
             <Card className="bg-white rounded-2xl border-t-[3px] border-t-[#1565D8] border-x-slate-200 border-b-slate-200 p-6 shadow-md space-y-5">
@@ -1581,6 +1663,7 @@ export default function SchoolProfilePage() {
               </div>
             </Card>
 
+          </GatedWrapper>
           </aside>
         </div>
 
@@ -2141,6 +2224,14 @@ export default function SchoolProfilePage() {
           </button>
         </div>
       )}
+      <ParentRegisterModal
+        open={registerModalOpen}
+        onOpenChange={setRegisterModalOpen}
+        onSuccess={() => {
+          setRegisterModalOpen(false)
+          update()
+        }}
+      />
       <CompareBar />
     </div>
   )

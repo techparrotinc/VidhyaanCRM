@@ -11,6 +11,8 @@ export async function POST(
   try {
     const { slug } = await context.params
     const body = await req.json()
+    // TEMP DEBUG - remove after enquiry email diagnosis
+    console.log('[EnquiryDebug] Request body received:', JSON.stringify(body))
 
     const { parentName, phone: rawPhone, email, childName, gradeSought, message, source = 'VIDHYAAN' } = body
     const phone = typeof rawPhone === 'string' ? cleanPhoneNumber(rawPhone) as string : rawPhone
@@ -152,12 +154,16 @@ export async function POST(
     try {
       // Find school admin email
       let schoolAdminEmail = null
+      let orgEmail = null
+      let contactEmail = null
+
       if (school.orgId) {
         const org = await prisma.organization.findUnique({
           where: { id: school.orgId },
           select: { email: true }
         })
         schoolAdminEmail = org?.email
+        orgEmail = org?.email
       }
       if (!schoolAdminEmail) {
         const primaryEmailContact = await prisma.schoolContact.findFirst({
@@ -168,25 +174,47 @@ export async function POST(
           }
         })
         schoolAdminEmail = primaryEmailContact?.value
+        contactEmail = primaryEmailContact?.value
+      } else {
+        const primaryEmailContact = await prisma.schoolContact.findFirst({
+          where: {
+            schoolId: school.id,
+            type: 'email',
+            isPrimary: true
+          }
+        })
+        contactEmail = primaryEmailContact?.value
       }
+
+      // TEMP DEBUG - remove after enquiry email diagnosis
+      console.log('[EnquiryDebug] orgId:', school.orgId, 'org email:', orgEmail, 'primary contact email:', contactEmail)
+      // TEMP DEBUG - remove after enquiry email diagnosis
+      console.log('[EnquiryDebug] resolved schoolAdminEmail:', schoolAdminEmail)
 
       // Send to school admin
       if (schoolAdminEmail) {
         const crmLink = `${process.env.NEXTAUTH_URL || 'https://vidhyaan.com'}/lead-management`
-        await sendTransactionalEmail({
-          to: schoolAdminEmail,
-          subject: `New admission enquiry for ${school.name}! 🏫`,
-          htmlBody: enquiryNotificationTemplate({
-            schoolName: school.name,
-            parentName,
-            phone,
-            childName: childName || 'Not specified',
-            gradeSought: gradeSought || 'Not specified',
-            message: message || '',
-            crmLink
-          }),
-          textBody: `New admission enquiry for ${school.name} from ${parentName}.`
-        })
+        // TEMP DEBUG - remove after enquiry email diagnosis
+        console.log('[EnquiryDebug] About to send admin notification to:', schoolAdminEmail)
+        try {
+          await sendTransactionalEmail({
+            to: schoolAdminEmail,
+            subject: `New admission enquiry for ${school.name}! 🏫`,
+            htmlBody: enquiryNotificationTemplate({
+              schoolName: school.name,
+              parentName,
+              phone,
+              childName: childName || 'Not specified',
+              gradeSought: gradeSought || 'Not specified',
+              message: message || '',
+              crmLink
+            }),
+            textBody: `New admission enquiry for ${school.name} from ${parentName}.`
+          })
+        } catch (adminEmailErr) {
+          // TEMP DEBUG - remove after enquiry email diagnosis
+          console.error('[EnquiryDebug] Admin email send FAILED:', adminEmailErr)
+        }
       }
 
       // Send confirmation to parent (if email is provided)
@@ -200,20 +228,28 @@ export async function POST(
         })
         const schoolPhone = phoneContact?.value || 'Contact school directly'
 
-        await sendTransactionalEmail({
-          to: email,
-          subject: `Your enquiry to ${school.name} has been received!`,
-          htmlBody: enquiryConfirmationTemplate({
-            parentName,
-            schoolName: school.name,
-            schoolPhone,
-            referenceId: enquiry.id
-          }),
-          textBody: `Dear ${parentName}, your enquiry to ${school.name} has been received. Reference ID: ${enquiry.id}.`
-        })
+        // TEMP DEBUG - remove after enquiry email diagnosis
+        console.log('[EnquiryDebug] About to send parent confirmation to:', email)
+        try {
+          await sendTransactionalEmail({
+            to: email,
+            subject: `Your enquiry to ${school.name} has been received!`,
+            htmlBody: enquiryConfirmationTemplate({
+              parentName,
+              schoolName: school.name,
+              schoolPhone,
+              referenceId: enquiry.id
+            }),
+            textBody: `Dear ${parentName}, your enquiry to ${school.name} has been received. Reference ID: ${enquiry.id}.`
+          })
+        } catch (parentEmailErr) {
+          // TEMP DEBUG - remove after enquiry email diagnosis
+          console.error('[EnquiryDebug] Parent email send FAILED:', parentEmailErr)
+        }
       }
     } catch (emailErr) {
-      console.error('Failed to send enquiry email notifications:', emailErr)
+      // TEMP DEBUG - remove after enquiry email diagnosis
+      console.error('[EnquiryDebug] Outer email notification catch error:', emailErr)
     }
 
     return NextResponse.json({

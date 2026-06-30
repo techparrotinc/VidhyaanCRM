@@ -49,7 +49,8 @@ export async function GET(req: NextRequest) {
     const maxDistance = maxDistanceStr ? parseFloat(maxDistanceStr) : 40 // default 40km
 
     const where: any = {
-      deletedAt: null
+      deletedAt: null,
+      isPublished: true
     }
 
     if (search) {

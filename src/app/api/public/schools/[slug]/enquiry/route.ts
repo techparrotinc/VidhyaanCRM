@@ -42,9 +42,18 @@ export async function POST(
       )
     }
 
+    const { searchParams } = new URL(req.url)
+    const isClaim = searchParams.get('claim') === 'true'
+
     // 2. Find school by slug
     const school = await prisma.school.findFirst({
-      where: { slug }
+      where: {
+        OR: [
+          { slug },
+          { id: slug }
+        ],
+        ...(isClaim ? {} : { isPublished: true })
+      }
     })
 
     if (!school) {

@@ -85,7 +85,7 @@ export async function sendOTP(
   channel: OtpChannel,
   purpose?: OtpPurpose
 ): Promise<void> {
-  const isDev = process.env.NODE_ENV === 'development'
+  const isDev = process.env.NODE_ENV === 'development' && process.env.FORCE_REAL_OTP !== 'true'
 
   if (isDev) {
     console.log('='.repeat(40))

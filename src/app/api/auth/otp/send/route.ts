@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { prisma } from '@/lib/db/client'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { OtpChannel, OtpPurpose } from '@prisma/client'
 import { otpSendLimiter } from '@/lib/ratelimit'
@@ -44,6 +45,40 @@ export async function POST(req: NextRequest) {
         },
         { status: 429 }
       )
+    }
+
+    // User validation based on purpose
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [{ phone: contactToUse }, { email: contactToUse }],
+        deletedAt: null
+      }
+    })
+
+    if (purpose === 'SIGNUP') {
+      if (existingUser) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'ALREADY_REGISTERED',
+            message: 'This phone number is already registered. Please log in instead.'
+          },
+          { status: 409 }
+        )
+      }
+    }
+
+    if (purpose === 'LOGIN' || purpose === 'RECOVERY') {
+      if (!existingUser) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'NO_ACCOUNT_FOUND',
+            message: 'No account found with this phone number.'
+          },
+          { status: 404 }
+        )
+      }
     }
 
     const channel: OtpChannel = isPhone ? 'SMS' : 'EMAIL'

@@ -41,7 +41,6 @@ export default function OnboardingStep2() {
   
   const [phone, setPhone] = useState('')
   const [phoneSecondary, setPhoneSecondary] = useState('')
-  const [email, setEmail] = useState('')
   const [website, setWebsite] = useState('')
   const [officeHours, setOfficeHours] = useState('Mon-Fri: 8 AM to 4 PM')
 
@@ -71,14 +70,12 @@ export default function OnboardingStep2() {
           if (s.contacts && s.contacts.length > 0) {
             const ph = s.contacts.find((c: any) => c.type === 'phone')
             const ph2 = s.contacts.find((c: any) => c.type === 'phone_secondary')
-            const em = s.contacts.find((c: any) => c.type === 'email')
             const web = s.contacts.find((c: any) => c.type === 'website')
             const hrs = s.contacts.find((c: any) => c.type === 'office_hours')
             const map = s.contacts.find((c: any) => c.type === 'maps_link')
 
             if (ph) setPhone(ph.value)
             if (ph2) setPhoneSecondary(ph2.value)
-            if (em) setEmail(em.value)
             if (web) setWebsite(web.value)
             if (hrs) setOfficeHours(hrs.value)
             if (map) setMapsLink(map.value)
@@ -93,7 +90,7 @@ export default function OnboardingStep2() {
     e.preventDefault()
     setError(null)
 
-    if (!address1 || !city || !state || !pincode || !phone || !email) {
+    if (!address1 || !city || !state || !pincode || !phone) {
       setError('Please fill in all required fields')
       return
     }
@@ -120,7 +117,6 @@ export default function OnboardingStep2() {
             mapsLink,
             phone,
             phoneSecondary,
-            email,
             website,
             officeHours
           }
@@ -355,21 +351,6 @@ export default function OnboardingStep2() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Primary Email */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Primary Email <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={`e.g. contact@${config.genericLabel.toLowerCase()}.edu`}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm"
-                required
-              />
-            </div>
-
             {/* Website URL */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500">

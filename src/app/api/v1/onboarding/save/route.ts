@@ -92,6 +92,12 @@ export async function POST(req: NextRequest) {
 
     // Ensure Organization exists for ORG_ADMIN
     if (!orgId) {
+      if (!data.email) {
+        return NextResponse.json(
+          { success: false, error: 'email is required' },
+          { status: 400 }
+        )
+      }
       const orgName = data.name || 'My Institution'
       const slug = await generateUniqueOrgSlug(orgName)
       org = await prisma.organization.create({
@@ -99,7 +105,7 @@ export async function POST(req: NextRequest) {
           name: orgName,
           slug,
           institutionType: data.institutionType ? mapInstitutionType(data.institutionType) : InstitutionType.SCHOOL,
-          email: user.email || `${user.phone || 'admin'}@vidhyaan.com`,
+          email: data.email,
           phone: user.phone || '0000000000',
           status: 'ACTIVE'
         }
@@ -281,7 +287,6 @@ export async function POST(req: NextRequest) {
       await prisma.organization.update({
         where: { id: org.id },
         data: {
-          email: data.email || org.email,
           phone: data.phone || org.phone
         }
       })
@@ -298,8 +303,8 @@ export async function POST(req: NextRequest) {
       if (data.phoneSecondary) {
         contacts.push({ schoolId: school.id, orgId: org.id, type: 'phone_secondary', value: data.phoneSecondary, isPrimary: false })
       }
-      if (data.email) {
-        contacts.push({ schoolId: school.id, orgId: org.id, type: 'email', value: data.email, isPrimary: true })
+      if (org.email) {
+        contacts.push({ schoolId: school.id, orgId: org.id, type: 'email', value: org.email, isPrimary: true })
       }
       if (data.website) {
         contacts.push({ schoolId: school.id, orgId: org.id, type: 'website', value: data.website, isPrimary: false })

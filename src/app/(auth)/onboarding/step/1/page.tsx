@@ -47,6 +47,7 @@ export default function OnboardingStep1() {
   const [gender, setGender] = useState('Co-Educational')
   const [gradeFrom, setGradeFrom] = useState('LKG')
   const [gradeTo, setGradeTo] = useState('Class 10')
+  const [email, setEmail] = useState('')
 
   const config = INSTITUTION_CONFIG[
     institutionType as InstitutionType
@@ -79,6 +80,10 @@ export default function OnboardingStep1() {
             setGradeFrom(from || 'LKG')
             setGradeTo(to || 'Class 10')
           }
+          const em = s.contacts?.find((c: any) => c.type === 'email')
+          if (em) {
+            setEmail(em.value || '')
+          }
         }
       })
       .catch((err) => console.error('Error pre-filling onboarding form:', err))
@@ -99,7 +104,7 @@ export default function OnboardingStep1() {
     e.preventDefault()
     setError(null)
 
-    if (!name || !institutionType || (config.showSchoolType && !schoolType) || (config.showCenterCategory && !centerCategory) || !establishedYear) {
+    if (!name || !email || !institutionType || (config.showSchoolType && !schoolType) || (config.showCenterCategory && !centerCategory) || !establishedYear) {
       setError('Please fill in all required fields')
       return
     }
@@ -121,6 +126,7 @@ export default function OnboardingStep1() {
           step: 1,
           data: {
             name,
+            email,
             institutionType,
             schoolType: config.showSchoolType ? schoolType : null,
             centerCategory: config.showCenterCategory ? centerCategory : null,
@@ -186,6 +192,22 @@ export default function OnboardingStep1() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter school name"
+              disabled={saving}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm"
+              required
+            />
+          </div>
+
+          {/* Primary Email */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Primary Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={`e.g. contact@${config.genericLabel.toLowerCase()}.edu`}
               disabled={saving}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm"
               required

@@ -6,6 +6,7 @@ import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
 import { UserRole, UserStatus } from '@prisma/client'
 import { redis } from '@/lib/redis'
+import { revokeUser, clearUserRevocation } from '@/lib/auth/roleRevocation'
 
 export const GET = route({
   roles: [ROLES.ORG_ADMIN],
@@ -84,6 +85,12 @@ export const PUT = route({
       }
     })
 
+    if (body.status === 'INACTIVE') {
+      await revokeUser(params!.id as string)
+    } else if (body.status === 'ACTIVE') {
+      await clearUserRevocation(params!.id as string)
+    }
+
     // Invalidate counsellors cache
     await redis.del(`counsellors:${user.orgId}`)
 
@@ -121,6 +128,8 @@ export const DELETE = route({
         deletedAt: new Date()
       }
     })
+
+    await revokeUser(params!.id as string)
 
     // Invalidate counsellors cache
     await redis.del(`counsellors:${user.orgId}`)

@@ -167,6 +167,7 @@ export default async function middleware(request: NextRequest) {
     requestHeaders.set('x-user-role', session.user.role || '')
     requestHeaders.set('x-org-id', session.user.orgId || '')
     requestHeaders.set('x-user-name', session.user.name || '')
+    requestHeaders.set('x-active-role-assignment-id', session.user.activeRoleAssignmentId || '')
   }
 
   return addSecurityHeaders(

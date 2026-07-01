@@ -5,6 +5,7 @@ import { forOrg } from '@/lib/db/tenant'
 import { Errors } from './errors'
 import { errorResponse } from './respond'
 import { redis } from '@/lib/redis'
+import { isUserRevoked, isAssignmentRevoked } from '@/lib/auth/roleRevocation'
 
 const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
 
@@ -47,6 +48,7 @@ export function route(config: RouteConfig) {
       const userName = req.headers.get('x-user-name')
 
       let user: { id: string; role: string; orgId: string; name: string }
+      let activeRoleAssignmentId: string | null | undefined
 
       if (userId && orgId && userRole) {
         user = {
@@ -55,6 +57,8 @@ export function route(config: RouteConfig) {
           orgId: orgId,
           name: userName ?? ''
         }
+        const assignmentHeader = req.headers.get('x-active-role-assignment-id')
+        activeRoleAssignmentId = assignmentHeader && assignmentHeader !== '' ? assignmentHeader : undefined
       } else {
         const session = await auth()
         if (!session?.user) {
@@ -66,6 +70,17 @@ export function route(config: RouteConfig) {
           orgId: session.user.orgId,
           name: session.user.name ?? ''
         }
+        activeRoleAssignmentId = session.user.activeRoleAssignmentId
+      }
+
+      // Revocation checks
+      const revoked = await isUserRevoked(user.id)
+      if (revoked) {
+        throw Errors.unauthenticated()
+      }
+      const assignmentRevoked = await isAssignmentRevoked(user.id, activeRoleAssignmentId)
+      if (assignmentRevoked) {
+        throw Errors.unauthenticated()
       }
 
       // STEP 2: Check role

@@ -56,7 +56,7 @@ export const POST = route({
 
     const email = body.email && body.email.trim() !== ''
       ? body.email
-      : `${body.phone}@vidhyaan-invited.com`
+      : null
 
     let userResult
     try {

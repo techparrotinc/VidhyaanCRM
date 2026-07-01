@@ -6,6 +6,7 @@ import { redis } from '@/lib/redis'
 import crypto from 'crypto'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 import { welcomeSchoolTemplate } from '@/lib/mail/templates'
+import { findOrCreateUserByPhone } from '@/lib/auth/findOrCreateUserByPhone'
 
 function slugify(text: string): string {
   return text
@@ -29,20 +30,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 1. Check if phone already registered.
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        phone,
-        deletedAt: null
-      }
-    })
 
-    if (existingUser && existingUser.role === UserRole.ORG_ADMIN) {
-      return NextResponse.json(
-        { success: false, error: 'Account already exists. Please login.' },
-        { status: 409 }
-      )
-    }
 
     // 2. Find Organization if schoolId is provided, or create one if schoolName/institutionType is provided
     let org: any = null
@@ -235,32 +223,36 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Check if email already registered in this organization
-    const existingEmailUser = await prisma.user.findFirst({
-      where: {
-        orgId: org.id,
+
+
+    // 3. Create User
+    let userResult
+    try {
+      userResult = await findOrCreateUserByPhone({
+        phone,
+        name,
         email,
-        deletedAt: null
+        role: UserRole.ORG_ADMIN,
+        orgId: org.id,
+        status: UserStatus.ACTIVE
+      })
+    } catch (err: any) {
+      if (err.code === 'P2002' && err.meta?.target?.includes('email')) {
+        return NextResponse.json(
+          { success: false, error: 'An admin user with this email is already registered.' },
+          { status: 409 }
+        )
       }
-    })
-    if (existingEmailUser) {
+      throw err
+    }
+
+    const { user, isNewUser } = userResult
+    if (!isNewUser) {
       return NextResponse.json(
-        { success: false, error: 'An admin user with this email is already registered.' },
+        { success: false, error: 'Phone number is already registered. Please login.' },
         { status: 409 }
       )
     }
-
-    // 3. Create User
-    const user = await prisma.user.create({
-      data: {
-        name,
-        phone,
-        email,
-        role: UserRole.ORG_ADMIN,
-        status: UserStatus.ACTIVE,
-        orgId: org.id
-      }
-    })
 
     // Send welcome email to ORG_ADMIN
     try {

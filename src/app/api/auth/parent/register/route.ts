@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/client'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { AuditAction, OtpChannel, OtpPurpose, UserRole, UserStatus, Prisma } from '@prisma/client'
 import { cleanPhoneNumber } from '@/lib/utils'
+import { findOrCreateUserByPhone } from '@/lib/auth/findOrCreateUserByPhone'
 
 const parentRegisterSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
@@ -31,16 +32,29 @@ export async function POST(req: NextRequest) {
     const { name, phone, email, city } = result.data
     const normalizedEmail = email && email.trim() !== '' ? email.trim().toLowerCase() : null
 
-    // 1. Check if User with role PARENT already exists with this phone number
-    const existingUser = await prisma.user.findFirst({
-      where: {
+    // 2. Create or Find User
+    let userResult
+    try {
+      userResult = await findOrCreateUserByPhone({
         phone,
+        name,
+        email: normalizedEmail,
         role: UserRole.PARENT,
-        deletedAt: null
+        orgId: null,
+        status: UserStatus.ACTIVE
+      })
+    } catch (err: any) {
+      if (err.code === 'P2002' && err.meta?.target?.includes('email')) {
+        return NextResponse.json(
+          { success: false, error: 'Email address is already registered.' },
+          { status: 409 }
+        )
       }
-    })
+      throw err
+    }
 
-    if (existingUser) {
+    const { user, isNewUser } = userResult
+    if (!isNewUser) {
       return NextResponse.json(
         {
           success: false,
@@ -49,18 +63,6 @@ export async function POST(req: NextRequest) {
         { status: 409 }
       )
     }
-
-    // 2. Create User record
-    const user = await prisma.user.create({
-      data: {
-        name,
-        phone,
-        email: normalizedEmail || `${phone}@vidhyaan.com`, // User model expects email to be populated
-        role: UserRole.PARENT,
-        status: UserStatus.ACTIVE,
-        orgId: null
-      }
-    })
 
     // 3. Create or update Parent record in marketplace schema
     // Since parent enquiries may have already created a Parent record, we upsert on phone

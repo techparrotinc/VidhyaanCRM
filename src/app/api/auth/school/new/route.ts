@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/client'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { UserRole, UserStatus, OtpChannel, OtpPurpose, InstitutionType } from '@prisma/client'
 import { createDefaultCourses } from '@/lib/utils/createDefaultCourses'
+import { findOrCreateUserByPhone } from '@/lib/auth/findOrCreateUserByPhone'
 
 function slugify(text: string): string {
   return text
@@ -84,23 +85,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 1. Check duplicate phone/email
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { phone },
-          { email }
-        ],
-        deletedAt: null
-      }
-    })
 
-    if (existingUser) {
-      return NextResponse.json(
-        { success: false, error: 'Phone number or email address is already registered. Please login.' },
-        { status: 409 }
-      )
-    }
 
     const mappedInstType = mapInstitutionType(institutionType)
     const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // now + 7 days
@@ -254,16 +239,33 @@ export async function POST(req: NextRequest) {
     }
 
     // 8. Create User
-    const user = await prisma.user.create({
-      data: {
-        name,
+    let userResult
+    try {
+      userResult = await findOrCreateUserByPhone({
         phone,
+        name,
         email,
         role: UserRole.ORG_ADMIN,
-        status: UserStatus.ACTIVE,
-        orgId: org.id
+        orgId: org.id,
+        status: UserStatus.ACTIVE
+      })
+    } catch (err: any) {
+      if (err.code === 'P2002' && err.meta?.target?.includes('email')) {
+        return NextResponse.json(
+          { success: false, error: 'Email address is already registered.' },
+          { status: 409 }
+        )
       }
-    })
+      throw err
+    }
+
+    const { user, isNewUser } = userResult
+    if (!isNewUser) {
+      return NextResponse.json(
+        { success: false, error: 'Phone number is already registered. Please login.' },
+        { status: 409 }
+      )
+    }
 
     // Create branch access
     await prisma.userBranchAccess.create({

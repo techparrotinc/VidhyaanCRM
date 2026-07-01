@@ -171,7 +171,7 @@ export async function PUT(req: NextRequest) {
         where: { id: session.user.id },
         data: {
           name,
-          email: normalizedEmail || `${shouldUpdatePhone ? phone : parent.phone}@vidhyaan.com`,
+          email: normalizedEmail,
           phone: shouldUpdatePhone ? phone : undefined
         }
       })

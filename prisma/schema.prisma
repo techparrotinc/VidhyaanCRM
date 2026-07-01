@@ -554,6 +554,7 @@ model Organization {
   plan                 Plan?                    @relation(fields: [planId], references: [id])
   branches             Branch[]
   users                User[]
+  roleAssignments      UserRoleAssignment[]
   organizationModules  OrganizationModule[]
   auditLogs            AuditLog[]
   apiKeys              ApiKey[]
@@ -639,9 +640,12 @@ model Branch {
 model User {
   id        String     @id @default(cuid())
   orgId     String?    @map("org_id") // null for platform-level users (SUPER_ADMIN etc.)
-  email     String
+  email     String?    @unique
   phone     String?
   name      String
+  // DEPRECATED — kept as fallback during multi-role migration.
+  // Do not remove until backfill (UserRoleAssignment) is verified
+  // complete in production. See Vidhyaan_Multi_Role_Identity_PRD.md.
   role      UserRole
   status    UserStatus @default(ACTIVE)
   pinHash   String?    @map("pin_hash") // optional PIN for trusted devices
@@ -653,6 +657,7 @@ model User {
 
   organization      Organization?            @relation(fields: [orgId], references: [id])
   branchAccess      UserBranchAccess[]
+  roleAssignments   UserRoleAssignment[]
   assignedLeads     Lead[]                   @relation("LeadCounsellor")
   assignedAdmissions Admission[]             @relation("AdmissionCounsellor")
   counsellorTargets CounsellorTarget[]
@@ -2479,4 +2484,32 @@ model CourseEnrollment {
   @@index([courseId])
   @@map("course_enrollments")
   @@schema("crm")
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+
+  @@schema("platform")
+}
+
+model UserRoleAssignment {
+  id         String            @id @default(cuid())
+  userId     String            @map("user_id")
+  role       UserRole
+  orgId      String?           @map("org_id")
+  status     AssignmentStatus  @default(ACTIVE)
+  isDefault  Boolean           @default(false)
+  lastUsedAt DateTime?         @map("last_used_at")
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  user       User          @relation(fields: [userId], references: [id])
+  org        Organization? @relation(fields: [orgId], references: [id])
+
+  @@unique([userId, role, orgId])
+  @@index([userId])
+  @@index([orgId])
+  @@map("user_role_assignments")
+  @@schema("platform")
 }

@@ -1,5 +1,8 @@
-import { auth } from '@/auth'
+import NextAuth from 'next-auth'
+import { configEdge } from '@/lib/auth/config.edge'
 import { NextRequest, NextResponse } from 'next/server'
+
+const { auth } = NextAuth(configEdge)
 
 function isPublicRoute(pathname: string): boolean {
   if (

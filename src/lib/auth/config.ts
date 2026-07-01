@@ -17,20 +17,13 @@ const authConfig: NextAuthConfig = {
       async authorize(credentials) {
         // 1. Temp token authentication
         if (credentials?.token) {
-          const token = credentials.token as string
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
           try {
-            const res = await fetch(`${appUrl}/api/auth/pin/verify`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ token })
-            })
-            if (!res.ok) return null
-            const data = await res.json()
-            if (!data.success || !data.userId) return null
+            const { verifyPinToken } = await import('@/lib/auth/verifyPin')
+            const result = await verifyPinToken(credentials.token as string)
+            if (!result.success) return null
 
             const user = await prisma.user.findUnique({
-              where: { id: data.userId, status: 'ACTIVE' }
+              where: { id: result.userId, status: 'ACTIVE' }
             })
             if (!user) return null
 
@@ -42,28 +35,23 @@ const authConfig: NextAuthConfig = {
               orgId: user.orgId ?? ''
             }
           } catch (e) {
-            console.error('NextAuth token authorize fetch error:', e)
+            console.error('NextAuth token authorize verify error:', e)
             return null
           }
         }
 
         // 2. PIN authentication
         if (credentials?.phone && credentials?.pin) {
-          const phone = credentials.phone as string
-          const pin = credentials.pin as string
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
           try {
-            const res = await fetch(`${appUrl}/api/auth/pin/verify`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ phone, pin })
-            })
-            if (!res.ok) return null
-            const data = await res.json()
-            if (!data.success || !data.userId) return null
+            const { verifyPinCredentials } = await import('@/lib/auth/verifyPin')
+            const result = await verifyPinCredentials(
+              credentials.phone as string,
+              credentials.pin as string
+            )
+            if (!result.success) return null
 
             const user = await prisma.user.findUnique({
-              where: { id: data.userId, status: 'ACTIVE' }
+              where: { id: result.userId, status: 'ACTIVE' }
             })
             if (!user) return null
 
@@ -75,7 +63,7 @@ const authConfig: NextAuthConfig = {
               orgId: user.orgId ?? ''
             }
           } catch (e) {
-            console.error('NextAuth PIN authorize fetch error:', e)
+            console.error('NextAuth PIN authorize verify error:', e)
             return null
           }
         }

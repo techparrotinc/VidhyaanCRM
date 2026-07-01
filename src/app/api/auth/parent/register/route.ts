@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db/client'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
-import { AuditAction, OtpChannel, OtpPurpose, UserRole, UserStatus } from '@prisma/client'
+import { AuditAction, OtpChannel, OtpPurpose, UserRole, UserStatus, Prisma } from '@prisma/client'
 import { cleanPhoneNumber } from '@/lib/utils'
 
 const parentRegisterSchema = z.object({
@@ -133,6 +133,25 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Parent registration error:', error)
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const field = (error.meta?.target as string[])
+      if (field?.includes('phone')) {
+        return NextResponse.json(
+          { success: false, error: 'This phone number is already registered. Please login instead.' },
+          { status: 409 }
+        )
+      }
+      if (field?.includes('email')) {
+        return NextResponse.json(
+          { success: false, error: 'This email address is already registered. Please login instead.' },
+          { status: 409 }
+        )
+      }
+      return NextResponse.json(
+        { success: false, error: 'An account with these details already exists. Please login instead.' },
+        { status: 409 }
+      )
+    }
     return NextResponse.json(
       {
         success: false,

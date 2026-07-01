@@ -9,6 +9,7 @@ declare module 'next-auth' {
       name: string
       phone: string
       email: string
+      activeRoleAssignmentId: string | null
     } & DefaultSession['user']
   }
 
@@ -18,6 +19,7 @@ declare module 'next-auth' {
     orgId: string
     phone: string
     email: string
+    activeRoleAssignmentId: string | null
   }
 }
 
@@ -28,5 +30,6 @@ declare module 'next-auth/jwt' {
     orgId: string
     phone: string
     email: string
+    activeRoleAssignmentId: string | null
   }
 }

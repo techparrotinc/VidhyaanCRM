@@ -2,6 +2,7 @@ import type { NextAuthConfig } from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { resolveActiveRoleAssignment, MultiRoleSelectionRequiredError } from '@/lib/auth/resolveRoleAssignment'
 
 const authConfig: NextAuthConfig = {
   providers: [
@@ -12,7 +13,8 @@ const authConfig: NextAuthConfig = {
         code: { label: 'OTP Code' },
         phone: { label: 'Phone' },
         pin: { label: 'PIN' },
-        token: { label: 'Token' }
+        token: { label: 'Token' },
+        assignmentId: { label: 'Role Assignment' }
       },
       async authorize(credentials) {
         // 1. Temp token authentication
@@ -26,13 +28,27 @@ const authConfig: NextAuthConfig = {
               where: { id: result.userId, status: 'ACTIVE' }
             })
             if (!user) return null
-
-            return {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              role: user.role,
-              orgId: user.orgId ?? ''
+            try {
+              const resolved = await resolveActiveRoleAssignment(
+                { id: user.id, role: user.role, orgId: user.orgId },
+                credentials?.assignmentId as string | undefined
+              )
+              return {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: resolved.role,
+                orgId: resolved.orgId ?? '',
+                activeRoleAssignmentId: resolved.activeRoleAssignmentId
+              }
+            } catch (e) {
+              if (e instanceof MultiRoleSelectionRequiredError) {
+                console.error('MULTI_ROLE_SELECTION_REQUIRED', {
+                  userId: user.id,
+                  assignments: e.assignments
+                })
+              }
+              throw e
             }
           } catch (e) {
             console.error('NextAuth token authorize verify error:', e)
@@ -54,13 +70,27 @@ const authConfig: NextAuthConfig = {
               where: { id: result.userId, status: 'ACTIVE' }
             })
             if (!user) return null
-
-            return {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              role: user.role,
-              orgId: user.orgId ?? ''
+            try {
+              const resolved = await resolveActiveRoleAssignment(
+                { id: user.id, role: user.role, orgId: user.orgId },
+                credentials?.assignmentId as string | undefined
+              )
+              return {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: resolved.role,
+                orgId: resolved.orgId ?? '',
+                activeRoleAssignmentId: resolved.activeRoleAssignmentId
+              }
+            } catch (e) {
+              if (e instanceof MultiRoleSelectionRequiredError) {
+                console.error('MULTI_ROLE_SELECTION_REQUIRED', {
+                  userId: user.id,
+                  assignments: e.assignments
+                })
+              }
+              throw e
             }
           } catch (e) {
             console.error('NextAuth PIN authorize verify error:', e)
@@ -122,13 +152,27 @@ const authConfig: NextAuthConfig = {
           })
 
           if (!user) return null
-
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            orgId: user.orgId ?? ''
+          try {
+            const resolved = await resolveActiveRoleAssignment(
+              { id: user.id, role: user.role, orgId: user.orgId },
+              credentials?.assignmentId as string | undefined
+            )
+            return {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              role: resolved.role,
+              orgId: resolved.orgId ?? '',
+              activeRoleAssignmentId: resolved.activeRoleAssignmentId
+            }
+          } catch (e) {
+            if (e instanceof MultiRoleSelectionRequiredError) {
+              console.error('MULTI_ROLE_SELECTION_REQUIRED', {
+                userId: user.id,
+                assignments: e.assignments
+              })
+            }
+            throw e
           }
         }
 
@@ -146,6 +190,7 @@ const authConfig: NextAuthConfig = {
         token.name = user.name
         token.phone = (user as any).phone ?? ''
         token.email = user.email ?? ''
+        token.activeRoleAssignmentId = (user as any).activeRoleAssignmentId ?? null
       }
       return token
     },
@@ -158,6 +203,7 @@ const authConfig: NextAuthConfig = {
         session.user.name = token.name as string
         session.user.phone = token.phone as string
         session.user.email = token.email as string
+        session.user.activeRoleAssignmentId = token.activeRoleAssignmentId as string | null
       }
       return session
     }

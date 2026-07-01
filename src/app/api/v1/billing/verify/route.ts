@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
     })
 
     // 9. Send payment success email
-    const orgEmail = user.organization.email || user.email
+    const orgEmail = user.organization.email || user.email || ''
     const paymentSuccessHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
         <div style="background-color: #1565D8; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">

@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
           name: orgName,
           slug,
           institutionType: data.institutionType ? mapInstitutionType(data.institutionType) : InstitutionType.SCHOOL,
-          email: user.email,
+          email: user.email || `${user.phone || 'admin'}@vidhyaan.com`,
           phone: user.phone || '0000000000',
           status: 'ACTIVE'
         }

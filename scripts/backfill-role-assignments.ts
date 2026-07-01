@@ -11,6 +11,7 @@ async function main() {
   let skipNoRole = 0
   let skipOrphanedOrg = 0
   let skipAlreadyExists = 0
+  let skipInternalAdmin = 0
 
   for (const user of users) {
     try {
@@ -33,6 +34,14 @@ async function main() {
           skipOrphanedOrg++
           continue
         }
+      }
+
+      // Exclude internal admin roles
+      const internalAdminRoles = ['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN']
+      if (internalAdminRoles.includes(user.role)) {
+        console.log(`SKIP [userId=${user.id}, phone=${user.phone}]: internal admin role (${user.role}) excluded from UserRoleAssignment by design`)
+        skipInternalAdmin++
+        continue
       }
 
       // c) Check if assignment already exists
@@ -76,10 +85,11 @@ async function main() {
   console.log('\n=== BACKFILL SUMMARY ===')
   console.log(`Total users processed: ${totalProcessed}`)
   console.log(`Total created (${dryRun ? 'dry-run' : 'actual'}): ${totalCreated}`)
-  console.log(`Total skipped: ${skipNoRole + skipOrphanedOrg + skipAlreadyExists}`)
+  console.log(`Total skipped: ${skipNoRole + skipOrphanedOrg + skipAlreadyExists + skipInternalAdmin}`)
   console.log(`  - No role: ${skipNoRole}`)
   console.log(`  - Orphaned orgId: ${skipOrphanedOrg}`)
   console.log(`  - Already exists: ${skipAlreadyExists}`)
+  console.log(`  - Internal admin role excluded: ${skipInternalAdmin}`)
 }
 
 main()

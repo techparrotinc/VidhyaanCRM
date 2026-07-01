@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
+import { revokeAssignment } from '@/lib/auth/roleRevocation'
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,65 +28,111 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const activeRoleAssignmentId = session.user.activeRoleAssignmentId
+
+    let remainingActiveCount = 0
+    if (activeRoleAssignmentId) {
+      remainingActiveCount = await prisma.userRoleAssignment.count({
+        where: {
+          userId: session.user.id,
+          status: 'ACTIVE',
+          id: { not: activeRoleAssignmentId }
+        }
+      })
+    }
+
+    const shouldAnonymizeUser = !activeRoleAssignmentId || remainingActiveCount === 0
+
     // 2. Perform deactivation and anonymization in a transaction
     await prisma.$transaction(async (tx) => {
       const now = new Date()
       const anonymizedId = parent.id.slice(-6)
 
-      // A. Soft Delete User
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          deletedAt: now,
-          status: 'DEACTIVATED',
-          // Anonymize user details to comply with DPDP
-          name: 'Deleted Parent User',
-          phone: `deleted_${anonymizedId}_${userId}`,
-          email: `deleted_user_${userId}@deleted.vidhyaan.com`
-        }
-      })
+      const operations = []
 
       // B. Soft Delete Parent
-      await tx.parent.update({
-        where: { id: parent.id },
-        data: {
-          deletedAt: now,
-          name: 'Anonymized Parent',
-          phone: `deleted_${anonymizedId}_${parent.id}`,
-          email: `deleted_parent_${parent.id}@deleted.vidhyaan.com`,
-          city: null
-        }
-      })
+      operations.push(
+        tx.parent.update({
+          where: { id: parent.id },
+          data: {
+            deletedAt: now,
+            name: 'Anonymized Parent',
+            phone: `deleted_${anonymizedId}_${parent.id}`,
+            email: `deleted_parent_${parent.id}@deleted.vidhyaan.com`,
+            city: null
+          }
+        })
+      )
 
       // C. Remove all Bookmarks
-      await tx.parentBookmark.deleteMany({
-        where: { parentId: parent.id }
-      })
+      operations.push(
+        tx.parentBookmark.deleteMany({
+          where: { parentId: parent.id }
+        })
+      )
 
       // D. Anonymize Enquiries (DPDP right to erasure: keep aggregate stats but remove PII)
-      await tx.parentEnquiry.updateMany({
-        where: { parentId: parent.id },
-        data: {
-          kidName: null,
-          message: 'Anonymized for privacy (DPDP)'
-        }
-      })
+      operations.push(
+        tx.parentEnquiry.updateMany({
+          where: { parentId: parent.id },
+          data: {
+            kidName: null,
+            message: 'Anonymized for privacy (DPDP)'
+          }
+        })
+      )
 
       // E. Anonymize Applications (DPDP right to erasure: keep aggregate stats but remove PII)
-      await tx.parentApplication.updateMany({
-        where: { parentId: parent.id },
-        data: {
-          kidName: 'Anonymized Child',
-          // status remains so schools can see history, but no personal details are left
-        }
-      })
+      operations.push(
+        tx.parentApplication.updateMany({
+          where: { parentId: parent.id },
+          data: {
+            kidName: 'Anonymized Child',
+            // status remains so schools can see history, but no personal details are left
+          }
+        })
+      )
+
+      if (activeRoleAssignmentId) {
+        operations.push(
+          tx.userRoleAssignment.update({
+            where: { id: activeRoleAssignmentId },
+            data: { status: 'REVOKED' }
+          })
+        )
+      }
+
+      if (shouldAnonymizeUser) {
+        operations.push(
+          tx.user.update({
+            where: { id: userId },
+            data: {
+              deletedAt: now,
+              status: 'DEACTIVATED',
+              // Anonymize user details to comply with DPDP
+              name: 'Deleted Parent User',
+              phone: `deleted_${anonymizedId}_${userId}`,
+              email: `deleted_user_${userId}@deleted.vidhyaan.com`
+            }
+          })
+        )
+      }
+
+      for (const op of operations) {
+        await op
+      }
 
       // Note: Data is flagged with deletedAt = now() for complete hard purge after 30 days via a background cleanup cron job
     })
 
+    if (activeRoleAssignmentId) {
+      await revokeAssignment(session.user.id, activeRoleAssignmentId)
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Account deleted. Data will be fully removed within 30 days.'
+      message: 'Account deleted. Data will be fully removed within 30 days.',
+      identityRemoved: shouldAnonymizeUser
     })
 
   } catch (error: any) {

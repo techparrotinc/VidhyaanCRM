@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db'
 import { UserRole, UserStatus } from '@prisma/client'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { redis } from '@/lib/redis'
+import { findOrCreateUserByPhone } from '@/lib/auth/findOrCreateUserByPhone'
 
 
 export const GET = route({
@@ -57,31 +58,27 @@ export const POST = route({
       ? body.email
       : `${body.phone}@vidhyaan-invited.com`
 
-    const existing = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { phone: body.phone },
-          { email: email }
-        ],
-        deletedAt: null
-      }
-    })
-
-    if (existing) {
-      const field = existing.phone === body.phone ? 'phone number' : 'email'
-      throw Errors.conflict(`A user with this ${field} already exists`)
-    }
-
-    const newUser = await prisma.user.create({
-      data: {
-        name: body.name,
+    let userResult
+    try {
+      userResult = await findOrCreateUserByPhone({
         phone: body.phone,
+        name: body.name,
         email: email,
         role: body.role as UserRole,
         orgId: user.orgId,
-        status: 'INVITED' as UserStatus
+        status: UserStatus.INVITED
+      })
+    } catch (err: any) {
+      if (err.code === 'P2002' && err.meta?.target?.includes('email')) {
+        throw Errors.conflict('A user with this email already exists')
       }
-    })
+      throw err
+    }
+
+    const { user: newUser, isNewUser } = userResult
+    if (!isNewUser) {
+      throw Errors.conflict('A user with this phone number already exists')
+    }
 
     // Invalidate counsellors cache
     await redis.del(`counsellors:${user.orgId}`)

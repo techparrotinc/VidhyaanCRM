@@ -641,7 +641,7 @@ model User {
   id        String     @id @default(cuid())
   orgId     String?    @map("org_id") // null for platform-level users (SUPER_ADMIN etc.)
   email     String?    @unique
-  phone     String?
+  phone     String?    @unique
   name      String
   // DEPRECATED — kept as fallback during multi-role migration.
   // Do not remove until backfill (UserRoleAssignment) is verified

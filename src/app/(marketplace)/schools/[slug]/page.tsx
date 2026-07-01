@@ -1506,6 +1506,18 @@ export default function SchoolProfilePage() {
                     />
                   </div>
                   <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-slate-400">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="e.g. parent@gmail.com"
+                      value={enquiryForm.parentEmail}
+                      onChange={(e) => setEnquiryForm({ ...enquiryForm, parentEmail: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase tracking-wider text-slate-400">Child's Name</label>
                     <input
                       type="text"

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       include: { organization: true }
     })
 
-    if (!user || user.role !== 'ORG_ADMIN' || !user.orgId || !user.organization) {
+    if (session.user.role !== 'ORG_ADMIN' || !user || !user.orgId || !user.organization) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 

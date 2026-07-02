@@ -9,29 +9,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    })
-
-    if (!user || user.role !== 'ORG_ADMIN' || !user.orgId) {
+    if (session.user.role !== 'ORG_ADMIN' || !session.user.orgId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Fetch org
     const org = await prisma.organization.findUnique({
-      where: { id: user.orgId },
+      where: { id: session.user.orgId },
       include: { plan: true }
     })
 
     // Fetch active subscription
     const subscription = await prisma.subscription.findFirst({
-      where: { orgId: user.orgId, deletedAt: null },
+      where: { orgId: session.user.orgId, deletedAt: null },
       include: { plan: true }
     })
 
     // Fetch transactions
     const transactions = await prisma.transaction.findMany({
-      where: { orgId: user.orgId },
+      where: { orgId: session.user.orgId },
       orderBy: { createdAt: 'desc' },
       include: { subscription: { include: { plan: true } } }
     })

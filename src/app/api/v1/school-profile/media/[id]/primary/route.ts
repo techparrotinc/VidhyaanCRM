@@ -14,16 +14,12 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    })
-
-    if (!user || user.role !== 'ORG_ADMIN' || !user.orgId) {
+    if (session.user.role !== 'ORG_ADMIN' || !session.user.orgId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const school = await prisma.school.findFirst({
-      where: { orgId: user.orgId }
+      where: { orgId: session.user.orgId }
     })
 
     if (!school) {

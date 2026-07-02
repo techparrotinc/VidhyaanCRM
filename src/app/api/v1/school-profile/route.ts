@@ -12,16 +12,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    })
-
-    if (!user || user.role !== 'ORG_ADMIN' || !user.orgId) {
+    if (session.user.role !== 'ORG_ADMIN' || !session.user.orgId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const school = await prisma.school.findFirst({
-      where: { orgId: user.orgId },
+      where: { orgId: session.user.orgId },
       include: {
         locations: { where: { deletedAt: null } },
         contacts: { where: { deletedAt: null } },
@@ -39,7 +35,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch enabled modules
     const org = await prisma.organization.findUnique({
-      where: { id: user.orgId },
+      where: { id: session.user.orgId },
       include: {
         plan: {
           include: {
@@ -50,7 +46,7 @@ export async function GET(req: NextRequest) {
     })
 
     const explicitModules = await prisma.organizationModule.findMany({
-      where: { orgId: user.orgId, enabled: true },
+      where: { orgId: session.user.orgId, enabled: true },
       include: { module: true }
     })
 
@@ -84,16 +80,12 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    })
-
-    if (!user || user.role !== 'ORG_ADMIN' || !user.orgId) {
+    if (session.user.role !== 'ORG_ADMIN' || !session.user.orgId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const school = await prisma.school.findFirst({
-      where: { orgId: user.orgId }
+      where: { orgId: session.user.orgId }
     })
 
     if (!school) {
@@ -168,7 +160,7 @@ export async function PUT(req: NextRequest) {
         await prisma.schoolLocation.create({
           data: {
             schoolId: school.id,
-            orgId: user.orgId,
+            orgId: session.user.orgId,
             addressLine: addressLine || '',
             city: body.city || '',
             state: body.state || '',
@@ -198,7 +190,7 @@ export async function PUT(req: NextRequest) {
       // Sync primary phone/email to organization
       if (phoneVal || emailVal) {
         await prisma.organization.update({
-          where: { id: user.orgId },
+          where: { id: session.user.orgId },
           data: {
             email: emailVal || undefined,
             phone: phoneVal || undefined
@@ -213,19 +205,19 @@ export async function PUT(req: NextRequest) {
 
       const contactsToCreate = []
       if (phoneVal) {
-        contactsToCreate.push({ schoolId: school.id, orgId: user.orgId, type: 'phone', value: phoneVal, isPrimary: true })
+        contactsToCreate.push({ schoolId: school.id, orgId: session.user.orgId, type: 'phone', value: phoneVal, isPrimary: true })
       }
       if (phoneSecondaryVal) {
-        contactsToCreate.push({ schoolId: school.id, orgId: user.orgId, type: 'phone_secondary', value: phoneSecondaryVal, isPrimary: false })
+        contactsToCreate.push({ schoolId: school.id, orgId: session.user.orgId, type: 'phone_secondary', value: phoneSecondaryVal, isPrimary: false })
       }
       if (emailVal) {
-        contactsToCreate.push({ schoolId: school.id, orgId: user.orgId, type: 'email', value: emailVal, isPrimary: true })
+        contactsToCreate.push({ schoolId: school.id, orgId: session.user.orgId, type: 'email', value: emailVal, isPrimary: true })
       }
       if (websiteVal) {
-        contactsToCreate.push({ schoolId: school.id, orgId: user.orgId, type: 'website', value: websiteVal, isPrimary: false })
+        contactsToCreate.push({ schoolId: school.id, orgId: session.user.orgId, type: 'website', value: websiteVal, isPrimary: false })
       }
       if (mapsLinkVal) {
-        contactsToCreate.push({ schoolId: school.id, orgId: user.orgId, type: 'maps_link', value: mapsLinkVal, isPrimary: false })
+        contactsToCreate.push({ schoolId: school.id, orgId: session.user.orgId, type: 'maps_link', value: mapsLinkVal, isPrimary: false })
       }
 
       if (contactsToCreate.length > 0) {
@@ -252,7 +244,7 @@ export async function PUT(req: NextRequest) {
         await prisma.schoolAffiliation.createMany({
           data: boardsList.map((b: string) => ({
             schoolId: school.id,
-            orgId: user.orgId,
+            orgId: session.user.orgId,
             board: b,
             affiliationNo: affNo
           }))
@@ -265,7 +257,7 @@ export async function PUT(req: NextRequest) {
 
     // Invalidate organization cache
     try {
-      await redis.del(`org:${user.orgId}`)
+      await redis.del(`org:${session.user.orgId}`)
     } catch (err) {
       console.error('Failed to invalidate organization cache:', err)
     }

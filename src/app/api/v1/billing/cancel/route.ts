@@ -10,17 +10,13 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    })
-
-    if (!user || user.role !== 'ORG_ADMIN' || !user.orgId) {
+    if (session.user.role !== 'ORG_ADMIN' || !session.user.orgId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Find active subscription
     const subscription = await prisma.subscription.findFirst({
-      where: { orgId: user.orgId, status: 'ACTIVE', deletedAt: null }
+      where: { orgId: session.user.orgId, status: 'ACTIVE', deletedAt: null }
     })
 
     if (!subscription) {

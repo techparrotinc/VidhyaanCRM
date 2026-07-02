@@ -12,11 +12,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    })
-
-    if (!user || user.role !== 'ORG_ADMIN' || !user.orgId) {
+    if (session.user.role !== 'ORG_ADMIN' || !session.user.orgId) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 
@@ -48,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     const amountInPaise = Math.round(price * 100)
     const timestamp = Date.now()
-    const receipt = `ORD-${user.orgId}-${timestamp}`
+    const receipt = `ORD-${session.user.orgId}-${timestamp}`
 
     // 5. Create Razorpay Order
     const order = await createOrder(
@@ -56,7 +52,7 @@ export async function POST(req: NextRequest) {
       'INR',
       receipt,
       {
-        orgId: user.orgId,
+        orgId: session.user.orgId,
         planSlug,
         billingCycle
       }
@@ -65,7 +61,7 @@ export async function POST(req: NextRequest) {
     // 6. Save pending transaction to DB
     await prisma.transaction.create({
       data: {
-        orgId: user.orgId,
+        orgId: session.user.orgId,
         type: TransactionType.SUBSCRIPTION,
         status: 'PENDING',
         amount: price,

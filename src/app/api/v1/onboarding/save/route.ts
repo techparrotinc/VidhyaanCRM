@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       where: { id: session.user.id }
     })
 
-    if (!user || user.role !== 'ORG_ADMIN') {
+    if (!user || session.user.role !== 'ORG_ADMIN') {
       return NextResponse.json(
         { success: false, error: 'Forbidden' },
         { status: 403 }

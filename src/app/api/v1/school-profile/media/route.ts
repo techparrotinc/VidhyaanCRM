@@ -11,16 +11,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    })
-
-    if (!user || user.role !== 'ORG_ADMIN' || !user.orgId) {
+    if (session.user.role !== 'ORG_ADMIN' || !session.user.orgId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const school = await prisma.school.findFirst({
-      where: { orgId: user.orgId }
+      where: { orgId: session.user.orgId }
     })
 
     if (!school) {
@@ -47,16 +43,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    })
-
-    if (!user || user.role !== 'ORG_ADMIN' || !user.orgId) {
+    if (session.user.role !== 'ORG_ADMIN' || !session.user.orgId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const school = await prisma.school.findFirst({
-      where: { orgId: user.orgId }
+      where: { orgId: session.user.orgId }
     })
 
     if (!school) {
@@ -100,7 +92,7 @@ export async function POST(req: NextRequest) {
     // Check limits for gallery photos
     if (caption === 'gallery') {
       const org = await prisma.organization.findUnique({
-        where: { id: user.orgId },
+        where: { id: session.user.orgId },
         include: { plan: true }
       })
 
@@ -125,7 +117,7 @@ export async function POST(req: NextRequest) {
     const newMedia = await prisma.schoolMedia.create({
       data: {
         schoolId: school.id,
-        orgId: user.orgId,
+        orgId: session.user.orgId,
         type,
         url,
         caption,

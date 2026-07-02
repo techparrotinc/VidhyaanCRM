@@ -12,18 +12,14 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    })
-
-    if (!user || user.role !== 'ORG_ADMIN') {
+    if (session.user.role !== 'ORG_ADMIN') {
       return NextResponse.json(
         { success: false, error: 'Forbidden' },
         { status: 403 }
       )
     }
 
-    if (!user.orgId) {
+    if (!session.user.orgId) {
       return NextResponse.json({
         success: true,
         currentStep: 1,
@@ -36,7 +32,7 @@ export async function GET(req: NextRequest) {
     }
 
     const org = await prisma.organization.findUnique({
-      where: { id: user.orgId }
+      where: { id: session.user.orgId }
     })
 
     if (!org) {

@@ -52,7 +52,11 @@ class UpstashRedisWrapper {
   private client: UpstashRedis
 
   constructor(url: string, token: string) {
-    this.client = new UpstashRedis({ url, token })
+    this.client = new UpstashRedis({
+      url,
+      token,
+      automaticDeserialization: false
+    })
   }
 
   async get(key: string): Promise<string | null> {

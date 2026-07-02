@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Search, Building2, ArrowRight } from 'lucide-react'
 
 interface Suggestion {
@@ -31,17 +32,45 @@ export function SearchAutocomplete({
   const [isOpen, setIsOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const [isLoading, setIsLoading] = useState(false)
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 })
 
   const containerRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const updateCoords = () => {
+    if (!containerRef.current) return
+    const inputEl = containerRef.current.querySelector('input')
+    if (!inputEl) return
+    const rect = inputEl.getBoundingClientRect()
+    setCoords({
+      top: rect.bottom + window.scrollY + 8, // 8px visual gap
+      left: rect.left + window.scrollX,
+      width: rect.width
+    })
+  }
+
+  // Update coords when isOpen changes
+  useEffect(() => {
+    if (isOpen) {
+      updateCoords()
+      window.addEventListener('scroll', updateCoords, true)
+      window.addEventListener('resize', updateCoords)
+    }
+    return () => {
+      window.removeEventListener('scroll', updateCoords, true)
+      window.removeEventListener('resize', updateCoords)
+    }
+  }, [isOpen])
 
   // Handle outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
         containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
+        !containerRef.current.contains(event.target as Node) &&
+        (!dropdownRef.current || !dropdownRef.current.contains(event.target as Node))
       ) {
         setIsOpen(false)
       }
@@ -192,8 +221,18 @@ export function SearchAutocomplete({
         className={className}
       />
 
-      {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-[999] overflow-hidden max-h-96 overflow-y-auto">
+      {isOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{
+            position: 'absolute',
+            top: coords.top,
+            left: coords.left,
+            width: coords.width,
+            zIndex: 9999,
+          }}
+          className="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden max-h-96 overflow-y-auto"
+        >
           {suggestions.length === 0 ? (
             <div className="px-4 py-3 text-slate-400 text-xs font-semibold select-none">
               No matches found
@@ -237,7 +276,8 @@ export function SearchAutocomplete({
               </div>
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

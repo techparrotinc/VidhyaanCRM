@@ -449,17 +449,12 @@ export default function MarketplaceHomepage() {
 
             {/* Main Dynamic Heading */}
             <h1 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight tracking-tight font-poppins">
-              {activeTab === 'schools' ? (
-                <>
-                  Discover the Best <span className="text-[#1565D8]">Schools</span><br className="hidden md:inline" />
-                  Near You
-                </>
-              ) : (
-                <>
-                  Find the Best <span className="text-[#1565D8]">Learning Center</span><br className="hidden md:inline" />
-                  for Your Child's Passion
-                </>
-              )}
+              Discover the Best{' '}
+              <span className="text-[#1565D8]">
+                {activeTab === 'schools' ? 'Schools' : 'Learning Centers'}
+              </span>
+              <br className="hidden md:inline" />
+              Near You
             </h1>
 
             {/* Dynamic Subheading */}
@@ -538,13 +533,13 @@ export default function MarketplaceHomepage() {
                       <>
                         <option value="">Select City</option>
                         {apiCities.length > 0 ? (
-                          apiCities.map((c) => (
-                            <option key={c.city} value={c.city}>{c.city}</option>
-                          ))
+                           apiCities.map((c) => (
+                             <option key={c.city} value={c.city}>{c.city}</option>
+                           ))
                         ) : (
-                          cities.map((c) => (
-                            <option key={c.name} value={c.name}>{c.name}</option>
-                          ))
+                           cities.map((c) => (
+                             <option key={c.name} value={c.name}>{c.name}</option>
+                           ))
                         )}
                       </>
                     )}
@@ -556,6 +551,24 @@ export default function MarketplaceHomepage() {
                 </Button>
               </form>
             </Card>
+
+            {/* Compact inline trust-stats row */}
+            <div className="flex justify-center items-center gap-6 md:gap-10 mt-6 select-none max-w-md mx-auto">
+              <div className="text-center flex-1">
+                <div className="text-base md:text-lg font-black text-slate-900 leading-tight">500+</div>
+                <div className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">Schools</div>
+              </div>
+              <div className="h-5 w-px bg-slate-200 shrink-0" />
+              <div className="text-center flex-1">
+                <div className="text-base md:text-lg font-black text-slate-900 leading-tight">10,000+</div>
+                <div className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">Parents</div>
+              </div>
+              <div className="h-5 w-px bg-slate-200 shrink-0" />
+              <div className="text-center flex-1">
+                <div className="text-base md:text-lg font-black text-slate-900 leading-tight">4.8★</div>
+                <div className="text-[10px] md:text-xs font-bold text-slate-450 uppercase tracking-wider mt-0.5">Rating</div>
+              </div>
+            </div>
 
             {/* Location Indicator */}
             {(locationLoading || (detectedCity && (detectionMethod === 'gps' || detectionMethod === 'cached'))) && (

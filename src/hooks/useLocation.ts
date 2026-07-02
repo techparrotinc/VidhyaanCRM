@@ -2,6 +2,21 @@
 
 import { useState, useEffect, useCallback } from 'react'
 
+const SUPPORTED_CITIES = [
+  'Chennai',
+  'Bengaluru',
+  'Hyderabad',
+  'Mumbai',
+  'New Delhi',
+  'Pune',
+  'Coimbatore',
+  'Madurai',
+  'Kochi',
+  'Jaipur'
+]
+
+const CACHE_VERSION = 2
+
 export type PermissionStatusType = 'idle' | 'requesting' | 'granted' | 'denied' | 'unavailable'
 export type DetectionMethodType = 'gps' | 'manual' | 'cached' | null
 
@@ -11,6 +26,7 @@ interface SavedLocation {
   lng: number | null
   detectedAt: number
   method: DetectionMethodType
+  version?: number
 }
 
 export function useLocation() {
@@ -29,20 +45,27 @@ export function useLocation() {
       const res = await fetch(`/api/location/reverse-geocode?lat=${latRounded}&lng=${lngRounded}`)
       if (!res.ok) throw new Error('Could not detect city')
       const data = await res.json()
-      if (data.success && data.city) {
-        const normalized = data.city.toLowerCase()
-        let finalCity: string | null = null
+      if (data.success) {
+        const getMatchedCity = (name: string | null) => {
+          if (!name) return null
+          const normalized = name.toLowerCase()
+          if (normalized === 'chennai') return 'Chennai'
+          if (normalized === 'bangalore' || normalized === 'bengaluru') return 'Bengaluru'
+          if (normalized === 'hyderabad') return 'Hyderabad'
+          if (normalized === 'mumbai') return 'Mumbai'
+          if (normalized === 'delhi' || normalized === 'new delhi') return 'New Delhi'
+          if (normalized === 'pune') return 'Pune'
+          if (normalized === 'coimbatore') return 'Coimbatore'
+          if (normalized === 'madurai') return 'Madurai'
+          if (normalized === 'kochi') return 'Kochi'
+          if (normalized === 'jaipur') return 'Jaipur'
+          return null
+        }
 
-        if (normalized === 'chennai') finalCity = 'Chennai'
-        else if (normalized === 'bangalore' || normalized === 'bengaluru') finalCity = 'Bengaluru'
-        else if (normalized === 'hyderabad') finalCity = 'Hyderabad'
-        else if (normalized === 'mumbai') finalCity = 'Mumbai'
-        else if (normalized === 'delhi' || normalized === 'new delhi') finalCity = 'New Delhi'
-        else if (normalized === 'pune') finalCity = 'Pune'
-        else if (normalized === 'coimbatore') finalCity = 'Coimbatore'
-        else if (normalized === 'madurai') finalCity = 'Madurai'
-        else if (normalized === 'kochi') finalCity = 'Kochi'
-        else if (normalized === 'jaipur') finalCity = 'Jaipur'
+        let finalCity = getMatchedCity(data.locality)
+        if (!finalCity) {
+          finalCity = getMatchedCity(data.district)
+        }
 
         setCity(finalCity)
         setLat(latitude)
@@ -56,7 +79,8 @@ export function useLocation() {
           lat: latitude,
           lng: longitude,
           detectedAt: Date.now(),
-          method: 'gps'
+          method: 'gps',
+          version: CACHE_VERSION
         }
         localStorage.setItem('vidhyaan_location', JSON.stringify(saveObj))
       } else {
@@ -95,6 +119,11 @@ export function useLocation() {
           setPermissionStatus('unavailable')
         }
         setLoading(false)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maximumAge: 0
       }
     )
   }, [reverseGeocode])
@@ -109,11 +138,12 @@ export function useLocation() {
 
     if (typeof window !== 'undefined') {
       const saveObj: SavedLocation = {
-        city: cityName,
+        city: cityName || null,
         lat: null,
         lng: null,
         detectedAt: Date.now(),
-        method: 'manual'
+        method: 'manual',
+        version: CACHE_VERSION
       }
       localStorage.setItem('vidhyaan_location', JSON.stringify(saveObj))
     }
@@ -128,7 +158,10 @@ export function useLocation() {
       try {
         const saved: SavedLocation = JSON.parse(savedStr)
         const isExpired = Date.now() - saved.detectedAt > 24 * 60 * 60 * 1000
-        if (!isExpired) {
+        const isVersionValid = saved.version === CACHE_VERSION
+        const isCityValid = saved.city === null || SUPPORTED_CITIES.includes(saved.city)
+
+        if (!isExpired && isVersionValid && isCityValid) {
           setCity(saved.city)
           setLat(saved.lat)
           setLng(saved.lng)
@@ -142,7 +175,7 @@ export function useLocation() {
       }
     }
 
-    // No cached or expired, call requestLocation
+    // No cached or expired/invalid, call requestLocation
     requestLocation()
   }, [requestLocation])
 

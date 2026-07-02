@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -304,6 +304,8 @@ export default function MarketplaceHomepage() {
   const [search, setSearch] = useState('')
   const [city, setCity] = useState('')
 
+  const citySelectRef = useRef<HTMLSelectElement>(null)
+
   const [apiCities, setApiCities] = useState<any[]>([])
 
   useEffect(() => {
@@ -518,6 +520,7 @@ export default function MarketplaceHomepage() {
                     <MapPin className="w-4.5 h-4.5 text-slate-400 shrink-0 mr-2" />
                   )}
                   <select
+                    ref={citySelectRef}
                     value={city}
                     onChange={(e) => {
                       const val = e.target.value
@@ -584,8 +587,11 @@ export default function MarketplaceHomepage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setCity('')
-                        setManualCity('')
+                        if (citySelectRef.current) {
+                          citySelectRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                          citySelectRef.current.focus()
+                          citySelectRef.current.click()
+                        }
                       }}
                       className="text-[#1565D8] hover:underline cursor-pointer ml-1 font-extrabold uppercase text-[10px]"
                     >

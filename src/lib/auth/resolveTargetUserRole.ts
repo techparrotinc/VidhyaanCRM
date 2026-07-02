@@ -16,12 +16,5 @@ export async function resolveTargetUserRole(
     ]
   })
 
-  if (assignments.length > 0) return assignments[0].role
-
-  // Legacy fallback while User.role column still exists
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true }
-  })
-  return user?.role ?? null
+  return assignments.length > 0 ? assignments[0].role : null
 }

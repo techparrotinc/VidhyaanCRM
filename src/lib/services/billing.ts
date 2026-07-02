@@ -13,7 +13,7 @@ export async function sendTrialEndingEmail(
     where: { id: orgId },
     include: {
       users: {
-        where: { role: 'ORG_ADMIN', deletedAt: null },
+        where: { roleAssignments: { some: { role: 'ORG_ADMIN', status: 'ACTIVE' } }, deletedAt: null },
         take: 1
       }
     }
@@ -56,7 +56,7 @@ export async function sendPaymentFailedEmail(
     where: { id: orgId },
     include: {
       users: {
-        where: { role: 'ORG_ADMIN', deletedAt: null },
+        where: { roleAssignments: { some: { role: 'ORG_ADMIN', status: 'ACTIVE' } }, deletedAt: null },
         take: 1
       }
     }

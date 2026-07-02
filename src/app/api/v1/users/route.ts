@@ -8,6 +8,7 @@ import { UserRole, UserStatus } from '@prisma/client'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { redis } from '@/lib/redis'
 import { findOrCreateUserByPhone } from '@/lib/auth/findOrCreateUserByPhone'
+import { resolveTargetUserRole } from '@/lib/auth/resolveTargetUserRole'
 
 
 export const GET = route({
@@ -26,7 +27,6 @@ export const GET = route({
         name: true,
         email: true,
         phone: true,
-        role: true,
         status: true,
         createdAt: true,
         lastLoginAt: true
@@ -34,7 +34,14 @@ export const GET = route({
       orderBy: { createdAt: 'desc' }
     })
 
-    return ok(users)
+    const usersWithRoles = await Promise.all(
+      users.map(async (u) => ({
+        ...u,
+        role: await resolveTargetUserRole(u.id, user.orgId)
+      }))
+    )
+
+    return ok(usersWithRoles)
   }
 })
 

@@ -11,54 +11,33 @@ export class MultiRoleSelectionRequiredError extends Error {
 }
 
 export async function resolveActiveRoleAssignment(
-  user: { id: string; role: string | null; orgId: string | null },
+  userId: string,
   assignmentId?: string | null
-): Promise<{ role: string; orgId: string | null; activeRoleAssignmentId: string | null }> {
-  // 1. Query active assignments
+): Promise<{ role: string; orgId: string | null; activeRoleAssignmentId: string }> {
   const activeAssignments = await prisma.userRoleAssignment.findMany({
-    where: {
-      userId: user.id,
-      status: 'ACTIVE'
-    }
+    where: { userId, status: 'ACTIVE' }
   })
 
-  // 2. Legacy fallback
   if (activeAssignments.length === 0) {
-    return {
-      role: user.role as string,
-      orgId: user.orgId,
-      activeRoleAssignmentId: null
-    }
+    throw new Error(
+      `No active UserRoleAssignment found for userId=${userId}. ` +
+      `Every user must have at least one active assignment post-migration.`
+    )
   }
 
-  // 3. Exactly one active assignment
   if (activeAssignments.length === 1) {
     const item = activeAssignments[0]
-    return {
-      role: item.role,
-      orgId: item.orgId,
-      activeRoleAssignmentId: item.id
-    }
+    return { role: item.role, orgId: item.orgId, activeRoleAssignmentId: item.id }
   }
 
-  // 4. Two or more active assignments
   if (assignmentId) {
     const matching = activeAssignments.find((a) => a.id === assignmentId)
     if (matching) {
-      return {
-        role: matching.role,
-        orgId: matching.orgId,
-        activeRoleAssignmentId: matching.id
-      }
+      return { role: matching.role, orgId: matching.orgId, activeRoleAssignmentId: matching.id }
     }
   }
 
-  // No matching or no assignmentId passed
   throw new MultiRoleSelectionRequiredError(
-    activeAssignments.map((a) => ({
-      id: a.id,
-      role: a.role,
-      orgId: a.orgId
-    }))
+    activeAssignments.map((a) => ({ id: a.id, role: a.role, orgId: a.orgId }))
   )
 }

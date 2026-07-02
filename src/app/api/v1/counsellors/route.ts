@@ -7,7 +7,7 @@ export const GET = route({
     const counsellors = await prisma.user.findMany({
       where: {
         orgId: user.orgId,
-        role: 'COUNSELLOR',
+        roleAssignments: { some: { role: 'COUNSELLOR', status: 'ACTIVE' } },
         status: 'ACTIVE'
       },
       select: {

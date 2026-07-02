@@ -30,7 +30,7 @@ const authConfig: NextAuthConfig = {
             if (!user) return null
             try {
               const resolved = await resolveActiveRoleAssignment(
-                { id: user.id, role: user.role, orgId: user.orgId },
+                user.id,
                 credentials?.assignmentId as string | undefined
               )
               return {
@@ -72,7 +72,7 @@ const authConfig: NextAuthConfig = {
             if (!user) return null
             try {
               const resolved = await resolveActiveRoleAssignment(
-                { id: user.id, role: user.role, orgId: user.orgId },
+                user.id,
                 credentials?.assignmentId as string | undefined
               )
               return {
@@ -154,7 +154,7 @@ const authConfig: NextAuthConfig = {
           if (!user) return null
           try {
             const resolved = await resolveActiveRoleAssignment(
-              { id: user.id, role: user.role, orgId: user.orgId },
+              user.id,
               credentials?.assignmentId as string | undefined
             )
             return {

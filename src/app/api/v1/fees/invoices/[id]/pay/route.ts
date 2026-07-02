@@ -118,7 +118,7 @@ export const POST = route({
     const orgAdmin = await db.user.findFirst({
       where: {
         orgId: user.orgId,
-        role: 'ORG_ADMIN',
+        roleAssignments: { some: { role: 'ORG_ADMIN', status: 'ACTIVE' } },
         status: 'ACTIVE'
       },
       select: { id: true }

@@ -643,10 +643,6 @@ model User {
   email     String?    @unique
   phone     String?    @unique
   name      String
-  // DEPRECATED — kept as fallback during multi-role migration.
-  // Do not remove until backfill (UserRoleAssignment) is verified
-  // complete in production. See Vidhyaan_Multi_Role_Identity_PRD.md.
-  role      UserRole
   status    UserStatus @default(ACTIVE)
   pinHash   String?    @map("pin_hash") // optional PIN for trusted devices
   pinSetAt  DateTime?  @map("pin_set_at")
@@ -668,7 +664,6 @@ model User {
 
   @@unique([orgId, email])
   @@index([orgId])
-  @@index([role])
   @@index([phone])
   @@map("users")
   @@schema("platform")

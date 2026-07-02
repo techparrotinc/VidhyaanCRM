@@ -236,8 +236,13 @@ export const POST = route({
       const counsellors = await prisma.user.findMany({
         where: {
           orgId: user.orgId,
-          role: {
-            in: ['COUNSELLOR', 'ORG_ADMIN', 'BRANCH_ADMIN']
+          roleAssignments: {
+            some: {
+              role: {
+                in: ['COUNSELLOR', 'ORG_ADMIN', 'BRANCH_ADMIN']
+              },
+              status: 'ACTIVE'
+            }
           },
           status: 'ACTIVE',
           deletedAt: null

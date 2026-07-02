@@ -1,13 +1,6 @@
 import { User, UserRole, UserStatus } from '@prisma/client'
 import { prisma } from '@/lib/db/client'
 
-// Roles deliberately excluded from UserRoleAssignment per Gap 14 (internal staff, no parallel identity)
-const INTERNAL_ADMIN_ROLES: UserRole[] = [
-  UserRole.SUPER_ADMIN,
-  UserRole.OPERATIONS_ADMIN,
-  UserRole.SUPPORT_ADMIN
-]
-
 /**
  * findOrCreateUserByPhone helper function
  * 
@@ -48,23 +41,20 @@ export async function findOrCreateUserByPhone(params: {
         phone: params.phone,
         name: params.name,
         email: params.email ?? null,
-        role: params.role,
         orgId: params.orgId ?? null,
         status: params.status ?? 'ACTIVE'
       }
     })
 
-    if (!INTERNAL_ADMIN_ROLES.includes(params.role)) {
-      await tx.userRoleAssignment.create({
-        data: {
-          userId: createdUser.id,
-          role: params.role,
-          orgId: params.orgId ?? null,
-          status: 'ACTIVE',
-          isDefault: true
-        }
-      })
-    }
+    await tx.userRoleAssignment.create({
+      data: {
+        userId: createdUser.id,
+        role: params.role,
+        orgId: params.orgId ?? null,
+        status: 'ACTIVE',
+        isDefault: true
+      }
+    })
 
     return createdUser
   })

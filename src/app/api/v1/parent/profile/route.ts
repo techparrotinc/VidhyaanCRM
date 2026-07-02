@@ -99,7 +99,7 @@ export async function PUT(req: NextRequest) {
       const existingUser = await prisma.user.findFirst({
         where: {
           phone,
-          role: 'PARENT',
+          roleAssignments: { some: { role: 'PARENT', status: 'ACTIVE' } },
           id: { not: session.user.id },
           deletedAt: null
         }

@@ -27,12 +27,17 @@ export const GET = route({
     const counsellors = await prisma.user.findMany({
       where: {
         orgId: user.orgId,
-        role: {
-          in: [
-            'COUNSELLOR',
-            'BRANCH_ADMIN',
-            'ORG_ADMIN'
-          ]
+        roleAssignments: {
+          some: {
+            role: {
+              in: [
+                'COUNSELLOR',
+                'BRANCH_ADMIN',
+                'ORG_ADMIN'
+              ]
+            },
+            status: 'ACTIVE'
+          }
         },
         status: 'ACTIVE',
         deletedAt: null

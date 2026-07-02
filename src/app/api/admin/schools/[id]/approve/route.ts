@@ -65,7 +65,7 @@ export async function POST(
         const adminUser = await prisma.user.findFirst({
           where: {
             orgId: school.orgId,
-            role: 'ORG_ADMIN',
+            roleAssignments: { some: { role: 'ORG_ADMIN', status: 'ACTIVE' } },
             deletedAt: null
           },
           select: { name: true }

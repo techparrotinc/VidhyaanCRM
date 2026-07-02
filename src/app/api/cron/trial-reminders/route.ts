@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       },
       include: {
         users: {
-          where: { role: 'ORG_ADMIN', deletedAt: null }
+          where: { roleAssignments: { some: { role: 'ORG_ADMIN', status: 'ACTIVE' } }, deletedAt: null }
         }
       }
     })
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
       },
       include: {
         users: {
-          where: { role: 'ORG_ADMIN', deletedAt: null }
+          where: { roleAssignments: { some: { role: 'ORG_ADMIN', status: 'ACTIVE' } }, deletedAt: null }
         }
       }
     })

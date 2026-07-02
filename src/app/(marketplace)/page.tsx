@@ -357,6 +357,64 @@ export default function MarketplaceHomepage() {
   const content = displayTab === 'schools' ? schoolsContent : lcContent
   const isLC = displayTab === 'learning-centers'
 
+  const [curriculumCounts, setCurriculumCounts] = useState<Record<string, number>>({})
+  const [liveStats, setLiveStats] = useState<{ verifiedSchoolsCount: number; citiesCoveredCount: number } | null>(null)
+
+  useEffect(() => {
+    // Fetch curriculum counts
+    fetch('/api/public/curriculum-counts')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setCurriculumCounts(data.data)
+        }
+      })
+      .catch(err => console.error("Error fetching curriculum counts:", err))
+
+    // Fetch live hero stats
+    fetch('/api/public/stats')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setLiveStats(data.data)
+        }
+      })
+      .catch(err => console.error("Error fetching public stats:", err))
+  }, [])
+
+  const displayCategories = content.categories.map(cat => {
+    if (!isLC) {
+      const liveCount = curriculumCounts[cat.name] ?? 0
+      return {
+        ...cat,
+        count: `${liveCount} schools`
+      }
+    }
+    return cat
+  })
+
+  const displayStats = content.stats.map(stat => {
+    if (!isLC) {
+      if (stat.label === "Verified Schools") {
+        return {
+          ...stat,
+          value: liveStats ? String(liveStats.verifiedSchoolsCount) : stat.value
+        }
+      }
+      if (stat.label === "Cities Covered") {
+        return {
+          ...stat,
+          value: liveStats ? String(liveStats.citiesCoveredCount) : stat.value
+        }
+      }
+      // Note: "Happy Parents" and "Average Rating" are hardcoded pending a future review/ratings system.
+      if (stat.label === "Happy Parents" || stat.label === "Average Rating") {
+        return stat
+      }
+    }
+    return stat
+  })
+
   // Dynamic Metadata
   useEffect(() => {
     document.title = "Vidhyaan - Find Best Schools & Learning Centers Near You | School Discovery Platform India";
@@ -567,7 +625,7 @@ export default function MarketplaceHomepage() {
           {/* 3. STATS BAR */}
           <section className="max-w-4xl mx-auto px-4 -mt-6 relative z-20">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {content.stats.map((stat) => {
+              {displayStats.map((stat) => {
                 const StatIcon = stat.icon
                 return (
                   <div key={stat.label} className="bg-white rounded-2xl border border-slate-150 shadow-lg p-4 text-center flex flex-col items-center justify-center">
@@ -640,7 +698,7 @@ export default function MarketplaceHomepage() {
               </h2>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {content.categories.map((cat, idx) => {
+                {displayCategories.map((cat, idx) => {
                   if (!isLC) {
                     // Schools Category Cards (Curriculum Layout)
                     return (

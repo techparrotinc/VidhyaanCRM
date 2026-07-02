@@ -95,6 +95,7 @@ export async function GET(req: NextRequest) {
     }
 
     const hasCoords = userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)
+    const shouldApplyDistanceFilter = hasCoords && !city
 
     const includeRelations = {
       locations: {
@@ -120,7 +121,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if (hasCoords) {
+    if (shouldApplyDistanceFilter) {
       // If coordinates are provided, retrieve all records matching non-GPS filters
       const allSchools = await prisma.school.findMany({
         where,

@@ -195,7 +195,7 @@ async function main() {
 
   // STEP 8: Create Org Admin User
   console.log('Creating org admin user...')
-  await prisma.user.create({
+  const saran = await prisma.user.create({
     data: {
       name: 'Saran Kumar',
       email: 'saran@princematric.com',
@@ -203,6 +203,15 @@ async function main() {
       role: 'ORG_ADMIN',
       status: 'ACTIVE',
       orgId: testOrg.id
+    }
+  })
+  await prisma.userRoleAssignment.create({
+    data: {
+      userId: saran.id,
+      role: 'ORG_ADMIN',
+      orgId: testOrg.id,
+      status: 'ACTIVE',
+      isDefault: true
     }
   })
 
@@ -218,6 +227,15 @@ async function main() {
       orgId: testOrg.id
     }
   })
+  await prisma.userRoleAssignment.create({
+    data: {
+      userId: pradeep.id,
+      role: 'COUNSELLOR',
+      orgId: testOrg.id,
+      status: 'ACTIVE',
+      isDefault: true
+    }
+  })
 
   const vimalCounsellor = await prisma.user.create({
     data: {
@@ -227,6 +245,15 @@ async function main() {
       role: 'COUNSELLOR',
       status: 'ACTIVE',
       orgId: testOrg.id
+    }
+  })
+  await prisma.userRoleAssignment.create({
+    data: {
+      userId: vimalCounsellor.id,
+      role: 'COUNSELLOR',
+      orgId: testOrg.id,
+      status: 'ACTIVE',
+      isDefault: true
     }
   })
 

@@ -479,7 +479,7 @@ export default function MarketplaceHomepage() {
                   onClick={() => setActiveTab('schools')}
                   className={`text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer flex-1 justify-center md:flex-none md:justify-start ${
                     activeTab === 'schools'
-                      ? 'bg-[#1565D8] text-white shadow-sm'
+                      ? 'bg-blue-50 text-[#1565D8]'
                       : 'text-slate-500 hover:bg-slate-50'
                   }`}
                 >
@@ -491,7 +491,7 @@ export default function MarketplaceHomepage() {
                   onClick={() => setActiveTab('learning-centers')}
                   className={`text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer flex-1 justify-center md:flex-none md:justify-start ${
                     activeTab === 'learning-centers'
-                      ? 'bg-[#1565D8] text-white shadow-sm'
+                      ? 'bg-blue-50 text-[#1565D8]'
                       : 'text-slate-500 hover:bg-slate-50'
                   }`}
                 >

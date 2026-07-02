@@ -45,6 +45,7 @@ import { useLocation } from '@/hooks/useLocation'
 import { LocationBanner } from '@/components/shared/LocationBanner'
 import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
+import { SearchAutocomplete } from '@/components/marketplace/SearchAutocomplete'
 
 // Content Data Objects
 const schoolsContent = {
@@ -358,10 +359,11 @@ export default function MarketplaceHomepage() {
     metaDesc.setAttribute('content', 'Discover and compare 500+ verified schools and learning centers across India. Search by board, location, fees. Apply directly and track admissions. Free for parents.');
   }, []);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSearchSubmit = (e?: React.FormEvent, customSearch?: string) => {
+    if (e) e.preventDefault()
+    const finalSearch = customSearch !== undefined ? customSearch : search
     const params = new URLSearchParams()
-    if (search) params.append('search', search)
+    if (finalSearch) params.append('search', finalSearch)
     if (city) params.append('city', city)
     
     if (displayTab === 'schools') {
@@ -499,14 +501,17 @@ export default function MarketplaceHomepage() {
               </div>
 
               {/* Search fields Row */}
-              <form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row items-stretch gap-2.5">
+              <form onSubmit={(e) => handleSearchSubmit(e)} className="flex flex-col md:flex-row items-stretch gap-2.5">
                 <div className="flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5">
-                  <Search className="w-4.5 h-4.5 text-slate-400 shrink-0 mr-2" />
-                  <input
-                    type="text"
-                    placeholder={activeTab === 'schools' ? 'School name, board or area...' : 'Dance class, music academy, coaching center...'}
+                  <SearchAutocomplete
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={setSearch}
+                    onSubmit={(val) => {
+                      setSearch(val)
+                      handleSearchSubmit(undefined, val)
+                    }}
+                    institutionType={activeTab === 'schools' ? 'SCHOOL' : 'LEARNING_CENTER'}
+                    placeholder={activeTab === 'schools' ? 'School name, board or area...' : 'Dance class, music academy, coaching center...'}
                     className="bg-transparent border-0 outline-none text-slate-700 text-xs placeholder-slate-400 w-full font-medium"
                   />
                 </div>

@@ -45,6 +45,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useLocation } from '@/hooks/useLocation'
 import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
+import { SearchAutocomplete } from '@/components/marketplace/SearchAutocomplete'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -235,6 +236,7 @@ export default function LearningCentersSearchPage() {
 
   // Synced states
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') ?? '')
+  const [searchVal, setSearchVal] = useState(searchParams.get('search') ?? '')
   const [cityVal, setCityVal] = useState(searchParams.get('city') ?? '')
   const [categoryVal, setCategoryVal] = useState('All Categories')
   const [sortBy, setSortBy] = useState('relevance')
@@ -297,6 +299,13 @@ export default function LearningCentersSearchPage() {
       setCityVal(detectedCity)
     }
   }, [detectedCity, searchParams])
+
+  const handleSearchSubmit = (e?: React.FormEvent, customSearch?: string) => {
+    if (e) e.preventDefault()
+    const val = customSearch !== undefined ? customSearch : searchVal
+    setSearchQuery(val)
+    setCurrentPage(1)
+  }
 
   // SEO tags
   useEffect(() => {
@@ -480,6 +489,7 @@ export default function LearningCentersSearchPage() {
 
   const handleClearFilters = () => {
     setSearchQuery('')
+    setSearchVal('')
     setCityVal('')
     setCategoryVal('All Categories')
     setSelectedActivities([])
@@ -570,9 +580,8 @@ export default function LearningCentersSearchPage() {
             </p>
           </div>
 
-          {/* Search bar row */}
           <form 
-            onSubmit={(e) => e.preventDefault()} 
+            onSubmit={(e) => handleSearchSubmit(e)} 
             className="bg-white rounded-2xl p-2.5 shadow-lg border border-slate-200 text-slate-800 flex flex-col md:flex-row items-stretch gap-2"
           >
             {/* Category dropdown */}
@@ -596,13 +605,16 @@ export default function LearningCentersSearchPage() {
 
             {/* Search Input */}
             <div className="flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 gap-2">
-              <Search className="w-4 h-4 text-slate-400 shrink-0" />
-              <input
-                type="text"
+              <SearchAutocomplete
+                value={searchVal}
+                onChange={setSearchVal}
+                onSubmit={(val) => {
+                  setSearchVal(val)
+                  handleSearchSubmit(undefined, val)
+                }}
+                institutionType="LEARNING_CENTER"
                 placeholder="Dance class, music academy, coaching center..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent text-slate-700 outline-none text-xs placeholder-slate-400 font-semibold w-full"
+                className="bg-transparent border-0 outline-none text-slate-700 text-xs placeholder-slate-400 font-semibold w-full"
               />
             </div>
 

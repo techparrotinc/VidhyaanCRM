@@ -550,6 +550,7 @@ model Organization {
   updatedAt        DateTime        @updatedAt @map("updated_at")
   deletedAt        DateTime?       @map("deleted_at")
   centerCategory   String?         @map("center_category")
+  isDummy          Boolean         @default(false) @map("is_dummy")
 
   plan                 Plan?                    @relation(fields: [planId], references: [id])
   branches             Branch[]
@@ -872,6 +873,7 @@ model School {
   updatedAt          DateTime           @updatedAt @map("updated_at")
   deletedAt          DateTime?          @map("deleted_at")
   centerCategory     String?            @map("center_category")
+  isDummy            Boolean            @default(false) @map("is_dummy")
   examFocus          String[]           @map("exam_focus")
   mediumOfInstructionList String[]      @map("medium_of_instruction_list")
 

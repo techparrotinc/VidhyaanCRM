@@ -161,7 +161,7 @@ async function main() {
       phone: '9884185362',
       status: 'ACTIVE',
       orgId: null
-    } as any
+    }
   })
   await prisma.userRoleAssignment.create({
     data: {
@@ -210,7 +210,7 @@ async function main() {
       phone: '9845000001',
       status: 'ACTIVE',
       orgId: testOrg.id
-    } as any
+    }
   })
   await prisma.userRoleAssignment.create({
     data: {
@@ -231,7 +231,7 @@ async function main() {
       phone: '9845000002',
       status: 'ACTIVE',
       orgId: testOrg.id
-    } as any
+    }
   })
   await prisma.userRoleAssignment.create({
     data: {
@@ -250,7 +250,7 @@ async function main() {
       phone: '9845000003',
       status: 'ACTIVE',
       orgId: testOrg.id
-    } as any
+    }
   })
   await prisma.userRoleAssignment.create({
     data: {

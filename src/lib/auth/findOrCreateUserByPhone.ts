@@ -43,7 +43,7 @@ export async function findOrCreateUserByPhone(params: {
         email: params.email ?? null,
         orgId: params.orgId ?? null,
         status: params.status ?? 'ACTIVE'
-      } as any
+      }
     })
 
     await tx.userRoleAssignment.create({

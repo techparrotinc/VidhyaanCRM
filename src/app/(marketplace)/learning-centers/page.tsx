@@ -46,6 +46,7 @@ import { useLocation } from '@/hooks/useLocation'
 import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
 import { SearchAutocomplete } from '@/components/marketplace/SearchAutocomplete'
+import LocationSelector from '@/components/LocationSelector'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -617,7 +618,7 @@ export default function LearningCentersSearchPage() {
               />
             </div>
 
-
+            <LocationSelector className="md:w-44" />
 
             {/* Search Button */}
             <Button 

@@ -49,6 +49,7 @@ import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
 import { SearchAutocomplete } from '@/components/marketplace/SearchAutocomplete'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import LocationSelector from '@/components/LocationSelector'
 
 // Content Data Objects
 const schoolsContent = {
@@ -521,7 +522,7 @@ export default function MarketplaceHomepage() {
                   />
                 </div>
 
-
+                <LocationSelector className="md:w-48" />
 
                 <Button type="submit" className="bg-[#1565D8] hover:bg-blue-700 text-white font-black text-xs px-8 py-3.5 rounded-xl h-auto shrink-0 shadow-md flex items-center gap-1 cursor-pointer">
                   {activeTab === 'schools' ? 'Search Schools' : 'Find Centers'} &rarr;

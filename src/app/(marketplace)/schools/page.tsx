@@ -42,6 +42,7 @@ import { useLocation } from '@/hooks/useLocation'
 import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
 import { SearchAutocomplete } from '@/components/marketplace/SearchAutocomplete'
+import LocationSelector from '@/components/LocationSelector'
 import {
   Dialog,
   DialogContent,
@@ -525,7 +526,7 @@ export default function SchoolsSearchPage() {
                 />
               </div>
 
-
+              <LocationSelector className="md:w-44" />
 
               {/* Search Button */}
               <Button type="submit" className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl h-auto shrink-0 shadow-sm cursor-pointer whitespace-nowrap border border-transparent">

@@ -41,6 +41,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useLocation } from '@/hooks/useLocation'
 import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
+import { SearchAutocomplete } from '@/components/marketplace/SearchAutocomplete'
 import {
   Dialog,
   DialogContent,
@@ -310,7 +311,7 @@ export default function SchoolsSearchPage() {
 
   useEffect(() => {
     fetchSchools()
-  }, [filters.board, filters.admissionOpen, filters.type, filters.city, filters.sortBy, pagination.page, lat, lng, distanceRadius])
+  }, [filters.search, filters.board, filters.admissionOpen, filters.type, filters.city, filters.sortBy, pagination.page, lat, lng, distanceRadius])
 
   const handleSearchCardSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -511,13 +512,28 @@ export default function SchoolsSearchPage() {
 
               {/* Search Input */}
               <div className="flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 gap-2">
-                <Search className="w-4 h-4 text-slate-400 shrink-0" />
-                <input
-                  type="text"
+                <SearchAutocomplete
                   value={searchVal}
-                  onChange={(e) => setSearchVal(e.target.value)}
+                  onChange={setSearchVal}
+                  onSubmit={(val) => {
+                    setSearchVal(val)
+                    if (category === 'centers') {
+                      const params = new URLSearchParams()
+                      if (val) params.append('search', val)
+                      if (cityVal) params.append('city', cityVal)
+                      router.push(`/learning-centers?${params.toString()}`)
+                      return
+                    }
+                    setFilters((prev) => ({
+                      ...prev,
+                      search: val,
+                      city: cityVal
+                    }))
+                    setPagination((prev) => ({ ...prev, page: 1 }))
+                  }}
+                  institutionType="SCHOOL"
                   placeholder="School name, board or area..."
-                  className="bg-transparent text-slate-700 outline-none text-xs placeholder-slate-400 font-semibold w-full"
+                  className="bg-transparent border-0 outline-none text-slate-700 text-xs placeholder-slate-400 font-semibold w-full"
                 />
               </div>
 

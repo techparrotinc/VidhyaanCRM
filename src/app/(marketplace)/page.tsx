@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -36,7 +37,8 @@ import {
   School,
   GitCompare,
   CheckCircle,
-  Calendar
+  Calendar,
+  X
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -47,6 +49,7 @@ import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
 import { SearchAutocomplete } from '@/components/marketplace/SearchAutocomplete'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import LocationSelector from '@/components/LocationSelector'
 
 // Content Data Objects
 const schoolsContent = {
@@ -287,6 +290,7 @@ export default function MarketplaceHomepage() {
   
   const {
     city: detectedCity,
+    gpsCity,
     lat,
     lng,
     loading: locationLoading,
@@ -308,6 +312,8 @@ export default function MarketplaceHomepage() {
 
   const [apiCities, setApiCities] = useState<any[]>([])
 
+
+
   useEffect(() => {
     fetch('/api/public/cities')
       .then(res => res.json())
@@ -325,6 +331,8 @@ export default function MarketplaceHomepage() {
       setCity(detectedCity)
     }
   }, [detectedCity])
+
+
 
   const displayCities = cities.map(c => {
     const apiMatch = apiCities.find(ac => ac.city.toLowerCase() === c.name.toLowerCase())
@@ -349,6 +357,64 @@ export default function MarketplaceHomepage() {
   const content = displayTab === 'schools' ? schoolsContent : lcContent
   const isLC = displayTab === 'learning-centers'
 
+  const [curriculumCounts, setCurriculumCounts] = useState<Record<string, number>>({})
+  const [liveStats, setLiveStats] = useState<{ verifiedSchoolsCount: number; citiesCoveredCount: number } | null>(null)
+
+  useEffect(() => {
+    // Fetch curriculum counts
+    fetch('/api/public/curriculum-counts')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setCurriculumCounts(data.data)
+        }
+      })
+      .catch(err => console.error("Error fetching curriculum counts:", err))
+
+    // Fetch live hero stats
+    fetch('/api/public/stats')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          setLiveStats(data.data)
+        }
+      })
+      .catch(err => console.error("Error fetching public stats:", err))
+  }, [])
+
+  const displayCategories = content.categories.map(cat => {
+    if (!isLC) {
+      const liveCount = curriculumCounts[cat.name] ?? 0
+      return {
+        ...cat,
+        count: `${liveCount} schools`
+      }
+    }
+    return cat
+  })
+
+  const displayStats = content.stats.map(stat => {
+    if (!isLC) {
+      if (stat.label === "Verified Schools") {
+        return {
+          ...stat,
+          value: liveStats ? String(liveStats.verifiedSchoolsCount) : stat.value
+        }
+      }
+      if (stat.label === "Cities Covered") {
+        return {
+          ...stat,
+          value: liveStats ? String(liveStats.citiesCoveredCount) : stat.value
+        }
+      }
+      // Note: "Happy Parents" and "Average Rating" are hardcoded pending a future review/ratings system.
+      if (stat.label === "Happy Parents" || stat.label === "Average Rating") {
+        return stat
+      }
+    }
+    return stat
+  })
+
   // Dynamic Metadata
   useEffect(() => {
     document.title = "Vidhyaan - Find Best Schools & Learning Centers Near You | School Discovery Platform India";
@@ -361,12 +427,13 @@ export default function MarketplaceHomepage() {
     metaDesc.setAttribute('content', 'Discover and compare 500+ verified schools and learning centers across India. Search by board, location, fees. Apply directly and track admissions. Free for parents.');
   }, []);
 
-  const handleSearchSubmit = (e?: React.FormEvent, customSearch?: string) => {
+  const handleSearchSubmit = (e?: React.FormEvent, customSearch?: string, customCity?: string) => {
     if (e) e.preventDefault()
     const finalSearch = customSearch !== undefined ? customSearch : search
+    const finalCity = customCity !== undefined ? customCity : city
     const params = new URLSearchParams()
     if (finalSearch) params.append('search', finalSearch)
-    if (city) params.append('city', city)
+    if (finalCity) params.append('city', finalCity)
     
     if (displayTab === 'schools') {
       router.push(`/schools?${params.toString()}`)
@@ -513,74 +580,13 @@ export default function MarketplaceHomepage() {
                   />
                 </div>
 
-                <div className="md:w-48 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 relative">
-                  {locationLoading ? (
-                    <Loader2 className="w-4.5 h-4.5 text-[#1565D8] animate-spin shrink-0 mr-2" />
-                  ) : (
-                    <MapPin className="w-4.5 h-4.5 text-slate-400 shrink-0 mr-2" />
-                  )}
-                  <Select
-                    value={city || ""}
-                    onValueChange={(val) => {
-                      setCity(val)
-                      setManualCity(val)
-                    }}
-                    open={citySelectOpen}
-                    onOpenChange={setCitySelectOpen}
-                  >
-                    <SelectTrigger
-                      className="flex items-center w-full bg-transparent border-0 outline-none text-slate-700 text-xs font-bold p-0 cursor-pointer select-none"
-                      disabled={locationLoading}
-                    >
-                      <SelectValue placeholder="Select City" />
-                    </SelectTrigger>
-                    
-                    <SelectContent usePortal={true} className="w-full min-w-[160px] bg-white border border-slate-200 shadow-xl rounded-xl mt-1 py-1">
-                      {locationLoading ? (
-                        <div className="px-3 py-2 text-xs text-slate-400 font-semibold">Detecting...</div>
-                      ) : (
-                        <>
-                          <SelectItem value="" className="text-xs font-bold text-slate-500">Select City</SelectItem>
-                          {apiCities.length > 0 ? (
-                            apiCities.map((c) => (
-                              <SelectItem key={c.city} value={c.city} className="text-xs font-bold">{c.city}</SelectItem>
-                            ))
-                          ) : (
-                            SUPPORTED_CITIES.map((c) => (
-                              <SelectItem key={c} value={c} className="text-xs font-bold">{c}</SelectItem>
-                            ))
-                          )}
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <LocationSelector className="md:w-48" />
 
                 <Button type="submit" className="bg-[#1565D8] hover:bg-blue-700 text-white font-black text-xs px-8 py-3.5 rounded-xl h-auto shrink-0 shadow-md flex items-center gap-1 cursor-pointer">
                   {activeTab === 'schools' ? 'Search Schools' : 'Find Centers'} &rarr;
                 </Button>
               </form>
             </Card>
-
-            {/* Compact inline trust-stats row */}
-            <div className="flex justify-center items-center gap-6 md:gap-10 mt-6 select-none max-w-md mx-auto">
-              <div className="text-center flex-1">
-                <div className="text-base md:text-lg font-black text-slate-900 leading-tight">500+</div>
-                <div className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">Schools</div>
-              </div>
-              <div className="h-5 w-px bg-slate-200 shrink-0" />
-              <div className="text-center flex-1">
-                <div className="text-base md:text-lg font-black text-slate-900 leading-tight">10,000+</div>
-                <div className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">Parents</div>
-              </div>
-              <div className="h-5 w-px bg-slate-200 shrink-0" />
-              <div className="text-center flex-1">
-                <div className="text-base md:text-lg font-black text-slate-900 leading-tight">4.8★</div>
-                <div className="text-[10px] md:text-xs font-bold text-slate-450 uppercase tracking-wider mt-0.5">Rating</div>
-              </div>
-            </div>
-
-
 
             {/* Popular Searches */}
             <div className="mt-5 flex items-center justify-center gap-2 flex-wrap text-xs">
@@ -619,7 +625,7 @@ export default function MarketplaceHomepage() {
           {/* 3. STATS BAR */}
           <section className="max-w-4xl mx-auto px-4 -mt-6 relative z-20">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {content.stats.map((stat) => {
+              {displayStats.map((stat) => {
                 const StatIcon = stat.icon
                 return (
                   <div key={stat.label} className="bg-white rounded-2xl border border-slate-150 shadow-lg p-4 text-center flex flex-col items-center justify-center">
@@ -692,7 +698,7 @@ export default function MarketplaceHomepage() {
               </h2>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {content.categories.map((cat, idx) => {
+                {displayCategories.map((cat, idx) => {
                   if (!isLC) {
                     // Schools Category Cards (Curriculum Layout)
                     return (

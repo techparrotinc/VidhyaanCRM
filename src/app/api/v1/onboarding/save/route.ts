@@ -265,6 +265,8 @@ export async function POST(req: NextRequest) {
             city: data.city,
             state: data.state,
             pincode: data.pincode,
+            latitude: typeof data.latitude === 'number' ? data.latitude : undefined,
+            longitude: typeof data.longitude === 'number' ? data.longitude : undefined,
             label: 'Main Campus'
           }
         })
@@ -277,6 +279,8 @@ export async function POST(req: NextRequest) {
             city: data.city,
             state: data.state,
             pincode: data.pincode,
+            latitude: typeof data.latitude === 'number' ? data.latitude : null,
+            longitude: typeof data.longitude === 'number' ? data.longitude : null,
             isPrimary: true,
             label: 'Main Campus'
           }

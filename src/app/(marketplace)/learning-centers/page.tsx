@@ -46,6 +46,7 @@ import { useLocation } from '@/hooks/useLocation'
 import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
 import { SearchAutocomplete } from '@/components/marketplace/SearchAutocomplete'
+import LocationSelector from '@/components/LocationSelector'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -237,9 +238,9 @@ export default function LearningCentersSearchPage() {
   // Synced states
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') ?? '')
   const [searchVal, setSearchVal] = useState(searchParams.get('search') ?? '')
-  const [cityVal, setCityVal] = useState(searchParams.get('city') ?? '')
   const [categoryVal, setCategoryVal] = useState('All Categories')
   const [sortBy, setSortBy] = useState('relevance')
+  const [cityVal, setCityVal] = useState(detectedCity || '')
 
   // Sidebar Filter States
   const [selectedActivities, setSelectedActivities] = useState<string[]>([])
@@ -293,12 +294,12 @@ export default function LearningCentersSearchPage() {
     loadBookmarks()
   }, [session])
 
-  // Sync detected location city if no city is currently filtered
+  // Sync page active city with the global location hook's active city
   useEffect(() => {
-    if (detectedCity && !searchParams.get('city')) {
+    if (detectedCity && cityVal !== detectedCity) {
       setCityVal(detectedCity)
     }
-  }, [detectedCity, searchParams])
+  }, [detectedCity])
 
   const handleSearchSubmit = (e?: React.FormEvent, customSearch?: string) => {
     if (e) e.preventDefault()
@@ -490,8 +491,6 @@ export default function LearningCentersSearchPage() {
   const handleClearFilters = () => {
     setSearchQuery('')
     setSearchVal('')
-    setCityVal('')
-    setCategoryVal('All Categories')
     setSelectedActivities([])
     setSelectedAgeGroups([])
     setSelectedTimings([])
@@ -499,6 +498,7 @@ export default function LearningCentersSearchPage() {
     setMinFees('')
     setMaxFees('')
     setSelectedGender([])
+    setSortBy('relevance')
     setCurrentPage(1)
   }
 
@@ -618,20 +618,7 @@ export default function LearningCentersSearchPage() {
               />
             </div>
 
-            {/* City Selector */}
-            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 md:w-44 shrink-0 gap-2">
-              <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-              <select
-                value={cityVal}
-                onChange={(e) => setCityVal(e.target.value)}
-                className="bg-transparent text-slate-700 outline-none text-xs font-bold w-full cursor-pointer"
-              >
-                <option value="">Select City</option>
-                {['Chennai', 'Bengaluru', 'Hyderabad', 'Mumbai', 'New Delhi', 'Pune', 'Coimbatore', 'Madurai'].map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
+            <LocationSelector className="md:w-44" />
 
             {/* Search Button */}
             <Button 
@@ -714,20 +701,7 @@ export default function LearningCentersSearchPage() {
                 </button>
               </div>
 
-              {/* Location Input */}
-              <div className="space-y-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">LOCATION</span>
-                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 gap-2">
-                  <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="Enter city or area"
-                    value={cityVal}
-                    onChange={(e) => setCityVal(e.target.value)}
-                    className="bg-transparent text-xs font-semibold text-slate-700 outline-none w-full placeholder-slate-400 focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
+
 
               <Separator className="bg-slate-100" />
 

@@ -20,7 +20,8 @@ import {
   Bell,
   CheckCircle2,
   X,
-  Loader2
+  Loader2,
+  Menu
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -33,6 +34,8 @@ export default function MarketplaceHeader() {
   const [isProductsOpen, setIsProductsOpen] = useState(false)
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
+
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // Listen to deletion message query parameter
   useEffect(() => {
@@ -75,13 +78,15 @@ export default function MarketplaceHeader() {
       <header className="sticky top-0 w-full bg-white border-b border-slate-100 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-16 flex items-center justify-between">
           
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 cursor-pointer">
-            <div className="w-8 h-8 rounded-lg bg-[#1565D8] flex items-center justify-center text-white font-black text-sm shadow-md">
-              V
-            </div>
-            <span className="text-base font-black tracking-tight text-slate-900">Vidhyaan</span>
-          </Link>
+          <div className="flex items-center gap-3">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2 cursor-pointer">
+              <div className="w-8 h-8 rounded-lg bg-[#1565D8] flex items-center justify-center text-white font-black text-sm shadow-md">
+                V
+              </div>
+              <span className="text-base font-black tracking-tight text-slate-900">Vidhyaan</span>
+            </Link>
+          </div>
 
           {/* Navigation Links */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600 h-full">
@@ -111,28 +116,10 @@ export default function MarketplaceHeader() {
             >
               For Schools
             </Link>
-            <Link 
-              href="/pricing" 
-              className={`hover:text-[#1565D8] transition ${pathname === '/pricing' ? 'text-[#1565D8] font-bold' : ''}`}
-            >
-              Pricing
-            </Link>
-            <Link 
-              href="/about" 
-              className={`hover:text-[#1565D8] transition ${pathname === '/about' ? 'text-[#1565D8] font-bold' : ''}`}
-            >
-              About Us
-            </Link>
-            <Link 
-              href="/contact" 
-              className={`hover:text-[#1565D8] transition ${pathname === '/contact' ? 'text-[#1565D8] font-bold' : ''}`}
-            >
-              Contact Us
-            </Link>
           </nav>
 
           {/* Right Header items (Auth-controlled) */}
-          <div className="flex items-center gap-2.5">
+          <div className="hidden md:flex items-center gap-2.5">
             {status === 'loading' ? (
               <Loader2 className="w-5 h-5 animate-spin text-[#1565D8]" />
             ) : session?.user ? (
@@ -236,6 +223,16 @@ export default function MarketplaceHeader() {
               </div>
             )}
           </div>
+
+          {/* Hamburger button on Mobile */}
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-xl transition cursor-pointer outline-none"
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+
         </div>
 
         {/* Mega Menu Dropdown */}
@@ -317,20 +314,112 @@ export default function MarketplaceHeader() {
                       <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Track views, inquiry statistics, and school listing conversions dynamically.</p>
                     </div>
                   </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="w-2.5 h-2.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">Unified Communications</h4>
-                      <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Direct WhatsApp, Email, and SMS notification alerts built-in.</p>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
           </div>
         )}
       </header>
+
+      {/* Mobile Menu Panel */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden border-t border-slate-100 bg-white w-full py-4 px-4 flex flex-col gap-4 animate-in slide-in-from-top duration-200">
+          <nav className="flex flex-col gap-3 font-semibold text-sm text-slate-600">
+            <Link 
+              href="/schools" 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`hover:text-[#1565D8] transition py-1.5 ${pathname.startsWith('/schools') ? 'text-[#1565D8] font-bold' : ''}`}
+            >
+              Find Schools
+            </Link>
+            <Link 
+              href="/learning-centers" 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`hover:text-[#1565D8] transition py-1.5 ${pathname.startsWith('/learning-centers') ? 'text-[#1565D8] font-bold' : ''}`}
+            >
+              Learning Centers
+            </Link>
+            <Link 
+              href="/for-schools" 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`hover:text-[#1565D8] transition py-1.5 ${pathname === '/for-schools' ? 'text-[#1565D8] font-bold' : ''}`}
+            >
+              For Schools
+            </Link>
+          </nav>
+
+          <hr className="border-slate-100" />
+
+          {/* Auth Actions on Mobile */}
+          {status !== 'loading' && (
+            <div className="flex flex-col gap-2.5">
+              {session?.user ? (
+                <>
+                  <div className="px-1.5 py-1">
+                    <p className="text-xs font-bold text-slate-800 truncate">{parentName}</p>
+                    <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">{session.user.email}</p>
+                  </div>
+                  {isParent ? (
+                    <>
+                      <Link
+                        href="/parent/dashboard"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-2 px-2.5 py-2 text-xs text-slate-650 hover:bg-slate-50 hover:text-[#1565D8] font-bold rounded-lg"
+                      >
+                        Dashboard
+                      </Link>
+                      <Link
+                        href="/parent/bookmarks"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-2 px-2.5 py-2 text-xs text-slate-650 hover:bg-slate-50 hover:text-[#1565D8] font-bold rounded-lg"
+                      >
+                        Bookmarks
+                      </Link>
+                    </>
+                  ) : (
+                    <Link
+                      href={isAdmin ? '/admin' : '/dashboard'}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-2 px-2.5 py-2 text-xs text-slate-650 hover:bg-slate-50 hover:text-[#1565D8] font-bold rounded-lg"
+                    >
+                      CRM Dashboard
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false)
+                      signOut({ callbackUrl: '/' })
+                    }}
+                    className="w-full text-left px-2.5 py-2 text-xs text-red-650 hover:bg-red-50 font-bold rounded-lg"
+                  >
+                    Log Out
+                  </button>
+                </>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
+                    <Button variant="ghost" className="w-full text-slate-700 hover:text-[#1565D8] font-bold text-xs py-2.5 rounded-xl h-auto">
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/for-schools" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
+                    <Button variant="outline" className="w-full border-blue-200 text-[#1565D8] hover:bg-blue-50 font-bold text-xs py-2.5 rounded-xl h-auto shadow-sm">
+                      Claim Free Profile
+                    </Button>
+                  </Link>
+                  <Link href="/parent/register" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
+                    <Button className="w-full bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs py-3 rounded-full h-auto shadow-sm">
+                      Register as Parent
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+
     </div>
   )
 }

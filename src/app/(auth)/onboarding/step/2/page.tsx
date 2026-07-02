@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, AlertCircle, MapPin, ExternalLink, HelpCircle } from 'lucide-react'
 import {
@@ -44,6 +44,176 @@ export default function OnboardingStep2() {
   const [website, setWebsite] = useState('')
   const [officeHours, setOfficeHours] = useState('Mon-Fri: 8 AM to 4 PM')
 
+  // Coordinates
+  const [latitude, setLatitude] = useState<number | null>(null)
+  const [longitude, setLongitude] = useState<number | null>(null)
+
+  // Autocomplete UI States
+  const [predictions, setPredictions] = useState<any[]>([])
+  const [predictionsLoading, setPredictionsLoading] = useState(false)
+  const [predictionsOpen, setPredictionsOpen] = useState(false)
+
+  const sessionTokenRef = useRef<string | null>(null)
+  const autocompleteAbortRef = useRef<AbortController | null>(null)
+  const autocompleteTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const predictionsRef = useRef<HTMLDivElement>(null)
+
+  const getOrGenerateSessionToken = () => {
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current = Math.random().toString(36).substring(2, 15)
+    }
+    return sessionTokenRef.current
+  }
+
+  const resetSessionToken = () => {
+    sessionTokenRef.current = null
+  }
+
+  const handleAddress1Change = (val: string) => {
+    setAddress1(val)
+    
+    if (autocompleteTimeoutRef.current) {
+      clearTimeout(autocompleteTimeoutRef.current)
+    }
+
+    if (val.trim().length < 3) {
+      setPredictions([])
+      setPredictionsOpen(false)
+      return
+    }
+
+    autocompleteTimeoutRef.current = setTimeout(() => {
+      fetchPredictions(val)
+    }, 300)
+  }
+
+  const fetchPredictions = async (query: string) => {
+    if (autocompleteAbortRef.current) {
+      autocompleteAbortRef.current.abort()
+    }
+    const controller = new AbortController()
+    autocompleteAbortRef.current = controller
+    setPredictionsLoading(true)
+
+    const token = getOrGenerateSessionToken()
+
+    try {
+      const res = await fetch(
+        `/api/public/places?input=${encodeURIComponent(query)}&sessionToken=${token}`,
+        { signal: controller.signal }
+      )
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success) {
+          setPredictions(json.predictions || [])
+          setPredictionsOpen(true)
+        }
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Error fetching autocomplete predictions:', err)
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setPredictionsLoading(false)
+      }
+    }
+  }
+
+  const parseAddressComponents = (components: any[]) => {
+    let streetNumber = ''
+    let route = ''
+    let sublocality1 = ''
+    let sublocality2 = ''
+    let locCity = ''
+    let locState = ''
+    let locPincode = ''
+
+    for (const comp of components) {
+      const types = comp.types || []
+      if (types.includes('street_number')) {
+        streetNumber = comp.longName
+      } else if (types.includes('route')) {
+        route = comp.longName
+      } else if (types.includes('sublocality_level_1') || types.includes('sublocality')) {
+        sublocality1 = comp.longName
+      } else if (types.includes('sublocality_level_2')) {
+        sublocality2 = comp.longName
+      } else if (types.includes('locality')) {
+        locCity = comp.longName
+      } else if (types.includes('administrative_area_level_1')) {
+        locState = comp.longName
+      } else if (types.includes('postal_code')) {
+        locPincode = comp.longName
+      }
+    }
+
+    return {
+      streetNumber,
+      route,
+      sublocality1,
+      sublocality2,
+      city: locCity,
+      state: locState,
+      pincode: locPincode
+    }
+  }
+
+  const handleSelectPrediction = async (pred: any) => {
+    setPredictionsOpen(false)
+    setPredictions([])
+    
+    const token = getOrGenerateSessionToken()
+    setLoading(true)
+
+    try {
+      const res = await fetch(`/api/public/places?placeId=${pred.placeId}&sessionToken=${token}`)
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success && json.place) {
+          const place = json.place
+          const parsed = parseAddressComponents(place.addressComponents || [])
+          
+          const streetAddr = [parsed.streetNumber, parsed.route].filter(Boolean).join(', ')
+          const localityAddr = [parsed.sublocality2, parsed.sublocality1].filter(Boolean).join(', ')
+
+          setAddress1(streetAddr || place.formattedAddress?.split(',')[0] || pred.text.split(',')[0] || '')
+          setAddress2(localityAddr)
+          if (parsed.city) setCity(parsed.city)
+          if (parsed.state) {
+            const match = indianStates.find(s => s.toLowerCase() === parsed.state.toLowerCase())
+            if (match) setState(match)
+          }
+          if (parsed.pincode) setPincode(parsed.pincode)
+          
+          if (place.location) {
+            setLatitude(place.location.latitude || null)
+            setLongitude(place.location.longitude || null)
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching place details:', err)
+    } finally {
+      setLoading(false)
+      resetSessionToken()
+    }
+  }
+
+  // Handle predictions click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        predictionsRef.current &&
+        !predictionsRef.current.contains(e.target as Node)
+      ) {
+        setPredictionsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   useEffect(() => {
     fetch('/api/v1/onboarding/status')
       .then((res) => res.json())
@@ -65,6 +235,8 @@ export default function OnboardingStep2() {
             setCity(loc.city || 'Chennai')
             setState(loc.state || 'Tamil Nadu')
             setPincode(loc.pincode || '')
+            if (typeof loc.latitude === 'number') setLatitude(loc.latitude)
+            if (typeof loc.longitude === 'number') setLongitude(loc.longitude)
           }
 
           if (s.contacts && s.contacts.length > 0) {
@@ -114,6 +286,8 @@ export default function OnboardingStep2() {
             city,
             state,
             pincode,
+            latitude,
+            longitude,
             mapsLink,
             phone,
             phoneSecondary,
@@ -167,20 +341,42 @@ export default function OnboardingStep2() {
         )}
 
         <form id="step-2-form" onSubmit={handleSubmit} className="space-y-5">
-          {/* Address 1 */}
-          <div className="space-y-1.5">
+          {/* Address 1 with Google Places Autocomplete */}
+          <div ref={predictionsRef} className="space-y-1.5 relative">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Address Line 1 <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              value={address1}
-              onChange={(e) => setAddress1(e.target.value)}
-              placeholder="Street address, building name"
-              disabled={saving}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm"
-              required
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={address1}
+                onChange={(e) => handleAddress1Change(e.target.value)}
+                placeholder="Type to search address (Google Places)..."
+                disabled={saving}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm"
+                required
+              />
+              {predictionsLoading && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <Loader2 className="w-4 h-4 text-[#1565D8] animate-spin" />
+                </div>
+              )}
+            </div>
+
+            {predictionsOpen && predictions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[9999] max-h-60 overflow-y-auto py-1 flex flex-col gap-0.5">
+                {predictions.map((pred) => (
+                  <button
+                    key={pred.placeId}
+                    type="button"
+                    onClick={() => handleSelectPrediction(pred)}
+                    className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all cursor-pointer focus:outline-none"
+                  >
+                    {pred.text}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Address 2 */}

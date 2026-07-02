@@ -31,6 +31,7 @@ interface SavedLocation {
 
 export function useLocation() {
   const [city, setCity] = useState<string | null>(null)
+  const [gpsCity, setGpsCity] = useState<string | null>(null)
   const [lat, setLat] = useState<number | null>(null)
   const [lng, setLng] = useState<number | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -68,6 +69,7 @@ export function useLocation() {
         }
 
         setCity(finalCity)
+        setGpsCity(finalCity)
         setLat(latitude)
         setLng(longitude)
         setDetectionMethod('gps')
@@ -163,6 +165,9 @@ export function useLocation() {
 
         if (!isExpired && isVersionValid && isCityValid) {
           setCity(saved.city)
+          if (saved.method === 'gps') {
+            setGpsCity(saved.city)
+          }
           setLat(saved.lat)
           setLng(saved.lng)
           setDetectionMethod('cached')
@@ -181,6 +186,7 @@ export function useLocation() {
 
   return {
     city,
+    gpsCity,
     lat,
     lng,
     loading,

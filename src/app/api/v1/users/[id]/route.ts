@@ -6,7 +6,8 @@ import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
 import { UserRole, UserStatus } from '@prisma/client'
 import { redis } from '@/lib/redis'
-import { revokeUser, clearUserRevocation } from '@/lib/auth/roleRevocation'
+import { revokeUser, clearUserRevocation, revokeAssignment } from '@/lib/auth/roleRevocation'
+import { resolveTargetUserRole } from '@/lib/auth/resolveTargetUserRole'
 
 export const GET = route({
   roles: [ROLES.ORG_ADMIN],
@@ -33,7 +34,8 @@ export const GET = route({
       throw Errors.notFound('User')
     }
 
-    return ok(targetUser)
+    const resolvedRole = await resolveTargetUserRole(targetUser.id, user.orgId)
+    return ok({ ...targetUser, role: resolvedRole })
   }
 })
 
@@ -69,21 +71,66 @@ export const PUT = route({
       throw Errors.businessRule('You cannot modify your own account')
     }
 
-    const updated = await prisma.user.update({
-      where: { id: params?.id },
-      data: {
-        role: body.role ? (body.role as UserRole) : undefined,
-        status: body.status === 'INACTIVE' 
-          ? ('DEACTIVATED' as UserStatus)
-          : body.status ? (body.status as UserStatus) : undefined
-      },
-      select: {
-        id: true,
-        name: true,
-        role: true,
-        status: true
+    let assignmentIdToRevoke: string | null = null
+
+    const updated = await prisma.$transaction(async (tx) => {
+      if (body.role) {
+        const currentAssignment = await tx.userRoleAssignment.findFirst({
+          where: { userId: target.id, orgId: user.orgId, status: 'ACTIVE' }
+        })
+
+        if (currentAssignment) {
+          if (currentAssignment.role !== body.role) {
+            await tx.userRoleAssignment.update({
+              where: { id: currentAssignment.id },
+              data: { status: 'REVOKED' }
+            })
+
+            await tx.userRoleAssignment.create({
+              data: {
+                userId: target.id,
+                role: body.role,
+                orgId: user.orgId,
+                status: 'ACTIVE',
+                isDefault: true
+              }
+            })
+
+            assignmentIdToRevoke = currentAssignment.id
+          }
+        } else {
+          await tx.userRoleAssignment.create({
+            data: {
+              userId: target.id,
+              role: body.role,
+              orgId: user.orgId,
+              status: 'ACTIVE',
+              isDefault: true
+            }
+          })
+        }
       }
+
+      return await tx.user.update({
+        where: { id: params?.id },
+        data: {
+          role: body.role ? (body.role as UserRole) : undefined,
+          status: body.status === 'INACTIVE' 
+            ? ('DEACTIVATED' as UserStatus)
+            : body.status ? (body.status as UserStatus) : undefined
+        },
+        select: {
+          id: true,
+          name: true,
+          role: true,
+          status: true
+        }
+      })
     })
+
+    if (assignmentIdToRevoke) {
+      await revokeAssignment(target.id, assignmentIdToRevoke)
+    }
 
     if (body.status === 'INACTIVE') {
       await revokeUser(params!.id as string)
@@ -117,7 +164,8 @@ export const DELETE = route({
       throw Errors.businessRule('You cannot deactivate yourself')
     }
 
-    if (target.role === 'ORG_ADMIN') {
+    const targetResolvedRole = await resolveTargetUserRole(target.id, user.orgId)
+    if (targetResolvedRole === 'ORG_ADMIN') {
       throw Errors.businessRule('Cannot deactivate an Org Admin')
     }
 

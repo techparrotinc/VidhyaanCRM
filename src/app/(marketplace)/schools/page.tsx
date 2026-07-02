@@ -115,7 +115,6 @@ export default function SchoolsSearchPage() {
   // Synchronized inputs
   const [category, setCategory] = useState<'schools' | 'centers'>('schools')
   const [searchVal, setSearchVal] = useState(filters.search)
-  const [cityVal, setCityVal] = useState(filters.city)
   
   // Sidebar state
   const [distanceRadius, setDistanceRadius] = useState<number>(40)
@@ -220,25 +219,15 @@ export default function SchoolsSearchPage() {
     loadBookmarks()
   }, [session])
 
-  // Sync inputs with filters updates
+  // Sync page filters with the global location hook's active city
   useEffect(() => {
-    setSearchVal(filters.search)
-  }, [filters.search])
-
-  useEffect(() => {
-    setCityVal(filters.city)
-  }, [filters.city])
-
-  // Sync detected location city if no city is currently filtered
-  useEffect(() => {
-    if (detectedCity && !filters.city) {
+    if (detectedCity && filters.city !== detectedCity) {
       setFilters((prev) => ({
         ...prev,
         city: detectedCity
       }))
-      setCityVal(detectedCity)
     }
-  }, [detectedCity, filters.city])
+  }, [detectedCity])
 
   // Sync board array changes to filters object
   useEffect(() => {
@@ -320,7 +309,7 @@ export default function SchoolsSearchPage() {
     if (category === 'centers') {
       const params = new URLSearchParams()
       if (searchVal) params.append('search', searchVal)
-      if (cityVal) params.append('city', cityVal)
+      if (detectedCity) params.append('city', detectedCity)
       router.push(`/learning-centers?${params.toString()}`)
       return
     }
@@ -328,7 +317,7 @@ export default function SchoolsSearchPage() {
     setFilters((prev) => ({
       ...prev,
       search: searchVal,
-      city: cityVal
+      city: detectedCity || ''
     }))
     setPagination((prev) => ({ ...prev, page: 1 }))
   }
@@ -343,14 +332,13 @@ export default function SchoolsSearchPage() {
   const handleClearAllFilters = () => {
     setFilters({
       search: '',
-      city: '',
+      city: detectedCity || '',
       board: '',
       type: '',
       admissionOpen: '',
       sortBy: 'relevance'
     })
     setSearchVal('')
-    setCityVal('')
     setActiveBoards([])
     setDistanceRadius(40)
     setMinFees('')
@@ -520,14 +508,14 @@ export default function SchoolsSearchPage() {
                     if (category === 'centers') {
                       const params = new URLSearchParams()
                       if (val) params.append('search', val)
-                      if (cityVal) params.append('city', cityVal)
+                      if (detectedCity) params.append('city', detectedCity)
                       router.push(`/learning-centers?${params.toString()}`)
                       return
                     }
                     setFilters((prev) => ({
                       ...prev,
                       search: val,
-                      city: cityVal
+                      city: detectedCity || ''
                     }))
                     setPagination((prev) => ({ ...prev, page: 1 }))
                   }}
@@ -537,20 +525,7 @@ export default function SchoolsSearchPage() {
                 />
               </div>
 
-              {/* City Selector */}
-              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 md:w-44 shrink-0 gap-2">
-                <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                <select
-                  value={cityVal}
-                  onChange={(e) => setCityVal(e.target.value)}
-                  className="bg-transparent text-slate-707 outline-none text-xs font-bold w-full cursor-pointer"
-                >
-                  <option value="">Select City</option>
-                  {['Chennai', 'Bengaluru', 'Hyderabad', 'Mumbai', 'New Delhi', 'Pune', 'Coimbatore', 'Madurai'].map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
+
 
               {/* Search Button */}
               <Button type="submit" className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl h-auto shrink-0 shadow-sm cursor-pointer whitespace-nowrap border border-transparent">
@@ -639,25 +614,6 @@ export default function SchoolsSearchPage() {
                   >
                     Clear all
                   </button>
-                </div>
-
-                {/* Location Section */}
-                <div className="space-y-2 pb-3 border-b border-slate-100">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">LOCATION</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                    <input
-                      type="text"
-                      value={cityVal}
-                      onChange={(e) => {
-                        setCityVal(e.target.value)
-                        setFilters((prev) => ({ ...prev, city: e.target.value }))
-                        setPagination((prev) => ({ ...prev, page: 1 }))
-                      }}
-                      placeholder="Enter city or area"
-                      className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg outline-none font-semibold text-slate-655 focus:border-[#1565D8] focus:ring-1 focus:ring-[#1565D8] transition"
-                    />
-                  </div>
                 </div>
 
                 {/* Curriculum / Board Section */}

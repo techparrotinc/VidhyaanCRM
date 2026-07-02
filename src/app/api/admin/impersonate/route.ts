@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
 import { AuditAction } from '@prisma/client'
+import { resolveTargetUserRole } from '@/lib/auth/resolveTargetUserRole'
 
 export async function POST(req: NextRequest) {
   try {
@@ -47,6 +48,8 @@ export async function POST(req: NextRequest) {
     const ipAddress = req.headers.get('x-forwarded-for') ?? undefined
     const userAgent = req.headers.get('user-agent') ?? undefined
 
+    const resolvedTargetRole = await resolveTargetUserRole(targetUser.id, targetUser.orgId)
+
     await prisma.auditLog.create({
       data: {
         userId: session.user.id,
@@ -62,7 +65,7 @@ export async function POST(req: NextRequest) {
         after: {
           targetUserId: targetUser.id,
           targetUserEmail: targetUser.email,
-          targetUserRole: targetUser.role,
+          targetUserRole: resolvedTargetRole,
           impersonateToken
         },
         ipAddress: ipAddress ?? null,

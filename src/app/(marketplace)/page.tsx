@@ -41,11 +41,12 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
-import { useLocation } from '@/hooks/useLocation'
+import { useLocation, SUPPORTED_CITIES } from '@/hooks/useLocation'
 import { LocationBanner } from '@/components/shared/LocationBanner'
 import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
 import { SearchAutocomplete } from '@/components/marketplace/SearchAutocomplete'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 
 // Content Data Objects
 const schoolsContent = {
@@ -303,8 +304,9 @@ export default function MarketplaceHomepage() {
   // Form State
   const [search, setSearch] = useState('')
   const [city, setCity] = useState('')
+  const [citySelectOpen, setCitySelectOpen] = useState(false)
 
-  const citySelectRef = useRef<HTMLSelectElement>(null)
+  const citySelectContainerRef = useRef<HTMLDivElement>(null)
 
   const [apiCities, setApiCities] = useState<any[]>([])
 
@@ -513,40 +515,47 @@ export default function MarketplaceHomepage() {
                   />
                 </div>
 
-                <div className="md:w-48 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 relative">
+                <div ref={citySelectContainerRef} className="md:w-48 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 relative">
                   {locationLoading ? (
                     <Loader2 className="w-4.5 h-4.5 text-[#1565D8] animate-spin shrink-0 mr-2" />
                   ) : (
                     <MapPin className="w-4.5 h-4.5 text-slate-400 shrink-0 mr-2" />
                   )}
-                  <select
-                    ref={citySelectRef}
-                    value={city}
-                    onChange={(e) => {
-                      const val = e.target.value
+                  <Select
+                    value={city || ""}
+                    onValueChange={(val) => {
                       setCity(val)
                       setManualCity(val)
                     }}
-                    className="bg-transparent border-0 outline-none text-slate-700 text-xs font-bold w-full cursor-pointer"
-                    disabled={locationLoading}
+                    open={citySelectOpen}
+                    onOpenChange={setCitySelectOpen}
                   >
-                    {locationLoading ? (
-                      <option value="">Detecting...</option>
-                    ) : (
-                      <>
-                        <option value="">Select City</option>
-                        {apiCities.length > 0 ? (
-                           apiCities.map((c) => (
-                             <option key={c.city} value={c.city}>{c.city}</option>
-                           ))
-                        ) : (
-                           cities.map((c) => (
-                             <option key={c.name} value={c.name}>{c.name}</option>
-                           ))
-                        )}
-                      </>
-                    )}
-                  </select>
+                    <SelectTrigger
+                      className="flex items-center w-full bg-transparent border-0 outline-none text-slate-700 text-xs font-bold p-0 cursor-pointer select-none"
+                      disabled={locationLoading}
+                    >
+                      <SelectValue placeholder="Select City" />
+                    </SelectTrigger>
+                    
+                    <SelectContent usePortal={true} className="w-full min-w-[160px] bg-white border border-slate-200 shadow-xl rounded-xl mt-1 py-1">
+                      {locationLoading ? (
+                        <div className="px-3 py-2 text-xs text-slate-400 font-semibold">Detecting...</div>
+                      ) : (
+                        <>
+                          <SelectItem value="" className="text-xs font-bold text-slate-500">Select City</SelectItem>
+                          {apiCities.length > 0 ? (
+                            apiCities.map((c) => (
+                              <SelectItem key={c.city} value={c.city} className="text-xs font-bold">{c.city}</SelectItem>
+                            ))
+                          ) : (
+                            SUPPORTED_CITIES.map((c) => (
+                              <SelectItem key={c} value={c} className="text-xs font-bold">{c}</SelectItem>
+                            ))
+                          )}
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <Button type="submit" className="bg-[#1565D8] hover:bg-blue-700 text-white font-black text-xs px-8 py-3.5 rounded-xl h-auto shrink-0 shadow-md flex items-center gap-1 cursor-pointer">
@@ -587,11 +596,10 @@ export default function MarketplaceHomepage() {
                     <button
                       type="button"
                       onClick={() => {
-                        if (citySelectRef.current) {
-                          citySelectRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                          citySelectRef.current.focus()
-                          citySelectRef.current.click()
+                        if (citySelectContainerRef.current) {
+                          citySelectContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
                         }
+                        setCitySelectOpen(true)
                       }}
                       className="text-[#1565D8] hover:underline cursor-pointer ml-1 font-extrabold uppercase text-[10px]"
                     >

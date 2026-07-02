@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 
-const SUPPORTED_CITIES = [
+export const SUPPORTED_CITIES = [
   'Chennai',
   'Bengaluru',
   'Hyderabad',

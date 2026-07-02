@@ -954,6 +954,7 @@ model SchoolLocation {
   @@index([schoolId])
   @@index([city])
   @@index([pincode])
+  @@index([addressLine(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("school_locations")
   @@schema("marketplace")
 }

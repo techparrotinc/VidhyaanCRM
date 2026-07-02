@@ -42,6 +42,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         success: true,
         city: cached.city,
+        locality: cached.city,
+        district: null,
         state: cached.state,
         lat,
         lng
@@ -55,14 +57,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         success: true,
         city: 'Chennai',
+        locality: 'Chennai',
+        district: 'Chennai',
         state: 'Tamil Nadu',
         lat,
         lng
       })
     }
 
-    // Call Google Maps Geocoding API
-    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&result_type=locality&language=en`
+    // Call Google Maps Geocoding API with locality and administrative_area_level_2 types
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&result_type=locality|administrative_area_level_2&language=en`
     const response = await fetch(geocodeUrl)
     if (!response.ok) {
       return NextResponse.json(
@@ -81,20 +85,26 @@ export async function GET(req: NextRequest) {
     }
 
     const result = data.results[0]
-    let city = ''
+    let locality = ''
+    let district = ''
     let state = ''
 
     // Find city and state in address components
     for (const component of result.address_components) {
       if (component.types.includes('locality')) {
-        city = component.long_name
+        locality = component.long_name
+      }
+      if (component.types.includes('administrative_area_level_2')) {
+        district = component.long_name
       }
       if (component.types.includes('administrative_area_level_1')) {
         state = component.long_name
       }
     }
 
-    if (!city) {
+    const cityToCache = locality || district
+
+    if (!cityToCache) {
       return NextResponse.json(
         { success: false, error: 'City not found' },
         { status: 404 }
@@ -110,14 +120,14 @@ export async function GET(req: NextRequest) {
         }
       },
       update: {
-        city,
+        city: cityToCache,
         state,
         country: 'India'
       },
       create: {
         latRounded,
         lngRounded,
-        city,
+        city: cityToCache,
         state,
         country: 'India'
       }
@@ -125,7 +135,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      city,
+      city: cityToCache,
+      locality: locality || null,
+      district: district || null,
       state,
       lat,
       lng

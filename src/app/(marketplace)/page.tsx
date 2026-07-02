@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -41,11 +41,12 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
-import { useLocation } from '@/hooks/useLocation'
+import { useLocation, SUPPORTED_CITIES } from '@/hooks/useLocation'
 import { LocationBanner } from '@/components/shared/LocationBanner'
 import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
 import { SearchAutocomplete } from '@/components/marketplace/SearchAutocomplete'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 
 // Content Data Objects
 const schoolsContent = {
@@ -303,6 +304,7 @@ export default function MarketplaceHomepage() {
   // Form State
   const [search, setSearch] = useState('')
   const [city, setCity] = useState('')
+  const [citySelectOpen, setCitySelectOpen] = useState(false)
 
   const [apiCities, setApiCities] = useState<any[]>([])
 
@@ -449,17 +451,12 @@ export default function MarketplaceHomepage() {
 
             {/* Main Dynamic Heading */}
             <h1 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight tracking-tight font-poppins">
-              {activeTab === 'schools' ? (
-                <>
-                  Discover the Best <span className="text-[#1565D8]">Schools</span><br className="hidden md:inline" />
-                  Near You
-                </>
-              ) : (
-                <>
-                  Find the Best <span className="text-[#1565D8]">Learning Center</span><br className="hidden md:inline" />
-                  for Your Child's Passion
-                </>
-              )}
+              Discover the Best{' '}
+              <span className="text-[#1565D8]">
+                {activeTab === 'schools' ? 'Schools' : 'Learning Centers'}
+              </span>
+              <br className="hidden md:inline" />
+              Near You
             </h1>
 
             {/* Dynamic Subheading */}
@@ -522,33 +519,41 @@ export default function MarketplaceHomepage() {
                   ) : (
                     <MapPin className="w-4.5 h-4.5 text-slate-400 shrink-0 mr-2" />
                   )}
-                  <select
-                    value={city}
-                    onChange={(e) => {
-                      const val = e.target.value
+                  <Select
+                    value={city || ""}
+                    onValueChange={(val) => {
                       setCity(val)
                       setManualCity(val)
                     }}
-                    className="bg-transparent border-0 outline-none text-slate-700 text-xs font-bold w-full cursor-pointer"
-                    disabled={locationLoading}
+                    open={citySelectOpen}
+                    onOpenChange={setCitySelectOpen}
                   >
-                    {locationLoading ? (
-                      <option value="">Detecting...</option>
-                    ) : (
-                      <>
-                        <option value="">Select City</option>
-                        {apiCities.length > 0 ? (
-                          apiCities.map((c) => (
-                            <option key={c.city} value={c.city}>{c.city}</option>
-                          ))
-                        ) : (
-                          cities.map((c) => (
-                            <option key={c.name} value={c.name}>{c.name}</option>
-                          ))
-                        )}
-                      </>
-                    )}
-                  </select>
+                    <SelectTrigger
+                      className="flex items-center w-full bg-transparent border-0 outline-none text-slate-700 text-xs font-bold p-0 cursor-pointer select-none"
+                      disabled={locationLoading}
+                    >
+                      <SelectValue placeholder="Select City" />
+                    </SelectTrigger>
+                    
+                    <SelectContent usePortal={true} className="w-full min-w-[160px] bg-white border border-slate-200 shadow-xl rounded-xl mt-1 py-1">
+                      {locationLoading ? (
+                        <div className="px-3 py-2 text-xs text-slate-400 font-semibold">Detecting...</div>
+                      ) : (
+                        <>
+                          <SelectItem value="" className="text-xs font-bold text-slate-500">Select City</SelectItem>
+                          {apiCities.length > 0 ? (
+                            apiCities.map((c) => (
+                              <SelectItem key={c.city} value={c.city} className="text-xs font-bold">{c.city}</SelectItem>
+                            ))
+                          ) : (
+                            SUPPORTED_CITIES.map((c) => (
+                              <SelectItem key={c} value={c} className="text-xs font-bold">{c}</SelectItem>
+                            ))
+                          )}
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <Button type="submit" className="bg-[#1565D8] hover:bg-blue-700 text-white font-black text-xs px-8 py-3.5 rounded-xl h-auto shrink-0 shadow-md flex items-center gap-1 cursor-pointer">
@@ -557,31 +562,25 @@ export default function MarketplaceHomepage() {
               </form>
             </Card>
 
-            {/* Location Indicator */}
-            {(locationLoading || (detectedCity && (detectionMethod === 'gps' || detectionMethod === 'cached'))) && (
-              <div className="mt-3 text-xs text-slate-500 font-bold flex items-center justify-center gap-1">
-                {locationLoading ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 text-[#1565D8] animate-spin shrink-0" />
-                    <span>Detecting your location...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>📍 Showing results near <span className="text-[#1565D8]">{detectedCity}</span></span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCity('')
-                        setManualCity('')
-                      }}
-                      className="text-[#1565D8] hover:underline cursor-pointer ml-1 font-extrabold uppercase text-[10px]"
-                    >
-                      [Change]
-                    </button>
-                  </>
-                )}
+            {/* Compact inline trust-stats row */}
+            <div className="flex justify-center items-center gap-6 md:gap-10 mt-6 select-none max-w-md mx-auto">
+              <div className="text-center flex-1">
+                <div className="text-base md:text-lg font-black text-slate-900 leading-tight">500+</div>
+                <div className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">Schools</div>
               </div>
-            )}
+              <div className="h-5 w-px bg-slate-200 shrink-0" />
+              <div className="text-center flex-1">
+                <div className="text-base md:text-lg font-black text-slate-900 leading-tight">10,000+</div>
+                <div className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">Parents</div>
+              </div>
+              <div className="h-5 w-px bg-slate-200 shrink-0" />
+              <div className="text-center flex-1">
+                <div className="text-base md:text-lg font-black text-slate-900 leading-tight">4.8★</div>
+                <div className="text-[10px] md:text-xs font-bold text-slate-450 uppercase tracking-wider mt-0.5">Rating</div>
+              </div>
+            </div>
+
+
 
             {/* Popular Searches */}
             <div className="mt-5 flex items-center justify-center gap-2 flex-wrap text-xs">

@@ -1,4 +1,5 @@
 import * as React from "react"
+import { createPortal } from "react-dom"
 import { ChevronDown } from "lucide-react"
 
 const SelectContext = React.createContext<{
@@ -8,19 +9,27 @@ const SelectContext = React.createContext<{
   setIsOpen: (val: boolean) => void
   labels: Record<string, React.ReactNode>
   registerLabel: (val: string, label: React.ReactNode) => void
+  triggerRef?: React.RefObject<HTMLButtonElement | null>
 } | null>(null)
 
 export function Select({
   value,
   onValueChange,
+  open,
+  onOpenChange,
   children
 }: {
   value?: string
   onValueChange?: (val: string) => void
+  open?: boolean
+  onOpenChange?: (val: boolean) => void
   children: React.ReactNode
 }) {
-  const [isOpen, setIsOpen] = React.useState(false)
+  const [internalIsOpen, setInternalIsOpen] = React.useState(false)
+  const isOpen = open !== undefined ? open : internalIsOpen
+  const setIsOpen = onOpenChange !== undefined ? onOpenChange : setInternalIsOpen
   const [labels, setLabels] = React.useState<Record<string, React.ReactNode>>({})
+  const triggerRef = React.useRef<HTMLButtonElement | null>(null)
 
   const registerLabel = React.useCallback((val: string, label: React.ReactNode) => {
     setLabels(prev => {
@@ -30,7 +39,7 @@ export function Select({
   }, [])
 
   return (
-    <SelectContext.Provider value={{ value, onValueChange, isOpen, setIsOpen, labels, registerLabel }}>
+    <SelectContext.Provider value={{ value, onValueChange, isOpen, setIsOpen, labels, registerLabel, triggerRef }}>
       <div className="relative w-full">{children}</div>
     </SelectContext.Provider>
   )
@@ -38,22 +47,25 @@ export function Select({
 
 export function SelectTrigger({
   children,
-  className = ""
+  className = "",
+  disabled
 }: {
   children: React.ReactNode
   className?: string
+  disabled?: boolean
 }) {
   const context = React.useContext(SelectContext)
   if (!context) return null
   
-  // If custom classes are provided, merge or let them override. We can check if custom styles are passed.
   const hasCustomStyling = className.includes('h-') || className.includes('rounded-') || className.includes('border-')
   const defaultClasses = "h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#1565D8]/20 focus:border-[#1565D8]"
   
   return (
     <button
+      ref={context.triggerRef}
       type="button"
       onClick={() => context.setIsOpen(!context.isOpen)}
+      disabled={disabled}
       className={`flex items-center justify-between gap-1.5 transition-all ${hasCustomStyling ? "" : defaultClasses} disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {children}
@@ -83,41 +95,85 @@ export function SelectContent({
   children,
   className = "",
   position = "popper",
-  sideOffset = 6
+  sideOffset = 6,
+  usePortal = false
 }: {
   children: React.ReactNode
   className?: string
   position?: string
   sideOffset?: number
+  usePortal?: boolean
 }) {
   const context = React.useContext(SelectContext)
   const ref = React.useRef<HTMLDivElement>(null)
+  const [coords, setCoords] = React.useState({ top: 0, left: 0, width: 0 })
+
+  const updateCoords = React.useCallback(() => {
+    if (!context?.triggerRef?.current) return
+    const rect = context.triggerRef.current.getBoundingClientRect()
+    setCoords({
+      top: rect.bottom + window.scrollY + sideOffset,
+      left: rect.left + window.scrollX,
+      width: rect.width
+    })
+  }, [context?.triggerRef, sideOffset])
+
+  React.useEffect(() => {
+    if (!context?.isOpen || !usePortal) return
+    updateCoords()
+    window.addEventListener('scroll', updateCoords, true)
+    window.addEventListener('resize', updateCoords)
+    return () => {
+      window.removeEventListener('scroll', updateCoords, true)
+      window.removeEventListener('resize', updateCoords)
+    }
+  }, [context?.isOpen, usePortal, updateCoords])
 
   React.useEffect(() => {
     if (!context?.isOpen) return
     const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const clickedTrigger = context.triggerRef?.current?.contains(e.target as Node)
+      if (ref.current && !ref.current.contains(e.target as Node) && !clickedTrigger) {
+        context.setIsOpen(false)
+      }
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
         context.setIsOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [context])
 
   if (!context?.isOpen) return null
 
-  // position="popper" classes
-  const popperClasses = position === "popper" ? `absolute left-0 mt-1.5 w-full` : ""
+  const popperClasses = position === "popper" && !usePortal ? `absolute left-0 mt-1.5 w-full` : ""
 
-  return (
+  const contentElement = (
     <div
       ref={ref}
       className={`bg-white border border-slate-200 shadow-lg rounded-xl z-[9999] py-1.5 overflow-auto max-h-60 ${popperClasses} ${className}`}
-      style={position === "popper" ? { top: '100%' } : undefined}
+      style={usePortal ? {
+        position: 'absolute',
+        top: coords.top,
+        left: coords.left,
+        width: coords.width,
+      } : (position === "popper" ? { top: '100%' } : undefined)}
     >
       {children}
     </div>
   )
+
+  if (usePortal && typeof document !== 'undefined') {
+    return createPortal(contentElement, document.body)
+  }
+
+  return contentElement
 }
 
 export function SelectItem({

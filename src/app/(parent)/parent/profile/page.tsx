@@ -44,9 +44,9 @@ interface ParentProfile {
 
 const CITIES = [
   'Chennai',
-  'Bangalore',
+  'Bengaluru',
   'Mumbai',
-  'Delhi',
+  'New Delhi',
   'Hyderabad',
   'Pune',
   'Kolkata',

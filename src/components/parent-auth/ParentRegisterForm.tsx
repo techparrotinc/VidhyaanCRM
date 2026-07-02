@@ -6,10 +6,10 @@ import { Loader2 } from 'lucide-react'
 
 const CITIES = [
   'Chennai',
-  'Bangalore',
+  'Bengaluru',
   'Hyderabad',
   'Mumbai',
-  'Delhi',
+  'New Delhi',
   'Pune',
   'Coimbatore',
   'Madurai',

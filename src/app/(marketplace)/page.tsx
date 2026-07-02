@@ -55,7 +55,7 @@ const schoolsContent = {
     searchPlaceholder: "School name, board or area...",
     popularSearches: [
       "CBSE Schools Chennai",
-      "IGCSE Bangalore",
+      "IGCSE Bengaluru",
       "Matriculation Schools",
       "Top Rated Schools"
     ]
@@ -101,7 +101,7 @@ const lcContent = {
     searchPlaceholder: "Dance class, music academy, coaching center...",
     popularSearches: [
       "Dance Classes Chennai",
-      "Music Academy Bangalore",
+      "Music Academy Bengaluru",
       "Art Classes Near Me",
       "NEET Coaching Centers"
     ]
@@ -147,10 +147,10 @@ const lcContent = {
 // City counts matching both tabs
 const cities = [
   { name: "Chennai", emoji: "🌊", schoolCount: 67, lcCount: 45 },
-  { name: "Bangalore", emoji: "🌿", schoolCount: 89, lcCount: 62 },
+  { name: "Bengaluru", emoji: "🌿", schoolCount: 89, lcCount: 62 },
   { name: "Hyderabad", emoji: "💎", schoolCount: 54, lcCount: 38 },
   { name: "Mumbai", emoji: "🏙", schoolCount: 112, lcCount: 75 },
-  { name: "Delhi", emoji: "🕌", schoolCount: 143, lcCount: 95 },
+  { name: "New Delhi", emoji: "🕌", schoolCount: 143, lcCount: 95 },
   { name: "Pune", emoji: "🎓", schoolCount: 45, lcCount: 32 },
   { name: "Coimbatore", emoji: "🏭", schoolCount: 28, lcCount: 18 },
   { name: "Madurai", emoji: "🏯", schoolCount: 19, lcCount: 12 },
@@ -268,7 +268,7 @@ const lcTestimonials = [
   {
     quote: "BrightMinds Coaching helped my son improve his grades from average to distinction. The personalized attention made all the difference.",
     name: "Suresh Kumar",
-    info: "Father of 15-year-old · Bangalore",
+    info: "Father of 15-year-old · Bengaluru",
     initials: "SK",
     bg: "bg-blue-100 text-blue-700"
   },
@@ -641,7 +641,7 @@ export default function MarketplaceHomepage() {
             {/* SEO Supporting Text */}
             <div className="mt-6 max-w-2xl mx-auto text-center px-4">
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                Find CBSE schools, ICSE schools, Matriculation schools, International schools, IB schools near Chennai, Bangalore, Hyderabad, Mumbai and across India. Compare school fees, facilities, admission process and parent reviews. Discover the best learning centers for dance, music, art, fitness and academic coaching near you.
+                Find CBSE schools, ICSE schools, Matriculation schools, International schools, IB schools near Chennai, Bengaluru, Hyderabad, Mumbai and across India. Compare school fees, facilities, admission process and parent reviews. Discover the best learning centers for dance, music, art, fitness and academic coaching near you.
               </p>
             </div>
           </section>

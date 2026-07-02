@@ -30,7 +30,21 @@ export function useLocation() {
       if (!res.ok) throw new Error('Could not detect city')
       const data = await res.json()
       if (data.success && data.city) {
-        setCity(data.city)
+        const normalized = data.city.toLowerCase()
+        let finalCity: string | null = null
+
+        if (normalized === 'chennai') finalCity = 'Chennai'
+        else if (normalized === 'bangalore' || normalized === 'bengaluru') finalCity = 'Bengaluru'
+        else if (normalized === 'hyderabad') finalCity = 'Hyderabad'
+        else if (normalized === 'mumbai') finalCity = 'Mumbai'
+        else if (normalized === 'delhi' || normalized === 'new delhi') finalCity = 'New Delhi'
+        else if (normalized === 'pune') finalCity = 'Pune'
+        else if (normalized === 'coimbatore') finalCity = 'Coimbatore'
+        else if (normalized === 'madurai') finalCity = 'Madurai'
+        else if (normalized === 'kochi') finalCity = 'Kochi'
+        else if (normalized === 'jaipur') finalCity = 'Jaipur'
+
+        setCity(finalCity)
         setLat(latitude)
         setLng(longitude)
         setDetectionMethod('gps')
@@ -38,7 +52,7 @@ export function useLocation() {
         
         // Save to localStorage
         const saveObj: SavedLocation = {
-          city: data.city,
+          city: finalCity,
           lat: latitude,
           lng: longitude,
           detectedAt: Date.now(),
@@ -114,7 +128,7 @@ export function useLocation() {
       try {
         const saved: SavedLocation = JSON.parse(savedStr)
         const isExpired = Date.now() - saved.detectedAt > 24 * 60 * 60 * 1000
-        if (!isExpired && saved.city) {
+        if (!isExpired) {
           setCity(saved.city)
           setLat(saved.lat)
           setLng(saved.lng)

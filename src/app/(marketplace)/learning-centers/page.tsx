@@ -627,7 +627,7 @@ export default function LearningCentersSearchPage() {
                 className="bg-transparent text-slate-700 outline-none text-xs font-bold w-full cursor-pointer"
               >
                 <option value="">Select City</option>
-                {['Chennai', 'Bangalore', 'Hyderabad', 'Mumbai', 'Delhi', 'Pune', 'Coimbatore', 'Madurai'].map((c) => (
+                {['Chennai', 'Bengaluru', 'Hyderabad', 'Mumbai', 'New Delhi', 'Pune', 'Coimbatore', 'Madurai'].map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>

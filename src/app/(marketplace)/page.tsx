@@ -530,26 +530,6 @@ export default function MarketplaceHomepage() {
               </form>
             </Card>
 
-            {/* Compact inline trust-stats row */}
-            <div className="flex justify-center items-center gap-6 md:gap-10 mt-6 select-none max-w-md mx-auto">
-              <div className="text-center flex-1">
-                <div className="text-base md:text-lg font-black text-slate-900 leading-tight">500+</div>
-                <div className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">Schools</div>
-              </div>
-              <div className="h-5 w-px bg-slate-200 shrink-0" />
-              <div className="text-center flex-1">
-                <div className="text-base md:text-lg font-black text-slate-900 leading-tight">10,000+</div>
-                <div className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">Parents</div>
-              </div>
-              <div className="h-5 w-px bg-slate-200 shrink-0" />
-              <div className="text-center flex-1">
-                <div className="text-base md:text-lg font-black text-slate-900 leading-tight">4.8★</div>
-                <div className="text-[10px] md:text-xs font-bold text-slate-450 uppercase tracking-wider mt-0.5">Rating</div>
-              </div>
-            </div>
-
-
-
             {/* Popular Searches */}
             <div className="mt-5 flex items-center justify-center gap-2 flex-wrap text-xs">
               <span className="text-slate-400 font-bold">Popular:</span>

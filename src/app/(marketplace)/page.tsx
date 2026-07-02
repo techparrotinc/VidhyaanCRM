@@ -306,8 +306,6 @@ export default function MarketplaceHomepage() {
   const [city, setCity] = useState('')
   const [citySelectOpen, setCitySelectOpen] = useState(false)
 
-  const citySelectContainerRef = useRef<HTMLDivElement>(null)
-
   const [apiCities, setApiCities] = useState<any[]>([])
 
   useEffect(() => {
@@ -515,7 +513,7 @@ export default function MarketplaceHomepage() {
                   />
                 </div>
 
-                <div ref={citySelectContainerRef} className="md:w-48 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 relative">
+                <div className="md:w-48 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 relative">
                   {locationLoading ? (
                     <Loader2 className="w-4.5 h-4.5 text-[#1565D8] animate-spin shrink-0 mr-2" />
                   ) : (
@@ -582,33 +580,7 @@ export default function MarketplaceHomepage() {
               </div>
             </div>
 
-            {/* Location Indicator */}
-            {(locationLoading || (detectedCity && (detectionMethod === 'gps' || detectionMethod === 'cached'))) && (
-              <div className="mt-3 text-xs text-slate-500 font-bold flex items-center justify-center gap-1">
-                {locationLoading ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 text-[#1565D8] animate-spin shrink-0" />
-                    <span>Detecting your location...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>📍 Showing results near <span className="text-[#1565D8]">{detectedCity}</span></span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (citySelectContainerRef.current) {
-                          citySelectContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                        }
-                        setCitySelectOpen(true)
-                      }}
-                      className="text-[#1565D8] hover:underline cursor-pointer ml-1 font-extrabold uppercase text-[10px]"
-                    >
-                      [Change]
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
+
 
             {/* Popular Searches */}
             <div className="mt-5 flex items-center justify-center gap-2 flex-wrap text-xs">

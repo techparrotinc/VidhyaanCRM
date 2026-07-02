@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
+import { resolveTargetUserRole } from '@/lib/auth/resolveTargetUserRole'
 
 export async function GET(req: NextRequest) {
   try {
@@ -37,11 +38,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ exists: false })
     }
 
+    const resolvedRole = await resolveTargetUserRole(user.id)
     return NextResponse.json({
       exists: true,
       hasPin: user.pinHash !== null,
       name: user.name,
-      role: user.role
+      role: resolvedRole
     })
 
   } catch (error: any) {

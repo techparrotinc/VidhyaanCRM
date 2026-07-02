@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Search } from 'lucide-react'
+import { Search, Building2, ArrowRight } from 'lucide-react'
 
 interface Suggestion {
   id: string
   name: string
   locations?: { city: string }[]
+  affiliations?: { board: string }[]
 }
 
 interface SearchAutocompleteProps {
@@ -154,6 +155,26 @@ export function SearchAutocomplete({
     setIsOpen(false)
   }
 
+  const highlightText = (text: string, highlight: string) => {
+    if (!highlight.trim()) return <span>{text}</span>
+    const escaped = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const regex = new RegExp(`(${escaped})`, 'gi')
+    const parts = text.split(regex)
+    return (
+      <>
+        {parts.map((part, i) =>
+          regex.test(part) ? (
+            <span key={i} className="text-[#1565D8] font-bold">
+              {part}
+            </span>
+          ) : (
+            <span key={i}>{part}</span>
+          )
+        )}
+      </>
+    )
+  }
+
   return (
     <div className="relative w-full flex items-center" ref={containerRef}>
       <Search className="w-4 h-4 text-slate-400 shrink-0 mr-2" />
@@ -172,33 +193,49 @@ export function SearchAutocomplete({
       />
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-[999] overflow-hidden max-h-60 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-[999] overflow-hidden max-h-96 overflow-y-auto">
           {suggestions.length === 0 ? (
             <div className="px-4 py-3 text-slate-400 text-xs font-semibold select-none">
               No matches found
             </div>
           ) : (
-            suggestions.map((item, idx) => {
-              const city = item.locations?.[0]?.city || ''
-              const isHighlighted = idx === highlightedIndex
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => handleSuggestionClick(item.name)}
-                  onMouseEnter={() => setHighlightedIndex(idx)}
-                  className={`px-4 py-2.5 text-xs font-semibold cursor-pointer transition select-none flex items-center justify-between ${
-                    isHighlighted ? 'bg-slate-50 text-[#1565D8]' : 'text-slate-700'
-                  }`}
-                >
-                  <span className="truncate">{item.name}</span>
-                  {city && (
-                    <span className="text-[10px] text-slate-400 font-medium shrink-0 ml-2">
-                      — {city}
-                    </span>
-                  )}
-                </div>
-              )
-            })
+            <>
+              {suggestions.map((item, idx) => {
+                const city = item.locations?.[0]?.city || ''
+                const board = item.affiliations?.[0]?.board || ''
+                const secondaryText = board ? `${city} · ${board}` : city
+                const isHighlighted = idx === highlightedIndex
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleSuggestionClick(item.name)}
+                    onMouseEnter={() => setHighlightedIndex(idx)}
+                    className={`px-4 py-2 text-xs font-semibold cursor-pointer transition select-none flex items-center ${
+                      isHighlighted ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="w-7 h-7 bg-slate-100 rounded-md flex items-center justify-center shrink-0 mr-3">
+                      <Building2 className="w-4 h-4 text-slate-400" />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="truncate">{highlightText(item.name, value)}</span>
+                      {secondaryText && (
+                        <span className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
+                          {secondaryText}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+              <div
+                onClick={() => handleSuggestionClick(value)}
+                className="px-4 py-3 text-xs font-bold text-[#1565D8] cursor-pointer hover:bg-blue-50/50 transition flex items-center justify-between border-t border-slate-100 select-none"
+              >
+                <span>View all results for "{value}"</span>
+                <ArrowRight className="w-4 h-4" />
+              </div>
+            </>
           )}
         </div>
       )}

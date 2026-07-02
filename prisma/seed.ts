@@ -154,14 +154,22 @@ async function main() {
 
   // STEP 5: Create Super Admin User
   console.log('Creating super admin...')
-  await prisma.user.create({
+  const superAdmin = await prisma.user.create({
     data: {
       name: 'Vimal Das',
       email: 'vimal@techparrot.co',
       phone: '9884185362',
-      role: 'SUPER_ADMIN',
       status: 'ACTIVE',
       orgId: null
+    } as any
+  })
+  await prisma.userRoleAssignment.create({
+    data: {
+      userId: superAdmin.id,
+      role: 'SUPER_ADMIN',
+      orgId: null,
+      status: 'ACTIVE',
+      isDefault: true
     }
   })
 
@@ -200,10 +208,9 @@ async function main() {
       name: 'Saran Kumar',
       email: 'saran@princematric.com',
       phone: '9845000001',
-      role: 'ORG_ADMIN',
       status: 'ACTIVE',
       orgId: testOrg.id
-    }
+    } as any
   })
   await prisma.userRoleAssignment.create({
     data: {
@@ -222,10 +229,9 @@ async function main() {
       name: 'Pradeep Kumar',
       email: 'pradeep@princematric.com',
       phone: '9845000002',
-      role: 'COUNSELLOR',
       status: 'ACTIVE',
       orgId: testOrg.id
-    }
+    } as any
   })
   await prisma.userRoleAssignment.create({
     data: {
@@ -242,10 +248,9 @@ async function main() {
       name: 'Vimal Das',
       email: 'vimal@princematric.com',
       phone: '9845000003',
-      role: 'COUNSELLOR',
       status: 'ACTIVE',
       orgId: testOrg.id
-    }
+    } as any
   })
   await prisma.userRoleAssignment.create({
     data: {

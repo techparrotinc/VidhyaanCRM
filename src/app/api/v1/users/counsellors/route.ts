@@ -4,6 +4,7 @@ import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
 import { redis } from '@/lib/redis'
+import { resolveTargetUserRole } from '@/lib/auth/resolveTargetUserRole'
 
 export const GET = route({
   roles: [
@@ -45,19 +46,25 @@ export const GET = route({
       select: {
         id: true,
         name: true,
-        role: true,
         email: true,
         phone: true
       },
       orderBy: { name: 'asc' }
     })
 
-    await redis.set(cacheKey, JSON.stringify(counsellors), 'EX', 120)
+    const counsellorsWithRoles = await Promise.all(
+      counsellors.map(async (u) => ({
+        ...u,
+        role: await resolveTargetUserRole(u.id, user.orgId)
+      }))
+    )
+
+    await redis.set(cacheKey, JSON.stringify(counsellorsWithRoles), 'EX', 120)
 
     return NextResponse.json({
       success: true,
-      counsellors,
-      data: counsellors
+      counsellors: counsellorsWithRoles,
+      data: counsellorsWithRoles
     })
   }
 })

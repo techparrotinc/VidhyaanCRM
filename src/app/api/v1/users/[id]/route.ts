@@ -23,7 +23,6 @@ export const GET = route({
         name: true,
         email: true,
         phone: true,
-        role: true,
         status: true,
         createdAt: true,
         lastLoginAt: true
@@ -114,7 +113,6 @@ export const PUT = route({
       return await tx.user.update({
         where: { id: params?.id },
         data: {
-          role: body.role ? (body.role as UserRole) : undefined,
           status: body.status === 'INACTIVE' 
             ? ('DEACTIVATED' as UserStatus)
             : body.status ? (body.status as UserStatus) : undefined
@@ -122,7 +120,6 @@ export const PUT = route({
         select: {
           id: true,
           name: true,
-          role: true,
           status: true
         }
       })
@@ -141,7 +138,8 @@ export const PUT = route({
     // Invalidate counsellors cache
     await redis.del(`counsellors:${user.orgId}`)
 
-    return ok(updated)
+    const resolvedRole = await resolveTargetUserRole(target.id, user.orgId)
+    return ok({ ...updated, role: resolvedRole })
   }
 })
 

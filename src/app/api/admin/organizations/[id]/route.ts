@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { OrgStatus, AuditAction, UserStatus } from '@prisma/client'
 import { redis } from '@/lib/redis'
+import { resolveTargetUserRole } from '@/lib/auth/resolveTargetUserRole'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       include: {
         users: {
           where: { deletedAt: null },
-          select: { id: true, name: true, email: true, phone: true, role: true, status: true, createdAt: true }
+          select: { id: true, name: true, email: true, phone: true, status: true, createdAt: true }
         },
         branches: {
           where: { deletedAt: null }
@@ -45,6 +46,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+    }
+
+    const usersWithRoles = await Promise.all(
+      org.users.map(async (u) => ({
+        ...u,
+        role: await resolveTargetUserRole(u.id, id)
+      }))
+    )
+
+    const orgWithResolvedUsers = {
+      ...org,
+      users: usersWithRoles
     }
 
     // Health metrics calculation
@@ -77,7 +90,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     return NextResponse.json({
-      organization: org,
+      organization: orgWithResolvedUsers,
       health: {
         leadResponseRate,
         conversionRate,

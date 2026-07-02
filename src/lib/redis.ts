@@ -1,4 +1,4 @@
-import Redis from 'ioredis'
+import { Redis as UpstashRedis } from '@upstash/redis'
 
 class MemoryRedisMock {
   private store = new Map<string, { value: string; expiresAt: number | null }>()
@@ -48,12 +48,48 @@ class MemoryRedisMock {
   }
 }
 
-let redis: Redis | MemoryRedisMock
+class UpstashRedisWrapper {
+  private client: UpstashRedis
 
-if (process.env.REDIS_URL) {
-  redis = new Redis(process.env.REDIS_URL)
+  constructor(url: string, token: string) {
+    this.client = new UpstashRedis({ url, token })
+  }
+
+  async get(key: string): Promise<string | null> {
+    const result = await this.client.get<string>(key)
+    return result ?? null
+  }
+
+  async set(key: string, value: string, mode?: 'EX', ttl?: number): Promise<'OK'> {
+    if (mode === 'EX' && ttl) {
+      await this.client.set(key, value, { ex: ttl })
+    } else {
+      await this.client.set(key, value)
+    }
+    return 'OK'
+  }
+
+  async del(key: string): Promise<number> {
+    return await this.client.del(key)
+  }
+
+  async incr(key: string): Promise<number> {
+    return await this.client.incr(key)
+  }
+
+  async ttl(key: string): Promise<number> {
+    return await this.client.ttl(key)
+  }
+}
+
+let redis: UpstashRedisWrapper | MemoryRedisMock
+
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  redis = new UpstashRedisWrapper(
+    process.env.UPSTASH_REDIS_REST_URL,
+    process.env.UPSTASH_REDIS_REST_TOKEN
+  )
 } else {
-  // Use memory mock in dev if no Redis URL is provided
   const globalRef = globalThis as any
   if (!globalRef.redisMock) {
     globalRef.redisMock = new MemoryRedisMock()

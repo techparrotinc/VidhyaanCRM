@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -36,7 +37,8 @@ import {
   School,
   GitCompare,
   CheckCircle,
-  Calendar
+  Calendar,
+  X
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -287,6 +289,7 @@ export default function MarketplaceHomepage() {
   
   const {
     city: detectedCity,
+    gpsCity,
     lat,
     lng,
     loading: locationLoading,
@@ -308,6 +311,21 @@ export default function MarketplaceHomepage() {
 
   const [apiCities, setApiCities] = useState<any[]>([])
 
+  // Rich Location Picker Panel State
+  const [panelOpen, setPanelOpen] = useState(false)
+  const [panelCoords, setPanelCoords] = useState({ top: 0, left: 0, width: 0 })
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const [showAllCities, setShowAllCities] = useState(false)
+
+  // Location search autocomplete state
+  const [locSearch, setLocSearch] = useState('')
+  const [locSuggestions, setLocSuggestions] = useState<any[]>([])
+  const [locSuggestionsLoading, setLocSuggestionsLoading] = useState(false)
+
+  const locAbortControllerRef = useRef<AbortController | null>(null)
+  const locSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   useEffect(() => {
     fetch('/api/public/cities')
       .then(res => res.json())
@@ -325,6 +343,119 @@ export default function MarketplaceHomepage() {
       setCity(detectedCity)
     }
   }, [detectedCity])
+
+  // Handle click outside to close panel
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (
+        panelOpen &&
+        panelRef.current &&
+        !panelRef.current.contains(e.target as Node) &&
+        triggerRef.current &&
+        !triggerRef.current.contains(e.target as Node)
+      ) {
+        setPanelOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [panelOpen])
+
+  // Handle window scroll/resize to update coordinates
+  useEffect(() => {
+    if (!panelOpen) return
+    const handleScrollResize = () => {
+      updatePanelCoords()
+    }
+    window.addEventListener('scroll', handleScrollResize, { passive: true })
+    window.addEventListener('resize', handleScrollResize)
+    return () => {
+      window.removeEventListener('scroll', handleScrollResize)
+      window.removeEventListener('resize', handleScrollResize)
+    }
+  }, [panelOpen])
+
+  const updatePanelCoords = () => {
+    if (!triggerRef.current) return
+    const rect = triggerRef.current.getBoundingClientRect()
+    // Align right or left? If left + 360 > window.innerWidth, align right or shift left
+    let left = rect.left + window.scrollX
+    if (left + 360 > window.innerWidth) {
+      left = Math.max(16, window.innerWidth - 360 - 16)
+    }
+    setPanelCoords({
+      top: rect.bottom + window.scrollY + 8,
+      left,
+      width: Math.max(360, rect.width)
+    })
+  }
+
+  // Location search autocomplete fetch logic
+  useEffect(() => {
+    if (locSearchTimeoutRef.current) {
+      clearTimeout(locSearchTimeoutRef.current)
+    }
+
+    if (locSearch.trim().length < 2) {
+      setLocSuggestions([])
+      return
+    }
+
+    locSearchTimeoutRef.current = setTimeout(() => {
+      fetchLocSuggestions(locSearch)
+    }, 300)
+
+    return () => {
+      if (locSearchTimeoutRef.current) {
+        clearTimeout(locSearchTimeoutRef.current)
+      }
+    }
+  }, [locSearch])
+
+  const fetchLocSuggestions = async (query: string) => {
+    if (locAbortControllerRef.current) {
+      locAbortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    locAbortControllerRef.current = controller
+    setLocSuggestionsLoading(true)
+
+    try {
+      const res = await fetch(
+        `/api/public/schools?search=${encodeURIComponent(query)}&limit=6`,
+        { signal: controller.signal }
+      )
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success) {
+          setLocSuggestions(json.data || [])
+        }
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Locality autocomplete fetch error:', err)
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLocSuggestionsLoading(false)
+      }
+    }
+  }
+
+  const handleSelectLocSuggestion = (school: any) => {
+    const schoolCity = school.locations?.[0]?.city || ''
+    setCity(schoolCity)
+    setManualCity(schoolCity)
+    setSearch(locSearch)
+    setPanelOpen(false)
+    handleSearchSubmit(undefined, locSearch, schoolCity)
+  }
+
+  const handleSelectCityCard = (cityName: string) => {
+    setCity(cityName)
+    setManualCity(cityName)
+    setPanelOpen(false)
+  }
 
   const displayCities = cities.map(c => {
     const apiMatch = apiCities.find(ac => ac.city.toLowerCase() === c.name.toLowerCase())
@@ -361,12 +492,13 @@ export default function MarketplaceHomepage() {
     metaDesc.setAttribute('content', 'Discover and compare 500+ verified schools and learning centers across India. Search by board, location, fees. Apply directly and track admissions. Free for parents.');
   }, []);
 
-  const handleSearchSubmit = (e?: React.FormEvent, customSearch?: string) => {
+  const handleSearchSubmit = (e?: React.FormEvent, customSearch?: string, customCity?: string) => {
     if (e) e.preventDefault()
     const finalSearch = customSearch !== undefined ? customSearch : search
+    const finalCity = customCity !== undefined ? customCity : city
     const params = new URLSearchParams()
     if (finalSearch) params.append('search', finalSearch)
-    if (city) params.append('city', city)
+    if (finalCity) params.append('city', finalCity)
     
     if (displayTab === 'schools') {
       router.push(`/schools?${params.toString()}`)
@@ -513,47 +645,29 @@ export default function MarketplaceHomepage() {
                   />
                 </div>
 
-                <div className="md:w-48 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 relative">
-                  {locationLoading ? (
-                    <Loader2 className="w-4.5 h-4.5 text-[#1565D8] animate-spin shrink-0 mr-2" />
-                  ) : (
-                    <MapPin className="w-4.5 h-4.5 text-slate-400 shrink-0 mr-2" />
-                  )}
-                  <Select
-                    value={city || ""}
-                    onValueChange={(val) => {
-                      setCity(val)
-                      setManualCity(val)
+                <div className="md:w-48 relative">
+                  <button
+                    ref={triggerRef}
+                    type="button"
+                    onClick={() => {
+                      if (!locationLoading) {
+                        updatePanelCoords()
+                        setPanelOpen(!panelOpen)
+                      }
                     }}
-                    open={citySelectOpen}
-                    onOpenChange={setCitySelectOpen}
+                    disabled={locationLoading}
+                    className="w-full flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 cursor-pointer text-slate-700 text-xs font-bold hover:bg-slate-100 hover:border-slate-350 transition-all select-none h-full outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8]"
                   >
-                    <SelectTrigger
-                      className="flex items-center w-full bg-transparent border-0 outline-none text-slate-700 text-xs font-bold p-0 cursor-pointer select-none"
-                      disabled={locationLoading}
-                    >
-                      <SelectValue placeholder="Select City" />
-                    </SelectTrigger>
-                    
-                    <SelectContent usePortal={true} className="w-full min-w-[160px] bg-white border border-slate-200 shadow-xl rounded-xl mt-1 py-1">
+                    <div className="flex items-center gap-2 overflow-hidden">
                       {locationLoading ? (
-                        <div className="px-3 py-2 text-xs text-slate-400 font-semibold">Detecting...</div>
+                        <Loader2 className="w-4 h-4 text-[#1565D8] animate-spin shrink-0" />
                       ) : (
-                        <>
-                          <SelectItem value="" className="text-xs font-bold text-slate-500">Select City</SelectItem>
-                          {apiCities.length > 0 ? (
-                            apiCities.map((c) => (
-                              <SelectItem key={c.city} value={c.city} className="text-xs font-bold">{c.city}</SelectItem>
-                            ))
-                          ) : (
-                            SUPPORTED_CITIES.map((c) => (
-                              <SelectItem key={c} value={c} className="text-xs font-bold">{c}</SelectItem>
-                            ))
-                          )}
-                        </>
+                        <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
                       )}
-                    </SelectContent>
-                  </Select>
+                      <span className="truncate">{city || "Select City"}</span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
+                  </button>
                 </div>
 
                 <Button type="submit" className="bg-[#1565D8] hover:bg-blue-700 text-white font-black text-xs px-8 py-3.5 rounded-xl h-auto shrink-0 shadow-md flex items-center gap-1 cursor-pointer">
@@ -1064,6 +1178,150 @@ export default function MarketplaceHomepage() {
           <span>&copy; 2026 TechParrot Innovations LLP. All rights reserved.</span>
         </div>
       </footer>
+      {panelOpen && typeof window !== 'undefined' && createPortal(
+        <div
+          ref={panelRef}
+          style={{
+            position: 'absolute',
+            top: `${panelCoords.top}px`,
+            left: `${panelCoords.left}px`,
+            width: `${panelCoords.width}px`,
+            zIndex: 9999,
+          }}
+          className="bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-200"
+        >
+          {/* Header */}
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 leading-tight">Choose your location</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Search by area, locality or city</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPanelOpen(false)}
+              className="text-slate-400 hover:text-slate-600 cursor-pointer p-0.5 rounded-lg hover:bg-slate-100 transition-all focus:outline-none"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Search Input */}
+          <div className="relative">
+            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+              <Search className="w-4 h-4 text-slate-400 shrink-0 mr-2" />
+              <input
+                type="text"
+                value={locSearch}
+                onChange={(e) => setLocSearch(e.target.value)}
+                placeholder="Search school area/locality (e.g. Velachery)..."
+                className="bg-transparent border-0 outline-none text-slate-700 text-xs placeholder-slate-400 w-full font-medium"
+              />
+              {locSuggestionsLoading && (
+                <Loader2 className="w-3.5 h-3.5 text-[#1565D8] animate-spin shrink-0 ml-1" />
+              )}
+            </div>
+
+            {/* Suggestion Dropdown */}
+            {locSearch.trim().length >= 2 && locSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[10000] max-h-60 overflow-y-auto py-1.5 flex flex-col gap-0.5">
+                {locSuggestions.map((school) => {
+                  const schoolLoc = school.locations?.[0]
+                  const addressStr = schoolLoc 
+                    ? [schoolLoc.addressLine, schoolLoc.city].filter(Boolean).join(', ')
+                    : ''
+                  return (
+                    <button
+                      key={school.id}
+                      type="button"
+                      onClick={() => handleSelectLocSuggestion(school)}
+                      className="w-full text-left px-3 py-2 hover:bg-slate-50 transition-all flex flex-col gap-0.5 cursor-pointer focus:outline-none"
+                    >
+                      <div className="text-xs font-black text-slate-800 leading-tight">
+                        {school.name}
+                      </div>
+                      {addressStr && (
+                        <div className="text-[10px] text-slate-400 font-bold truncate">
+                          📍 {addressStr}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            
+            {locSearch.trim().length >= 2 && !locSuggestionsLoading && locSuggestions.length === 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-[10000] px-3 py-2 text-xs text-slate-400 font-semibold">
+                No matching schools/areas found
+              </div>
+            )}
+          </div>
+
+          {/* Detected Location */}
+          <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <div className="w-8 h-8 rounded-lg bg-[#1565D8]/10 flex items-center justify-center shrink-0">
+                <MapPin className="w-4 h-4 text-[#1565D8]" />
+              </div>
+              <div className="overflow-hidden">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-none">Detected near you</div>
+                <div className="text-xs font-black text-slate-800 truncate mt-1">
+                  {gpsCity || "No location detected"}
+                </div>
+              </div>
+            </div>
+            {gpsCity && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCity(gpsCity)
+                  setManualCity(gpsCity)
+                  setPanelOpen(false)
+                }}
+                className="bg-[#1565D8] hover:bg-blue-700 text-white font-extrabold text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-lg shrink-0 transition-all cursor-pointer"
+              >
+                Use this
+              </button>
+            )}
+          </div>
+
+          {/* Popular Cities */}
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Popular Cities</span>
+              <button
+                type="button"
+                onClick={() => setShowAllCities(!showAllCities)}
+                className="text-[10px] text-[#1565D8] font-black uppercase hover:underline cursor-pointer focus:outline-none"
+              >
+                {showAllCities ? "Show Less" : `Show all ${SUPPORTED_CITIES.length} cities`}
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+              {(showAllCities ? SUPPORTED_CITIES : SUPPORTED_CITIES.slice(0, 4)).map((cityName) => {
+                const isSelected = city === cityName
+                return (
+                  <button
+                    key={cityName}
+                    type="button"
+                    onClick={() => handleSelectCityCard(cityName)}
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all cursor-pointer focus:outline-none ${
+                      isSelected 
+                        ? "bg-[#1565D8]/5 border-[#1565D8] text-[#1565D8]" 
+                        : "bg-white border-slate-200 hover:border-slate-350 text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Building className="w-4 h-4 shrink-0 text-slate-400" />
+                    <span className="text-xs font-black truncate">{cityName}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
       <CompareBar />
     </div>
   )

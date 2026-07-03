@@ -14,7 +14,7 @@ export default function ProductsLayout({
 
       {/* CONTENT */}
       <main className="flex-grow flex items-center justify-center py-20 px-4 md:px-8">
-        <div className="max-w-4xl w-full">
+        <div className="max-w-7xl w-full">
           {children}
         </div>
       </main>

@@ -98,7 +98,7 @@ const colorThemes: Record<string, ColorTheme> = {
     badgeText: 'text-pink-700',
     badgeBorder: 'border-pink-200',
     iconBg: 'bg-pink-50',
-    iconText: 'text-pink-650',
+    iconText: 'text-pink-655',
     numberBg: 'bg-pink-600',
     checkmarkColor: 'text-pink-600',
     hoverLinkText: 'hover:text-pink-700',
@@ -169,9 +169,9 @@ export default function ProductFeaturePage({ content }: ProductFeaturePageProps)
   const theme = colorThemes[content.accentColor] || colorThemes.indigo
 
   return (
-    <div className="space-y-16 max-w-4xl mx-auto">
+    <div className="max-w-7xl mx-auto bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden flex flex-col w-full">
       {/* 1. HERO SECTION */}
-      <section className={`text-center rounded-3xl border p-8 md:p-16 shadow-xl space-y-6 ${theme.heroBg} ${theme.badgeBorder}`}>
+      <section className={`text-center py-16 md:py-24 px-6 md:px-16 space-y-6 ${theme.heroBg} border-b border-slate-100`}>
         <span className={`inline-flex items-center gap-1.5 border text-[10px] font-black uppercase tracking-wider px-3.5 py-1 rounded-full ${theme.badgeBg} ${theme.badgeText} ${theme.badgeBorder}`}>
           Feature Spotlight
         </span>
@@ -205,7 +205,7 @@ export default function ProductFeaturePage({ content }: ProductFeaturePageProps)
       </section>
 
       {/* 2. PROBLEM SECTION */}
-      <section className="bg-slate-55 border border-slate-200/60 rounded-3xl p-8 md:p-12 space-y-4">
+      <section className="bg-slate-50/50 py-12 md:py-16 px-6 md:px-16 border-b border-slate-150/40 space-y-4">
         <h2 className="text-2xl font-black text-slate-900 tracking-tight font-poppins">
           {content.problem.heading}
         </h2>
@@ -215,7 +215,7 @@ export default function ProductFeaturePage({ content }: ProductFeaturePageProps)
       </section>
 
       {/* 3. CAPABILITIES (Card Grid) */}
-      <section className="space-y-6">
+      <section className="bg-white py-12 md:py-16 px-6 md:px-16 border-b border-slate-150/40 space-y-6">
         <div className="border-b border-slate-200 pb-4">
           <h2 className="text-2xl font-black text-slate-900 tracking-tight font-poppins">
             Key Capabilities
@@ -252,7 +252,7 @@ export default function ProductFeaturePage({ content }: ProductFeaturePageProps)
       </section>
 
       {/* 4. HOW IT WORKS (Numbered steps) */}
-      <section className="bg-white border border-slate-200 rounded-3xl p-8 md:p-12 space-y-8">
+      <section className="bg-slate-50/50 py-12 md:py-16 px-6 md:px-16 border-b border-slate-150/40 space-y-8">
         <h2 className="text-2xl md:text-3xl font-black text-slate-900 text-center tracking-tight font-poppins">
           {content.howItWorks.heading}
         </h2>
@@ -277,7 +277,7 @@ export default function ProductFeaturePage({ content }: ProductFeaturePageProps)
       </section>
 
       {/* 5. WHO THIS IS FOR */}
-      <section className="bg-slate-55 border border-slate-200/60 rounded-3xl p-8 md:p-12 space-y-4">
+      <section className="bg-white py-12 md:py-16 px-6 md:px-16 border-b border-slate-150/40 space-y-4">
         <div className="flex items-center gap-2">
           <CheckCircle className={`w-5 h-5 shrink-0 ${theme.checkmarkColor}`} />
           <h2 className="text-xl font-extrabold text-slate-800 tracking-tight font-poppins">
@@ -290,7 +290,7 @@ export default function ProductFeaturePage({ content }: ProductFeaturePageProps)
       </section>
 
       {/* 6. FAQ (Accordion) */}
-      <section className="space-y-6">
+      <section className="bg-slate-50/50 py-12 md:py-16 px-6 md:px-16 border-b border-slate-150/40 space-y-6">
         <div className="border-b border-slate-200 pb-4 flex items-center gap-2">
           <HelpCircle className="w-5 h-5 text-slate-500" />
           <h2 className="text-2xl font-black text-slate-900 tracking-tight font-poppins">
@@ -330,7 +330,7 @@ export default function ProductFeaturePage({ content }: ProductFeaturePageProps)
       </section>
 
       {/* 7. CLOSING CTA */}
-      <section className="bg-blue-50/50 rounded-3xl p-8 md:p-16 border border-blue-100/50 text-center space-y-6">
+      <section className="bg-blue-50/50 py-16 md:py-20 px-6 md:px-16 text-center space-y-6">
         <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight font-poppins">
           {content.closingCta.heading}
         </h2>
@@ -349,7 +349,7 @@ export default function ProductFeaturePage({ content }: ProductFeaturePageProps)
 
       {/* 8. RELATED LINKS */}
       {content.relatedLinks.length > 0 && (
-        <section className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center gap-3 text-xs font-semibold text-slate-500">
+        <section className="bg-white py-6 px-6 md:px-16 flex flex-col sm:flex-row items-center gap-3 text-xs font-semibold text-slate-500">
           <span>Explore related features:</span>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {content.relatedLinks.map((link, idx) => (

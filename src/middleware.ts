@@ -21,6 +21,7 @@ function isPublicRoute(pathname: string): boolean {
   }
 
   const prefixes = [
+    '/products',
     '/schools',
     '/learning-centers',
     '/blog',

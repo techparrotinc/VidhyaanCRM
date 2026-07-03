@@ -4,6 +4,7 @@ import { route } from '@/lib/api/compose'
 import { ok, created, paginated } from '@/lib/api/respond'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db/client'
+import { parseQuery, paginationShape, enumParam, textParam } from '@/lib/api/query'
 
 const campaignSchema = z.object({
   name: z.string().min(1).max(150),
@@ -24,14 +25,14 @@ const campaignSchema = z.object({
 export const GET = route({
   module: 'campaign_management',
   handler: async ({ req, db, user }) => {
-    const { searchParams } = new URL(req.url)
-    const status = searchParams.get('status')
-    const channel = searchParams.get('channel')
-    const from = searchParams.get('from')
-    const to = searchParams.get('to')
-    const q = searchParams.get('q')
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
-    const limit = Math.max(1, parseInt(searchParams.get('limit') || '20', 10))
+    const { status, channel, from, to, q, page, limit } = parseQuery(req.url, {
+      ...paginationShape,
+      status: enumParam(CampaignStatus),
+      channel: enumParam(CampaignChannel),
+      from: textParam,
+      to: textParam,
+      q: textParam
+    })
     const skip = (page - 1) * limit
 
     const where: Prisma.CampaignWhereInput = {
@@ -40,10 +41,10 @@ export const GET = route({
     }
 
     if (status) {
-      where.status = status as CampaignStatus
+      where.status = status
     }
     if (channel) {
-      where.channel = channel as CampaignChannel
+      where.channel = channel
     }
     if (q) {
       where.name = {

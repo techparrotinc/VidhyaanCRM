@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { OrgStatus, InstitutionType } from '@prisma/client'
+import { parseQuery, paginationShape, enumParam, textParam } from '@/lib/api/query'
+import { AppError } from '@/lib/api/errors'
+import { errorResponse } from '@/lib/api/respond'
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,29 +14,30 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(req.url)
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = Math.max(1, parseInt(searchParams.get('limit') || '10'))
-    
-    const status = searchParams.get('status')
-    const search = searchParams.get('search')
-    const planId = searchParams.get('planId')
-    const institutionType = searchParams.get('institutionType')
-    
-    const sortBy = searchParams.get('sortBy') || 'createdAt'
-    const sortOrder = (searchParams.get('sortOrder') || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc'
+    const parsed = parseQuery(req.url, {
+      ...paginationShape,
+      status: enumParam(OrgStatus),
+      institutionType: enumParam(InstitutionType),
+      search: textParam,
+      planId: textParam,
+      sortBy: textParam,
+      sortOrder: textParam
+    })
+    const { page, limit, status, search, planId, institutionType } = parsed
+    const sortBy = parsed.sortBy || 'createdAt'
+    const sortOrder = (parsed.sortOrder || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc'
 
     // Build where clause
     const where: any = { deletedAt: null }
-    
+
     if (status) {
-      where.status = status as OrgStatus
+      where.status = status
     }
     if (planId) {
       where.planId = planId
     }
     if (institutionType) {
-      where.institutionType = institutionType as InstitutionType
+      where.institutionType = institutionType
     }
     if (search) {
       where.OR = [
@@ -142,6 +146,9 @@ export async function GET(req: NextRequest) {
     })
 
   } catch (error: any) {
+    if (error instanceof AppError) {
+      return errorResponse(error)
+    }
     console.error('Organizations List API error:', error)
     return NextResponse.json(
       { error: error.message || 'Internal server error' },

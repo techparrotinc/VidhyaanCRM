@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { Prisma, LeadStatus, LeadSource, StudentStatus, EnrollmentStatus, CampaignStatus, CampaignChannel } from '@prisma/client'
+import { asEnum } from '@/lib/api/query'
 import { route } from '@/lib/api/compose'
 import { Errors } from '@/lib/api/errors'
 import { ROLES } from '@/constants/roles'
@@ -123,11 +124,11 @@ async function handleSendCampaign({
     filters.forEach((f: any) => {
       if (!f.value) return
       if (f.field === 'status') {
-        leadWhere.status = f.value as LeadStatus
+        leadWhere.status = asEnum(LeadStatus, f.value, 'status')
       } else if (f.field === 'gradeSought') {
         leadWhere.gradeSought = f.value
       } else if (f.field === 'source') {
-        leadWhere.source = f.value as LeadSource
+        leadWhere.source = asEnum(LeadSource, f.value, 'source')
       } else if (f.field === 'assignedToId') {
         leadWhere.assignedToId = f.value
       } else if (f.field === 'dateFrom') {
@@ -164,7 +165,7 @@ async function handleSendCampaign({
       if (f.field === 'gradeLabel') {
         studentWhere.gradeLabel = f.value
       } else if (f.field === 'status') {
-        studentWhere.status = f.value as StudentStatus
+        studentWhere.status = asEnum(StudentStatus, f.value, 'status')
       } else if (f.field === 'academicYearId') {
         studentWhere.academicYearId = f.value
       } else if (f.field === 'courseId') {

@@ -7,6 +7,8 @@ import { redis } from '@/lib/redis'
 import { prisma } from '@/lib/db/client'
 import { NextResponse } from 'next/server'
 import { startOfMonth, endOfMonth, parseISO } from 'date-fns'
+import { InvoiceStatus, InvoiceType } from '@prisma/client'
+import { asEnum } from '@/lib/api/query'
 
 export const GET = route({
   module: MODULES.FEE_MANAGEMENT,
@@ -19,8 +21,8 @@ export const GET = route({
   handler: async ({ req, db, user }) => {
     const { searchParams } = new URL(req.url)
 
-    const page = Number(searchParams.get('page') ?? 1)
-    const limit = Number(searchParams.get('limit') ?? 25)
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1') || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '25') || 25))
     const status = searchParams.get('status') ?? undefined
     const studentId = searchParams.get('studentId') ?? undefined
     const termId = searchParams.get('termId') ?? undefined
@@ -39,7 +41,7 @@ export const GET = route({
     if (studentId) baseWhere.studentId = studentId
     if (termId && termId !== 'all') baseWhere.termId = termId
     if (courseId && courseId !== 'all') baseWhere.courseId = courseId
-    if (invoiceType) baseWhere.invoiceType = invoiceType
+    if (invoiceType) baseWhere.invoiceType = asEnum(InvoiceType, invoiceType, 'invoiceType')
     if (gradeLabel && gradeLabel !== 'all') {
       baseWhere.student = {
         gradeLabel
@@ -66,7 +68,7 @@ export const GET = route({
     }
 
     const where = { ...baseWhere }
-    if (status && status !== '') where.status = status
+    if (status && status !== '') where.status = asEnum(InvoiceStatus, status, 'status')
 
     const [invoices, total, statusCountsRaw] = await Promise.all([
       db.invoice.findMany({

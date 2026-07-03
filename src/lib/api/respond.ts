@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { ZodError } from 'zod'
 import { AppError } from './errors'
 
 export function ok<T>(
@@ -40,6 +41,18 @@ export function paginated<T>(
 export function errorResponse(
   error: unknown
 ) {
+  if (error instanceof ZodError) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Validation failed',
+        code: 'VALIDATION_ERROR',
+        details: error.flatten().fieldErrors
+      },
+      { status: 422 }
+    )
+  }
+
   if (error instanceof AppError) {
     return NextResponse.json(
       {

@@ -11,8 +11,8 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url)
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = Math.max(1, parseInt(searchParams.get('limit') || '10'))
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1') || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '10') || 10))
     const search = searchParams.get('search')
     const city = searchParams.get('city')
     const startDate = searchParams.get('startDate')

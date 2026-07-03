@@ -273,7 +273,7 @@ export default function MarketplaceHeader() {
                     List your school for free
                   </Link>
                   <Link 
-                    href="/products/marketplace/track-application" 
+                    href="/products/parent-portal" 
                     className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
                   >
                     Track your child's application
@@ -329,12 +329,6 @@ export default function MarketplaceHeader() {
                         className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Compare Schools
-                      </Link>
-                      <Link 
-                        href="/products/marketplace/track-application" 
-                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
-                      >
-                        Track Your Application
                       </Link>
                       <Link 
                         href="/products/marketplace/verified-badge" 
@@ -502,16 +496,6 @@ export default function MarketplaceHeader() {
                       <GitCompare className="w-3 h-3" />
                     </div>
                     <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Compare Schools</span>
-                  </Link>
-                  <Link 
-                    href="/products/marketplace/track-application" 
-                    onClick={() => setIsMobileMenuOpen(false)} 
-                    className="group flex items-center gap-2.5 py-1 hover:text-[#1565D8] transition"
-                  >
-                    <div className="w-6 h-6 rounded bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
-                      <Activity className="w-3 h-3" />
-                    </div>
-                    <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Track Your Application</span>
                   </Link>
                   <Link 
                     href="/products/marketplace/verified-badge" 

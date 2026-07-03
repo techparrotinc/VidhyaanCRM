@@ -81,17 +81,33 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   return response
 }
 
+const IDENTITY_HEADERS = [
+  'x-user-id',
+  'x-user-role',
+  'x-org-id',
+  'x-user-name',
+  'x-active-role-assignment-id'
+]
+
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Never trust identity headers from the client — they are set below only
+  // after session verification. Strip them on every path, including public
+  // and onboarding bypasses, so no route can be reached with spoofed values.
+  const requestHeaders = new Headers(request.headers)
+  IDENTITY_HEADERS.forEach((h) => requestHeaders.delete(h))
+  const passThrough = () =>
+    addSecurityHeaders(NextResponse.next({ request: { headers: requestHeaders } }))
+
   // Allow onboarding routes to pass through
   if (pathname.startsWith('/onboarding') || pathname.startsWith('/api/v1/onboarding')) {
-    return addSecurityHeaders(NextResponse.next())
+    return passThrough()
   }
 
   // 1. Allow all public routes
   if (isPublicRoute(pathname)) {
-    return addSecurityHeaders(NextResponse.next())
+    return passThrough()
   }
 
   // 2. Get session
@@ -162,7 +178,6 @@ export default async function middleware(request: NextRequest) {
     }
   }
 
-  const requestHeaders = new Headers(request.headers)
   if (session?.user) {
     requestHeaders.set('x-user-id', session.user.id || '')
     requestHeaders.set('x-user-role', session.user.role || '')

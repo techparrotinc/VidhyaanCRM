@@ -14,7 +14,6 @@ import {
   ClipboardList,
   Shield,
   ChevronDown,
-  ChevronUp,
   ChevronRight,
   Search,
   Bell,
@@ -34,9 +33,7 @@ import {
   Check,
   AlertCircle,
   Columns,
-  Inbox,
   Loader2,
-  BarChart2,
   UserPlus
 } from 'lucide-react'
 import TableSkeleton from '@/components/shared/TableSkeleton'
@@ -53,6 +50,10 @@ import ConvertToStudentModal from '@/components/admissions/ConvertToStudentModal
 import RejectModal from '@/components/admissions/RejectModal'
 import BulkActionBar from '@/components/admissions/BulkActionBar'
 import Toast, { type ToastState } from '@/components/admissions/Toast'
+import PipelineSummaryStrip from '@/components/admissions/PipelineSummaryStrip'
+import PaginationFooter from '@/components/admissions/PaginationFooter'
+import GridView from '@/components/admissions/GridView'
+import KanbanView from '@/components/admissions/KanbanView'
 
 const moduleLabel = config.moduleLabel[type]
 export default function AdmissionManagementPage() {
@@ -1040,110 +1041,16 @@ export default function AdmissionManagementPage() {
           </div>
 
           {/* SECTION 2 — PIPELINE SUMMARY STRIP */}
-          {!pipelineExpanded ? (
-            <div className="mx-4 mb-3">
-              <div 
-                className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-[#1565D8]/30 hover:bg-blue-50/20 transition-colors gap-3 min-w-0"
-                onClick={() => togglePipeline(true)}
-              >
-                {/* TOP LINE ON MOBILE / LEFT ON DESKTOP */}
-                <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
-                  <div className="flex items-center gap-2">
-                    <BarChart2 className="w-5 h-5 text-[#1565D8] flex-shrink-0" />
-                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 whitespace-nowrap">
-                      Admission Pipeline
-                    </span>
-                  </div>
-                  {/* View Pipeline mobile toggle */}
-                  <div className="flex items-center gap-1 text-sm font-medium text-[#1565D8] hover:underline whitespace-nowrap sm:hidden">
-                    <span>View</span>
-                    <ChevronDown size={14} className="text-slate-400" />
-                  </div>
-                </div>
-
-                {/* BOTTOM LINE ON MOBILE / CENTER ON DESKTOP */}
-                <div className="flex items-center justify-between sm:justify-start gap-4 sm:gap-6 border-t border-slate-100 sm:border-0 pt-2.5 sm:pt-0 w-full sm:w-auto">
-                  <span className="text-xs sm:text-sm text-slate-600 whitespace-nowrap">
-                    Total:{' '}
-                    <span className="font-bold text-slate-900">
-                      {Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
-                    </span>
-                  </span>
-
-                  <span className="text-xs sm:text-sm text-slate-600 whitespace-nowrap">
-                    Conversion:{' '}
-                    <span className="font-bold text-green-600">
-                      {conversionRate}%
-                    </span>
-                  </span>
-
-                  <span className="text-xs sm:text-sm text-slate-600 whitespace-nowrap">
-                    Admitted:{' '}
-                    <span className="font-bold text-blue-600">
-                      {displayAdmittedCount}
-                    </span>
-                  </span>
-                </div>
-
-                {/* RIGHT BUTTON — DESKTOP ONLY */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); togglePipeline(true); }}
-                  className="hidden sm:flex items-center gap-1 text-sm font-medium text-[#1565D8] hover:underline flex-shrink-0 whitespace-nowrap ml-auto cursor-pointer"
-                >
-                  View Pipeline
-                  <ChevronDown size={14} className="text-slate-400" />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="mx-4 mb-3">
-              <div className="bg-white rounded-xl border border-slate-200 shadow-md px-5 py-4 border-t-4 border-t-[#1565D8] space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold uppercase text-slate-500">
-                    ADMISSION MANAGEMENT PIPELINE
-                  </span>
-                  <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2.5 py-1 rounded-full">
-                    {config.academicYear}
-                  </span>
-                </div>
-                <button
-                  onClick={() => togglePipeline(false)}
-                  className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 cursor-pointer font-sans transition-colors"
-                >
-                  <span>Collapse</span>
-                  <ChevronUp size={12} />
-                </button>
-              </div>
-
-              {/* STATS CARDS ROW */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4">
-                {/* Card 1: Total */}
-                <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
-                  <div className="text-xs text-slate-500 font-medium mb-1">Total Applicants</div>
-                  <div className="text-2xl font-bold text-slate-900">{totalCount}</div>
-                </div>
-                {/* Card 2: Conversion */}
-                <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
-                  <div className="text-xs text-slate-500 font-medium mb-1">Conversion Rate</div>
-                  <div className="text-2xl font-bold text-green-600">{conversionRate}%</div>
-                </div>
-                {/* Card 3: Avg. to admit */}
-                <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
-                  <div className="text-xs text-slate-500 font-medium mb-1">Avg. to Admit</div>
-                  <div className="text-2xl font-bold text-[#1565D8]">{pipelineStats.avgDaysToAdmit || 0} days</div>
-                </div>
-                {/* Card 4: Pending Action */}
-                <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4">
-                  <div className="text-xs text-slate-500 font-medium mb-1">Pending Action</div>
-                  <div className="text-2xl font-bold text-red-600">{pendingActionCount}</div>
-                </div>
-              </div>
-
-
-            </div>
-          </div>
-          )}
+          <PipelineSummaryStrip
+            expanded={pipelineExpanded}
+            onToggle={togglePipeline}
+            totalApplicants={totalCount}
+            headerTotal={Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
+            conversionRate={conversionRate}
+            admittedCount={displayAdmittedCount}
+            avgDaysToAdmit={pipelineStats.avgDaysToAdmit}
+            pendingActionCount={pendingActionCount}
+          />
           {/* STAGE TABS */}
           <div className="overflow-x-auto overflow-y-hidden -mx-4 px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] mb-4">
             <div className="flex gap-1 min-w-max border-b border-slate-200 pb-0">
@@ -2059,39 +1966,17 @@ export default function AdmissionManagementPage() {
 
                 {/* Pagination */}
                 {(loading || filteredApplicants.length > 0) && (
-                  <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
-                    <span className="text-sm text-slate-500 font-sans">
-                      Showing {loading ? '...' : `${showingStart}–${showingEnd}`} of {totalCount} {moduleLabel.toLowerCase()}
-                    </span>
-
-                    <div className="flex items-center gap-2 select-none">
-                      <button
-                        onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                        disabled={loading || pagination.page <= 1}
-                        className={`px-3 py-1.5 border rounded-lg text-xs font-semibold font-sans transition ${
-                          loading || pagination.page <= 1
-                            ? 'border-slate-200 text-slate-400 bg-slate-50/50 cursor-not-allowed'
-                            : 'border-slate-200 hover:bg-slate-50 text-slate-750 cursor-pointer'
-                        }`}
-                      >
-                        Previous
-                      </button>
-                      <button className="hidden sm:flex px-3 py-1.5 border border-[#1565D8] rounded-lg text-xs font-bold text-white bg-[#1565D8] font-sans">
-                        {pagination.page}
-                      </button>
-                      <button
-                        onClick={() => setPagination(p => ({ ...p, page: Math.min(pagination.totalPages, p.page + 1) }))}
-                        disabled={loading || pagination.page >= pagination.totalPages}
-                        className={`px-3 py-1.5 border rounded-lg text-xs font-semibold font-sans transition ${
-                          loading || pagination.page >= pagination.totalPages
-                            ? 'border-slate-200 text-slate-400 bg-slate-50/50 cursor-not-allowed'
-                            : 'border-slate-200 hover:bg-slate-50 text-slate-750 cursor-pointer'
-                        }`}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
+                  <PaginationFooter
+                    loading={loading}
+                    page={pagination.page}
+                    totalPages={pagination.totalPages}
+                    showingStart={showingStart}
+                    showingEnd={showingEnd}
+                    totalCount={totalCount}
+                    itemLabel={moduleLabel.toLowerCase()}
+                    onPrev={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
+                    onNext={() => setPagination(p => ({ ...p, page: Math.min(pagination.totalPages, p.page + 1) }))}
+                  />
                 )}
 
               </div>
@@ -2363,255 +2248,43 @@ export default function AdmissionManagementPage() {
 
               {/* Grid View */}
               {activeView === 'grid' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-                  {loading ? (
-                    Array.from({ length: 6 }).map((_, idx) => (
-                      <div
-                        key={`skeleton-grid-${idx}`}
-                        className="bg-white rounded-xl border border-slate-200 shadow-md p-5 relative overflow-hidden"
-                      >
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <Skeleton className="w-10 h-10 rounded-full" />
-                            <div className="space-y-1.5 flex-1 min-w-[120px]">
-                              <Skeleton className="h-3 w-16" />
-                              <Skeleton className="h-4 w-28" />
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center mt-3">
-                          <Skeleton className="h-6 w-16 rounded-lg" />
-                          <Skeleton className="h-5 w-20 rounded-full" />
-                        </div>
-                        <div className="border-t border-slate-200 my-3" />
-                        <div className="flex items-center justify-between mt-3.5">
-                          <Skeleton className="h-4 w-24" />
-                          <Skeleton className="h-4 w-16" />
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    filteredApplicants.map((a: any) => {
-                      const stageData = configPipeline.find(s => s.id === a.stageId) || configPipeline[0]
-                      
-                      return (
-                        <div
-                          key={a.id}
-                          onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
-                          onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                          className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md hover:border-[#1565D8] cursor-pointer transition-all flex flex-col gap-3 justify-between"
-                        >
-                          {/* TOP ROW */}
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0">
-                                {a.avatar}
-                              </div>
-                              <span className="text-sm font-semibold text-slate-800 truncate block font-sans">
-                                {a.fullName}
-                              </span>
-                            </div>
-                            {/* Status Badge */}
-                            <div className="shrink-0">
-                              {getStatusBadge(a.dbStatus)}
-                            </div>
-                          </div>
-
-                          {/* MIDDLE ROW */}
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-mono text-slate-400">
-                              {a.admissionCode}
-                            </span>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700">
-                              {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
-                            </span>
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${stageData.bgClass} ${stageData.textClass} border ${stageData.borderClass}`}>
-                              {stageData.label}
-                            </span>
-                          </div>
-
-                          {/* BOTTOM ROW */}
-                          <div className="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-1">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              {a.counsellor ? (
-                                <>
-                                  <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-750 text-[8px] font-bold flex items-center justify-center shrink-0">
-                                    {a.counsellorAvatar}
-                                  </div>
-                                  <span className="text-xs text-slate-655 truncate max-w-[100px] font-sans">
-                                    {a.counsellor}
-                                  </span>
-                                </>
-                              ) : (
-                                <span className="text-xs text-slate-400 font-sans">Unassigned</span>
-                              )}
-                            </div>
-                            <span className="text-xs text-slate-400 font-sans">
-                              {formatDate(a.createdAt)}
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
+                <GridView
+                  loading={loading}
+                  applicants={filteredApplicants}
+                  getStatusBadge={getStatusBadge}
+                  formatDate={formatDate}
+                  onOpen={(id) => handleNavigate(`/admission-management/${id}`)}
+                  onPrefetch={(id) => router.prefetch(`/admission-management/${id}`)}
+                />
               )}
 
               {/* Kanban View */}
               {activeView === 'kanban' && (
-                <div className="relative">
-                  <div className="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-slate-300">
-                    {configPipeline.map(stage => {
-                      const stageApplicants = filteredApplicants.filter((a: any) => a.stageId === stage.id)
-
-                      return (
-                        <div key={stage.id} className="w-[280px] flex-shrink-0 bg-slate-50 rounded-xl p-3 flex flex-col gap-3">
-                          {/* COLUMN HEADER */}
-                          <div className="flex items-center justify-between select-none">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${stage.dotClass}`} />
-                              <span className="text-sm font-bold text-slate-800 truncate font-sans">
-                                {stage.label}
-                              </span>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${stage.bgClass} ${stage.textClass}`}>
-                                {stageApplicants.length}
-                              </span>
-                            </div>
-                            <button
-                              onClick={() => router.push(`/admission-management/create?stage=${stage.id}`)}
-                              className="p-1 rounded text-slate-400 hover:text-slate-655 hover:bg-slate-200 cursor-pointer"
-                              title={`Add to ${stage.label}`}
-                            >
-                              <Plus size={14} strokeWidth={2} />
-                            </button>
-                          </div>
-
-                          {/* COLUMN BODY */}
-                          <div className="space-y-3 min-h-[300px] flex-1 overflow-y-auto">
-                            {loading ? (
-                              Array.from({ length: 2 }).map((_, idx) => (
-                                <div
-                                  key={`skeleton-kanban-${stage.id}-${idx}`}
-                                  className="bg-white rounded-xl border border-slate-200 p-4 relative overflow-hidden"
-                                >
-                                  <div className="space-y-1.5">
-                                    <Skeleton className="h-4 w-28" />
-                                    <Skeleton className="h-3 w-16" />
-                                  </div>
-                                </div>
-                              ))
-                            ) : stageApplicants.length === 0 ? (
-                              <div className="bg-white/50 rounded-xl border border-dashed border-slate-200 py-8 text-center flex flex-col items-center justify-center">
-                                <Inbox size={24} className="text-slate-350" strokeWidth={1.5} />
-                                <span className="text-[11px] text-slate-400 font-bold mt-2 font-sans">
-                                  No {config.applicantLabel[type]}s
-                                </span>
-                              </div>
-                            ) : (
-                              stageApplicants.map((a: any) => {
-                                return (
-                                  <div
-                                    key={a.id}
-                                    onMouseEnter={() => router.prefetch(`/admission-management/${a.id}`)}
-                                    onClick={() => handleNavigate(`/admission-management/${a.id}`)}
-                                    className="bg-white border border-slate-200 rounded-xl p-3 mb-2 hover:shadow-sm cursor-pointer transition-all flex flex-col gap-2.5"
-                                  >
-                                    <div>
-                                      <span className="text-sm font-semibold text-slate-800 block font-sans truncate">
-                                        {a.fullName}
-                                      </span>
-                                      <span className="text-xs font-mono text-slate-400 block mt-0.5">
-                                        {a.admissionCode}
-                                      </span>
-                                    </div>
-
-                                    <div className="flex flex-wrap gap-1.5">
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700">
-                                        {a.applyingFor ? getGradeLabel(a.applyingFor) : '—'}
-                                      </span>
-                                    </div>
-
-                                    <div className="flex items-center justify-between mt-1 pt-2 border-t border-slate-100">
-                                      <div className="flex items-center gap-1.5 min-w-0">
-                                        {a.counsellor ? (
-                                          <>
-                                            <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-700 text-[8px] font-bold flex items-center justify-center shrink-0">
-                                              {a.counsellorAvatar}
-                                            </div>
-                                            <span className="text-xs text-slate-655 truncate max-w-[80px] font-sans">
-                                              {a.counsellor.split(' ')[0]}
-                                            </span>
-                                          </>
-                                        ) : (
-                                          <span className="text-xs text-slate-400 font-sans">Unassigned</span>
-                                        )}
-                                      </div>
-                                      <span className="text-xs text-slate-400 font-sans">
-                                        {formatDate(a.createdAt)}
-                                      </span>
-                                    </div>
-
-                                    <div className="mt-1 pt-2 border-t border-slate-100 flex items-center justify-between" onClick={e => e.stopPropagation()}>
-                                      <span className="text-[10px] text-slate-400 uppercase font-bold">Stage</span>
-                                      <select
-                                        value={a.stageId}
-                                        onChange={(e) => handleMoveStage(a.id, e.target.value)}
-                                        className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 text-[11px] focus:outline-none focus:border-blue-500 font-medium cursor-pointer"
-                                      >
-                                        {configPipeline.map((s) => (
-                                          <option key={s.id} value={s.id}>
-                                            {s.label}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </div>
-                                  </div>
-                                )
-                              })
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
+                <KanbanView
+                  loading={loading}
+                  applicants={filteredApplicants}
+                  formatDate={formatDate}
+                  onOpen={(id) => handleNavigate(`/admission-management/${id}`)}
+                  onPrefetch={(id) => router.prefetch(`/admission-management/${id}`)}
+                  onAddToStage={(stageId) => router.push(`/admission-management/create?stage=${stageId}`)}
+                  onMoveStage={handleMoveStage}
+                />
               )}
 
               {/* Shared Pagination (For Grid view only, since List view has its own embedded pagination) */}
               {activeView === 'grid' && (loading || filteredApplicants.length > 0) && (
-                <div className="bg-white border border-slate-200 rounded-xl px-5 py-4 flex items-center justify-between shadow-sm mx-4 mb-4">
-                  <span className="text-sm text-slate-500 font-sans">
-                    Showing {loading ? '...' : `${showingStart}–${showingEnd}`} of {totalCount} {moduleLabel.toLowerCase()}
-                  </span>
-
-                  <div className="flex items-center gap-2 select-none">
-                    <button
-                      onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                      disabled={loading || pagination.page <= 1}
-                      className={`px-3 py-1.5 border rounded-lg text-xs font-semibold font-sans transition ${
-                        loading || pagination.page <= 1
-                          ? 'border-slate-200 text-slate-400 bg-slate-50/50 cursor-not-allowed'
-                          : 'border-slate-200 hover:bg-slate-50 text-slate-750 cursor-pointer'
-                      }`}
-                    >
-                      Previous
-                    </button>
-                    <button className="hidden sm:flex px-3 py-1.5 border border-[#1565D8] rounded-lg text-xs font-bold text-white bg-[#1565D8] font-sans">
-                      {pagination.page}
-                    </button>
-                    <button
-                      onClick={() => setPagination(p => ({ ...p, page: Math.min(pagination.totalPages, p.page + 1) }))}
-                      disabled={loading || pagination.page >= pagination.totalPages}
-                      className={`px-3 py-1.5 border rounded-lg text-xs font-semibold font-sans transition ${
-                        loading || pagination.page >= pagination.totalPages
-                          ? 'border-slate-200 text-slate-400 bg-slate-50/50 cursor-not-allowed'
-                          : 'border-slate-200 hover:bg-slate-50 text-slate-750 cursor-pointer'
-                      }`}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
+                <PaginationFooter
+                  variant="card"
+                  loading={loading}
+                  page={pagination.page}
+                  totalPages={pagination.totalPages}
+                  showingStart={showingStart}
+                  showingEnd={showingEnd}
+                  totalCount={totalCount}
+                  itemLabel={moduleLabel.toLowerCase()}
+                  onPrev={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
+                  onNext={() => setPagination(p => ({ ...p, page: Math.min(pagination.totalPages, p.page + 1) }))}
+                />
               )}
             </>
           )}

@@ -33,7 +33,9 @@ import {
   Search,
   GitCompare,
   Activity,
-  Award
+  Award,
+  Zap,
+  Cloud
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -269,58 +271,83 @@ export default function MarketplaceHeader() {
                     <div className="flex flex-col gap-1">
                       <Link 
                         href="/products/marketplace/free-listing" 
-                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
-                          <Building className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
+                          <Building className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
-                          Free School Listing
-                        </span>
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                            Free School Listing
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
+                            Claim your listing and get discovered by parents.
+                          </p>
+                        </div>
                       </Link>
                       <Link 
                         href="/products/marketplace/search-discovery" 
-                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
-                          <Search className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
+                          <Search className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
-                          Parent Search & Discovery
-                        </span>
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                            Parent Search & Discovery
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
+                            Advanced filtering by location, fees, and board.
+                          </p>
+                        </div>
                       </Link>
                       <Link 
                         href="/products/marketplace/compare" 
-                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 group-hover:bg-purple-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
-                          <GitCompare className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 group-hover:bg-purple-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
+                          <GitCompare className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
-                          Compare Schools Side-by-Side
-                        </span>
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                            Compare Schools
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
+                            Compare academic records, fees, and reviews side-by-side.
+                          </p>
+                        </div>
                       </Link>
                       <Link 
                         href="/products/marketplace/track-application" 
-                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
-                          <Activity className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 group-hover:bg-amber-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
+                          <Activity className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
-                          Track Your Application
-                        </span>
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                            Track Your Application
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
+                            Real-time progress updates on child school applications.
+                          </p>
+                        </div>
                       </Link>
                       <Link 
                         href="/products/marketplace/verified-badge" 
-                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
-                          <Award className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
+                          <Award className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
-                          Verified Profile Badge
-                        </span>
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                            Verified Profile Badge
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
+                            Build instant trust and highlight your official profile.
+                          </p>
+                        </div>
                       </Link>
                     </div>
                   </div>
@@ -336,102 +363,147 @@ export default function MarketplaceHeader() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
                       <Link 
                         href="/products/lead-management" 
-                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 group-hover:bg-rose-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
-                          <Users className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 group-hover:bg-rose-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
+                          <Users className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
-                          Lead Management
-                        </span>
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                            Lead Management
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
+                            Capture and nurture inquiries across all channels.
+                          </p>
+                        </div>
                       </Link>
                       <Link 
                         href="/products/admission-management" 
-                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 group-hover:bg-sky-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
-                          <ClipboardList className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 group-hover:bg-sky-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
+                          <ClipboardList className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
-                          Admission Management
-                        </span>
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                            Admission Management
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
+                            Automate student application flows and seat vetting.
+                          </p>
+                        </div>
                       </Link>
                       <Link 
                         href="/products/student-management" 
-                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 group-hover:bg-violet-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
-                          <GraduationCap className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 group-hover:bg-violet-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
+                          <GraduationCap className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
-                          Student Management
-                        </span>
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                            Student Management
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
+                            Track student profiles, documents, and academic history.
+                          </p>
+                        </div>
                       </Link>
                       <Link 
                         href="/products/course-management" 
-                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 group-hover:bg-teal-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
-                          <BookOpen className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 group-hover:bg-teal-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
+                          <BookOpen className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
-                          Course & Batch Management
-                        </span>
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                            Course & Batch Management
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
+                            Organize classes, batches, subjects, and timetables.
+                          </p>
+                        </div>
                       </Link>
                       <Link 
                         href="/products/fee-management" 
-                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
-                          <CreditCard className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
+                          <CreditCard className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
-                          Fee & Payment Management
-                        </span>
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                            Fee & Payment Management
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
+                            Process online payments and issue automated receipts.
+                          </p>
+                        </div>
                       </Link>
                       <Link 
                         href="/products/campaign-management" 
-                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 group-hover:bg-pink-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
-                          <MessageSquare className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 group-hover:bg-pink-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
+                          <MessageSquare className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
-                          Campaign Management
-                        </span>
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                            Campaign Management
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
+                            Run targeted WhatsApp, SMS, and email marketing.
+                          </p>
+                        </div>
                       </Link>
                       <Link 
                         href="/products/notifications-alerts" 
-                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 group-hover:bg-orange-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
-                          <Bell className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 group-hover:bg-orange-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
+                          <Bell className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
-                          Notifications & Alerts
-                        </span>
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                            Notifications & Alerts
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
+                            Instant transactional updates for parents and teachers.
+                          </p>
+                        </div>
                       </Link>
                       <Link 
                         href="/products/parent-portal" 
-                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
-                          <User className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
+                          <User className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
-                          Parent Portal
-                        </span>
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                            Parent Portal
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
+                            Dedicated parent hub for fee payments and application tracking.
+                          </p>
+                        </div>
                       </Link>
                       <Link 
                         href="/products/reporting-analytics" 
-                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-fuchsia-50 text-fuchsia-600 group-hover:bg-fuchsia-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
-                          <BarChart3 className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-fuchsia-50 text-fuchsia-600 group-hover:bg-fuchsia-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
+                          <BarChart3 className="w-5 h-5" />
                         </div>
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
-                          Reports & Analytics
-                        </span>
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                            Reports & Analytics
+                          </span>
+                          <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
+                            Deep insights on admission conversion rates and cash flows.
+                          </p>
+                        </div>
                       </Link>
                     </div>
                   </div>
@@ -439,23 +511,35 @@ export default function MarketplaceHeader() {
                 </div>
               </div>
 
-              {/* Bottom banner row */}
-              <div className="bg-slate-50 border-t border-slate-100 px-6 md:px-8 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-[10px] font-extrabold text-[#1565D8] uppercase tracking-wider bg-blue-100 px-2 py-0.5 rounded shrink-0">
-                    Listing offer
-                  </span>
-                  <p className="text-xs font-bold text-slate-650">
-                    Free Discovery Listing &mdash; List your school free and get discovered by parents
-                  </p>
+              {/* Bottom features row */}
+              <div className="bg-slate-50 border-t border-slate-100 px-6 md:px-8 py-5 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
+                    <Shield className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Secure & Reliable</h4>
+                    <p className="text-[10px] font-bold text-slate-400">Enterprise grade security you can trust</p>
+                  </div>
                 </div>
-                <Link 
-                  href="/register-school" 
-                  className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#1565D8] hover:text-blue-700 transition group cursor-pointer"
-                >
-                  Register Your School Free 
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-                </Link>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                    <Zap className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Quick To Launch</h4>
+                    <p className="text-[10px] font-bold text-slate-400">Go live in minutes, no IT support needed</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Cloud className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Cloud Based</h4>
+                    <p className="text-[10px] font-bold text-slate-400">Access anywhere, anytime from any device</p>
+                  </div>
+                </div>
               </div>
 
             </div>

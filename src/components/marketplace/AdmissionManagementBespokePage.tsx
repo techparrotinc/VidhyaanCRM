@@ -64,11 +64,11 @@ export default function AdmissionManagementBespokePage() {
 
       {/* BREADCRUMB */}
       <div className="max-w-7xl mx-auto px-6 md:px-16 pt-8 pb-2 flex items-center gap-2 text-xs font-semibold text-slate-400">
-        <Link href="/" className="hover:text-slate-655 transition">Home</Link>
+        <Link href="/" className="hover:text-slate-600 transition">Home</Link>
         <span>&gt;</span>
-        <Link href="/products/institution-types" className="hover:text-slate-655 transition">Products</Link>
+        <Link href="/products/institution-types" className="hover:text-slate-600 transition">Products</Link>
         <span>&gt;</span>
-        <span className="text-slate-655 font-bold">Admission Management</span>
+        <span className="text-slate-600 font-bold">Admission Management</span>
       </div>
 
       {/* 1. HERO SECTION */}
@@ -80,7 +80,7 @@ export default function AdmissionManagementBespokePage() {
         
         <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-[1.1] max-w-4xl mx-auto font-poppins">
           Admission Management System for{' '}
-          <span className="bg-gradient-to-r from-purple-650 via-indigo-650 to-purple-850 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-800 bg-clip-text text-transparent">
             Schools & Junior Colleges
           </span>
         </h1>
@@ -90,7 +90,7 @@ export default function AdmissionManagementBespokePage() {
         </p>
 
         {/* Intro Paragraph */}
-        <p className="text-slate-550 text-sm md:text-base max-w-2xl mx-auto leading-relaxed font-semibold">
+        <p className="text-slate-500 text-sm md:text-base max-w-2xl mx-auto leading-relaxed font-semibold">
           Admission desks transition to Vidhyaan when manual applicant logs get lost between counsellor handoffs and document updates. By routing documents, scheduling interviews, and recording fee payments in a single visual pipeline, your administration has total transparency on seats and classes.
         </p>
         
@@ -104,7 +104,7 @@ export default function AdmissionManagementBespokePage() {
           {admissionManagementContent.secondaryCta && (
             <Link 
               href={admissionManagementContent.secondaryCta.href}
-              className="text-slate-655 hover:text-purple-700 font-extrabold text-sm transition py-2"
+              className="text-slate-600 hover:text-purple-700 font-extrabold text-sm transition py-2"
             >
               {admissionManagementContent.secondaryCta.text}
             </Link>
@@ -137,7 +137,7 @@ export default function AdmissionManagementBespokePage() {
 
           {/* Stage 1 */}
           <div className="flex flex-col items-center text-center p-4 min-w-[140px] relative space-y-3 group">
-            <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-650 flex items-center justify-center shadow-md border border-blue-100 transition group-hover:scale-105">
+            <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-md border border-blue-100 transition group-hover:scale-105">
               <Sparkles className="w-7 h-7" />
             </div>
             <div className="space-y-1">
@@ -154,7 +154,7 @@ export default function AdmissionManagementBespokePage() {
 
           {/* Stage 2 */}
           <div className="flex flex-col items-center text-center p-4 min-w-[140px] relative space-y-3 group">
-            <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-655 flex items-center justify-center shadow-md border border-amber-100 transition group-hover:scale-105">
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-md border border-amber-100 transition group-hover:scale-105">
               <FileText className="w-7 h-7" />
             </div>
             <div className="space-y-1">
@@ -171,7 +171,7 @@ export default function AdmissionManagementBespokePage() {
 
           {/* Stage 3 */}
           <div className="flex flex-col items-center text-center p-4 min-w-[140px] relative space-y-3 group">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-655 flex items-center justify-center shadow-md border border-indigo-100 transition group-hover:scale-105">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-md border border-indigo-100 transition group-hover:scale-105">
               <Users className="w-7 h-7" />
             </div>
             <div className="space-y-1">
@@ -189,7 +189,7 @@ export default function AdmissionManagementBespokePage() {
           {/* Stage 4: Decision (Branches out) */}
           <div className="flex flex-col lg:flex-row items-center gap-6 bg-slate-50/50 p-6 rounded-3xl border border-slate-200/60 shadow-inner">
             <div className="flex flex-col items-center text-center space-y-3 min-w-[120px] group">
-              <div className="w-16 h-16 rounded-2xl bg-purple-50 text-purple-650 flex items-center justify-center shadow-md border border-purple-100 transition group-hover:scale-105">
+              <div className="w-16 h-16 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shadow-md border border-purple-100 transition group-hover:scale-105">
                 <Settings className="w-7 h-7" />
               </div>
               <div className="space-y-1">
@@ -249,90 +249,22 @@ export default function AdmissionManagementBespokePage() {
         </div>
       </section>
 
-      {/* 2. PROBLEM SECTION WITH PROCESS FLOW GRAPHIC */}
-      <section id="overview" className="py-16 px-6 md:px-16 scroll-mt-28">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          {/* Left Column: Problem Copy */}
-          <div className="lg:col-span-7 space-y-6">
-            <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight font-poppins">
-              {admissionManagementContent.problem.heading}
-            </h2>
-            <p className="text-slate-655 font-semibold text-base leading-relaxed">
-              {admissionManagementContent.problem.body}
-            </p>
-            <div className="space-y-3 pt-2">
-              <div className="flex items-start gap-2.5">
-                <CheckCircle className="w-5 h-5 text-purple-650 shrink-0 mt-0.5" />
-                <span className="text-sm font-bold text-slate-700">Digital verification of certificates speeds up eligibility logs</span>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <CheckCircle className="w-5 h-5 text-purple-655 shrink-0 mt-0.5" />
-                <span className="text-sm font-bold text-slate-700">Central audit trail tracks every stage upgrade automatically</span>
-              </div>
-            </div>
+      {/* 2. PROBLEM SECTION (PART 3) */}
+      <section id="overview" className="py-16 px-6 md:px-16 scroll-mt-28 max-w-4xl mx-auto text-center space-y-6">
+        <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight font-poppins">
+          {admissionManagementContent.problem.heading}
+        </h2>
+        <p className="text-slate-600 font-semibold text-base leading-relaxed max-w-3xl mx-auto">
+          {admissionManagementContent.problem.body}
+        </p>
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-6 pt-4">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+            <span className="text-sm font-bold text-slate-700">Digital verification of certificates speeds up eligibility logs</span>
           </div>
-
-          {/* Right Column: Visual Stage Flow Graphic */}
-          <div className="lg:col-span-5 bg-gradient-to-br from-slate-50 via-white to-purple-50/20 border border-slate-200 rounded-3xl p-6 md:p-8 flex flex-col items-center justify-center space-y-6 relative overflow-hidden min-h-[350px] shadow-lg shadow-purple-500/5">
-            {/* Background elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-100/30 rounded-full blur-3xl -z-10" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-100/30 rounded-full blur-3xl -z-10" />
-
-            <div className="flex flex-col items-center w-full space-y-5">
-              <span className="text-[10px] font-black text-purple-700 uppercase tracking-widest bg-purple-50 px-3 py-1 rounded-full mb-2">
-                Workflow Progression
-              </span>
-
-              {/* Application Received */}
-              <div className="flex items-center gap-3 w-full max-w-xs p-3 bg-white rounded-2xl border border-slate-150 shadow-sm transition hover:scale-105">
-                <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-xs shrink-0">
-                  1
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-black text-slate-800">Applied</span>
-                  <span className="text-[9px] text-slate-400 font-bold">Details & Contact Locked</span>
-                </div>
-              </div>
-
-              <div className="text-purple-300">↓</div>
-
-              {/* Document Verification */}
-              <div className="flex items-center gap-3 w-full max-w-xs p-3 bg-white rounded-2xl border border-slate-150 shadow-sm transition hover:scale-105">
-                <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-black text-xs shrink-0">
-                  2
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-black text-slate-800">Verify Docs</span>
-                  <span className="text-[9px] text-slate-400 font-bold">TC & Certificates Uploaded</span>
-                </div>
-              </div>
-
-              <div className="text-purple-300">↓</div>
-
-              {/* Interview */}
-              <div className="flex items-center gap-3 w-full max-w-xs p-3 bg-white rounded-2xl border border-slate-150 shadow-sm transition hover:scale-105">
-                <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-650 flex items-center justify-center font-black text-xs shrink-0">
-                  3
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-black text-slate-800">Interview</span>
-                  <span className="text-[9px] text-slate-400 font-bold">Meeting & Ratings Recorded</span>
-                </div>
-              </div>
-
-              <div className="text-purple-300">↓</div>
-
-              {/* Decision */}
-              <div className="flex items-center gap-3 w-full max-w-xs p-3 bg-gradient-to-r from-purple-650 to-indigo-650 text-white rounded-2xl shadow-md transition hover:scale-105">
-                <div className="w-8 h-8 rounded-full bg-white/20 text-white flex items-center justify-center font-black text-xs shrink-0">
-                  4
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-black">Decision</span>
-                  <span className="text-[9px] text-purple-100 font-bold">Admitted / Waitlisted</span>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center gap-2.5">
+            <CheckCircle className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+            <span className="text-sm font-bold text-slate-700">Central audit trail tracks every stage upgrade automatically</span>
           </div>
         </div>
       </section>
@@ -346,7 +278,7 @@ export default function AdmissionManagementBespokePage() {
           <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
             The Complete Admission Journey
           </h2>
-          <p className="text-slate-555 font-semibold text-sm md:text-base max-w-xl mx-auto">
+          <p className="text-slate-500 font-semibold text-sm md:text-base max-w-xl mx-auto">
             How Vidhyaan streamlines the applicant lifecycle from lead conversion to active enrollment.
           </p>
         </div>
@@ -365,7 +297,7 @@ export default function AdmissionManagementBespokePage() {
 
           {/* Step 2 */}
           <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm hover:shadow-md transition">
-            <div className="w-10 h-10 bg-purple-50 text-purple-650 rounded-xl flex items-center justify-center font-black">
+            <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center font-black">
               2
             </div>
             <h3 className="font-extrabold text-slate-800 text-lg">Move Through Stages</h3>
@@ -413,14 +345,14 @@ export default function AdmissionManagementBespokePage() {
                 key={idx} 
                 className="bg-white border border-slate-150 p-6 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-250 transition-all duration-200 flex gap-4 items-start"
               >
-                <div className="p-3 rounded-xl shrink-0 bg-purple-50 text-purple-650">
+                <div className="p-3 rounded-xl shrink-0 bg-purple-50 text-purple-600">
                   {CapIcon ? <CapIcon className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
                 </div>
                 <div className="space-y-1.5">
                   <h3 className="font-extrabold text-slate-800 text-lg font-poppins">
                     {cap.title}
                   </h3>
-                  <p className="text-slate-555 font-semibold text-sm leading-relaxed">
+                  <p className="text-slate-500 font-semibold text-sm leading-relaxed">
                     {cap.body}
                   </p>
                 </div>
@@ -436,7 +368,7 @@ export default function AdmissionManagementBespokePage() {
           <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
             See it in action
           </h2>
-          <p className="text-slate-555 font-semibold text-sm md:text-base leading-relaxed">
+          <p className="text-slate-500 font-semibold text-sm md:text-base leading-relaxed">
             The real Admission Management pipeline your team uses every day — from list view to individual applicant tracking.
           </p>
         </div>
@@ -521,24 +453,24 @@ export default function AdmissionManagementBespokePage() {
           {/* Vidhyaan Column */}
           <div className="bg-gradient-to-b from-purple-50/30 to-white border border-purple-150 rounded-3xl p-8 space-y-6 shadow-sm">
             <h3 className="text-lg font-black text-purple-900 border-b border-purple-100/50 pb-3 flex items-center gap-2">
-              <span className="w-2.5 h-2.5 bg-purple-650 rounded-full" />
+              <span className="w-2.5 h-2.5 bg-purple-600 rounded-full" />
               Vidhyaan CRM
             </h3>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
-                <span className="text-emerald-555 font-black shrink-0 mt-0.5">✓</span>
+                <span className="text-emerald-600 font-black shrink-0 mt-0.5">✓</span>
                 <span className="text-sm font-bold text-slate-800">One live, unified pipeline from application to decision</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-emerald-555 font-black shrink-0 mt-0.5">✓</span>
+                <span className="text-emerald-600 font-black shrink-0 mt-0.5">✓</span>
                 <span className="text-sm font-bold text-slate-800">Integrated document collection directly linked to student record</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-emerald-555 font-black shrink-0 mt-0.5">✓</span>
+                <span className="text-emerald-600 font-black shrink-0 mt-0.5">✓</span>
                 <span className="text-sm font-bold text-slate-800">Real-time pipeline dashboards and seat metrics visible instantly</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-emerald-555 font-black shrink-0 mt-0.5">✓</span>
+                <span className="text-emerald-600 font-black shrink-0 mt-0.5">✓</span>
                 <span className="text-sm font-bold text-slate-800">One-click student enrollment rollover, eliminating double entry</span>
               </li>
             </ul>
@@ -550,24 +482,24 @@ export default function AdmissionManagementBespokePage() {
       <section className="py-16 px-6 md:px-16">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           <div className="flex gap-4 items-start p-6 bg-slate-50 rounded-2xl border border-slate-150/80 shadow-sm">
-            <div className="p-3 bg-purple-50 text-purple-650 rounded-xl shrink-0">
+            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl shrink-0">
               <Phone className="w-5 h-5" />
             </div>
             <div className="space-y-1">
               <h4 className="font-extrabold text-slate-800 text-base">Works on any device</h4>
-              <p className="text-slate-550 font-semibold text-xs leading-relaxed">
+              <p className="text-slate-500 font-semibold text-xs leading-relaxed">
                 Vidhyaan works entirely in your browser with a fully responsive layout. Manage enquiries on the go, with no mobile app install required.
               </p>
             </div>
           </div>
 
           <div className="flex gap-4 items-start p-6 bg-slate-50 rounded-2xl border border-slate-150/80 shadow-sm">
-            <div className="p-3 bg-purple-50 text-purple-650 rounded-xl shrink-0">
+            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl shrink-0">
               <Activity className="w-5 h-5" />
             </div>
             <div className="space-y-1">
               <h4 className="font-extrabold text-slate-800 text-base">Filter and act fast</h4>
-              <p className="text-slate-550 font-semibold text-xs leading-relaxed">
+              <p className="text-slate-500 font-semibold text-xs leading-relaxed">
                 Quickly sort applicants by status directly from the dashboard to focus on document verification, interview calls, or approvals.
               </p>
             </div>
@@ -608,12 +540,12 @@ export default function AdmissionManagementBespokePage() {
       {/* 5. WHO THIS IS FOR */}
       <section className="py-12 px-6 md:px-16 space-y-4">
         <div className="flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 shrink-0 text-purple-650" />
+          <CheckCircle className="w-5 h-5 shrink-0 text-purple-600" />
           <h2 className="text-2xl font-black text-slate-900 tracking-tight font-poppins">
             {admissionManagementContent.whoThisIsFor.heading}
           </h2>
         </div>
-        <p className="text-slate-655 font-semibold text-base leading-relaxed">
+        <p className="text-slate-600 font-semibold text-base leading-relaxed">
           {admissionManagementContent.whoThisIsFor.body}
         </p>
       </section>
@@ -663,7 +595,7 @@ export default function AdmissionManagementBespokePage() {
         <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
           {admissionManagementContent.closingCta.heading}
         </h2>
-        <p className="text-slate-605 font-semibold text-sm md:text-base leading-relaxed max-w-xl mx-auto">
+        <p className="text-slate-600 font-semibold text-sm md:text-base leading-relaxed max-w-xl mx-auto">
           {admissionManagementContent.closingCta.body}
         </p>
 
@@ -689,7 +621,7 @@ export default function AdmissionManagementBespokePage() {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           <Link href="/products/lead-management" className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-300 transition-all flex items-center gap-4 group">
-            <div className="p-3 rounded-xl bg-indigo-50 text-indigo-655 shrink-0">
+            <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600 shrink-0">
               <Inbox className="w-5 h-5" />
             </div>
             <div>

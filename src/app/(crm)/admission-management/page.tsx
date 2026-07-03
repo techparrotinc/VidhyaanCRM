@@ -12,8 +12,6 @@ import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 import { format } from 'date-fns'
 import {
   ClipboardList,
-  Users,
-  CreditCard,
   Shield,
   ChevronDown,
   ChevronUp,
@@ -27,7 +25,6 @@ import {
   List,
   Download,
   LayoutGrid,
-  CheckSquare,
   Trash2,
   Mail,
   MessageCircle,
@@ -35,27 +32,14 @@ import {
   Pencil,
   MoreVertical,
   Check,
-  Info,
-  XCircle,
-  CheckCircle2,
   AlertCircle,
-  Circle,
-  Sparkles,
-  Upload,
   Columns,
   Inbox,
-  FileText,
   Loader2,
   BarChart2,
   UserPlus
 } from 'lucide-react'
 import TableSkeleton from '@/components/shared/TableSkeleton'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -65,193 +49,12 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 import { config, type, pipeline as configPipeline } from '@/lib/admission-settings-config'
+import ConvertToStudentModal from '@/components/admissions/ConvertToStudentModal'
+import RejectModal from '@/components/admissions/RejectModal'
+import BulkActionBar from '@/components/admissions/BulkActionBar'
+import Toast, { type ToastState } from '@/components/admissions/Toast'
 
 const moduleLabel = config.moduleLabel[type]
-const idPrefix = config.idPrefix[type]
-
-const stageShortLabel: Record<string, string> = {
-  'new': 'New',
-  'contacted': 'Contacted',
-  'application': 'Application',
-  'docs': 'Docs',
-  'interview': 'Interview',
-  'payment': 'Payment',
-  'admitted': 'Admitted',
-  'rejected': 'Rejected',
-}
-
-// Grades constants are imported from @/constants/grades
-
-interface Applicant {
-  id: string
-  firstName: string
-  lastName: string
-  fullName: string
-  avatar: string
-  parentName: string
-  childName: string
-  phone: string
-  email: string
-  applyingFor: string
-  source: string
-  counsellor: string | null
-  counsellorAvatar: string | null
-  stage: string
-  stageId: string
-  stageIndex: number
-  createdDate: string
-  status: string
-  daysInStage: number
-  pendingAction: string | null
-  docsUploaded: number
-  docsRequired: number
-  feePaid: boolean
-  priority: string
-}
-
-
-
-const sourceConfig: Record<string, {
-  bg: string; text: string; dot: string
-}> = {
-  Vidhyaan: {
-    bg: 'bg-blue-100',
-    text: 'text-blue-800',
-    dot: 'bg-blue-600',
-  },
-  Web: {
-    bg: 'bg-slate-200',
-    text: 'text-slate-700',
-    dot: 'bg-slate-400',
-  },
-  'Phone Enquiry': {
-    bg: 'bg-purple-50',
-    text: 'text-purple-700',
-    dot: 'bg-purple-500',
-  },
-  'Walk-in': {
-    bg: 'bg-teal-50',
-    text: 'text-teal-700',
-    dot: 'bg-teal-500',
-  },
-  WhatsApp: {
-    bg: 'bg-green-50',
-    text: 'text-green-700',
-    dot: 'bg-green-500',
-  },
-  Referral: {
-    bg: 'bg-pink-50',
-    text: 'text-pink-700',
-    dot: 'bg-pink-500',
-  },
-  'Social Media': {
-    bg: 'bg-pink-50',
-    text: 'text-pink-700',
-    dot: 'bg-pink-400',
-  },
-  'Education Fair': {
-    bg: 'bg-indigo-50',
-    text: 'text-indigo-700',
-    dot: 'bg-indigo-500',
-  },
-  'Newspaper Ad': {
-    bg: 'bg-orange-50',
-    text: 'text-orange-700',
-    dot: 'bg-orange-500',
-  },
-  'Google Ad': {
-    bg: 'bg-red-50',
-    text: 'text-red-600',
-    dot: 'bg-red-400',
-  },
-  Other: {
-    bg: 'bg-slate-100',
-    text: 'text-slate-500',
-    dot: 'bg-slate-300',
-  },
-}
-
-// const priorityConfig: Record<string, {
-//   bg: string; text: string;
-//   border: string; icon: string
-// }> = {
-//   Normal: {
-//     bg: 'bg-blue-50',
-//     text: 'text-blue-700',
-//     border: 'border-blue-200',
-//     icon: 'Circle',
-//   },
-//   High: {
-//     bg: 'bg-amber-50',
-//     text: 'text-amber-700',
-//     border: 'border-amber-200',
-//     icon: 'TrendingUp',
-//   },
-//   Urgent: {
-//     bg: 'bg-red-50',
-//     text: 'text-red-600',
-//     border: 'border-red-200',
-//     icon: 'Zap',
-//   },
-// }
-
-const counsellors = [
-  {
-    id: '1',
-    name: 'Saran Kumar',
-    avatar: 'SK',
-    role: 'Senior Counsellor',
-  },
-  {
-    id: '2',
-    name: 'Pradeep Kumar',
-    avatar: 'PK',
-    role: 'Counsellor',
-  },
-  {
-    id: '3',
-    name: 'Vimal Das',
-    avatar: 'VD',
-    role: 'Counsellor',
-  },
-]
-
-const currentUser = {
-  name: 'Saran Kumar',
-  firstName: 'Saran',
-}
-
-const getGreeting = (): string => {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 17) return 'Good afternoon'
-  return 'Good evening'
-}
-
-const getIcon = (name: string) => {
-  switch (name) {
-    case 'Sparkles':
-      return Sparkles
-    case 'Phone':
-      return Phone
-    case 'FileText':
-      return FileText
-    case 'Upload':
-      return Upload
-    case 'Users':
-      return Users
-    case 'CreditCard':
-      return CreditCard
-    case 'CheckCircle2':
-      return CheckCircle2
-    case 'XCircle':
-      return XCircle
-    default:
-      return Circle
-  }
-}
-
-
 export default function AdmissionManagementPage() {
   // ===================================================================
   // STATE MANAGEMENT
@@ -341,11 +144,7 @@ export default function AdmissionManagementPage() {
   const [counsellorDropdownId,
     setCounsellorDropdownId] =
     useState<string | null>(null)
-  const [toast, setToast] = useState<{
-    msg: string
-    type: 'success' | 'info' | 'error'
-    show: boolean
-  }>({ msg: '', type: 'success', show: false })
+  const [toast, setToast] = useState<ToastState>({ msg: '', type: 'success', show: false })
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
@@ -558,33 +357,6 @@ export default function AdmissionManagementPage() {
   // Layout sidebar states
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  // Modal Reject Reason state
-  const [rejectReason, setRejectReason] = useState('')
-
-  const [convertStudentName, setConvertStudentName] = useState('')
-  const [convertStudentDob, setConvertStudentDob] = useState('')
-  const [convertStudentGrade, setConvertStudentGrade] = useState('')
-  const [convertStudentSection, setConvertStudentSection] = useState('')
-  const [convertStudentRollNumber, setConvertStudentRollNumber] = useState('')
-  const [convertStudentGuardianName, setConvertStudentGuardianName] = useState('')
-  const [convertError, setConvertError] = useState('')
-  const [isSubmittingConvert, setIsSubmittingConvert] = useState(false)
-
-  useEffect(() => {
-    if (showConvertModal) {
-      setConvertStudentName(showConvertModal.fullName || '')
-      setConvertStudentDob('')
-      setConvertStudentGrade(showConvertModal.applyingFor || '')
-      setConvertStudentSection('')
-      setConvertStudentRollNumber('')
-      setConvertStudentGuardianName(showConvertModal.parentName || '')
-      setConvertError('')
-    }
-  }, [showConvertModal])
-
-  // Bulk action sub-dropdowns
-  const [showBulkStageDropdown, setShowBulkStageDropdown] = useState(false)
-  const [showBulkCounsellorDropdown, setShowBulkCounsellorDropdown] = useState(false)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -994,47 +766,16 @@ export default function AdmissionManagementPage() {
   }
 
   // STEP 11: Wire convert modal confirm
-  const handleConfirmConvert = async () => {
-    if (!showConvertModal) return
-    const applicantId = showConvertModal.id
-    try {
-      setIsSubmittingConvert(true)
-      setConvertError('')
-      const res = await fetch(
-        '/api/v1/admissions/' + applicantId + '/convert',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: convertStudentName,
-            dateOfBirth: convertStudentDob || undefined,
-            gradeLabel: convertStudentGrade,
-            rollNumber: convertStudentRollNumber || undefined,
-            guardianName: convertStudentGuardianName || undefined
-          })
-        }
-      )
-      const json = await res.json()
-      if (!res.ok) {
-        throw new Error(json.error || 'Failed to convert to student record')
-      }
-      showToast(`Student record created: ${json.data.studentCode || 'STU-XXXXX'}`)
-      setShowConvertModal(null)
-      fetchAdmissions()
-      fetchPipeline()
-      router.push(`/student-management/${json.data.id}`)
-    } catch (err: any) {
-      console.error('Convert failed', err)
-      setConvertError(err.message || 'Failed to convert to student')
-    } finally {
-      setIsSubmittingConvert(false)
-    }
+  const handleConvertSuccess = (student: { id: string; studentCode?: string }) => {
+    showToast(`Student record created: ${student.studentCode || 'STU-XXXXX'}`)
+    setShowConvertModal(null)
+    fetchAdmissions()
+    fetchPipeline()
+    router.push(`/student-management/${student.id}`)
   }
 
   // STEP 12: Wire reject confirm
-  const handleConfirmReject = async () => {
+  const handleConfirmReject = async (reason: string) => {
     if (!showRejectModal) return
     const applicantId = showRejectModal.id
     try {
@@ -1047,7 +788,7 @@ export default function AdmissionManagementPage() {
           },
           body: JSON.stringify({
             status: 'REJECTED',
-            rejectionReason: rejectReason
+            rejectionReason: reason
           })
         }
       )
@@ -1057,7 +798,6 @@ export default function AdmissionManagementPage() {
       console.error('Reject failed', err)
     }
     setShowRejectModal(null)
-    setRejectReason('')
   }
 
   // Bulk operation handlers
@@ -1080,7 +820,6 @@ export default function AdmissionManagementPage() {
     } catch (err) {
       console.error('Bulk move failed', err)
     }
-    setShowBulkStageDropdown(false)
     setSelectedItems([])
   }
 
@@ -1100,7 +839,6 @@ export default function AdmissionManagementPage() {
     } catch (err) {
       console.error('Bulk assign failed', err)
     }
-    setShowBulkCounsellorDropdown(false)
     setSelectedItems([])
   }
 
@@ -2879,318 +2617,32 @@ export default function AdmissionManagementPage() {
           )}
       </div>
 
-      {/* ===================================================================
-          SECTION 8 — CONVERT TO STUDENT MODAL
-          =================================================================== */}
-      <Dialog 
-        open={showConvertModal !== null} 
-        onOpenChange={(open) => { if (!open) setShowConvertModal(null) }}
-      >
-        <DialogContent className="max-w-md rounded-2xl p-6 bg-white text-left max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="mb-2">
-            <DialogTitle className="text-xl font-bold font-sans text-slate-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
-              Create Student Record
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-slate-500 mb-4 font-sans">
-            This applicant has been admitted. Create their student profile.
-          </p>
+      <ConvertToStudentModal
+        applicant={showConvertModal}
+        onClose={() => setShowConvertModal(null)}
+        onSuccess={handleConvertSuccess}
+      />
 
-          {convertError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-medium">
-              {convertError}
-            </div>
-          )}
+      <RejectModal
+        applicant={showRejectModal}
+        onClose={() => setShowRejectModal(null)}
+        onConfirm={handleConfirmReject}
+      />
 
-          {showConvertModal && (
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1.5 block font-sans">Full Name</label>
-                <input
-                  type="text"
-                  value={convertStudentName}
-                  onChange={(e) => setConvertStudentName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                  placeholder="Full Name"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1.5 block font-sans">Date of Birth</label>
-                <input
-                  type="date"
-                  value={convertStudentDob}
-                  onChange={(e) => setConvertStudentDob(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1.5 block font-sans">Class / Grade</label>
-                <select
-                  value={convertStudentGrade}
-                  onChange={(e) => setConvertStudentGrade(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="">Select Class/Grade</option>
-                  {GRADE_OPTIONS.map((g) => (
-                    <option key={g.value} value={g.value}>{g.label}</option>
-                  ))}
-                  {convertStudentGrade && !GRADE_OPTIONS.some(opt => opt.value === convertStudentGrade) && (
-                    <option value={convertStudentGrade}>{getGradeLabel(convertStudentGrade)}</option>
-                  )}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block font-sans">Section (Optional)</label>
-                  <input
-                    type="text"
-                    value={convertStudentSection}
-                    onChange={(e) => setConvertStudentSection(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                    placeholder="e.g. A"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 mb-1.5 block font-sans">Roll Number (Optional)</label>
-                  <input
-                    type="text"
-                    value={convertStudentRollNumber}
-                    onChange={(e) => setConvertStudentRollNumber(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                    placeholder="e.g. 101"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1.5 block font-sans">Parent/Guardian Name</label>
-                <input
-                  type="text"
-                  value={convertStudentGuardianName}
-                  onChange={(e) => setConvertStudentGuardianName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                  placeholder="Parent/Guardian Name"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6 select-none">
-                <button
-                  disabled={isSubmittingConvert}
-                  onClick={() => setShowConvertModal(null)}
-                  className="flex-1 px-4 py-3 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-sm font-semibold cursor-pointer font-sans text-center transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  disabled={isSubmittingConvert}
-                  onClick={handleConfirmConvert}
-                  className={`flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold cursor-pointer font-sans text-center transition flex items-center justify-center ${isSubmittingConvert ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {isSubmittingConvert ? (
-                    <>
-                      <Loader2 className="animate-spin size-4 mr-2" />
-                      <span>Creating...</span>
-                    </>
-                  ) : (
-                    <span>Create Student Record →</span>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* ===================================================================
-          SECTION 9 — REJECT MODAL
-          =================================================================== */}
-      <Dialog 
-        open={showRejectModal !== null} 
-        onOpenChange={(open) => { if (!open) { setShowRejectModal(null); setRejectReason('') } }}
-      >
-        <DialogContent className="max-w-md rounded-2xl p-6 bg-white text-left">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold font-sans text-slate-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
-              Reject Application
-            </DialogTitle>
-          </DialogHeader>
-
-          <p className="text-sm text-slate-500 mb-4 font-sans">
-            Please provide a reason for rejecting the application of <span className="font-semibold text-slate-700">{showRejectModal?.fullName}</span>.
-          </p>
-
-          <div className="space-y-4">
-            <div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2 font-sans">
-                Common Reasons
-              </span>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {[
-                  'Documents incomplete',
-                  'Seats full',
-                  'Grade not available',
-                  'No response from parent'
-                ].map((pill) => (
-                  <button
-                    key={pill}
-                    type="button"
-                    onClick={() => setRejectReason(pill)}
-                    className={`text-xs px-3 py-1.5 rounded-full border transition font-medium ${
-                      rejectReason === pill
-                        ? 'bg-red-50 border-red-200 text-red-700 font-semibold'
-                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    {pill}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5 font-sans">
-                Reason for Rejection <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                required
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                className="w-full border border-slate-200 rounded-xl p-3 text-sm text-slate-700 bg-white font-sans outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 h-24 resize-none"
-                placeholder="Enter details..."
-              />
-            </div>
-          </div>
-
-          <div className="flex w-full gap-3 mt-6 select-none">
-            <button
-              onClick={() => { setShowRejectModal(null); setRejectReason('') }}
-              className="flex-1 px-4 py-3 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-sm font-semibold cursor-pointer font-sans text-center transition"
-            >
-              Cancel
-            </button>
-            <button
-              disabled={!rejectReason.trim()}
-              onClick={handleConfirmReject}
-              className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold cursor-pointer font-sans text-center transition"
-            >
-              Confirm Rejection
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ===================================================================
-          SECTION 10 — BULK ACTION BAR
-          =================================================================== */}
-      {selectedItems.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white rounded-2xl px-6 py-3 shadow-2xl flex items-center gap-4 z-50 select-none animate-fade-in whitespace-nowrap">
-          <CheckSquare size={16} className="text-blue-400 shrink-0" strokeWidth={2} />
-          <span className="text-sm font-semibold font-sans">{selectedItems.length} selected</span>
-
-          <div className="w-px h-5 bg-slate-600 shrink-0" />
-
-          {/* Bulk Move Stage Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowBulkStageDropdown(!showBulkStageDropdown)
-                setShowBulkCounsellorDropdown(false)
-              }}
-              className="text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1 cursor-pointer font-sans"
-            >
-              Move Stage ▾
-            </button>
-            {showBulkStageDropdown && (
-              <div className="absolute bottom-full left-0 mb-2.5 z-20 bg-slate-700 text-white rounded-xl border border-slate-650 shadow-lg p-1.5 min-w-[160px] max-h-48 overflow-y-auto">
-                {pipeline.map((s: any) => (
-                  <div
-                    key={s.id}
-                    onClick={() => handleBulkMoveStage(s.id)}
-                    className="px-3 py-1.5 text-xs font-semibold hover:bg-slate-600 rounded-lg cursor-pointer flex items-center gap-2 font-sans"
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full ${s.dotClass}`} />
-                    <span>{s.label}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Bulk Assign Counsellor Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowBulkCounsellorDropdown(!showBulkCounsellorDropdown)
-                setShowBulkStageDropdown(false)
-              }}
-              className="text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1 cursor-pointer font-sans"
-            >
-              Assign Counsellor
-            </button>
-            {showBulkCounsellorDropdown && (
-              <div className="absolute bottom-full left-0 mb-2.5 z-20 bg-slate-700 text-white rounded-xl border border-slate-650 shadow-lg p-1.5 min-w-[160px]">
-                {counsellors.map((c: any) => (
-                  <div
-                    key={c.id}
-                    onClick={() => handleBulkAssignCounsellor(c.name)}
-                    className="px-3 py-1.5 text-xs font-semibold hover:bg-slate-600 rounded-lg cursor-pointer flex items-center gap-2 font-sans"
-                  >
-                    <span>{c.name}</span>
-                  </div>
-                ))}
-                <div className="border-t border-slate-600 my-1" />
-                <div
-                  onClick={() => handleBulkAssignCounsellor(null)}
-                  className="px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-slate-600 rounded-lg cursor-pointer font-sans"
-                >
-                  Unassign
-                </div>
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={() => showToast("Communication sent to selected", "success")}
-            className="text-xs font-semibold text-slate-300 hover:text-white cursor-pointer font-sans"
-          >
-            Send Communication
-          </button>
-
-          <button
-            onClick={() => {
-              showToast("Exported selected applicants", "info")
-              setSelectedItems([])
-            }}
-            className="text-xs font-semibold text-slate-300 hover:text-white cursor-pointer font-sans"
-          >
-            Export
-          </button>
-
-          <div className="w-px h-5 bg-slate-600 shrink-0" />
-
-          <button
-            onClick={handleBulkDelete}
-            className="text-xs font-semibold text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer font-sans"
-          >
-            <Trash2 size={14} strokeWidth={1.5} />
-            <span>Delete</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setSelectedItems([])
-              setShowBulkStageDropdown(false)
-              setShowBulkCounsellorDropdown(false)
-            }}
-            className="p-1 rounded text-slate-400 hover:text-white transition cursor-pointer"
-          >
-            <X size={15} strokeWidth={2} />
-          </button>
-        </div>
-      )}
+      <BulkActionBar
+        selectedCount={selectedItems.length}
+        pipeline={pipeline}
+        counsellors={counsellors}
+        onMoveStage={handleBulkMoveStage}
+        onAssignCounsellor={handleBulkAssignCounsellor}
+        onSendCommunication={() => showToast("Communication sent to selected", "success")}
+        onExport={() => {
+          showToast("Exported selected applicants", "info")
+          setSelectedItems([])
+        }}
+        onDelete={handleBulkDelete}
+        onClear={() => setSelectedItems([])}
+      />
 
       {isLoading && (
         <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center">
@@ -3201,23 +2653,7 @@ export default function AdmissionManagementPage() {
         </div>
       )}
 
-      {/* ===================================================================
-          TOAST NOTIFICATIONS
-          =================================================================== */}
-      {toast.show && (
-        <div className="fixed bottom-6 right-6 md:bottom-6 md:right-6 left-4 right-4 md:left-auto z-50 animate-fade-in select-none">
-          <div className={`p-4 rounded-xl shadow-xl border flex items-center gap-3 bg-white ${
-            toast.type === 'success' ? 'border-green-200 text-green-800' :
-            toast.type === 'error' ? 'border-red-200 text-red-800' :
-            'border-blue-200 text-blue-800'
-          }`}>
-            {toast.type === 'success' && <CheckCircle2 className="size-5 text-green-500" strokeWidth={2.5} />}
-            {toast.type === 'error' && <XCircle className="size-5 text-red-500" strokeWidth={2.5} />}
-            {toast.type === 'info' && <Info className="size-5 text-blue-500" strokeWidth={2.5} />}
-            <span className="text-sm font-semibold font-sans">{toast.msg}</span>
-          </div>
-        </div>
-      )}
+      <Toast toast={toast} />
 
       {openMenuId && typeof document !== 'undefined' &&
         createPortal(

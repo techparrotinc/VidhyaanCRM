@@ -1061,6 +1061,8 @@ export default function MarketplaceHomepage() {
               <Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link>
               <Link href="/terms" className="hover:text-white transition">Terms of Service</Link>
               <Link href="/refunds" className="hover:text-white transition">Refund Policy</Link>
+              <Link href="/products/role-based-access" className="hover:text-white transition">Role-Based Access</Link>
+              <Link href="/products/institution-types" className="hover:text-white transition">Institution Types</Link>
             </div>
           </div>
 

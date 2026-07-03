@@ -1,6 +1,5 @@
 import { Metadata } from 'next'
-import ProductFeaturePage from '@/components/marketplace/ProductFeaturePage'
-import { leadManagementContent } from '@/content/products/lead-management'
+import LeadManagementBespokePage from '@/components/marketplace/LeadManagementBespokePage'
 
 export const metadata: Metadata = {
   title: 'Lead Management Software for Schools & Learning Centers | Vidhyaan',
@@ -8,5 +7,5 @@ export const metadata: Metadata = {
 }
 
 export default function LeadManagementPage() {
-  return <ProductFeaturePage content={leadManagementContent} />
+  return <LeadManagementBespokePage />
 }

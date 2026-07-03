@@ -34,6 +34,23 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-body">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "Vidhyaan",
+              "url": "https://vidhyaan.com",
+              "logo": "https://vidhyaan.com/favicon.ico",
+              "description": "India's premier marketplace for school discoverability, trust, and operations. Helping thousands of nursery schools, preschools, and learning academies capture admissions and automate fee invoicing securely.",
+              "sameAs": [
+                "https://twitter.com",
+                "https://facebook.com"
+              ]
+            })
+          }}
+        />
         <SessionProvider>
           <PageTransitionProvider>
             <Suspense fallback={<LoadingScreen />}>

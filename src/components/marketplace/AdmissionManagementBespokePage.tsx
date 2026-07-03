@@ -79,9 +79,9 @@ export default function AdmissionManagementBespokePage() {
         </span>
         
         <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-[1.1] max-w-4xl mx-auto font-poppins">
-          Simplify School Admissions and{' '}
-          <span className="bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-800 bg-clip-text text-transparent">
-            Track Every Stage
+          Admission Management System for{' '}
+          <span className="bg-gradient-to-r from-purple-650 via-indigo-650 to-purple-850 bg-clip-text text-transparent">
+            Schools & Junior Colleges
           </span>
         </h1>
         
@@ -90,7 +90,7 @@ export default function AdmissionManagementBespokePage() {
         </p>
 
         {/* Intro Paragraph */}
-        <p className="text-slate-500 text-sm md:text-base max-w-2xl mx-auto leading-relaxed font-semibold">
+        <p className="text-slate-550 text-sm md:text-base max-w-2xl mx-auto leading-relaxed font-semibold">
           Admission desks transition to Vidhyaan when manual applicant logs get lost between counsellor handoffs and document updates. By routing documents, scheduling interviews, and recording fee payments in a single visual pipeline, your administration has total transparency on seats and classes.
         </p>
         
@@ -116,50 +116,136 @@ export default function AdmissionManagementBespokePage() {
         </p>
       </section>
 
-      {/* TRUST BAR */}
-      <section className="py-6 px-6 md:px-16 flex flex-col items-center justify-center space-y-6 text-center">
-        <span className="text-[11px] font-black text-slate-400 tracking-widest uppercase">
-          Trusted by schools and learning centers across India
-        </span>
-        <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 text-slate-400">
-          <div className="flex items-center gap-2.5 p-3 px-5 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm transition hover:border-slate-200">
-            <School className="w-5 h-5 text-indigo-500" />
-            <span className="text-sm font-extrabold text-slate-700">K-12 Schools</span>
-          </div>
-          <div className="flex items-center gap-2.5 p-3 px-5 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm transition hover:border-slate-200">
-            <Building2 className="w-5 h-5 text-purple-500" />
-            <span className="text-sm font-extrabold text-slate-700">Junior Colleges</span>
-          </div>
-          <div className="flex items-center gap-2.5 p-3 px-5 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm transition hover:border-slate-200">
-            <GraduationCap className="w-5 h-5 text-emerald-500" />
-            <span className="text-sm font-extrabold text-slate-700">Coaching Hubs</span>
-          </div>
-          <div className="flex items-center gap-2.5 p-3 px-5 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm transition hover:border-slate-200">
-            <Library className="w-5 h-5 text-pink-500" />
-            <span className="text-sm font-extrabold text-slate-700">Learning Centers</span>
-          </div>
-        </div>
-      </section>
-
-      {/* PRODUCT SCREENSHOT SECTION */}
-      <section className="py-12 px-6 md:px-16 space-y-10 flex flex-col items-center bg-slate-50/30 rounded-3xl">
-        <div className="text-center space-y-2.5">
+      {/* 2. STAGE-STEPPER CENTERPIECE (PART 2) */}
+      <section className="py-16 px-6 md:px-16 bg-slate-50/50 rounded-3xl space-y-12 max-w-6xl mx-auto border border-slate-100 shadow-sm">
+        <div className="text-center space-y-3">
+          <span className="text-[10px] font-black text-purple-700 uppercase tracking-widest bg-purple-50 px-3 py-1 rounded-full">
+            Pipeline Visualizer
+          </span>
           <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
-            See every applicant's stage at a glance
+            Admissions Flow, Visualized
           </h2>
           <p className="text-slate-500 font-semibold text-sm md:text-base max-w-xl mx-auto">
-            The actual Admission Management pipeline your counsellors use every day.
+            From the initial application to the final decision. Move applicants through custom stages with zero friction.
           </p>
         </div>
-        <div className="w-full max-w-5xl bg-gradient-to-tr from-slate-100 to-white border border-slate-200 p-4 rounded-3xl shadow-2xl overflow-hidden transition-all duration-300 hover:shadow-purple-500/5 hover:border-purple-100">
-          <Image 
-            src="/images/products/admission-management-screenshot.png"
-            alt="Vidhyaan Admission Management Pipeline Dashboard"
-            width={2880}
-            height={1574}
-            className="w-full h-auto rounded-2xl border border-slate-150/70"
-            loading="lazy"
-          />
+
+        {/* Stepper Grid/Flex Container */}
+        <div className="flex flex-col lg:flex-row items-center lg:justify-between gap-6 lg:gap-4 p-8 bg-white border border-slate-150 rounded-3xl shadow-sm relative overflow-hidden">
+          {/* Background pattern */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-50/40 rounded-full blur-3xl -z-10" />
+
+          {/* Stage 1 */}
+          <div className="flex flex-col items-center text-center p-4 min-w-[140px] relative space-y-3 group">
+            <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-650 flex items-center justify-center shadow-md border border-blue-100 transition group-hover:scale-105">
+              <Sparkles className="w-7 h-7" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-black text-slate-800 font-poppins">Applied</h3>
+              <p className="text-[10px] font-bold text-slate-400">Application Received</p>
+            </div>
+          </div>
+
+          {/* Connector 1 */}
+          <div className="hidden lg:block text-slate-300">
+            <ArrowRight className="w-6 h-6 animate-pulse" />
+          </div>
+          <div className="lg:hidden text-slate-300">↓</div>
+
+          {/* Stage 2 */}
+          <div className="flex flex-col items-center text-center p-4 min-w-[140px] relative space-y-3 group">
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-655 flex items-center justify-center shadow-md border border-amber-100 transition group-hover:scale-105">
+              <FileText className="w-7 h-7" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-black text-slate-800 font-poppins">Verification</h3>
+              <p className="text-[10px] font-bold text-slate-400">Documents Collected</p>
+            </div>
+          </div>
+
+          {/* Connector 2 */}
+          <div className="hidden lg:block text-slate-300">
+            <ArrowRight className="w-6 h-6 animate-pulse" />
+          </div>
+          <div className="lg:hidden text-slate-300">↓</div>
+
+          {/* Stage 3 */}
+          <div className="flex flex-col items-center text-center p-4 min-w-[140px] relative space-y-3 group">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-655 flex items-center justify-center shadow-md border border-indigo-100 transition group-hover:scale-105">
+              <Users className="w-7 h-7" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-black text-slate-800 font-poppins">Interview</h3>
+              <p className="text-[10px] font-bold text-slate-400">Meeting Scheduled</p>
+            </div>
+          </div>
+
+          {/* Connector 3 */}
+          <div className="hidden lg:block text-slate-300">
+            <ArrowRight className="w-6 h-6 animate-pulse" />
+          </div>
+          <div className="lg:hidden text-slate-300">↓</div>
+
+          {/* Stage 4: Decision (Branches out) */}
+          <div className="flex flex-col lg:flex-row items-center gap-6 bg-slate-50/50 p-6 rounded-3xl border border-slate-200/60 shadow-inner">
+            <div className="flex flex-col items-center text-center space-y-3 min-w-[120px] group">
+              <div className="w-16 h-16 rounded-2xl bg-purple-50 text-purple-650 flex items-center justify-center shadow-md border border-purple-100 transition group-hover:scale-105">
+                <Settings className="w-7 h-7" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-black text-slate-800 font-poppins">Decision</h3>
+                <p className="text-[10px] font-bold text-slate-400">Final Outcome</p>
+              </div>
+            </div>
+
+            {/* Connecting lines branching out on desktop, simple flex columns on mobile */}
+            <div className="hidden lg:block w-8 h-16 relative">
+              <svg className="absolute inset-0 w-full h-full text-slate-300" viewBox="0 0 30 60" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M0,30 L15,30 M15,30 L30,5 M15,30 L30,30 M15,30 L30,55" strokeLinecap="round" />
+              </svg>
+            </div>
+
+            {/* Outcome branching cards */}
+            <div className="flex flex-col gap-2.5 min-w-[130px]">
+              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl shadow-sm text-xs font-extrabold justify-center transition hover:scale-102">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
+                Admitted
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl shadow-sm text-xs font-extrabold justify-center transition hover:scale-102">
+                <span className="w-2 h-2 bg-amber-500 rounded-full" />
+                Waitlisted
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-xl shadow-sm text-xs font-extrabold justify-center transition hover:scale-102">
+                <span className="w-2 h-2 bg-red-500 rounded-full" />
+                Rejected
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quiet trust bar placed directly below the stepper centerpiece */}
+        <div className="pt-2 flex flex-col items-center justify-center space-y-4 text-center">
+          <span className="text-[10px] font-black text-slate-400 tracking-widest uppercase">
+            Trusted by schools and junior colleges across India
+          </span>
+          <div className="flex flex-wrap justify-center items-center gap-6 md:gap-12 text-slate-400 opacity-80">
+            <div className="flex items-center gap-2 p-2 px-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+              <School className="w-4 h-4 text-indigo-500" />
+              <span className="text-xs font-bold text-slate-600">K-12 Schools</span>
+            </div>
+            <div className="flex items-center gap-2 p-2 px-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+              <Building2 className="w-4 h-4 text-purple-500" />
+              <span className="text-xs font-bold text-slate-600">Junior Colleges</span>
+            </div>
+            <div className="flex items-center gap-2 p-2 px-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+              <GraduationCap className="w-4 h-4 text-emerald-500" />
+              <span className="text-xs font-bold text-slate-600">Coaching Hubs</span>
+            </div>
+            <div className="flex items-center gap-2 p-2 px-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+              <Library className="w-4 h-4 text-pink-500" />
+              <span className="text-xs font-bold text-slate-600">Learning Centers</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -176,11 +262,11 @@ export default function AdmissionManagementBespokePage() {
             </p>
             <div className="space-y-3 pt-2">
               <div className="flex items-start gap-2.5">
-                <CheckCircle className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+                <CheckCircle className="w-5 h-5 text-purple-650 shrink-0 mt-0.5" />
                 <span className="text-sm font-bold text-slate-700">Digital verification of certificates speeds up eligibility logs</span>
               </div>
               <div className="flex items-start gap-2.5">
-                <CheckCircle className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+                <CheckCircle className="w-5 h-5 text-purple-655 shrink-0 mt-0.5" />
                 <span className="text-sm font-bold text-slate-700">Central audit trail tracks every stage upgrade automatically</span>
               </div>
             </div>
@@ -225,7 +311,7 @@ export default function AdmissionManagementBespokePage() {
 
               {/* Interview */}
               <div className="flex items-center gap-3 w-full max-w-xs p-3 bg-white rounded-2xl border border-slate-150 shadow-sm transition hover:scale-105">
-                <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-xs shrink-0">
+                <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-650 flex items-center justify-center font-black text-xs shrink-0">
                   3
                 </div>
                 <div className="flex flex-col">
@@ -260,7 +346,7 @@ export default function AdmissionManagementBespokePage() {
           <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
             The Complete Admission Journey
           </h2>
-          <p className="text-slate-550 font-semibold text-sm md:text-base max-w-xl mx-auto">
+          <p className="text-slate-555 font-semibold text-sm md:text-base max-w-xl mx-auto">
             How Vidhyaan streamlines the applicant lifecycle from lead conversion to active enrollment.
           </p>
         </div>
@@ -334,13 +420,35 @@ export default function AdmissionManagementBespokePage() {
                   <h3 className="font-extrabold text-slate-800 text-lg font-poppins">
                     {cap.title}
                   </h3>
-                  <p className="text-slate-550 font-semibold text-sm leading-relaxed">
+                  <p className="text-slate-555 font-semibold text-sm leading-relaxed">
                     {cap.body}
                   </p>
                 </div>
               </div>
             )
           })}
+        </div>
+      </section>
+
+      {/* PRODUCT SCREENSHOT SECTION (MOVED DOWN - PART 2) */}
+      <section className="py-16 px-6 md:px-16 space-y-10 flex flex-col items-center bg-slate-50/30 rounded-3xl">
+        <div className="text-center space-y-2.5">
+          <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
+            See it in action
+          </h2>
+          <p className="text-slate-500 font-semibold text-sm md:text-base max-w-xl mx-auto">
+            The real pipeline view your admissions team uses.
+          </p>
+        </div>
+        <div className="w-full max-w-5xl bg-gradient-to-tr from-slate-100 to-white border border-slate-200 p-4 rounded-3xl shadow-2xl overflow-hidden transition-all duration-300 hover:shadow-purple-500/5 hover:border-purple-100">
+          <Image 
+            src="/images/products/admission-management-screenshot.png"
+            alt="Vidhyaan Admission Management Pipeline Dashboard"
+            width={1024}
+            height={873}
+            className="w-full h-auto rounded-2xl border border-slate-150/75 shadow-sm"
+            loading="lazy"
+          />
         </div>
       </section>
 
@@ -393,19 +501,19 @@ export default function AdmissionManagementBespokePage() {
             </h3>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
-                <span className="text-emerald-550 font-black shrink-0 mt-0.5">✓</span>
+                <span className="text-emerald-555 font-black shrink-0 mt-0.5">✓</span>
                 <span className="text-sm font-bold text-slate-800">One live, unified pipeline from application to decision</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-emerald-550 font-black shrink-0 mt-0.5">✓</span>
+                <span className="text-emerald-555 font-black shrink-0 mt-0.5">✓</span>
                 <span className="text-sm font-bold text-slate-800">Integrated document collection directly linked to student record</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-emerald-550 font-black shrink-0 mt-0.5">✓</span>
+                <span className="text-emerald-555 font-black shrink-0 mt-0.5">✓</span>
                 <span className="text-sm font-bold text-slate-800">Real-time pipeline dashboards and seat metrics visible instantly</span>
               </li>
               <li className="flex items-start gap-3">
-                <span className="text-emerald-550 font-black shrink-0 mt-0.5">✓</span>
+                <span className="text-emerald-555 font-black shrink-0 mt-0.5">✓</span>
                 <span className="text-sm font-bold text-slate-800">One-click student enrollment rollover, eliminating double entry</span>
               </li>
             </ul>
@@ -556,7 +664,7 @@ export default function AdmissionManagementBespokePage() {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           <Link href="/products/lead-management" className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-300 transition-all flex items-center gap-4 group">
-            <div className="p-3 rounded-xl bg-indigo-50 text-indigo-650 shrink-0">
+            <div className="p-3 rounded-xl bg-indigo-50 text-indigo-655 shrink-0">
               <Inbox className="w-5 h-5" />
             </div>
             <div>

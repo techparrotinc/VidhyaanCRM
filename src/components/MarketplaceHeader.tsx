@@ -72,6 +72,13 @@ export default function MarketplaceHeader() {
     }
   }, [searchParams])
 
+  // Reset category selector to 'marketplace' whenever dropdown opens
+  useEffect(() => {
+    if (isProductsOpen) {
+      setActiveCategory('marketplace')
+    }
+  }, [isProductsOpen])
+
   const parentName = session?.user?.name || 'Parent User'
   const parentInitials = parentName.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 
@@ -262,34 +269,40 @@ export default function MarketplaceHeader() {
             <div className="max-w-5xl mx-auto flex flex-col">
               
               {/* Main content pane (Sidebar + Detail Panel) */}
-              <div className="flex border-b border-slate-100 min-h-[380px]">
+              <div className="flex border-b border-slate-100 h-[420px]">
                 
                 {/* Left Sidebar */}
-                <div className="w-[200px] border-r border-slate-100 bg-slate-50/50 p-4 flex flex-col gap-1.5 shrink-0">
+                <div className="w-[200px] border-r border-slate-100 bg-blue-50/70 p-4 flex flex-col gap-2 shrink-0 h-fit self-start rounded-bl-xl">
                   <button 
                     onClick={() => setActiveCategory('marketplace')}
-                    className={`w-full text-left px-4 py-3 rounded-xl font-bold font-poppins text-sm transition-all cursor-pointer ${
+                    className={`w-full text-left px-4 py-3 rounded-xl transition-all cursor-pointer ${
                       activeCategory === 'marketplace' 
-                        ? 'bg-white text-[#1565D8] shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-slate-100' 
-                        : 'text-slate-600 hover:bg-slate-100/50 hover:text-slate-900'
+                        ? 'bg-[#1565D8] text-white shadow-md' 
+                        : 'text-slate-600 hover:bg-blue-100/50 hover:text-slate-900'
                     }`}
                   >
-                    Marketplace
+                    <span className="block font-bold font-poppins text-sm">Marketplace</span>
+                    <span className={`block text-[10px] mt-0.5 leading-tight ${activeCategory === 'marketplace' ? 'text-blue-100 font-medium' : 'text-slate-400 font-medium'}`}>
+                      Get discovered by parents
+                    </span>
                   </button>
                   <button 
                     onClick={() => setActiveCategory('crm')}
-                    className={`w-full text-left px-4 py-3 rounded-xl font-bold font-poppins text-sm transition-all cursor-pointer ${
+                    className={`w-full text-left px-4 py-3 rounded-xl transition-all cursor-pointer ${
                       activeCategory === 'crm' 
-                        ? 'bg-white text-[#1565D8] shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-slate-100' 
-                        : 'text-slate-600 hover:bg-slate-100/50 hover:text-slate-900'
+                        ? 'bg-[#1565D8] text-white shadow-md' 
+                        : 'text-slate-600 hover:bg-blue-100/50 hover:text-slate-900'
                     }`}
                   >
-                    Admission CRM
+                    <span className="block font-bold font-poppins text-sm">Admission CRM</span>
+                    <span className={`block text-[10px] mt-0.5 leading-tight ${activeCategory === 'crm' ? 'text-blue-100 font-medium' : 'text-slate-400 font-medium'}`}>
+                      Run admissions end-to-end
+                    </span>
                   </button>
                 </div>
 
                 {/* Right Detail Panel */}
-                <div className="flex-1 p-6 md:p-8 bg-white">
+                <div className="flex-1 p-6 md:p-8 bg-white overflow-y-auto h-full">
                   {activeCategory === 'marketplace' && (
                     <div className="space-y-4">
                       <div className="pb-2 flex items-center gap-2 border-b border-slate-100">
@@ -303,7 +316,7 @@ export default function MarketplaceHeader() {
                           href="/products/marketplace/free-listing" 
                           className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
                         >
-                          <div className="w-7 h-7 rounded-md bg-blue-50 text-[#1565D8] group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
                             <Building className="w-3.5 h-3.5" />
                           </div>
                           <div className="space-y-0.5">
@@ -319,7 +332,7 @@ export default function MarketplaceHeader() {
                           href="/products/marketplace/search-discovery" 
                           className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
                         >
-                          <div className="w-7 h-7 rounded-md bg-blue-50 text-[#1565D8] group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
                             <Search className="w-3.5 h-3.5" />
                           </div>
                           <div className="space-y-0.5">
@@ -335,7 +348,7 @@ export default function MarketplaceHeader() {
                           href="/products/marketplace/compare" 
                           className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
                         >
-                          <div className="w-7 h-7 rounded-md bg-blue-50 text-[#1565D8] group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
                             <GitCompare className="w-3.5 h-3.5" />
                           </div>
                           <div className="space-y-0.5">
@@ -351,7 +364,7 @@ export default function MarketplaceHeader() {
                           href="/products/marketplace/track-application" 
                           className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
                         >
-                          <div className="w-7 h-7 rounded-md bg-blue-50 text-[#1565D8] group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
                             <Activity className="w-3.5 h-3.5" />
                           </div>
                           <div className="space-y-0.5">
@@ -367,7 +380,7 @@ export default function MarketplaceHeader() {
                           href="/products/marketplace/verified-badge" 
                           className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
                         >
-                          <div className="w-7 h-7 rounded-md bg-blue-50 text-[#1565D8] group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
                             <Award className="w-3.5 h-3.5" />
                           </div>
                           <div className="space-y-0.5">
@@ -396,7 +409,7 @@ export default function MarketplaceHeader() {
                           href="/products/lead-management" 
                           className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
                         >
-                          <div className="w-7 h-7 rounded-md bg-blue-50 text-[#1565D8] group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
                             <Users className="w-3.5 h-3.5" />
                           </div>
                           <div className="space-y-0.5">
@@ -412,7 +425,7 @@ export default function MarketplaceHeader() {
                           href="/products/admission-management" 
                           className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
                         >
-                          <div className="w-7 h-7 rounded-md bg-blue-50 text-[#1565D8] group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
                             <ClipboardList className="w-3.5 h-3.5" />
                           </div>
                           <div className="space-y-0.5">
@@ -428,7 +441,7 @@ export default function MarketplaceHeader() {
                           href="/products/student-management" 
                           className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
                         >
-                          <div className="w-7 h-7 rounded-md bg-blue-50 text-[#1565D8] group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
                             <GraduationCap className="w-3.5 h-3.5" />
                           </div>
                           <div className="space-y-0.5">
@@ -444,7 +457,7 @@ export default function MarketplaceHeader() {
                           href="/products/course-management" 
                           className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
                         >
-                          <div className="w-7 h-7 rounded-md bg-blue-50 text-[#1565D8] group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
                             <BookOpen className="w-3.5 h-3.5" />
                           </div>
                           <div className="space-y-0.5">
@@ -460,7 +473,7 @@ export default function MarketplaceHeader() {
                           href="/products/fee-management" 
                           className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
                         >
-                          <div className="w-7 h-7 rounded-md bg-blue-50 text-[#1565D8] group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
                             <CreditCard className="w-3.5 h-3.5" />
                           </div>
                           <div className="space-y-0.5">
@@ -476,7 +489,7 @@ export default function MarketplaceHeader() {
                           href="/products/campaign-management" 
                           className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
                         >
-                          <div className="w-7 h-7 rounded-md bg-blue-50 text-[#1565D8] group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
                             <MessageSquare className="w-3.5 h-3.5" />
                           </div>
                           <div className="space-y-0.5">
@@ -492,7 +505,7 @@ export default function MarketplaceHeader() {
                           href="/products/notifications-alerts" 
                           className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
                         >
-                          <div className="w-7 h-7 rounded-md bg-blue-50 text-[#1565D8] group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
                             <Bell className="w-3.5 h-3.5" />
                           </div>
                           <div className="space-y-0.5">
@@ -508,7 +521,7 @@ export default function MarketplaceHeader() {
                           href="/products/parent-portal" 
                           className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
                         >
-                          <div className="w-7 h-7 rounded-md bg-blue-50 text-[#1565D8] group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
                             <User className="w-3.5 h-3.5" />
                           </div>
                           <div className="space-y-0.5">
@@ -524,7 +537,7 @@ export default function MarketplaceHeader() {
                           href="/products/reporting-analytics" 
                           className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
                         >
-                          <div className="w-7 h-7 rounded-md bg-blue-50 text-[#1565D8] group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
                             <BarChart3 className="w-3.5 h-3.5" />
                           </div>
                           <div className="space-y-0.5">

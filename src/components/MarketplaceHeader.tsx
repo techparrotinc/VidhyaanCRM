@@ -263,16 +263,37 @@ export default function MarketplaceHeader() {
         {/* Mega Menu Dropdown */}
         {isProductsOpen && (
           <div 
-            className="absolute left-0 right-0 top-16 w-full bg-white border-t-[3px] border-[#1565D8] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15),0_15px_25px_-10px_rgba(0,0,0,0.1)] z-40 transition-all duration-300 ease-out"
+            className="absolute left-1/2 -translate-x-1/2 top-[60px] w-[calc(100vw-32px)] max-w-5xl bg-white border border-slate-200 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] z-40 transition-all duration-300 ease-out overflow-hidden"
             onMouseEnter={() => setIsProductsOpen(true)}
           >
-            <div className="max-w-5xl mx-auto flex flex-col">
+            {/* Local Stylesheet for scrollbar */}
+            <style dangerouslySetInnerHTML={{ __html: `
+              .custom-menu-scrollbar::-webkit-scrollbar {
+                width: 6px;
+              }
+              .custom-menu-scrollbar::-webkit-scrollbar-track {
+                background: transparent;
+              }
+              .custom-menu-scrollbar::-webkit-scrollbar-thumb {
+                background-color: #CBD5E1;
+                border-radius: 9999px;
+              }
+              .custom-menu-scrollbar::-webkit-scrollbar-thumb:hover {
+                background-color: #94A3B8;
+              }
+              .custom-menu-scrollbar {
+                scrollbar-width: thin;
+                scrollbar-color: #CBD5E1 transparent;
+              }
+            `}} />
+
+            <div className="flex flex-col">
               
               {/* Main content pane (Sidebar + Detail Panel) */}
               <div className="flex border-b border-slate-100 h-[420px]">
                 
                 {/* Left Sidebar */}
-                <div className="w-[200px] border-r border-slate-100 bg-blue-50/70 p-4 flex flex-col gap-2 shrink-0 h-fit self-start rounded-bl-xl">
+                <div className="w-[200px] border-r border-slate-100 bg-blue-50/70 p-4 flex flex-col gap-2 shrink-0 h-fit self-start">
                   <button 
                     onClick={() => setActiveCategory('marketplace')}
                     className={`w-full text-left px-4 py-3 rounded-xl transition-all cursor-pointer ${
@@ -302,7 +323,7 @@ export default function MarketplaceHeader() {
                 </div>
 
                 {/* Right Detail Panel */}
-                <div className="flex-1 p-6 md:p-8 bg-white overflow-y-auto h-full">
+                <div className="flex-1 p-6 md:p-8 bg-white overflow-y-auto h-full custom-menu-scrollbar">
                   {activeCategory === 'marketplace' && (
                     <div className="space-y-4">
                       <div className="pb-2 flex items-center gap-2 border-b border-slate-100">

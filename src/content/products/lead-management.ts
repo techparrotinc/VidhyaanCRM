@@ -9,15 +9,15 @@ export const leadManagementContent: ProductFeaturePageContent = {
   trustLine: "Free listing forever · Setup in under 15 minutes · No credit card required",
   problem: {
     heading: "A missed follow-up is a lost admission",
-    body: "Enquiries come in from everywhere — a phone call to the front desk, a walk-in parent, a form on your website, an enquiry from your marketplace listing — and without a single place to track them, some inevitably get forgotten. Vidhyaan's lead management software puts every enquiry into one pipeline your whole team can see, so a follow-up never depends on one person's memory."
+    body: "Enquiries come in from everywhere — a phone call to the front desk, a walk-in parent, a form on your website, an enquiry from your marketplace listing — and without a single place to track them, some inevitably get forgotten. Vidhyaan's lead management software puts every enquiry into one pipeline your whole team can see, so a follow-up never depends on one person's memory. For instance, when a parent calls about Class 4 admission availability, their details shouldn't end up on a sticky note that gets swept off the front desk before a counsellor can call them back."
   },
   capabilities: [
-    { heading: "Centralized enquiry inbox", title: "One pipeline, every enquiry, no exceptions", body: "Every lead — regardless of source — lands in the same pipeline, tagged with where it came from.", icon: "Inbox" },
-    { title: "Counsellor assignment", body: "Assign enquiries to a specific counsellor, manually or automatically, so ownership is always clear.", icon: "UserCheck" },
-    { title: "Status tracking that actually reflects reality", body: "Move leads through New, Contacted, Converted, Rejected, or Follow-up status, with color-coded visibility for your whole team at a glance.", icon: "Activity" },
-    { title: "Follow-up scheduling", body: "Set a follow-up date on any lead and get a clear view of what's due today — nothing goes cold because no one remembered to check back.", icon: "Calendar" },
-    { title: "Complete activity timeline", body: "Every call, note, WhatsApp message, and email tied to a lead is logged in one place — any counsellor can pick up where another left off.", icon: "Clock" },
-    { title: "One-click conversion", body: "Convert a qualified lead directly into an admission application (Schools/Junior Colleges) or a student record (Learning Centers/Coaching Centers) — no re-entering the same details in a second system.", icon: "RefreshCw" }
+    { heading: "Centralized enquiry inbox", title: "One pipeline, every enquiry, no exceptions", body: "Every lead — regardless of source — lands in the same pipeline, tagged with where it came from. This gives your marketing team clear visibility into which channels are actually driving the most parent enquiries.", icon: "Inbox" },
+    { title: "Counsellor assignment", body: "Assign enquiries to a specific counsellor, manually or automatically, so ownership is always clear. This prevents duplicate phone calls to the same parent while ensuring no lead sits unaddressed.", icon: "UserCheck" },
+    { title: "Status tracking that actually reflects reality", body: "Move leads through New, Contacted, Converted, Rejected, or Follow-up status, with color-coded visibility for your whole team at a glance. Staff can instantly filter by status to see who needs immediate attention today.", icon: "Activity" },
+    { title: "Follow-up scheduling", body: "Set a follow-up date on any lead and get a clear view of what's due today — nothing goes cold because no one remembered to check back. Daily reminders ensure that high-intent families receive a phone call exactly when promised.", icon: "Calendar" },
+    { title: "Complete activity timeline", body: "Every call, note, WhatsApp message, and email tied to a lead is logged in one place — any counsellor can pick up where another left off. This keeps communication seamless even if the primary counsellor is out of the office.", icon: "Clock" },
+    { title: "One-click conversion", body: "Convert a qualified lead directly into an admission application (Schools/Junior Colleges) or a student record (Learning Centers/Coaching Centers) — no re-entering the same details in a second system. Eliminating manual data transfer saves hours of administrative time during peak admission season.", icon: "RefreshCw" }
   ],
   howItWorks: {
     heading: "From first enquiry to conversion in four steps",
@@ -30,7 +30,7 @@ export const leadManagementContent: ProductFeaturePageContent = {
   },
   whoThisIsFor: {
     heading: "Every institution type, from the very first enquiry",
-    body: "Lead Management is available to all four institution types — Schools, Junior Colleges, Learning Centers, and Coaching Centers — since every institution needs to capture and track enquiries before anything else happens, regardless of whether a formal admission pipeline follows."
+    body: "Lead Management is available to all four institution types — Schools, Junior Colleges, Learning Centers, and Coaching Centers — since every institution needs to capture and track enquiries before anything else happens, regardless of whether a formal admission pipeline follows. For a first-time learning center owner or preschool director, this provides a professional setup from day one to build trust with parents, even without dedicated administrative staff."
   },
   faq: {
     heading: "FAQ",

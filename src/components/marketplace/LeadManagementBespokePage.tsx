@@ -312,94 +312,32 @@ export default function LeadManagementBespokePage() {
         </div>
       </section>
 
-      {/* 4. HOW IT WORKS */}
-      <section className="py-16 px-6 md:px-16 bg-slate-50/30 rounded-3xl space-y-8">
-        <h2 className="text-2xl md:text-3xl font-black text-slate-900 text-center tracking-tight font-poppins">
-          {leadManagementContent.howItWorks.heading}
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative max-w-5xl mx-auto">
-          {/* Connector line for large screens */}
-          <div className="hidden md:block absolute top-6 left-[16%] right-[16%] h-0.5 bg-slate-200/60 -z-10" />
-
-          {leadManagementContent.howItWorks.steps.map((step, idx) => (
-            <div key={idx} className="text-center p-2 space-y-4 flex flex-col items-center relative">
-              <div className="w-12 h-12 rounded-full text-white flex items-center justify-center font-black shadow-md border border-white bg-indigo-600">
-                {idx + 1}
-              </div>
-              <p className="text-xs text-slate-655 font-bold leading-relaxed max-w-xs">
-                {step}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* STATS ROW & CIRCULAR METRIC INFOGRAPHIC (PART 4 & INFOGRAPHIC C) */}
+      {/* STATS ROW */}
       <section className="py-16 px-6 md:px-16 bg-gradient-to-b from-indigo-50/20 via-white to-slate-50/40 rounded-3xl">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          {/* Left: Stats columns */}
-          <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-slate-200">
-            <div className="text-center space-y-2 py-4 md:py-0">
-              <span className="text-6xl font-black text-[#1565D8] block font-poppins tracking-tight">
-                0
-              </span>
-              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto block leading-tight">
-                Leads lost to missed follow-ups
-              </span>
-            </div>
-            <div className="text-center space-y-2 pt-6 md:pt-0 py-4 md:py-0">
-              <span className="text-6xl font-black text-[#1565D8] block font-poppins tracking-tight">
-                1
-              </span>
-              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto block leading-tight">
-                Pipeline, every source
-              </span>
-            </div>
-            <div className="text-center space-y-2 pt-6 md:pt-0 py-4 md:py-0">
-              <span className="text-6xl font-black text-[#1565D8] block font-poppins tracking-tight">
-                15m
-              </span>
-              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto block leading-tight">
-                Average setup time
-              </span>
-            </div>
-          </div>
-
-          {/* Right: Circular Metric Wheel Infographic C */}
-          <div className="lg:col-span-4 bg-white border border-slate-200 rounded-3xl p-6 flex flex-col items-center space-y-6 shadow-sm">
-            <span className="text-[10px] font-black text-indigo-650 uppercase tracking-wider">
-              Admission Health Rate
+        <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+          <div className="text-center space-y-2 py-4 md:py-0">
+            <span className="text-6xl font-black text-[#1565D8] block font-poppins tracking-tight">
+              0
             </span>
-
-            {/* SVG circle meter */}
-            <div className="relative w-36 h-36 flex items-center justify-center">
-              <svg className="w-full h-full transform -rotate-95" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="40" stroke="#f1f5f9" strokeWidth="12" fill="transparent" />
-                <circle cx="50" cy="50" r="40" stroke="#1565D8" strokeWidth="12" fill="transparent" strokeDasharray="251.2" strokeDashoffset="80" strokeLinecap="round" />
-                <circle cx="50" cy="50" r="40" stroke="#8b5cf6" strokeWidth="12" fill="transparent" strokeDasharray="251.2" strokeDashoffset="180" strokeLinecap="round" />
-              </svg>
-              <div className="absolute text-center flex flex-col justify-center items-center">
-                <span className="text-2xl font-black text-slate-800 font-poppins leading-none">68%</span>
-                <span className="text-[9px] font-bold text-slate-400 uppercase">Converted</span>
-              </div>
-            </div>
-
-            {/* Legends */}
-            <div className="w-full grid grid-cols-3 gap-2 text-center border-t border-slate-100 pt-4">
-              <div className="flex flex-col items-center">
-                <div className="w-2.5 h-2.5 bg-[#1565D8] rounded-full mb-1" />
-                <span className="text-[9px] font-black text-slate-800">68% Admitted</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="w-2.5 h-2.5 bg-purple-500 rounded-full mb-1" />
-                <span className="text-[9px] font-black text-slate-800">22% Follow-up</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="w-2.5 h-2.5 bg-slate-200 rounded-full mb-1" />
-                <span className="text-[9px] font-black text-slate-800">10% New</span>
-              </div>
-            </div>
+            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto block leading-tight">
+              Leads lost to missed follow-ups
+            </span>
+          </div>
+          <div className="text-center space-y-2 pt-6 md:pt-0 py-4 md:py-0">
+            <span className="text-6xl font-black text-[#1565D8] block font-poppins tracking-tight">
+              1
+            </span>
+            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto block leading-tight">
+              Pipeline, every source
+            </span>
+          </div>
+          <div className="text-center space-y-2 pt-6 md:pt-0 py-4 md:py-0">
+            <span className="text-6xl font-black text-[#1565D8] block font-poppins tracking-tight">
+              15m
+            </span>
+            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto block leading-tight">
+              Average setup time
+            </span>
           </div>
         </div>
       </section>

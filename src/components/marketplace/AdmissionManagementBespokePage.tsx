@@ -431,24 +431,49 @@ export default function AdmissionManagementBespokePage() {
       </section>
 
       {/* PRODUCT SCREENSHOT SECTION (MOVED DOWN - PART 2) */}
-      <section className="py-16 px-6 md:px-16 space-y-10 flex flex-col items-center bg-slate-50/30 rounded-3xl">
-        <div className="text-center space-y-2.5">
+      <section className="py-16 px-6 md:px-16 space-y-10 flex flex-col items-center bg-slate-50/30 rounded-3xl w-full">
+        <div className="text-center space-y-2.5 max-w-2xl">
           <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
             See it in action
           </h2>
-          <p className="text-slate-500 font-semibold text-sm md:text-base max-w-xl mx-auto">
-            The real pipeline view your admissions team uses.
+          <p className="text-slate-555 font-semibold text-sm md:text-base leading-relaxed">
+            The real Admission Management pipeline your team uses every day — from list view to individual applicant tracking.
           </p>
         </div>
-        <div className="w-full max-w-5xl bg-gradient-to-tr from-slate-100 to-white border border-slate-200 p-4 rounded-3xl shadow-2xl overflow-hidden transition-all duration-300 hover:shadow-purple-500/5 hover:border-purple-100">
-          <Image 
-            src="/images/products/admission-management-screenshot.png"
-            alt="Vidhyaan Admission Management kanban pipeline view displaying applicant stages from applied to verified, interview, and admitted."
-            width={1024}
-            height={873}
-            className="w-full h-auto rounded-2xl border border-slate-150/75 shadow-sm"
-            loading="lazy"
-          />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-6xl">
+          {/* List screenshot card */}
+          <div className="flex flex-col space-y-3 bg-gradient-to-tr from-slate-100 to-white border border-slate-200 p-4 rounded-3xl shadow-xl transition-all duration-300 hover:shadow-purple-500/5 hover:border-purple-100">
+            <div className="overflow-hidden rounded-2xl border border-slate-150/75 shadow-sm">
+              <Image 
+                src="/images/products/admission-management-list-screenshot.png"
+                alt="Vidhyaan Admission Management pipeline list dashboard showing stage status tabs, KPIs, search fields, and counsellor assignments."
+                width={1024}
+                height={572}
+                className="w-full h-auto"
+                loading="lazy"
+              />
+            </div>
+            <p className="text-xs font-bold text-slate-500 text-center">
+              Pipeline view — every applicant, every stage, at a glance
+            </p>
+          </div>
+
+          {/* Detail screenshot card */}
+          <div className="flex flex-col space-y-3 bg-gradient-to-tr from-slate-100 to-white border border-slate-200 p-4 rounded-3xl shadow-xl transition-all duration-300 hover:shadow-purple-500/5 hover:border-purple-100">
+            <div className="overflow-hidden rounded-2xl border border-slate-150/75 shadow-sm">
+              <Image 
+                src="/images/products/admission-management-detail-screenshot.png"
+                alt="Vidhyaan Admission Management manual entry form for student applications showing student information and enrollment configurations."
+                width={1024}
+                height={585}
+                className="w-full h-auto"
+                loading="lazy"
+              />
+            </div>
+            <p className="text-xs font-bold text-slate-500 text-center">
+              Applicant detail — stage history and activity timeline in one place
+            </p>
+          </div>
         </div>
       </section>
 

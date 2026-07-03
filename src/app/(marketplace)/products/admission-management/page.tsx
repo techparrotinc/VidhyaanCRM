@@ -11,9 +11,9 @@ export const metadata: Metadata = {
     url: 'https://vidhyaan.com/products/admission-management',
     images: [
       {
-        url: 'https://vidhyaan.com/images/products/admission-management-screenshot.png',
+        url: 'https://vidhyaan.com/images/products/admission-management-list-screenshot.png',
         width: 1024,
-        height: 873,
+        height: 572,
         alt: 'Vidhyaan Admission Management Pipeline Dashboard displaying stages from applied to verified, interview, and admitted.',
       }
     ],
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Admission Management System for Schools & Junior Colleges in India | Vidhyaan',
     description: 'Run your entire admission process on one platform — customizable pipelines, document collection, and instant conversion to enrolled student. Setup in under 15 minutes.',
-    images: ['https://vidhyaan.com/images/products/admission-management-screenshot.png'],
+    images: ['https://vidhyaan.com/images/products/admission-management-list-screenshot.png'],
   },
   alternates: {
     canonical: 'https://vidhyaan.com/products/admission-management',

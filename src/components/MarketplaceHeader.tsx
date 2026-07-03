@@ -254,100 +254,209 @@ export default function MarketplaceHeader() {
             className="absolute left-0 right-0 top-16 w-full bg-white border-t-[3px] border-[#1565D8] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15),0_15px_25px_-10px_rgba(0,0,0,0.1)] z-40 transition-all duration-300 ease-out"
             onMouseEnter={() => setIsProductsOpen(true)}
           >
-            <div className="max-w-4xl mx-auto px-4 md:px-6 lg:px-8 py-8 flex flex-col gap-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                
-                {/* Column 1 - Marketplace */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8] pb-2 border-b border-slate-100">
-                    Marketplace
-                  </h3>
-                  <div className="grid grid-cols-1 gap-3.5">
-                    <Link href="/products/marketplace/free-listing" className="group flex items-center gap-2.5 text-slate-700 hover:text-[#1565D8] transition font-bold text-sm">
-                      <Building className="w-4 h-4 text-slate-400 group-hover:text-[#1565D8] shrink-0" />
-                      <span>Free School & Learning Center Listing</span>
-                    </Link>
-                    <Link href="/products/marketplace/search-discovery" className="group flex items-center gap-2.5 text-slate-700 hover:text-[#1565D8] transition font-bold text-sm">
-                      <Search className="w-4 h-4 text-slate-400 group-hover:text-[#1565D8] shrink-0" />
-                      <span>Parent Search & Discovery</span>
-                    </Link>
-                    <Link href="/products/marketplace/compare" className="group flex items-center gap-2.5 text-slate-700 hover:text-[#1565D8] transition font-bold text-sm">
-                      <GitCompare className="w-4 h-4 text-slate-400 group-hover:text-[#1565D8] shrink-0" />
-                      <span>Compare Schools Side-by-Side</span>
-                    </Link>
-                    <Link href="/products/marketplace/track-application" className="group flex items-center gap-2.5 text-slate-700 hover:text-[#1565D8] transition font-bold text-sm">
-                      <Activity className="w-4 h-4 text-slate-400 group-hover:text-[#1565D8] shrink-0" />
-                      <span>Track Your Application</span>
-                    </Link>
-                    <Link href="/products/marketplace/verified-badge" className="group flex items-center gap-2.5 text-slate-700 hover:text-[#1565D8] transition font-bold text-sm">
-                      <Award className="w-4 h-4 text-slate-400 group-hover:text-[#1565D8] shrink-0" />
-                      <span>Verified Profile Badge</span>
-                    </Link>
+            <div className="max-w-5xl mx-auto">
+              <div className="px-6 md:px-8 py-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+                  
+                  {/* Column 1 - Marketplace */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#1565D8]" />
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
+                        Marketplace Platform
+                      </h3>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Link 
+                        href="/products/marketplace/free-listing" 
+                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <Building className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
+                          Free School Listing
+                        </span>
+                      </Link>
+                      <Link 
+                        href="/products/marketplace/search-discovery" 
+                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <Search className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
+                          Parent Search & Discovery
+                        </span>
+                      </Link>
+                      <Link 
+                        href="/products/marketplace/compare" 
+                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <GitCompare className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
+                          Compare Schools Side-by-Side
+                        </span>
+                      </Link>
+                      <Link 
+                        href="/products/marketplace/track-application" 
+                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <Activity className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
+                          Track Your Application
+                        </span>
+                      </Link>
+                      <Link 
+                        href="/products/marketplace/verified-badge" 
+                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <Award className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
+                          Verified Profile Badge
+                        </span>
+                      </Link>
+                    </div>
                   </div>
-                </div>
 
-                {/* Column 2 - Admission CRM */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8] pb-2 border-b border-slate-100">
-                    Admission CRM
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3.5">
-                    <Link href="/products/lead-management" className="group flex items-center gap-2.5 text-slate-700 hover:text-[#1565D8] transition font-bold text-sm">
-                      <Users className="w-4 h-4 text-slate-400 group-hover:text-[#1565D8] shrink-0" />
-                      <span>Lead Management</span>
-                    </Link>
-                    <Link href="/products/admission-management" className="group flex items-center gap-2.5 text-slate-700 hover:text-[#1565D8] transition font-bold text-sm">
-                      <ClipboardList className="w-4 h-4 text-slate-400 group-hover:text-[#1565D8] shrink-0" />
-                      <span>Admission Management</span>
-                    </Link>
-                    <Link href="/products/student-management" className="group flex items-center gap-2.5 text-slate-700 hover:text-[#1565D8] transition font-bold text-sm">
-                      <GraduationCap className="w-4 h-4 text-slate-400 group-hover:text-[#1565D8] shrink-0" />
-                      <span>Student Management</span>
-                    </Link>
-                    <Link href="/products/course-management" className="group flex items-center gap-2.5 text-slate-700 hover:text-[#1565D8] transition font-bold text-sm">
-                      <BookOpen className="w-4 h-4 text-slate-400 group-hover:text-[#1565D8] shrink-0" />
-                      <span>Course & Batch Management</span>
-                    </Link>
-                    <Link href="/products/fee-management" className="group flex items-center gap-2.5 text-slate-700 hover:text-[#1565D8] transition font-bold text-sm">
-                      <CreditCard className="w-4 h-4 text-slate-400 group-hover:text-[#1565D8] shrink-0" />
-                      <span>Fee Management & Payments</span>
-                    </Link>
-                    <Link href="/products/campaign-management" className="group flex items-center gap-2.5 text-slate-700 hover:text-[#1565D8] transition font-bold text-sm">
-                      <MessageSquare className="w-4 h-4 text-slate-400 group-hover:text-[#1565D8] shrink-0" />
-                      <span>Campaign Management</span>
-                    </Link>
-                    <Link href="/products/notifications-alerts" className="group flex items-center gap-2.5 text-slate-700 hover:text-[#1565D8] transition font-bold text-sm">
-                      <Bell className="w-4 h-4 text-slate-400 group-hover:text-[#1565D8] shrink-0" />
-                      <span>Notifications & Alerts</span>
-                    </Link>
-                    <Link href="/products/parent-portal" className="group flex items-center gap-2.5 text-slate-700 hover:text-[#1565D8] transition font-bold text-sm">
-                      <User className="w-4 h-4 text-slate-400 group-hover:text-[#1565D8] shrink-0" />
-                      <span>Parent Portal</span>
-                    </Link>
-                    <Link href="/products/reporting-analytics" className="group flex items-center gap-2.5 text-slate-700 hover:text-[#1565D8] transition font-bold text-sm">
-                      <BarChart3 className="w-4 h-4 text-slate-400 group-hover:text-[#1565D8] shrink-0" />
-                      <span>Reports & Analytics</span>
-                    </Link>
+                  {/* Columns 2 & 3 - Admission CRM */}
+                  <div className="md:col-span-2 space-y-4">
+                    <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#1565D8]" />
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
+                        Admission CRM Solutions
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                      <Link 
+                        href="/products/lead-management" 
+                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <Users className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
+                          Lead Management
+                        </span>
+                      </Link>
+                      <Link 
+                        href="/products/admission-management" 
+                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <ClipboardList className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
+                          Admission Management
+                        </span>
+                      </Link>
+                      <Link 
+                        href="/products/student-management" 
+                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <GraduationCap className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
+                          Student Management
+                        </span>
+                      </Link>
+                      <Link 
+                        href="/products/course-management" 
+                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <BookOpen className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
+                          Course & Batch Management
+                        </span>
+                      </Link>
+                      <Link 
+                        href="/products/fee-management" 
+                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <CreditCard className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
+                          Fee & Payment Management
+                        </span>
+                      </Link>
+                      <Link 
+                        href="/products/campaign-management" 
+                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <MessageSquare className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
+                          Campaign Management
+                        </span>
+                      </Link>
+                      <Link 
+                        href="/products/notifications-alerts" 
+                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <Bell className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
+                          Notifications & Alerts
+                        </span>
+                      </Link>
+                      <Link 
+                        href="/products/parent-portal" 
+                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <User className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
+                          Parent Portal
+                        </span>
+                      </Link>
+                      <Link 
+                        href="/products/reporting-analytics" 
+                        className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                          <BarChart3 className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
+                          Reports & Analytics
+                        </span>
+                      </Link>
+                    </div>
                   </div>
-                </div>
 
+                </div>
               </div>
 
               {/* Bottom banner row */}
-              <Link 
-                href="/register-school" 
-                className="mt-2 p-4 bg-blue-50/60 hover:bg-blue-50 rounded-2xl flex items-center justify-between border border-blue-100/50 transition duration-200 group cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-extrabold text-[#1565D8] uppercase tracking-wider bg-blue-100 px-2 py-0.5 rounded shrink-0">Listing offer</span>
-                  <p className="text-xs font-bold text-slate-700">
-                    Free Discovery Listing — List your school free and get discovered by parents
+              <div className="bg-slate-50 border-t border-slate-100 px-6 md:px-8 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[10px] font-extrabold text-[#1565D8] uppercase tracking-wider bg-blue-100 px-2 py-0.5 rounded shrink-0">
+                    Listing offer
+                  </span>
+                  <p className="text-xs font-bold text-slate-650">
+                    Free Discovery Listing &mdash; List your school free and get discovered by parents
                   </p>
                 </div>
-                <div className="text-xs font-extrabold text-[#1565D8] flex items-center gap-1 shrink-0">
-                  Get Started <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </Link>
+                <Link 
+                  href="/register-school" 
+                  className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#1565D8] hover:text-blue-700 transition group cursor-pointer"
+                >
+                  Register Your School Free 
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              </div>
 
             </div>
           </div>

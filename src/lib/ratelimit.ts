@@ -17,32 +17,24 @@ export async function otpSendLimiter(key: string): Promise<RateLimitResult> {
   const windowSeconds = 15 * 60 // 15 minutes
   const redisKey = `ratelimit:${key}`
 
-  // Fetch current request count
-  const currentVal = await redis.get(redisKey)
-  const currentCount = currentVal ? parseInt(currentVal) : 0
-
-  if (currentCount >= limit) {
-    const ttlVal = await redis.ttl(redisKey)
-    return {
-      success: false,
-      limit,
-      remaining: 0,
-      reset: ttlVal > 0 ? ttlVal : windowSeconds
-    }
-  }
-
-  // Increment the request count
+  // INCR first — atomic, so concurrent requests each get a distinct count
+  // and none can slip past the limit via a read-then-write race.
   const newCount = await redis.incr(redisKey)
-  
-  // Set expiration if this is the first request in the window
+
   if (newCount === 1) {
-    await redis.set(redisKey, '1', 'EX', windowSeconds)
+    await redis.expire(redisKey, windowSeconds)
   }
 
-  const ttlVal = await redis.ttl(redisKey)
+  let ttlVal = await redis.ttl(redisKey)
+
+  // Heal a key left without expiry (process died between INCR and EXPIRE)
+  if (ttlVal === -1) {
+    await redis.expire(redisKey, windowSeconds)
+    ttlVal = windowSeconds
+  }
 
   return {
-    success: true,
+    success: newCount <= limit,
     limit,
     remaining: Math.max(0, limit - newCount),
     reset: ttlVal > 0 ? ttlVal : windowSeconds

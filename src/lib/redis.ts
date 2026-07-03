@@ -29,10 +29,22 @@ class MemoryRedisMock {
   }
 
   async incr(key: string): Promise<number> {
-    const val = await this.get(key)
-    const num = val ? parseInt(val) + 1 : 1
-    await this.set(key, String(num))
+    const item = this.store.get(key)
+    const expired = item?.expiresAt && Date.now() > item.expiresAt
+    const num = item && !expired ? parseInt(item.value) + 1 : 1
+    // Preserve existing TTL (Redis INCR does not touch expiry)
+    this.store.set(key, {
+      value: String(num),
+      expiresAt: item && !expired ? item.expiresAt : null
+    })
     return num
+  }
+
+  async expire(key: string, seconds: number): Promise<number> {
+    const item = this.store.get(key)
+    if (!item) return 0
+    item.expiresAt = Date.now() + seconds * 1000
+    return 1
   }
 
   async ttl(key: string): Promise<number> {
@@ -81,18 +93,43 @@ class UpstashRedisWrapper {
     return await this.client.incr(key)
   }
 
+  async expire(key: string, seconds: number): Promise<number> {
+    return await this.client.expire(key, seconds)
+  }
+
   async ttl(key: string): Promise<number> {
     return await this.client.ttl(key)
   }
 }
 
-let redis: UpstashRedisWrapper | MemoryRedisMock
+// In production a per-instance in-memory mock silently breaks rate limits,
+// session revocation, and cache coherence across instances — so refuse to
+// run without a real Redis. Throws lazily (on first use, not import) so
+// builds without runtime env vars still compile.
+class UnconfiguredRedis {
+  private fail(): never {
+    throw new Error(
+      'Redis is not configured: set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN. ' +
+      'The in-memory fallback is disabled in production.'
+    )
+  }
+  async get(_key: string): Promise<string | null> { this.fail() }
+  async set(_key: string, _value: string, _mode?: 'EX', _ttl?: number): Promise<'OK'> { this.fail() }
+  async del(_key: string): Promise<number> { this.fail() }
+  async incr(_key: string): Promise<number> { this.fail() }
+  async expire(_key: string, _seconds: number): Promise<number> { this.fail() }
+  async ttl(_key: string): Promise<number> { this.fail() }
+}
+
+let redis: UpstashRedisWrapper | MemoryRedisMock | UnconfiguredRedis
 
 if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
   redis = new UpstashRedisWrapper(
     process.env.UPSTASH_REDIS_REST_URL,
     process.env.UPSTASH_REDIS_REST_TOKEN
   )
+} else if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_MEMORY_REDIS) {
+  redis = new UnconfiguredRedis()
 } else {
   const globalRef = globalThis as any
   if (!globalRef.redisMock) {

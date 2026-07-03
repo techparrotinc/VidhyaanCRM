@@ -10,7 +10,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "studio": "prisma studio"
+    "studio": "prisma studio",
+    "test": "vitest run"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
@@ -51,6 +52,7 @@
     "prisma": "^5.22.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.9"
   }
 }

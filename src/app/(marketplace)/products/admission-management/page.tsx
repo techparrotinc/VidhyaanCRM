@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import ProductFeaturePage from '@/components/marketplace/ProductFeaturePage'
+import AdmissionManagementBespokePage from '@/components/marketplace/AdmissionManagementBespokePage'
 import { admissionManagementContent } from '@/content/products/admission-management'
 
 export const metadata: Metadata = {
@@ -8,5 +8,26 @@ export const metadata: Metadata = {
 }
 
 export default function AdmissionManagementPage() {
-  return <ProductFeaturePage content={admissionManagementContent} />
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: admissionManagementContent.faq.items.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.a,
+      },
+    })),
+  }
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <AdmissionManagementBespokePage />
+    </>
+  )
 }

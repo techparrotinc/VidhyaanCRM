@@ -255,44 +255,44 @@ export default function MarketplaceHeader() {
         {/* Mega Menu Dropdown */}
         {isProductsOpen && (
           <div 
-            className="absolute left-1/2 -translate-x-1/2 top-[60px] w-[calc(100vw-32px)] max-w-5xl bg-white border border-slate-200 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] z-40 transition-all duration-300 ease-out overflow-hidden"
+            className="absolute left-1/2 -translate-x-1/2 top-[60px] w-[90vw] max-w-[1200px] bg-white border border-slate-200 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] z-40 transition-all duration-300 ease-out overflow-hidden"
             onMouseEnter={() => setIsProductsOpen(true)}
           >
-            <div className="grid grid-cols-[230px_1fr_270px] w-full">
+            <div className="grid grid-cols-[300px_1fr_340px] w-full">
               
               {/* Column 1 — Curated Shortcuts (What do you want to do?) */}
-              <div className="bg-slate-50/80 p-6 flex flex-col gap-5 shrink-0 border-r border-slate-100">
-                <h3 className="text-[10px] font-extrabold font-poppins uppercase tracking-wider text-slate-400 mb-1">
+              <div className="bg-slate-50/80 pt-12 pb-12 pl-12 pr-10 flex flex-col gap-6 shrink-0 border-r border-slate-200/50">
+                <h3 className="text-2xl font-semibold font-poppins text-slate-800 pb-4 border-b border-slate-100 mb-6">
                   What do you want to do?
                 </h3>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-y-[14px]">
                   <Link 
                     href="/register-school" 
-                    className="text-xs font-bold font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
+                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
                   >
                     List your school for free
                   </Link>
                   <Link 
                     href="/products/marketplace/track-application" 
-                    className="text-xs font-bold font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
+                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
                   >
                     Track your child's application
                   </Link>
                   <Link 
                     href="/products/fee-management" 
-                    className="text-xs font-bold font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
+                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
                   >
                     Collect fees online
                   </Link>
                   <Link 
                     href="/products/admission-management" 
-                    className="text-xs font-bold font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
+                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
                   >
                     Manage admissions end-to-end
                   </Link>
                   <Link 
                     href="/products/campaign-management" 
-                    className="text-xs font-bold font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
+                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
                   >
                     Send WhatsApp updates to parents
                   </Link>
@@ -300,45 +300,45 @@ export default function MarketplaceHeader() {
               </div>
 
               {/* Column 2 — Explore Vidhyaan (Core Product Lists) */}
-              <div className="p-8 bg-white flex flex-col">
-                <h3 className="text-[10px] font-extrabold font-poppins uppercase tracking-wider text-slate-400 mb-6">
+              <div className="pt-12 pb-12 px-12 bg-white flex flex-col">
+                <h3 className="text-2xl font-semibold font-poppins text-slate-800 pb-4 border-b border-slate-100 mb-6">
                   Explore Vidhyaan
                 </h3>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+                <div className="grid grid-cols-2 gap-x-12 gap-y-8">
                   
                   {/* Marketplace Group */}
                   <div className="flex flex-col gap-3">
-                    <h4 className="text-[10px] font-extrabold text-[#1565D8] uppercase tracking-wider mb-1">
+                    <h4 className="text-xs font-bold text-[#1565D8] uppercase tracking-wider mb-2.5">
                       Marketplace
                     </h4>
-                    <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-col gap-y-[14px]">
                       <Link 
                         href="/products/marketplace/free-listing" 
-                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Free School Listing
                       </Link>
                       <Link 
                         href="/products/marketplace/search-discovery" 
-                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Parent Search & Discovery
                       </Link>
                       <Link 
                         href="/products/marketplace/compare" 
-                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Compare Schools
                       </Link>
                       <Link 
                         href="/products/marketplace/track-application" 
-                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Track Your Application
                       </Link>
                       <Link 
                         href="/products/marketplace/verified-badge" 
-                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Verified Profile Badge
                       </Link>
@@ -347,61 +347,61 @@ export default function MarketplaceHeader() {
 
                   {/* Admission CRM Group */}
                   <div className="flex flex-col gap-3">
-                    <h4 className="text-[10px] font-extrabold text-[#1565D8] uppercase tracking-wider mb-1">
+                    <h4 className="text-xs font-bold text-[#1565D8] uppercase tracking-wider mb-2.5">
                       Admission CRM
                     </h4>
-                    <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-col gap-y-[14px]">
                       <Link 
                         href="/products/lead-management" 
-                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Lead Management
                       </Link>
                       <Link 
                         href="/products/admission-management" 
-                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Admission Management
                       </Link>
                       <Link 
                         href="/products/student-management" 
-                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Student Management
                       </Link>
                       <Link 
                         href="/products/course-management" 
-                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Course & Batch Management
                       </Link>
                       <Link 
                         href="/products/fee-management" 
-                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Fee & Payment Management
                       </Link>
                       <Link 
                         href="/products/campaign-management" 
-                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Campaign Management
                       </Link>
                       <Link 
                         href="/products/notifications-alerts" 
-                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Notifications & Alerts
                       </Link>
                       <Link 
                         href="/products/parent-portal" 
-                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Parent Portal
                       </Link>
                       <Link 
                         href="/products/reporting-analytics" 
-                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
                       >
                         Reports & Analytics
                       </Link>
@@ -412,39 +412,39 @@ export default function MarketplaceHeader() {
               </div>
 
               {/* Column 3 — Spotlight Promotional Cards */}
-              <div className="p-6 bg-white border-l border-slate-100 flex flex-col gap-5 shrink-0">
-                <h3 className="text-[10px] font-extrabold font-poppins uppercase tracking-wider text-slate-400 mb-1">
+              <div className="pt-12 pb-12 pl-10 pr-12 bg-white border-l border-slate-200/50 flex flex-col gap-6 shrink-0">
+                <h3 className="text-2xl font-semibold font-poppins text-slate-800 pb-4 border-b border-slate-100 mb-6">
                   Spotlight
                 </h3>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-5">
                   
                   {/* Spotlight Card 1 */}
-                  <div className="group rounded-xl border border-slate-100 hover:border-blue-100 p-4 bg-slate-50/40 hover:bg-blue-50/20 transition-all duration-200">
-                    <h4 className="text-xs font-black font-poppins text-slate-800 mb-1">
+                  <div className="group rounded-xl border border-slate-100 hover:border-blue-100 p-6 bg-slate-50/40 hover:bg-blue-50/20 transition-all duration-200">
+                    <h4 className="text-[17px] font-bold font-poppins text-slate-800 mb-1.5">
                       Free Discovery Listing
                     </h4>
-                    <p className="text-[11px] text-slate-500 font-normal leading-normal mb-2.5">
+                    <p className="text-sm text-slate-500 font-normal leading-relaxed mb-3">
                       List your school free and get discovered by parents.
                     </p>
                     <Link 
                       href="/register-school" 
-                      className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#1565D8] hover:text-blue-700 transition"
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-[#1565D8] hover:text-blue-700 transition"
                     >
                       Get started <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
                     </Link>
                   </div>
 
                   {/* Spotlight Card 2 */}
-                  <div className="group rounded-xl border border-slate-100 hover:border-blue-100 p-4 bg-slate-50/40 hover:bg-blue-50/20 transition-all duration-200">
-                    <h4 className="text-xs font-black font-poppins text-slate-800 mb-1">
+                  <div className="group rounded-xl border border-slate-100 hover:border-blue-100 p-6 bg-slate-50/40 hover:bg-blue-50/20 transition-all duration-200">
+                    <h4 className="text-[17px] font-bold font-poppins text-slate-800 mb-1.5">
                       Razorpay Payments
                     </h4>
-                    <p className="text-[11px] text-slate-500 font-normal leading-normal mb-2.5">
+                    <p className="text-sm text-slate-500 font-normal leading-relaxed mb-3">
                       Collect fees online, fully integrated with your invoices.
                     </p>
                     <Link 
                       href="/products/fee-management" 
-                      className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#1565D8] hover:text-blue-700 transition"
+                      className="inline-flex items-center gap-1 text-[14px] font-semibold text-[#1565D8] hover:text-blue-700 transition"
                     >
                       Learn more <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
                     </Link>

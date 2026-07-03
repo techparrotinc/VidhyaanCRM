@@ -51,7 +51,6 @@ export default function MarketplaceHeader() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobileProductsOpen, setIsMobileProductsOpen] = useState(false)
-  const [activeCategory, setActiveCategory] = useState<'marketplace' | 'crm'>('marketplace')
   const [isMobileMarketplaceOpen, setIsMobileMarketplaceOpen] = useState(false)
   const [isMobileCrmOpen, setIsMobileCrmOpen] = useState(false)
 
@@ -71,13 +70,6 @@ export default function MarketplaceHeader() {
       return () => clearTimeout(timer)
     }
   }, [searchParams])
-
-  // Reset category selector to 'marketplace' whenever dropdown opens
-  useEffect(() => {
-    if (isProductsOpen) {
-      setActiveCategory('marketplace')
-    }
-  }, [isProductsOpen])
 
   const parentName = session?.user?.name || 'Parent User'
   const parentInitials = parentName.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
@@ -266,334 +258,199 @@ export default function MarketplaceHeader() {
             className="absolute left-1/2 -translate-x-1/2 top-[60px] w-[calc(100vw-32px)] max-w-5xl bg-white border border-slate-200 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] z-40 transition-all duration-300 ease-out overflow-hidden"
             onMouseEnter={() => setIsProductsOpen(true)}
           >
-            {/* Local Stylesheet for scrollbar */}
-            <style dangerouslySetInnerHTML={{ __html: `
-              .custom-menu-scrollbar::-webkit-scrollbar {
-                width: 6px;
-              }
-              .custom-menu-scrollbar::-webkit-scrollbar-track {
-                background: transparent;
-              }
-              .custom-menu-scrollbar::-webkit-scrollbar-thumb {
-                background-color: #CBD5E1;
-                border-radius: 9999px;
-              }
-              .custom-menu-scrollbar::-webkit-scrollbar-thumb:hover {
-                background-color: #94A3B8;
-              }
-              .custom-menu-scrollbar {
-                scrollbar-width: thin;
-                scrollbar-color: #CBD5E1 transparent;
-              }
-            `}} />
-
-            <div className="flex flex-col">
+            <div className="grid grid-cols-[230px_1fr_270px] w-full">
               
-              {/* Main content pane (Sidebar + Detail Panel) */}
-              <div className="flex border-b border-slate-100 h-[420px]">
-                
-                {/* Left Sidebar */}
-                <div className="w-[200px] border-r border-slate-100 bg-blue-50/70 p-4 flex flex-col gap-2 shrink-0 h-fit self-start">
-                  <button 
-                    onClick={() => setActiveCategory('marketplace')}
-                    className={`w-full text-left px-4 py-3 rounded-xl transition-all cursor-pointer ${
-                      activeCategory === 'marketplace' 
-                        ? 'bg-[#1565D8] text-white shadow-md' 
-                        : 'text-slate-600 hover:bg-blue-100/50 hover:text-slate-900'
-                    }`}
+              {/* Column 1 — Curated Shortcuts (What do you want to do?) */}
+              <div className="bg-slate-50/80 p-6 flex flex-col gap-5 shrink-0 border-r border-slate-100">
+                <h3 className="text-[10px] font-extrabold font-poppins uppercase tracking-wider text-slate-400 mb-1">
+                  What do you want to do?
+                </h3>
+                <div className="flex flex-col gap-4">
+                  <Link 
+                    href="/register-school" 
+                    className="text-xs font-bold font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
                   >
-                    <span className="block font-bold font-poppins text-sm">Marketplace</span>
-                    <span className={`block text-[10px] mt-0.5 leading-tight ${activeCategory === 'marketplace' ? 'text-blue-100 font-medium' : 'text-slate-400 font-medium'}`}>
-                      Get discovered by parents
-                    </span>
-                  </button>
-                  <button 
-                    onClick={() => setActiveCategory('crm')}
-                    className={`w-full text-left px-4 py-3 rounded-xl transition-all cursor-pointer ${
-                      activeCategory === 'crm' 
-                        ? 'bg-[#1565D8] text-white shadow-md' 
-                        : 'text-slate-600 hover:bg-blue-100/50 hover:text-slate-900'
-                    }`}
+                    List your school for free
+                  </Link>
+                  <Link 
+                    href="/products/marketplace/track-application" 
+                    className="text-xs font-bold font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
                   >
-                    <span className="block font-bold font-poppins text-sm">Admission CRM</span>
-                    <span className={`block text-[10px] mt-0.5 leading-tight ${activeCategory === 'crm' ? 'text-blue-100 font-medium' : 'text-slate-400 font-medium'}`}>
-                      Run admissions end-to-end
-                    </span>
-                  </button>
+                    Track your child's application
+                  </Link>
+                  <Link 
+                    href="/products/fee-management" 
+                    className="text-xs font-bold font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
+                  >
+                    Collect fees online
+                  </Link>
+                  <Link 
+                    href="/products/admission-management" 
+                    className="text-xs font-bold font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
+                  >
+                    Manage admissions end-to-end
+                  </Link>
+                  <Link 
+                    href="/products/campaign-management" 
+                    className="text-xs font-bold font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
+                  >
+                    Send WhatsApp updates to parents
+                  </Link>
                 </div>
-
-                {/* Right Detail Panel */}
-                <div className="flex-1 p-6 md:p-8 bg-white overflow-y-auto h-full custom-menu-scrollbar">
-                  {activeCategory === 'marketplace' && (
-                    <div className="space-y-4">
-                      <div className="pb-2 flex items-center gap-2 border-b border-slate-100">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#1565D8]" />
-                        <h3 className="text-xs font-black font-poppins uppercase tracking-wider text-[#1565D8]">
-                          Marketplace Platform
-                        </h3>
-                      </div>
-                      <div className="grid grid-cols-1 gap-1 max-w-xl">
-                        <Link 
-                          href="/products/marketplace/free-listing" 
-                          className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
-                        >
-                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
-                            <Building className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
-                              Free School Listing
-                            </span>
-                            <p className="text-[11px] font-normal text-slate-400 leading-normal">
-                              Claim your listing and get discovered by parents.
-                            </p>
-                          </div>
-                        </Link>
-                        <Link 
-                          href="/products/marketplace/search-discovery" 
-                          className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
-                        >
-                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
-                            <Search className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
-                              Parent Search & Discovery
-                            </span>
-                            <p className="text-[11px] font-normal text-slate-400 leading-normal">
-                              Advanced filtering by location, fees, and board.
-                            </p>
-                          </div>
-                        </Link>
-                        <Link 
-                          href="/products/marketplace/compare" 
-                          className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
-                        >
-                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
-                            <GitCompare className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
-                              Compare Schools
-                            </span>
-                            <p className="text-[11px] font-normal text-slate-400 leading-normal">
-                              Compare academic records, fees, and reviews side-by-side.
-                            </p>
-                          </div>
-                        </Link>
-                        <Link 
-                          href="/products/marketplace/track-application" 
-                          className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
-                        >
-                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
-                            <Activity className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
-                              Track Your Application
-                            </span>
-                            <p className="text-[11px] font-normal text-slate-400 leading-normal">
-                              Real-time progress updates on child school applications.
-                            </p>
-                          </div>
-                        </Link>
-                        <Link 
-                          href="/products/marketplace/verified-badge" 
-                          className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
-                        >
-                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
-                            <Award className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
-                              Verified Profile Badge
-                            </span>
-                            <p className="text-[11px] font-normal text-slate-400 leading-normal">
-                              Build instant trust and highlight your official profile.
-                            </p>
-                          </div>
-                        </Link>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeCategory === 'crm' && (
-                    <div className="space-y-4">
-                      <div className="pb-2 flex items-center gap-2 border-b border-slate-100">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#1565D8]" />
-                        <h3 className="text-xs font-black font-poppins uppercase tracking-wider text-[#1565D8]">
-                          Admission CRM Solutions
-                        </h3>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
-                        <Link 
-                          href="/products/lead-management" 
-                          className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
-                        >
-                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
-                            <Users className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
-                              Lead Management
-                            </span>
-                            <p className="text-[11px] font-normal text-slate-400 leading-normal">
-                              Capture and nurture inquiries across all channels.
-                            </p>
-                          </div>
-                        </Link>
-                        <Link 
-                          href="/products/admission-management" 
-                          className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
-                        >
-                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
-                            <ClipboardList className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
-                              Admission Management
-                            </span>
-                            <p className="text-[11px] font-normal text-slate-400 leading-normal">
-                              Automate student application flows and seat vetting.
-                            </p>
-                          </div>
-                        </Link>
-                        <Link 
-                          href="/products/student-management" 
-                          className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
-                        >
-                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
-                            <GraduationCap className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
-                              Student Management
-                            </span>
-                            <p className="text-[11px] font-normal text-slate-400 leading-normal">
-                              Track student profiles, documents, and academic history.
-                            </p>
-                          </div>
-                        </Link>
-                        <Link 
-                          href="/products/course-management" 
-                          className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
-                        >
-                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
-                            <BookOpen className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
-                              Course & Batch Management
-                            </span>
-                            <p className="text-[11px] font-normal text-slate-400 leading-normal">
-                              Organize classes, batches, subjects, and timetables.
-                            </p>
-                          </div>
-                        </Link>
-                        <Link 
-                          href="/products/fee-management" 
-                          className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
-                        >
-                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
-                            <CreditCard className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
-                              Fee & Payment Management
-                            </span>
-                            <p className="text-[11px] font-normal text-slate-400 leading-normal">
-                              Process online fees and issue automated receipts.
-                            </p>
-                          </div>
-                        </Link>
-                        <Link 
-                          href="/products/campaign-management" 
-                          className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
-                        >
-                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
-                            <MessageSquare className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
-                              Campaign Management
-                            </span>
-                            <p className="text-[11px] font-normal text-slate-400 leading-normal">
-                              Run targeted WhatsApp, SMS, and email marketing.
-                            </p>
-                          </div>
-                        </Link>
-                        <Link 
-                          href="/products/notifications-alerts" 
-                          className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
-                        >
-                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
-                            <Bell className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
-                              Notifications & Alerts
-                            </span>
-                            <p className="text-[11px] font-normal text-slate-400 leading-normal">
-                              Instant transactional updates for parents and teachers.
-                            </p>
-                          </div>
-                        </Link>
-                        <Link 
-                          href="/products/parent-portal" 
-                          className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
-                        >
-                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
-                            <User className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
-                              Parent Portal
-                            </span>
-                            <p className="text-[11px] font-normal text-slate-400 leading-normal">
-                              Dedicated parent hub for fee payments and application tracking.
-                            </p>
-                          </div>
-                        </Link>
-                        <Link 
-                          href="/products/reporting-analytics" 
-                          className="group flex items-start gap-3 p-2.5 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/70 hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.05)] transition-all duration-200"
-                        >
-                          <div className="w-7 h-7 rounded-md bg-[#1565D8] text-white group-hover:bg-blue-700 flex items-center justify-center shrink-0 transition-colors duration-200">
-                            <BarChart3 className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
-                              Reports & Analytics
-                            </span>
-                            <p className="text-[11px] font-normal text-slate-400 leading-normal">
-                              Deep insights on admission conversion rates and cash flows.
-                            </p>
-                          </div>
-                        </Link>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
               </div>
 
-              {/* Bottom banner row */}
-              <div className="bg-blue-50/50 border-t border-blue-100/50 px-6 md:px-8 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-[10px] font-extrabold text-[#1565D8] uppercase tracking-wider bg-blue-100 px-2 py-0.5 rounded shrink-0">
-                    Listing offer
-                  </span>
-                  <p className="text-xs font-bold text-slate-700">
-                    Free Discovery Listing &mdash; List your school free and get discovered by parents
-                  </p>
+              {/* Column 2 — Explore Vidhyaan (Core Product Lists) */}
+              <div className="p-8 bg-white flex flex-col">
+                <h3 className="text-[10px] font-extrabold font-poppins uppercase tracking-wider text-slate-400 mb-6">
+                  Explore Vidhyaan
+                </h3>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+                  
+                  {/* Marketplace Group */}
+                  <div className="flex flex-col gap-3">
+                    <h4 className="text-[10px] font-extrabold text-[#1565D8] uppercase tracking-wider mb-1">
+                      Marketplace
+                    </h4>
+                    <div className="flex flex-col gap-2.5">
+                      <Link 
+                        href="/products/marketplace/free-listing" 
+                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                      >
+                        Free School Listing
+                      </Link>
+                      <Link 
+                        href="/products/marketplace/search-discovery" 
+                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                      >
+                        Parent Search & Discovery
+                      </Link>
+                      <Link 
+                        href="/products/marketplace/compare" 
+                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                      >
+                        Compare Schools
+                      </Link>
+                      <Link 
+                        href="/products/marketplace/track-application" 
+                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                      >
+                        Track Your Application
+                      </Link>
+                      <Link 
+                        href="/products/marketplace/verified-badge" 
+                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                      >
+                        Verified Profile Badge
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Admission CRM Group */}
+                  <div className="flex flex-col gap-3">
+                    <h4 className="text-[10px] font-extrabold text-[#1565D8] uppercase tracking-wider mb-1">
+                      Admission CRM
+                    </h4>
+                    <div className="flex flex-col gap-2.5">
+                      <Link 
+                        href="/products/lead-management" 
+                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                      >
+                        Lead Management
+                      </Link>
+                      <Link 
+                        href="/products/admission-management" 
+                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                      >
+                        Admission Management
+                      </Link>
+                      <Link 
+                        href="/products/student-management" 
+                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                      >
+                        Student Management
+                      </Link>
+                      <Link 
+                        href="/products/course-management" 
+                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                      >
+                        Course & Batch Management
+                      </Link>
+                      <Link 
+                        href="/products/fee-management" 
+                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                      >
+                        Fee & Payment Management
+                      </Link>
+                      <Link 
+                        href="/products/campaign-management" 
+                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                      >
+                        Campaign Management
+                      </Link>
+                      <Link 
+                        href="/products/notifications-alerts" 
+                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                      >
+                        Notifications & Alerts
+                      </Link>
+                      <Link 
+                        href="/products/parent-portal" 
+                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                      >
+                        Parent Portal
+                      </Link>
+                      <Link 
+                        href="/products/reporting-analytics" 
+                        className="text-xs font-bold text-slate-650 hover:text-[#1565D8] transition-colors"
+                      >
+                        Reports & Analytics
+                      </Link>
+                    </div>
+                  </div>
+
                 </div>
-                <Link 
-                  href="/register-school" 
-                  className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#1565D8] hover:text-blue-700 transition group cursor-pointer"
-                >
-                  Get Started 
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-                </Link>
+              </div>
+
+              {/* Column 3 — Spotlight Promotional Cards */}
+              <div className="p-6 bg-white border-l border-slate-100 flex flex-col gap-5 shrink-0">
+                <h3 className="text-[10px] font-extrabold font-poppins uppercase tracking-wider text-slate-400 mb-1">
+                  Spotlight
+                </h3>
+                <div className="flex flex-col gap-4">
+                  
+                  {/* Spotlight Card 1 */}
+                  <div className="group rounded-xl border border-slate-100 hover:border-blue-100 p-4 bg-slate-50/40 hover:bg-blue-50/20 transition-all duration-200">
+                    <h4 className="text-xs font-black font-poppins text-slate-800 mb-1">
+                      Free Discovery Listing
+                    </h4>
+                    <p className="text-[11px] text-slate-500 font-normal leading-normal mb-2.5">
+                      List your school free and get discovered by parents.
+                    </p>
+                    <Link 
+                      href="/register-school" 
+                      className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#1565D8] hover:text-blue-700 transition"
+                    >
+                      Get started <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+                    </Link>
+                  </div>
+
+                  {/* Spotlight Card 2 */}
+                  <div className="group rounded-xl border border-slate-100 hover:border-blue-100 p-4 bg-slate-50/40 hover:bg-blue-50/20 transition-all duration-200">
+                    <h4 className="text-xs font-black font-poppins text-slate-800 mb-1">
+                      Razorpay Payments
+                    </h4>
+                    <p className="text-[11px] text-slate-500 font-normal leading-normal mb-2.5">
+                      Collect fees online, fully integrated with your invoices.
+                    </p>
+                    <Link 
+                      href="/products/fee-management" 
+                      className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#1565D8] hover:text-blue-700 transition"
+                    >
+                      Learn more <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+                    </Link>
+                  </div>
+
+                </div>
               </div>
 
             </div>

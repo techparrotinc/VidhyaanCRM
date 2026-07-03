@@ -8,7 +8,8 @@ import {
   School, Building2, GraduationCap, Library, 
   Globe, Phone, Users, Store, Inbox, UserCheck, 
   Activity, Calendar, Clock, RefreshCw, ArrowRight, 
-  CheckCircle, HelpCircle, ChevronDown, ChevronUp 
+  CheckCircle, HelpCircle, ChevronDown, ChevronUp,
+  Sparkles, MessageSquare, Shield, Award, Send, PieChart
 } from 'lucide-react'
 import { leadManagementContent } from '@/content/products/lead-management'
 
@@ -19,7 +20,7 @@ export default function LeadManagementBespokePage() {
     setOpenFaqIndex(openFaqIndex === index ? null : index)
   }
 
-  // Define Icon mapping specifically for capabilities in this page
+  // Define Icon mapping specifically for capabilities
   const IconMap: Record<string, React.ComponentType<{ className?: string }>> = {
     Inbox,
     UserCheck,
@@ -30,140 +31,182 @@ export default function LeadManagementBespokePage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden flex flex-col w-full">
+    <div className="w-full bg-white flex flex-col space-y-24 py-4">
       {/* 1. HERO SECTION */}
-      <section className="text-center py-16 md:py-24 px-6 md:px-16 space-y-6 bg-indigo-50/50 border-b border-indigo-200">
-        <span className="inline-flex items-center gap-1.5 border border-indigo-200 text-[10px] font-black uppercase tracking-wider px-3.5 py-1 rounded-full bg-indigo-50 text-indigo-700">
-          Feature Spotlight
+      <section className="text-center py-20 px-6 md:px-16 space-y-8 bg-gradient-to-b from-indigo-50/60 via-indigo-50/20 to-white rounded-3xl">
+        <span className="inline-flex items-center gap-1.5 border border-indigo-200 text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-650 shadow-sm">
+          <Sparkles className="w-3.5 h-3.5" />
+          Next-Gen Admission CRM
         </span>
-        <h1 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight font-poppins">
-          {leadManagementContent.h1}
+        
+        <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-[1.1] max-w-4xl mx-auto font-poppins">
+          Supercharge Your School's{' '}
+          <span className="bg-gradient-to-r from-indigo-600 via-[#1565D8] to-purple-600 bg-clip-text text-transparent">
+            Lead Management
+          </span>
         </h1>
-        <p className="text-slate-655 font-medium text-base md:text-lg leading-relaxed max-w-3xl mx-auto">
+        
+        <p className="text-slate-600 font-semibold text-base md:text-xl leading-relaxed max-w-3xl mx-auto">
           {leadManagementContent.subhead}
         </p>
         
         <div className="pt-4 flex flex-col sm:flex-row justify-center items-center gap-4">
           <Link href={leadManagementContent.primaryCta.href} className="w-full sm:w-auto">
-            <Button className="w-full sm:w-auto bg-[#1565D8] hover:bg-blue-700 text-white font-extrabold text-sm px-8 py-4 rounded-xl h-auto shadow-lg shadow-blue-550/20 flex items-center justify-center gap-2 transition cursor-pointer">
+            <Button className="w-full sm:w-auto bg-[#1565D8] hover:bg-blue-700 text-white font-extrabold text-base px-8 py-5 rounded-2xl h-auto shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 transition hover:-translate-y-0.5 cursor-pointer">
               {leadManagementContent.primaryCta.text}
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
           {leadManagementContent.secondaryCta && (
             <Link 
               href={leadManagementContent.secondaryCta.href}
-              className="text-slate-600 hover:text-indigo-700 font-bold text-sm transition py-2"
+              className="text-slate-650 hover:text-indigo-700 font-extrabold text-sm transition py-2"
             >
               {leadManagementContent.secondaryCta.text}
             </Link>
           )}
         </div>
 
-        <p className="text-xs text-slate-450 font-semibold leading-relaxed pt-2">
+        <p className="text-xs text-slate-400 font-semibold tracking-wide">
           {leadManagementContent.trustLine}
         </p>
       </section>
 
       {/* TRUST BAR (PART 1) */}
-      <section className="bg-white py-8 px-6 md:px-16 border-b border-slate-100 flex flex-col items-center justify-center space-y-4 text-center">
-        <span className="text-xs font-semibold text-slate-400 tracking-wider uppercase">
+      <section className="py-6 px-6 md:px-16 flex flex-col items-center justify-center space-y-6 text-center">
+        <span className="text-[11px] font-black text-slate-400 tracking-widest uppercase">
           Trusted by schools and learning centers across India
         </span>
-        <div className="flex flex-wrap justify-center items-center gap-6 md:gap-12 text-slate-350">
-          <div className="flex items-center gap-2">
-            <School className="w-5 h-5 text-slate-300" />
-            <span className="text-sm font-bold text-slate-400">Schools</span>
+        <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 text-slate-400">
+          <div className="flex items-center gap-2.5 p-3 px-5 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm transition hover:border-slate-200">
+            <School className="w-5 h-5 text-indigo-500" />
+            <span className="text-sm font-extrabold text-slate-700">K-12 Schools</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-slate-300" />
-            <span className="text-sm font-bold text-slate-400">Junior Colleges</span>
+          <div className="flex items-center gap-2.5 p-3 px-5 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm transition hover:border-slate-200">
+            <Building2 className="w-5 h-5 text-purple-500" />
+            <span className="text-sm font-extrabold text-slate-700">Junior Colleges</span>
           </div>
-          <div className="flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-slate-300" />
-            <span className="text-sm font-bold text-slate-400">Coaching Institutes</span>
+          <div className="flex items-center gap-2.5 p-3 px-5 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm transition hover:border-slate-200">
+            <GraduationCap className="w-5 h-5 text-emerald-500" />
+            <span className="text-sm font-extrabold text-slate-700">Coaching Hubs</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Library className="w-5 h-5 text-slate-300" />
-            <span className="text-sm font-bold text-slate-400">Learning Centers</span>
+          <div className="flex items-center gap-2.5 p-3 px-5 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm transition hover:border-slate-200">
+            <Library className="w-5 h-5 text-pink-500" />
+            <span className="text-sm font-extrabold text-slate-700">Learning Centers</span>
           </div>
         </div>
       </section>
 
       {/* PRODUCT SCREENSHOT SECTION (PART 2) */}
-      <section className="bg-slate-50/50 py-16 px-6 md:px-16 border-b border-slate-150/40 space-y-8 flex flex-col items-center">
-        <div className="text-center space-y-2">
-          <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight font-poppins">
+      <section className="py-16 px-6 md:px-16 space-y-10 flex flex-col items-center bg-slate-50/30 rounded-3xl">
+        <div className="text-center space-y-2.5">
+          <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
             See your leads in one pipeline
           </h2>
-          <p className="text-slate-500 font-medium text-sm md:text-base max-w-lg mx-auto">
+          <p className="text-slate-500 font-semibold text-sm md:text-base max-w-xl mx-auto">
             The actual Lead Management view your counsellors use every day.
           </p>
         </div>
-        <div className="w-full max-w-5xl bg-white border border-slate-200/80 rounded-2xl p-3 md:p-4 shadow-2xl shadow-slate-200/50 overflow-hidden">
+        <div className="w-full max-w-5xl bg-gradient-to-tr from-slate-100 to-white border border-slate-200 p-4 rounded-3xl shadow-2xl overflow-hidden transition-all duration-300 hover:shadow-indigo-500/5 hover:border-indigo-100">
           <Image 
             src="/images/products/lead-management-screenshot.png"
             alt="Vidhyaan Lead Management Pipeline Dashboard"
             width={1024}
             height={873}
-            className="w-full h-auto rounded-lg border border-slate-100"
+            className="w-full h-auto rounded-2xl border border-slate-150/70"
             loading="lazy"
           />
         </div>
       </section>
 
-      {/* 2. PROBLEM SECTION WITH FUNNEL GRAPHIC (PART 3) */}
-      <section className="bg-white py-16 px-6 md:px-16 border-b border-slate-150/40">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+      {/* 2. PROBLEM SECTION WITH ENHANCED GRAPHIC (PART 3) */}
+      <section className="py-16 px-6 md:px-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Left Column: Problem Copy */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight font-poppins">
+          <div className="lg:col-span-7 space-y-6">
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight font-poppins">
               {leadManagementContent.problem.heading}
             </h2>
-            <p className="text-slate-655 font-medium text-base leading-relaxed">
+            <p className="text-slate-655 font-semibold text-base leading-relaxed">
               {leadManagementContent.problem.body}
             </p>
+            <div className="space-y-3 pt-2">
+              <div className="flex items-start gap-2.5">
+                <CheckCircle className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
+                <span className="text-sm font-bold text-slate-700">Centralized storage removes paper logs and Excel chaos</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <CheckCircle className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
+                <span className="text-sm font-bold text-slate-700">Instant tracking ensures every counsellor is accountable</span>
+              </div>
+            </div>
           </div>
 
           {/* Right Column: Visual Funnel Graphic */}
-          <div className="bg-slate-50/70 border border-slate-200/60 rounded-2xl p-6 md:p-8 flex flex-col items-center justify-center space-y-6 relative overflow-hidden min-h-[300px]">
-            {/* Visual convergence of source pills into a pipeline pill */}
+          <div className="lg:col-span-5 bg-gradient-to-br from-slate-50 via-white to-indigo-50/20 border border-slate-200 rounded-3xl p-8 flex flex-col items-center justify-center space-y-6 relative overflow-hidden min-h-[350px] shadow-lg shadow-indigo-500/5">
+            {/* Background elements */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-100/30 rounded-full blur-3xl -z-10" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-100/30 rounded-full blur-3xl -z-10" />
+
             <div className="flex flex-col items-center w-full relative">
+              <span className="text-[10px] font-black text-indigo-650 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full mb-6">
+                Channel Convergence
+              </span>
+
               {/* Converging Sources */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-sm mb-12">
-                <div className="flex flex-col items-center gap-1.5 p-2 bg-white rounded-xl border border-slate-100 shadow-sm">
-                  <Globe className="w-5 h-5 text-indigo-500" />
-                  <span className="text-[10px] font-bold text-slate-500">Website</span>
+              <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+                <div className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-150 shadow-sm transition hover:scale-105">
+                  <div className="p-2 bg-blue-50 text-blue-500 rounded-xl">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black text-slate-800">Website</span>
+                    <span className="text-[9px] text-slate-400 font-bold">Online Form</span>
+                  </div>
                 </div>
-                <div className="flex flex-col items-center gap-1.5 p-2 bg-white rounded-xl border border-slate-100 shadow-sm">
-                  <Phone className="w-5 h-5 text-green-500" />
-                  <span className="text-[10px] font-bold text-slate-500">Phone</span>
+
+                <div className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-150 shadow-sm transition hover:scale-105">
+                  <div className="p-2 bg-green-50 text-green-500 rounded-xl">
+                    <Phone className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black text-slate-800">Phone Calls</span>
+                    <span className="text-[9px] text-slate-400 font-bold">Tele-Enquiry</span>
+                  </div>
                 </div>
-                <div className="flex flex-col items-center gap-1.5 p-2 bg-white rounded-xl border border-slate-100 shadow-sm">
-                  <Users className="w-5 h-5 text-amber-500" />
-                  <span className="text-[10px] font-bold text-slate-500">Walk-in</span>
+
+                <div className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-150 shadow-sm transition hover:scale-105">
+                  <div className="p-2 bg-amber-50 text-amber-500 rounded-xl">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black text-slate-800">Walk-ins</span>
+                    <span className="text-[9px] text-slate-400 font-bold">Front Desk</span>
+                  </div>
                 </div>
-                <div className="flex flex-col items-center gap-1.5 p-2 bg-white rounded-xl border border-slate-100 shadow-sm">
-                  <Store className="w-5 h-5 text-pink-500" />
-                  <span className="text-[10px] font-bold text-slate-500">Market</span>
+
+                <div className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-slate-150 shadow-sm transition hover:scale-105">
+                  <div className="p-2 bg-pink-50 text-pink-500 rounded-xl">
+                    <Store className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-black text-slate-800">Marketplace</span>
+                    <span className="text-[9px] text-slate-400 font-bold">Vidhyaan Page</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Connecting arrows / convergence lines */}
-              <div className="hidden sm:flex absolute top-[48px] w-full max-w-sm h-12 justify-center items-center">
-                <svg className="w-full h-full text-slate-300" fill="none" viewBox="0 0 200 40">
-                  <path d="M15,5 Q100,30 100,38" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3,3" />
-                  <path d="M65,5 Q100,30 100,38" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3,3" />
-                  <path d="M135,5 Q100,30 100,38" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3,3" />
-                  <path d="M185,5 Q100,30 100,38" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3,3" />
-                </svg>
+              {/* Connecting arrows */}
+              <div className="w-full max-w-sm h-12 flex justify-center items-center my-4 relative">
+                <div className="w-0.5 h-full bg-gradient-to-b from-indigo-200 to-indigo-500 animate-pulse" />
+                <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-indigo-500 rounded-full animate-ping opacity-70" />
               </div>
 
               {/* Converged Destination: Pipeline Pill */}
-              <div className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-600/25 border border-indigo-500 animate-pulse mt-4 sm:mt-0">
-                <Inbox className="w-5 h-5" />
-                <span className="text-xs font-black uppercase tracking-wider font-poppins">
-                  Unified Pipeline
+              <div className="flex items-center gap-2.5 px-6 py-4 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-600/30 border border-indigo-500">
+                <Inbox className="w-5 h-5 animate-bounce" />
+                <span className="text-xs font-black uppercase tracking-widest font-poppins">
+                  Unified Lead Pipeline
                 </span>
               </div>
             </div>
@@ -171,10 +214,71 @@ export default function LeadManagementBespokePage() {
         </div>
       </section>
 
+      {/* 360° LIFE-CYCLE TIMELINE INFOGRAPHIC (NEW INFOGRAPHIC B) */}
+      <section className="py-16 px-6 md:px-16 bg-slate-50/30 rounded-3xl space-y-12">
+        <div className="text-center space-y-3">
+          <span className="text-[10px] font-black text-indigo-650 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">
+            Engineered for Conversion
+          </span>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
+            The 360° Lead-to-Student Journey
+          </h2>
+          <p className="text-slate-550 font-semibold text-sm md:text-base max-w-xl mx-auto">
+            How Vidhyaan automates the pipeline from first contact to fully enrolled student.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-6xl mx-auto">
+          {/* Step 1 */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm hover:shadow-md transition">
+            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-black">
+              1
+            </div>
+            <h3 className="font-extrabold text-slate-800 text-lg">Auto-Capture</h3>
+            <p className="text-slate-500 text-xs font-semibold leading-relaxed">
+              Leads flow from your website, phone, walk-ins, or your free Vidhyaan marketplace page directly into your pipeline.
+            </p>
+          </div>
+
+          {/* Step 2 */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm hover:shadow-md transition">
+            <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center font-black">
+              2
+            </div>
+            <h3 className="font-extrabold text-slate-800 text-lg">Smart Route</h3>
+            <p className="text-slate-500 text-xs font-semibold leading-relaxed">
+              New enquiries automatically assign to counsellors, trigger instant notification alerts, and set follow-up tasks.
+            </p>
+          </div>
+
+          {/* Step 3 */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm hover:shadow-md transition">
+            <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center font-black">
+              3
+            </div>
+            <h3 className="font-extrabold text-slate-800 text-lg">Track Timeline</h3>
+            <p className="text-slate-500 text-xs font-semibold leading-relaxed">
+              Log call outcomes, WhatsApp messages, documents, and counselor notes directly under each student's profile.
+            </p>
+          </div>
+
+          {/* Step 4 */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm hover:shadow-md transition">
+            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center font-black">
+              4
+            </div>
+            <h3 className="font-extrabold text-slate-800 text-lg">1-Click Convert</h3>
+            <p className="text-slate-500 text-xs font-semibold leading-relaxed">
+              Directly promote to Admissions or create active Student Records without re-entering any duplicate guardian details.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* 3. CAPABILITIES */}
-      <section className="bg-white py-12 md:py-16 px-6 md:px-16 border-b border-slate-150/40 space-y-6">
+      <section className="py-16 px-6 md:px-16 space-y-8">
         <div className="border-b border-slate-200 pb-4">
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight font-poppins">
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight font-poppins">
             Key Capabilities
           </h2>
         </div>
@@ -184,7 +288,7 @@ export default function LeadManagementBespokePage() {
             return (
               <div 
                 key={idx} 
-                className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200 flex gap-4 items-start"
+                className="bg-white border border-slate-150 p-6 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-250 transition-all duration-200 flex gap-4 items-start"
               >
                 <div className="p-3 rounded-xl shrink-0 bg-indigo-50 text-indigo-650">
                   {CapIcon ? <CapIcon className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
@@ -198,7 +302,7 @@ export default function LeadManagementBespokePage() {
                   <h3 className="font-extrabold text-slate-800 text-lg font-poppins">
                     {cap.title}
                   </h3>
-                  <p className="text-slate-600 font-medium text-sm leading-relaxed">
+                  <p className="text-slate-550 font-semibold text-sm leading-relaxed">
                     {cap.body}
                   </p>
                 </div>
@@ -209,21 +313,21 @@ export default function LeadManagementBespokePage() {
       </section>
 
       {/* 4. HOW IT WORKS */}
-      <section className="bg-slate-50/50 py-12 md:py-16 px-6 md:px-16 border-b border-slate-150/40 space-y-8">
+      <section className="py-16 px-6 md:px-16 bg-slate-50/30 rounded-3xl space-y-8">
         <h2 className="text-2xl md:text-3xl font-black text-slate-900 text-center tracking-tight font-poppins">
           {leadManagementContent.howItWorks.heading}
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative max-w-5xl mx-auto">
           {/* Connector line for large screens */}
-          <div className="hidden md:block absolute top-6 left-[16%] right-[16%] h-0.5 bg-slate-100 -z-10" />
+          <div className="hidden md:block absolute top-6 left-[16%] right-[16%] h-0.5 bg-slate-200/60 -z-10" />
 
           {leadManagementContent.howItWorks.steps.map((step, idx) => (
             <div key={idx} className="text-center p-2 space-y-4 flex flex-col items-center relative">
               <div className="w-12 h-12 rounded-full text-white flex items-center justify-center font-black shadow-md border border-white bg-indigo-600">
                 {idx + 1}
               </div>
-              <p className="text-sm text-slate-655 font-semibold leading-relaxed max-w-xs">
+              <p className="text-xs text-slate-655 font-bold leading-relaxed max-w-xs">
                 {step}
               </p>
             </div>
@@ -231,51 +335,90 @@ export default function LeadManagementBespokePage() {
         </div>
       </section>
 
-      {/* STATS ROW (PART 4) */}
-      <section className="bg-white py-12 px-6 md:px-16 border-b border-slate-150/40">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:divide-x divide-slate-200">
-          <div className="text-center space-y-1">
-            <span className="text-5xl font-black text-[#1565D8] block font-poppins">
-              0
-            </span>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Leads lost to missed follow-ups
-            </span>
+      {/* STATS ROW & CIRCULAR METRIC INFOGRAPHIC (PART 4 & INFOGRAPHIC C) */}
+      <section className="py-16 px-6 md:px-16 bg-gradient-to-b from-indigo-50/20 via-white to-slate-50/40 rounded-3xl">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          {/* Left: Stats columns */}
+          <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+            <div className="text-center space-y-2 py-4 md:py-0">
+              <span className="text-6xl font-black text-[#1565D8] block font-poppins tracking-tight">
+                0
+              </span>
+              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto block leading-tight">
+                Leads lost to missed follow-ups
+              </span>
+            </div>
+            <div className="text-center space-y-2 pt-6 md:pt-0 py-4 md:py-0">
+              <span className="text-6xl font-black text-[#1565D8] block font-poppins tracking-tight">
+                1
+              </span>
+              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto block leading-tight">
+                Pipeline, every source
+              </span>
+            </div>
+            <div className="text-center space-y-2 pt-6 md:pt-0 py-4 md:py-0">
+              <span className="text-6xl font-black text-[#1565D8] block font-poppins tracking-tight">
+                15m
+              </span>
+              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto block leading-tight">
+                Average setup time
+              </span>
+            </div>
           </div>
-          <div className="text-center space-y-1 pt-6 md:pt-0">
-            <span className="text-5xl font-black text-[#1565D8] block font-poppins">
-              1
+
+          {/* Right: Circular Metric Wheel Infographic C */}
+          <div className="lg:col-span-4 bg-white border border-slate-200 rounded-3xl p-6 flex flex-col items-center space-y-6 shadow-sm">
+            <span className="text-[10px] font-black text-indigo-650 uppercase tracking-wider">
+              Admission Health Rate
             </span>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Pipeline, every source
-            </span>
-          </div>
-          <div className="text-center space-y-1 pt-6 md:pt-0">
-            <span className="text-5xl font-black text-[#1565D8] block font-poppins">
-              15m
-            </span>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Average setup time
-            </span>
+
+            {/* SVG circle meter */}
+            <div className="relative w-36 h-36 flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-95" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" stroke="#f1f5f9" strokeWidth="12" fill="transparent" />
+                <circle cx="50" cy="50" r="40" stroke="#1565D8" strokeWidth="12" fill="transparent" strokeDasharray="251.2" strokeDashoffset="80" strokeLinecap="round" />
+                <circle cx="50" cy="50" r="40" stroke="#8b5cf6" strokeWidth="12" fill="transparent" strokeDasharray="251.2" strokeDashoffset="180" strokeLinecap="round" />
+              </svg>
+              <div className="absolute text-center flex flex-col justify-center items-center">
+                <span className="text-2xl font-black text-slate-800 font-poppins leading-none">68%</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Converted</span>
+              </div>
+            </div>
+
+            {/* Legends */}
+            <div className="w-full grid grid-cols-3 gap-2 text-center border-t border-slate-100 pt-4">
+              <div className="flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#1565D8] rounded-full mb-1" />
+                <span className="text-[9px] font-black text-slate-800">68% Admitted</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-purple-500 rounded-full mb-1" />
+                <span className="text-[9px] font-black text-slate-800">22% Follow-up</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-slate-200 rounded-full mb-1" />
+                <span className="text-[9px] font-black text-slate-800">10% New</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* 5. WHO THIS IS FOR */}
-      <section className="bg-white py-12 md:py-16 px-6 md:px-16 border-b border-slate-150/40 space-y-4">
+      <section className="py-12 px-6 md:px-16 space-y-4">
         <div className="flex items-center gap-2">
           <CheckCircle className="w-5 h-5 shrink-0 text-indigo-600" />
-          <h2 className="text-xl font-extrabold text-slate-800 tracking-tight font-poppins">
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight font-poppins">
             {leadManagementContent.whoThisIsFor.heading}
           </h2>
         </div>
-        <p className="text-slate-650 font-medium text-base leading-relaxed">
+        <p className="text-slate-655 font-semibold text-base leading-relaxed">
           {leadManagementContent.whoThisIsFor.body}
         </p>
       </section>
 
       {/* 6. FAQ */}
-      <section className="bg-slate-50/50 py-12 md:py-16 px-6 md:px-16 border-b border-slate-150/40 space-y-6">
+      <section className="py-16 px-6 md:px-16 bg-slate-50/30 rounded-3xl space-y-6">
         <div className="border-b border-slate-200 pb-4 flex items-center gap-2">
           <HelpCircle className="w-5 h-5 text-slate-500" />
           <h2 className="text-2xl font-black text-slate-900 tracking-tight font-poppins">
@@ -304,7 +447,7 @@ export default function LeadManagementBespokePage() {
                   )}
                 </button>
                 {isOpen && (
-                  <div className="px-6 pb-5 pt-1 text-slate-650 text-sm font-medium leading-relaxed border-t border-slate-100 bg-slate-50/20">
+                  <div className="px-6 pb-5 pt-1 text-slate-600 text-sm font-medium leading-relaxed border-t border-slate-100 bg-slate-50/20">
                     {item.a}
                   </div>
                 )}
@@ -315,18 +458,18 @@ export default function LeadManagementBespokePage() {
       </section>
 
       {/* 7. CLOSING CTA */}
-      <section className="bg-blue-50/50 py-16 md:py-20 px-6 md:px-16 text-center space-y-6">
-        <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight font-poppins">
+      <section className="bg-gradient-to-tr from-blue-50/80 to-indigo-50/30 py-20 px-6 md:px-16 text-center space-y-6 rounded-3xl">
+        <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
           {leadManagementContent.closingCta.heading}
         </h2>
-        <p className="text-slate-655 font-medium text-sm md:text-base leading-relaxed max-w-xl mx-auto">
+        <p className="text-slate-600 font-semibold text-sm md:text-base leading-relaxed max-w-xl mx-auto">
           {leadManagementContent.closingCta.body}
         </p>
-        <div className="pt-2 flex justify-center">
+        <div className="pt-4 flex justify-center">
           <Link href={leadManagementContent.closingCta.ctaHref} className="w-full sm:w-auto">
-            <Button className="w-full sm:w-auto bg-[#1565D8] hover:bg-blue-700 text-white font-extrabold text-sm px-8 py-3.5 rounded-xl h-auto shadow-lg shadow-blue-550/20 flex items-center justify-center gap-2 transition cursor-pointer">
+            <Button className="w-full sm:w-auto bg-[#1565D8] hover:bg-blue-700 text-white font-extrabold text-base px-8 py-4.5 rounded-2xl h-auto shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 transition hover:-translate-y-0.5 cursor-pointer">
               {leadManagementContent.closingCta.ctaText}
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
         </div>
@@ -334,7 +477,7 @@ export default function LeadManagementBespokePage() {
 
       {/* 8. RELATED LINKS */}
       {leadManagementContent.relatedLinks.length > 0 && (
-        <section className="bg-white py-6 px-6 md:px-16 flex flex-col sm:flex-row items-center gap-3 text-xs font-semibold text-slate-500">
+        <section className="py-6 px-6 md:px-16 flex flex-col sm:flex-row items-center gap-3 text-xs font-semibold text-slate-500 border-t border-slate-100">
           <span>Explore related features:</span>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {leadManagementContent.relatedLinks.map((link, idx) => (

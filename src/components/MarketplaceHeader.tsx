@@ -264,20 +264,20 @@ export default function MarketplaceHeader() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#1565D8]" />
-                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
+                      <h3 className="text-xs font-black font-poppins uppercase tracking-wider text-[#1565D8]">
                         Marketplace Platform
                       </h3>
                     </div>
                     <div className="flex flex-col gap-1">
                       <Link 
                         href="/products/marketplace/free-listing" 
-                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-emerald-100/50 hover:bg-slate-50/40 hover:shadow-[0_8px_30px_rgba(16,185,129,0.06)] transition-all duration-300"
                       >
                         <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
                           <Building className="w-5 h-5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                          <span className="text-sm font-extrabold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
                             Free School Listing
                           </span>
                           <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
@@ -287,13 +287,13 @@ export default function MarketplaceHeader() {
                       </Link>
                       <Link 
                         href="/products/marketplace/search-discovery" 
-                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-blue-100/50 hover:bg-slate-50/40 hover:shadow-[0_8px_30px_rgba(37,99,235,0.06)] transition-all duration-300"
                       >
                         <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
                           <Search className="w-5 h-5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                          <span className="text-sm font-extrabold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
                             Parent Search & Discovery
                           </span>
                           <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
@@ -303,13 +303,13 @@ export default function MarketplaceHeader() {
                       </Link>
                       <Link 
                         href="/products/marketplace/compare" 
-                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-purple-100/50 hover:bg-slate-50/40 hover:shadow-[0_8px_30px_rgba(139,92,246,0.06)] transition-all duration-300"
                       >
                         <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 group-hover:bg-purple-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
                           <GitCompare className="w-5 h-5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                          <span className="text-sm font-extrabold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
                             Compare Schools
                           </span>
                           <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
@@ -319,13 +319,13 @@ export default function MarketplaceHeader() {
                       </Link>
                       <Link 
                         href="/products/marketplace/track-application" 
-                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-amber-100/50 hover:bg-slate-50/40 hover:shadow-[0_8px_30px_rgba(245,158,11,0.06)] transition-all duration-300"
                       >
                         <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 group-hover:bg-amber-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
                           <Activity className="w-5 h-5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                          <span className="text-sm font-extrabold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
                             Track Your Application
                           </span>
                           <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
@@ -335,13 +335,13 @@ export default function MarketplaceHeader() {
                       </Link>
                       <Link 
                         href="/products/marketplace/verified-badge" 
-                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-indigo-100/50 hover:bg-slate-50/40 hover:shadow-[0_8px_30px_rgba(99,102,241,0.06)] transition-all duration-300"
                       >
                         <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
                           <Award className="w-5 h-5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                          <span className="text-sm font-extrabold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
                             Verified Profile Badge
                           </span>
                           <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
@@ -355,21 +355,21 @@ export default function MarketplaceHeader() {
                   {/* Columns 2 & 3 - Admission CRM */}
                   <div className="md:col-span-2 space-y-4">
                     <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#1565D8]" />
-                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-650" />
+                      <h3 className="text-xs font-black font-poppins uppercase tracking-wider text-indigo-600">
                         Admission CRM Solutions
                       </h3>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
                       <Link 
                         href="/products/lead-management" 
-                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-rose-100/50 hover:bg-slate-50/40 hover:shadow-[0_8px_30px_rgba(244,63,94,0.06)] transition-all duration-300"
                       >
                         <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 group-hover:bg-rose-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
                           <Users className="w-5 h-5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                          <span className="text-sm font-extrabold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
                             Lead Management
                           </span>
                           <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
@@ -379,13 +379,13 @@ export default function MarketplaceHeader() {
                       </Link>
                       <Link 
                         href="/products/admission-management" 
-                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-sky-100/50 hover:bg-slate-50/40 hover:shadow-[0_8px_30px_rgba(14,165,233,0.06)] transition-all duration-300"
                       >
                         <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 group-hover:bg-sky-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
                           <ClipboardList className="w-5 h-5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                          <span className="text-sm font-extrabold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
                             Admission Management
                           </span>
                           <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
@@ -395,13 +395,13 @@ export default function MarketplaceHeader() {
                       </Link>
                       <Link 
                         href="/products/student-management" 
-                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-violet-100/50 hover:bg-slate-50/40 hover:shadow-[0_8px_30px_rgba(109,40,217,0.06)] transition-all duration-300"
                       >
                         <div className="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 group-hover:bg-violet-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
                           <GraduationCap className="w-5 h-5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                          <span className="text-sm font-extrabold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
                             Student Management
                           </span>
                           <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
@@ -411,13 +411,13 @@ export default function MarketplaceHeader() {
                       </Link>
                       <Link 
                         href="/products/course-management" 
-                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-teal-100/50 hover:bg-slate-50/40 hover:shadow-[0_8px_30px_rgba(13,148,136,0.06)] transition-all duration-300"
                       >
                         <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 group-hover:bg-teal-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
                           <BookOpen className="w-5 h-5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                          <span className="text-sm font-extrabold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
                             Course & Batch Management
                           </span>
                           <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
@@ -427,13 +427,13 @@ export default function MarketplaceHeader() {
                       </Link>
                       <Link 
                         href="/products/fee-management" 
-                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-emerald-100/50 hover:bg-slate-50/40 hover:shadow-[0_8px_30px_rgba(16,185,129,0.06)] transition-all duration-300"
                       >
                         <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
                           <CreditCard className="w-5 h-5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                          <span className="text-sm font-extrabold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
                             Fee & Payment Management
                           </span>
                           <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
@@ -443,13 +443,13 @@ export default function MarketplaceHeader() {
                       </Link>
                       <Link 
                         href="/products/campaign-management" 
-                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-pink-100/50 hover:bg-slate-50/40 hover:shadow-[0_8px_30px_rgba(236,72,153,0.06)] transition-all duration-300"
                       >
                         <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 group-hover:bg-pink-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
                           <MessageSquare className="w-5 h-5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                          <span className="text-sm font-extrabold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
                             Campaign Management
                           </span>
                           <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
@@ -459,13 +459,13 @@ export default function MarketplaceHeader() {
                       </Link>
                       <Link 
                         href="/products/notifications-alerts" 
-                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-orange-100/50 hover:bg-slate-50/40 hover:shadow-[0_8px_30px_rgba(249,115,22,0.06)] transition-all duration-300"
                       >
                         <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 group-hover:bg-orange-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
                           <Bell className="w-5 h-5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                          <span className="text-sm font-extrabold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
                             Notifications & Alerts
                           </span>
                           <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
@@ -475,13 +475,13 @@ export default function MarketplaceHeader() {
                       </Link>
                       <Link 
                         href="/products/parent-portal" 
-                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-blue-100/50 hover:bg-slate-50/40 hover:shadow-[0_8px_30px_rgba(37,99,235,0.06)] transition-all duration-300"
                       >
                         <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
                           <User className="w-5 h-5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                          <span className="text-sm font-extrabold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
                             Parent Portal
                           </span>
                           <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">
@@ -491,13 +491,13 @@ export default function MarketplaceHeader() {
                       </Link>
                       <Link 
                         href="/products/reporting-analytics" 
-                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-slate-100 hover:bg-slate-50/40 hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,0.06)] transition-all duration-300"
+                        className="group flex items-start gap-3.5 p-3 rounded-2xl border border-transparent hover:border-fuchsia-100/50 hover:bg-slate-50/40 hover:shadow-[0_8px_30px_rgba(217,70,239,0.06)] transition-all duration-300"
                       >
                         <div className="w-10 h-10 rounded-xl bg-fuchsia-50 text-fuchsia-600 group-hover:bg-fuchsia-100 flex items-center justify-center shrink-0 transition-all duration-300 shadow-sm">
                           <BarChart3 className="w-5 h-5" />
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-sm font-extrabold text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
+                          <span className="text-sm font-extrabold font-poppins text-slate-800 group-hover:text-[#1565D8] transition-colors duration-200 block">
                             Reports & Analytics
                           </span>
                           <p className="text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors duration-200 leading-normal">

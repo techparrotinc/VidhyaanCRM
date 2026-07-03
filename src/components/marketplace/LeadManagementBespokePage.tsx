@@ -31,7 +31,7 @@ export default function LeadManagementBespokePage() {
   }
 
   return (
-    <div className="w-full bg-white flex flex-col space-y-24 py-4">
+    <div className="w-full bg-white flex flex-col">
       {/* 1. HERO SECTION */}
       <section className="text-center py-20 px-6 md:px-16 space-y-8 bg-gradient-to-b from-indigo-50/60 via-indigo-50/20 to-white rounded-3xl">
         <span className="inline-flex items-center gap-1.5 border border-indigo-200 text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-650 shadow-sm">
@@ -309,6 +309,104 @@ export default function LeadManagementBespokePage() {
               </div>
             )
           })}
+        </div>
+      </section>
+
+      {/* COMPARISON SECTION (PART 3) */}
+      <section className="py-16 px-6 md:px-16 bg-slate-50/30 rounded-3xl space-y-10">
+        <div className="text-center space-y-3">
+          <span className="text-[10px] font-black text-indigo-650 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">
+            Modernize Your Workflow
+          </span>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
+            Vidhyaan vs. The Old Way
+          </h2>
+          <p className="text-slate-500 font-semibold text-sm md:text-base max-w-xl mx-auto">
+            See how moving to a unified pipeline compares to manual registers and spreadsheet tracking.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {/* The Old Way Column */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 space-y-6 shadow-sm">
+            <h3 className="text-lg font-black text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 bg-red-500 rounded-full" />
+              Spreadsheets & Registers
+            </h3>
+            <ul className="space-y-4">
+              <li className="flex items-start gap-3">
+                <span className="text-red-500 font-extrabold shrink-0 mt-0.5">✗</span>
+                <span className="text-sm font-semibold text-slate-600">Spreadsheets get cluttered, leading to missed or ignored rows</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-red-500 font-extrabold shrink-0 mt-0.5">✗</span>
+                <span className="text-sm font-semibold text-slate-600">Juggling WhatsApp groups and calls to chase follow-ups manually</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-red-500 font-extrabold shrink-0 mt-0.5">✗</span>
+                <span className="text-sm font-semibold text-slate-600">Counsellors assigned verbally with zero tracking or history</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-red-500 font-extrabold shrink-0 mt-0.5">✗</span>
+                <span className="text-sm font-semibold text-slate-600">No team-wide visibility into stuck leads or cold follow-ups</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Vidhyaan Column */}
+          <div className="bg-gradient-to-b from-indigo-50/30 to-white border border-indigo-150 rounded-3xl p-8 space-y-6 shadow-sm">
+            <h3 className="text-lg font-black text-indigo-900 border-b border-indigo-100/50 pb-3 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 bg-indigo-500 rounded-full" />
+              Vidhyaan CRM
+            </h3>
+            <ul className="space-y-4">
+              <li className="flex items-start gap-3">
+                <span className="text-emerald-550 font-black shrink-0 mt-0.5">✓</span>
+                <span className="text-sm font-bold text-slate-800">One live, unified pipeline for every single parent enquiry</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-emerald-550 font-black shrink-0 mt-0.5">✓</span>
+                <span className="text-sm font-bold text-slate-800">Scheduled reminders and WhatsApp notifications per lead</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-emerald-550 font-black shrink-0 mt-0.5">✓</span>
+                <span className="text-sm font-bold text-slate-800">One-click counsellor assignment with full audit logs</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-emerald-550 font-black shrink-0 mt-0.5">✓</span>
+                <span className="text-sm font-bold text-slate-800">Real-time status dashboards to identify pipeline blockages</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* SUB-FEATURE HIGHLIGHTS (PART 4) */}
+      <section className="py-16 px-6 md:px-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="flex gap-4 items-start p-6 bg-slate-50 rounded-2xl border border-slate-150/80 shadow-sm">
+            <div className="p-3 bg-indigo-50 text-indigo-650 rounded-xl shrink-0">
+              <Phone className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-extrabold text-slate-800 text-base">Manage leads from any device</h4>
+              <p className="text-slate-550 font-semibold text-xs leading-relaxed">
+                Vidhyaan works entirely in your browser with a fully responsive layout. Manage enquiries on the go, with no mobile app install required.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-4 items-start p-6 bg-slate-50 rounded-2xl border border-slate-150/80 shadow-sm">
+            <div className="p-3 bg-indigo-50 text-indigo-650 rounded-xl shrink-0">
+              <Activity className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-extrabold text-slate-800 text-base">Filter and act fast</h4>
+              <p className="text-slate-550 font-semibold text-xs leading-relaxed">
+                Quickly sort leads by status (New, Contacted, Converted, Rejected, or Follow-up) directly from the dashboard to focus on hot prospects first.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 

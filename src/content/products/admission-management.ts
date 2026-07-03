@@ -1,6 +1,7 @@
 import { ProductFeaturePageContent } from '@/components/marketplace/ProductFeaturePage'
 
 export const admissionManagementContent: ProductFeaturePageContent = {
+  accentColor: "purple",
   h1: "Admission Management System for Schools & Junior Colleges",
   subhead: "Replace registers and spreadsheets with a real admission management system, built for how Indian schools and junior colleges actually admit students — from application received to admitted, waitlisted, or rejected, with nothing falling through the cracks.",
   primaryCta: { text: "Claim Your Free Profile", href: "/register-school" },
@@ -11,11 +12,11 @@ export const admissionManagementContent: ProductFeaturePageContent = {
     body: "Every admission cycle, counsellors juggle paper applications, WhatsApp threads, and Excel trackers to know who's applied, who's been contacted, and who's still waiting on a document. Applicants get lost between desks. Follow-ups get missed. Vidhyaan's admission management system puts every applicant in one pipeline your whole team can see — so nothing depends on one counsellor's memory."
   },
   capabilities: [
-    { title: "Fully customizable admission stages", body: "Define the exact stages your school uses — application received, document verification, interview scheduled, admitted, waitlisted, rejected — and move applicants through them with a simple stage change, not a re-entered spreadsheet row." },
-    { title: "Document collection, built in", body: "Parents and counsellors upload required documents directly against each applicant's record — no more chasing certificates over email or WhatsApp with no central place to store them." },
-    { title: "Complete activity timeline", body: "Every call, note, WhatsApp message, and email tied to an applicant is logged in one place — any counsellor can pick up where another left off without asking \"what's the status on this one?\"" },
-    { title: "One-click conversion to enrolled student", body: "Once an applicant is admitted, convert them directly into a full student record — no re-entering the same name, grade, and guardian details a second time in a separate system." },
-    { title: "Pipeline visibility for leadership", body: "See conversion rates and pipeline health at a glance — how many applications are stuck at document verification, how many are ready for interview, how many convert to admitted — without asking your admissions team for a manual count." }
+    { title: "Fully customizable admission stages", body: "Define the exact stages your school uses — application received, document verification, interview scheduled, admitted, waitlisted, rejected — and move applicants through them with a simple stage change, not a re-entered spreadsheet row.", icon: "Settings" },
+    { title: "Document collection, built in", body: "Parents and counsellors upload required documents directly against each applicant's record — no more chasing certificates over email or WhatsApp with no central place to store them.", icon: "FileText" },
+    { title: "Complete activity timeline", body: "Every call, note, WhatsApp message, and email tied to an applicant is logged in one place — any counsellor can pick up where another left off without asking \"what's the status on this one?\"", icon: "Clock" },
+    { title: "One-click conversion to enrolled student", body: "Once an applicant is admitted, convert them directly into a full student record — no re-entering the same name, grade, and guardian details a second time in a separate system.", icon: "UserCheck" },
+    { title: "Pipeline visibility for leadership", body: "See conversion rates and pipeline health at a glance — how many applications are stuck at document verification, how many are ready for interview, how many convert to admitted — without asking your admissions team for a manual count.", icon: "BarChart" }
   ],
   howItWorks: {
     heading: "From application to enrolled student in four steps",

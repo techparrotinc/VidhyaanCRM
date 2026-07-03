@@ -1,6 +1,7 @@
 import { ProductFeaturePageContent } from '@/components/marketplace/ProductFeaturePage'
 
 export const feeManagementContent: ProductFeaturePageContent = {
+  accentColor: "green",
   h1: "Fee Management Software for Schools — With Integrated Razorpay Payments",
   subhead: "Stop chasing fee payments manually. Vidhyaan's fee management software automates invoicing, sends payment reminders, and now lets parents pay online directly through Razorpay — with every payment automatically reconciled against the right invoice.",
   primaryCta: { text: "Claim Your Free Profile", href: "/register-school" },
@@ -11,12 +12,12 @@ export const feeManagementContent: ProductFeaturePageContent = {
     body: "Indian schools and learning centers still lose hours every month to fee collection: generating invoices by hand, following up on WhatsApp for overdue payments, manually reconciling cash and bank transfers against the right student. Vidhyaan's school fee collection software replaces that entire manual cycle with one automated system — from invoice generation to payment to receipt, without your accounts team touching a spreadsheet."
   },
   capabilities: [
-    { title: "Flexible fee plans, built for how Indian schools actually bill", body: "Create term-wise fee plans for schools and junior colleges, or course-wise recurring plans for learning centers and coaching centers — with flexible fee heads (tuition, transport, activity fees, and more) that can apply to all terms, a specific term, or a custom schedule you define." },
-    { title: "Batch invoice generation", body: "Generate invoices for an entire grade, an entire course, or your whole institution in a single click — instead of creating them one student at a time." },
-    { title: "Scheduled & automatic billing", body: "Set up recurring course invoices that generate automatically on a fixed billing cycle, with no manual trigger needed each month." },
-    { title: "Integrated Razorpay payments — New", body: "Parents can now pay fees online directly from their portal — UPI, credit/debit cards, net banking, or wallets — with the payment automatically matched and reconciled against the correct invoice. No more manually marking invoices as paid after checking your bank statement." },
-    { title: "Real-time payment status tracking", body: "Every invoice shows a live status — Unpaid, Partially Paid, Paid, Overdue, or Waived — so your accounts team always has an accurate, up-to-date view without needing to ask." },
-    { title: "Automated payment receipts", body: "Once a payment is recorded (online or offline), a receipt generates automatically — no manual paperwork." }
+    { title: "Flexible fee plans, built for how Indian schools actually bill", body: "Create term-wise fee plans for schools and junior colleges, or course-wise recurring plans for learning centers and coaching centers — with flexible fee heads (tuition, transport, activity fees, and more) that can apply to all terms, a specific term, or a custom schedule you define.", icon: "Calendar" },
+    { title: "Batch invoice generation", body: "Generate invoices for an entire grade, an entire course, or your whole institution in a single click — instead of creating them one student at a time.", icon: "PlusCircle" },
+    { title: "Scheduled & automatic billing", body: "Set up recurring course invoices that generate automatically on a fixed billing cycle, with no manual trigger needed each month.", icon: "Clock" },
+    { title: "Integrated Razorpay payments — New", body: "Parents can now pay fees online directly from their portal — UPI, credit/debit cards, net banking, or wallets — with the payment automatically matched and reconciled against the correct invoice. No more manually marking invoices as paid after checking your bank statement.", icon: "CreditCard" },
+    { title: "Real-time payment status tracking", body: "Every invoice shows a live status — Unpaid, Partially Paid, Paid, Overdue, or Waived — so your accounts team always has an accurate, up-to-date view without needing to ask.", icon: "Activity" },
+    { title: "Automated payment receipts", body: "Once a payment is recorded (online or offline), a receipt generates automatically — no manual paperwork.", icon: "Receipt" }
   ],
   howItWorks: {
     heading: "From invoice to payment in four steps",

@@ -1,6 +1,7 @@
 import { ProductFeaturePageContent } from '@/components/marketplace/ProductFeaturePage'
 
 export const courseManagementContent: ProductFeaturePageContent = {
+  accentColor: "orange",
   h1: "Course & Batch Management for Learning Centers & Coaching Institutes",
   subhead: "Purpose-built for how learning centers, coaching institutes, and activity classes actually operate — course catalogs, one-click enrollment, and automatic recurring billing, without the admission-pipeline clutter a school-first ERP forces on you.",
   primaryCta: { text: "Claim Your Free Profile", href: "/register-school" },
@@ -11,11 +12,11 @@ export const courseManagementContent: ProductFeaturePageContent = {
     body: "Most school management software is built admission-pipeline-first — application stages, document verification, interview scheduling — none of which matches how a dance academy, coaching institute, or STEM class actually enrolls a student. Vidhyaan's course and batch management is built the other way around: course catalog first, enrollment second, billing automatic — the workflow you actually need, not the one a generic ERP assumes you want."
   },
   capabilities: [
-    { title: "Custom course catalog", body: "Set up your courses — Carnatic Vocal, Robotics, Bharatanatyam, NEET Coaching, whatever you teach — each with its own pricing and billing frequency (one-time, monthly, quarterly, half-yearly, or custom)." },
-    { title: "One-click student enrollment", body: "Enroll a student into a course directly from their profile, with the first invoice generated automatically the moment they're enrolled — no separate manual billing step." },
-    { title: "Automatic recurring billing", body: "Set a billing frequency once and invoices generate on schedule going forward — monthly course fees don't need a manual trigger every month." },
-    { title: "Per-course invoice history", body: "See every invoice tied to a specific course, or deep-link from a student's enrollment straight to their fee history for that course." },
-    { title: "Default course templates by category", body: "Starting categories — Music, Dance, Art, Abacus, Coaching, Sports, Language, STEM, and more — give you a working course catalog from day one, which you can fully customize afterward." }
+    { title: "Custom course catalog", body: "Set up your courses — Carnatic Vocal, Robotics, Bharatanatyam, NEET Coaching, whatever you teach — each with its own pricing and billing frequency (one-time, monthly, quarterly, half-yearly, or custom).", icon: "BookOpen" },
+    { title: "One-click student enrollment", body: "Enroll a student into a course directly from their profile, with the first invoice generated automatically the moment they're enrolled — no separate manual billing step.", icon: "PlusCircle" },
+    { title: "Automatic recurring billing", body: "Set a billing frequency once and invoices generate on schedule going forward — monthly course fees don't need a manual trigger every month.", icon: "RefreshCw" },
+    { title: "Per-course invoice history", body: "See every invoice tied to a specific course, or deep-link from a student's enrollment straight to their fee history for that course.", icon: "Receipt" },
+    { title: "Default course templates by category", body: "Starting categories — Music, Dance, Art, Abacus, Coaching, Sports, Language, STEM, and more — give you a working course catalog from day one, which you can fully customize afterward.", icon: "Layout" }
   ],
   howItWorks: {
     heading: "From course catalog to first invoice in three steps",

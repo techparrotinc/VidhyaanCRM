@@ -1,6 +1,7 @@
 import { ProductFeaturePageContent } from '@/components/marketplace/ProductFeaturePage'
 
 export const parentPortalContent: ProductFeaturePageContent = {
+  accentColor: "sky",
   h1: "Parent Portal — Track Applications, Pay Fees & Get Updates, All in One Place",
   subhead: "One login for everything a parent needs. Whether your child's application is still under review or they're already enrolled and you need to pay this term's fees, Vidhyaan's Parent Portal gives you real-time visibility — automatically, for every school, junior college, learning center, and coaching center on the platform.",
   primaryCta: { text: "Claim Your Free Profile", href: "/register-school" },
@@ -11,12 +12,12 @@ export const parentPortalContent: ProductFeaturePageContent = {
     body: "Checking on an admission application means one phone call. Checking a fee balance means another. Getting a payment receipt reprinted means a third. Vidhyaan's Parent Portal replaces all of it with one login — whether a parent is waiting to hear back on an application or already has a child enrolled and paying fees, everything lives in the same place."
   },
   capabilities: [
-    { title: "Track your application status", body: "See exactly where your child's admission application stands — submitted, under review, admitted, waitlisted, or rejected — without calling the school for an update." },
-    { title: "Real-time fee visibility", body: "Once enrolled, parents see exactly what's due, what's been paid, and their full payment history — no waiting on a call-back from your accounts team." },
-    { title: "Pay fees directly, via Razorpay", body: "One-tap online payment — UPI, cards, net banking, or wallets — reconciled instantly against the right invoice." },
-    { title: "Automatic receipts", body: "Every payment, online or offline, generates a receipt parents can access anytime." },
-    { title: "Instant notifications", body: "Application status changes, fee due reminders, and payment confirmations reach parents automatically — no manual follow-up required from your staff." },
-    { title: "One login, every stage", body: "The same portal works whether a parent has a child with a pending application, an already-enrolled child, or both at once — no separate logins depending on where each child is in the process." }
+    { title: "Track your application status", body: "See exactly where your child's admission application stands — submitted, under review, admitted, waitlisted, or rejected — without calling the school for an update.", icon: "Activity" },
+    { title: "Real-time fee visibility", body: "Once enrolled, parents see exactly what's due, what's been paid, and their full payment history — no waiting on a call-back from your accounts team.", icon: "Clock" },
+    { title: "Pay fees directly, via Razorpay", body: "One-tap online payment — UPI, cards, net banking, or wallets — reconciled instantly against the right invoice.", icon: "CreditCard" },
+    { title: "Automatic receipts", body: "Every payment, online or offline, generates a receipt parents can access anytime.", icon: "Receipt" },
+    { title: "Instant notifications", body: "Application status changes, fee due reminders, and payment confirmations reach parents automatically — no manual follow-up required from your staff.", icon: "MessageSquare" },
+    { title: "One login, every stage", body: "The same portal works whether a parent has a child with a pending application, an already-enrolled child, or both at once — no separate logins depending on where each child is in the process.", icon: "KeyRound" }
   ],
   howItWorks: {
     heading: "From application to enrolled and beyond",

@@ -1,6 +1,7 @@
 import { ProductFeaturePageContent } from '@/components/marketplace/ProductFeaturePage'
 
 export const notificationsAlertsContent: ProductFeaturePageContent = {
+  accentColor: "amber",
   h1: "Automated Notifications & Alerts — No Manual Follow-Up Required",
   subhead: "Fee due reminders, admission status changes, payment confirmations — Vidhyaan sends them automatically, the moment they happen, across WhatsApp, SMS, or email. Your staff shouldn't have to remember to notify a parent; the system already did.",
   primaryCta: { text: "Claim Your Free Profile", href: "/register-school" },
@@ -10,11 +11,11 @@ export const notificationsAlertsContent: ProductFeaturePageContent = {
     body: "Fee due dates get missed because no one sent a reminder. Parents call asking about admission status because no one updated them. These aren't campaign moments — they're routine, predictable events that should notify themselves. Vidhyaan's automated notifications handle exactly that, so your staff isn't the bottleneck for routine communication."
   },
   capabilities: [
-    { title: "Fee due reminders", body: "Sent automatically as a due date approaches — no staff member needs to remember or trigger it." },
-    { title: "Admission status alerts", body: "The moment an applicant's stage changes — moved to interview, admitted, waitlisted — the parent is notified automatically." },
-    { title: "Payment confirmations", body: "Parents get instant confirmation the moment a payment is recorded, online or offline." },
-    { title: "Secure OTP delivery", body: "Login and verification codes delivered instantly via SMS or WhatsApp as part of Vidhyaan's authentication flow." },
-    { title: "Multi-channel delivery", body: "Alerts go out via WhatsApp, SMS, or email depending on what's configured for your institution — using the same DLT-compliant infrastructure as your campaigns." }
+    { title: "Fee due reminders", body: "Sent automatically as a due date approaches — no staff member needs to remember or trigger it.", icon: "Calendar" },
+    { title: "Admission status alerts", body: "The moment an applicant's stage changes — moved to interview, admitted, waitlisted — the parent is notified automatically.", icon: "Activity" },
+    { title: "Payment confirmations", body: "Parents get instant confirmation the moment a payment is recorded, online or offline.", icon: "CheckSquare" },
+    { title: "Secure OTP delivery", body: "Login and verification codes delivered instantly via SMS or WhatsApp as part of Vidhyaan's authentication flow.", icon: "KeyRound" },
+    { title: "Multi-channel delivery", body: "Alerts go out via WhatsApp, SMS, or email depending on what's configured for your institution — using the same DLT-compliant infrastructure as your campaigns.", icon: "MessageSquare" }
   ],
   howItWorks: {
     heading: "Set up once, runs on its own",

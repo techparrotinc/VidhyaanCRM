@@ -1,6 +1,7 @@
 import { ProductFeaturePageContent } from '@/components/marketplace/ProductFeaturePage'
 
 export const campaignManagementContent: ProductFeaturePageContent = {
+  accentColor: "pink",
   h1: "WhatsApp & Email Campaign Software for Schools & Learning Centers",
   subhead: "Reach parents where they already are. Send admission reminders, fee due notices, event announcements, or enrollment drives directly from Vidhyaan — using DLT-compliant WhatsApp templates built for the Indian regulatory environment, with delivery tracking on every campaign.",
   primaryCta: { text: "Claim Your Free Profile", href: "/register-school" },
@@ -11,11 +12,11 @@ export const campaignManagementContent: ProductFeaturePageContent = {
     body: "Announcing an event, chasing overdue fees, or re-engaging a lead that's gone quiet usually means a staff member manually messaging parents one by one — or worse, not reaching them at all. Vidhyaan's campaign management lets you send one targeted message to exactly the right audience, across WhatsApp, email, or SMS, without leaving the platform."
   },
   capabilities: [
-    { title: "DLT-registered WhatsApp templates", body: "Send WhatsApp campaigns using templates registered and approved under India's DLT (Distributed Ledger Technology) regulations — the compliance layer every legitimate bulk WhatsApp sender in India is required to have." },
-    { title: "Email and SMS, same platform", body: "Run campaigns across WhatsApp, email, or SMS from the same audience list and interface — no separate tools for each channel." },
-    { title: "Audience filtering that actually targets", body: "Filter your audience by grade, admission status, lead status, or custom criteria, so a fee reminder doesn't accidentally go to a parent who's already paid." },
-    { title: "Delivery and engagement tracking", body: "See exactly what was sent, delivered, and opened for every campaign — not just a \"sent\" confirmation with no visibility after that." },
-    { title: "Scheduled campaigns", body: "Schedule a campaign in advance and it sends automatically at the right time, no one needing to remember to hit send." }
+    { title: "DLT-registered WhatsApp templates", body: "Send WhatsApp campaigns using templates registered and approved under India's DLT (Distributed Ledger Technology) regulations — the compliance layer every legitimate bulk WhatsApp sender in India is required to have.", icon: "ShieldCheck" },
+    { title: "Email and SMS, same platform", body: "Run campaigns across WhatsApp, email, or SMS from the same audience list and interface — no separate tools for each channel.", icon: "Mail" },
+    { title: "Audience filtering that actually targets", body: "Filter your audience by grade, admission status, lead status, or custom criteria, so a fee reminder doesn't accidentally go to a parent who's already paid.", icon: "Filter" },
+    { title: "Delivery and engagement tracking", body: "See exactly what was sent, delivered, and opened for every campaign — not just a \"sent\" confirmation with no visibility after that.", icon: "BarChart" },
+    { title: "Scheduled campaigns", body: "Schedule a campaign in advance and it sends automatically at the right time, no one needing to remember to hit send.", icon: "Calendar" }
   ],
   howItWorks: {
     heading: "From audience to sent in three steps",

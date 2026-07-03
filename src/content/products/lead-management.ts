@@ -1,6 +1,7 @@
 import { ProductFeaturePageContent } from '@/components/marketplace/ProductFeaturePage'
 
 export const leadManagementContent: ProductFeaturePageContent = {
+  accentColor: "indigo",
   h1: "Lead Management Software for Schools & Learning Centers",
   subhead: "Every enquiry — from your website, phone calls, walk-ins, or your free Vidhyaan marketplace listing — captured into one organized pipeline, so no parent enquiry falls through the cracks and no counsellor loses track of a follow-up.",
   primaryCta: { text: "Claim Your Free Profile", href: "/register-school" },
@@ -11,12 +12,12 @@ export const leadManagementContent: ProductFeaturePageContent = {
     body: "Enquiries come in from everywhere — a phone call to the front desk, a walk-in parent, a form on your website, an enquiry from your marketplace listing — and without a single place to track them, some inevitably get forgotten. Vidhyaan's lead management software puts every enquiry into one pipeline your whole team can see, so a follow-up never depends on one person's memory."
   },
   capabilities: [
-    { heading: "Centralized enquiry inbox", title: "One pipeline, every enquiry, no exceptions", body: "Every lead — regardless of source — lands in the same pipeline, tagged with where it came from." },
-    { title: "Counsellor assignment", body: "Assign enquiries to a specific counsellor, manually or automatically, so ownership is always clear." },
-    { title: "Status tracking that actually reflects reality", body: "Move leads through New, Contacted, Converted, Rejected, or Follow-up status, with color-coded visibility for your whole team at a glance." },
-    { title: "Follow-up scheduling", body: "Set a follow-up date on any lead and get a clear view of what's due today — nothing goes cold because no one remembered to check back." },
-    { title: "Complete activity timeline", body: "Every call, note, WhatsApp message, and email tied to a lead is logged in one place — any counsellor can pick up where another left off." },
-    { title: "One-click conversion", body: "Convert a qualified lead directly into an admission application (Schools/Junior Colleges) or a student record (Learning Centers/Coaching Centers) — no re-entering the same details in a second system." }
+    { heading: "Centralized enquiry inbox", title: "One pipeline, every enquiry, no exceptions", body: "Every lead — regardless of source — lands in the same pipeline, tagged with where it came from.", icon: "Inbox" },
+    { title: "Counsellor assignment", body: "Assign enquiries to a specific counsellor, manually or automatically, so ownership is always clear.", icon: "UserCheck" },
+    { title: "Status tracking that actually reflects reality", body: "Move leads through New, Contacted, Converted, Rejected, or Follow-up status, with color-coded visibility for your whole team at a glance.", icon: "Activity" },
+    { title: "Follow-up scheduling", body: "Set a follow-up date on any lead and get a clear view of what's due today — nothing goes cold because no one remembered to check back.", icon: "Calendar" },
+    { title: "Complete activity timeline", body: "Every call, note, WhatsApp message, and email tied to a lead is logged in one place — any counsellor can pick up where another left off.", icon: "Clock" },
+    { title: "One-click conversion", body: "Convert a qualified lead directly into an admission application (Schools/Junior Colleges) or a student record (Learning Centers/Coaching Centers) — no re-entering the same details in a second system.", icon: "RefreshCw" }
   ],
   howItWorks: {
     heading: "From first enquiry to conversion in four steps",

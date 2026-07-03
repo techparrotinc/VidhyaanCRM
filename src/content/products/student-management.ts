@@ -1,6 +1,7 @@
 import { ProductFeaturePageContent } from '@/components/marketplace/ProductFeaturePage'
 
 export const studentManagementContent: ProductFeaturePageContent = {
+  accentColor: "teal",
   h1: "Student Management System — One Record, Every Detail, Enrollment to Alumni",
   subhead: "A searchable, filterable student database that links directly to admissions and fees — so your team always has the full picture on any student, without digging through separate files or spreadsheets.",
   primaryCta: { text: "Claim Your Free Profile", href: "/register-school" },
@@ -11,12 +12,12 @@ export const studentManagementContent: ProductFeaturePageContent = {
     body: "A student's admission file, their fee history, and their basic contact details often end up scattered across a register, a spreadsheet, and someone's memory. Vidhyaan's student management system keeps everything on one linked profile — so any staff member can pull up a complete picture in seconds, not after checking three different places."
   },
   capabilities: [
-    { title: "Searchable, filterable student database", body: "Find any student instantly by name, grade, or status — no more scrolling through a printed register." },
-    { title: "Guardian contact management", body: "Guardian name, phone, and email attached directly to the student record — always up to date, always accessible." },
-    { title: "Full lifecycle status tracking", body: "Track every student's real status — Active, Alumni, Transferred, Suspended, or Dropped Out — so your records reflect reality, not just who was ever enrolled." },
-    { title: "Linked admission and fee history", body: "Every student profile shows their original admission record and their complete fee/payment history, without needing a second system." },
-    { title: "Auto-generated student codes", body: "Every student gets a unique, auto-generated code on enrollment — no manual numbering, no duplicates." },
-    { title: "Course enrollment tracking (Learning Centers & Coaching Centers)", body: "For course-based institutions, each student's active course enrollments show directly on their profile, linked to billing." }
+    { title: "Searchable, filterable student database", body: "Find any student instantly by name, grade, or status — no more scrolling through a printed register.", icon: "Database" },
+    { title: "Guardian contact management", body: "Guardian name, phone, and email attached directly to the student record — always up to date, always accessible.", icon: "Users" },
+    { title: "Full lifecycle status tracking", body: "Track every student's real status — Active, Alumni, Transferred, Suspended, or Dropped Out — so your records reflect reality, not just who was ever enrolled.", icon: "Activity" },
+    { title: "Linked admission and fee history", body: "Every student profile shows their original admission record and their complete fee/payment history, without needing a second system.", icon: "Link" },
+    { title: "Auto-generated student codes", body: "Every student gets a unique, auto-generated code on enrollment — no manual numbering, no duplicates.", icon: "KeyRound" },
+    { title: "Course enrollment tracking (Learning Centers & Coaching Centers)", body: "For course-based institutions, each student's active course enrollments show directly on their profile, linked to billing.", icon: "BookOpen" }
   ],
   howItWorks: {
     heading: "From admission to active record in one step",

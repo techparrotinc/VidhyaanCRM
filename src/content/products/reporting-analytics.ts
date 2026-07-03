@@ -1,6 +1,7 @@
 import { ProductFeaturePageContent } from '@/components/marketplace/ProductFeaturePage'
 
 export const reportingAnalyticsContent: ProductFeaturePageContent = {
+  accentColor: "violet",
   h1: "School Reporting & Analytics Dashboard",
   subhead: "Make decisions backed by real numbers, not gut feel. Vidhyaan's reporting and analytics dashboard gives school leadership a live view of admissions performance, fee collection status, lead conversion rates, and campaign engagement — all in one place, without exporting data into spreadsheets.",
   primaryCta: { text: "Claim Your Free Profile", href: "/register-school" },
@@ -11,10 +12,10 @@ export const reportingAnalyticsContent: ProductFeaturePageContent = {
     body: "\"How many applications converted this month?\" \"What's our outstanding fee balance?\" \"Which counsellor is closing the most leads?\" — these are questions that usually mean someone on your team stops what they're doing to pull numbers manually. Vidhyaan's reporting dashboard answers them in real time, without anyone needing to compile a report."
   },
   capabilities: [
-    { title: "Admissions pipeline performance", body: "See conversion rates and pipeline health at a glance — how many applications are stuck at document verification, how many are ready for interview, how many convert to admitted." },
-    { title: "Fee collection overview", body: "A real-time breakdown of paid, unpaid, partially paid, and overdue invoices — no need to cross-reference invoices manually to know your actual collection status." },
-    { title: "Lead source and counsellor performance", body: "See which enquiry sources actually convert, and which counsellors are converting leads fastest — useful for both marketing spend decisions and team performance conversations." },
-    { title: "Campaign delivery and engagement", body: "Delivery and open-rate metrics for every WhatsApp, email, or SMS campaign you've sent, in the same dashboard as the rest of your operational data." }
+    { title: "Admissions pipeline performance", body: "See conversion rates and pipeline health at a glance — how many applications are stuck at document verification, how many are ready for interview, how many convert to admitted.", icon: "Activity" },
+    { title: "Fee collection overview", body: "A real-time breakdown of paid, unpaid, partially paid, and overdue invoices — no need to cross-reference invoices manually to know your actual collection status.", icon: "PieChart" },
+    { title: "Lead source and counsellor performance", body: "See which enquiry sources actually convert, and which counsellors are converting leads fastest — useful for both marketing spend decisions and team performance conversations.", icon: "BarChart" },
+    { title: "Campaign delivery and engagement", body: "Delivery and open-rate metrics for every WhatsApp, email, or SMS campaign you've sent, in the same dashboard as the rest of your operational data.", icon: "Mail" }
   ],
   howItWorks: {
     heading: "Populated automatically, no manual reporting",

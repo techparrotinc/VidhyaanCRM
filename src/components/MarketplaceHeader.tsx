@@ -21,7 +21,15 @@ import {
   CheckCircle2,
   X,
   Loader2,
-  Menu
+  Menu,
+  Users,
+  ClipboardList,
+  GraduationCap,
+  CreditCard,
+  BookOpen,
+  MessageSquare,
+  BarChart3,
+  Lock
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -36,6 +44,7 @@ export default function MarketplaceHeader() {
   const [toastMsg, setToastMsg] = useState<string | null>(null)
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isMobileProductsOpen, setIsMobileProductsOpen] = useState(false)
 
   // Listen to deletion message query parameter
   useEffect(() => {
@@ -241,81 +250,118 @@ export default function MarketplaceHeader() {
             className="absolute left-0 right-0 top-16 w-full bg-white border-t-[3px] border-[#1565D8] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15),0_15px_25px_-10px_rgba(0,0,0,0.1)] z-40 transition-all duration-300 ease-out"
             onMouseEnter={() => setIsProductsOpen(true)}
           >
-            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 grid grid-cols-2 gap-8 relative">
-              <div className="absolute top-8 bottom-8 left-1/2 w-px bg-[#E2E8F0] -translate-x-1/2 hidden md:block" />
-
-              {/* CORE PRODUCTS */}
-              <div className="pr-0 md:pr-8">
-                <div className="flex items-center gap-2 pb-3 mb-6 border-b border-slate-100">
-                  <LayoutGrid className="w-4 h-4 text-[#1565D8] fill-current" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-505">CORE PRODUCTS</h3>
-                </div>
+            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 flex flex-col gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 
-                <div className="space-y-3">
-                  <Link href="/for-schools" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                    <div className="w-12 h-12 rounded-xl bg-[#EFF6FF] group-hover:bg-[#DBEAFE] text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-300">
-                      <Building className="w-5 h-5 fill-current" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">School Profile</span>
-                        <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                          <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                        </div>
+                {/* Column 1 */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Admissions & Leads</h3>
+                  <div className="space-y-4">
+                    <Link href="/products/lead-management" className="group flex items-start gap-3 hover:text-[#1565D8] transition">
+                      <Users className="w-5 h-5 text-slate-400 group-hover:text-[#1565D8] shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 group-hover:text-[#1565D8]">Lead Management</h4>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-normal font-medium">Manage every parent enquiry in one pipeline.</p>
                       </div>
-                      <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Create and manage school listings and learning institutes online</p>
-                    </div>
-                  </Link>
-
-                  <Link href="/register-school" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 group-hover:bg-blue-100 text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-300">
-                      <Building className="w-5 h-5 text-[#1565D8]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Register School</span>
-                        <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                          <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                        </div>
+                    </Link>
+                    <Link href="/products/admission-management" className="group flex items-start gap-3 hover:text-[#1565D8] transition">
+                      <ClipboardList className="w-5 h-5 text-slate-400 group-hover:text-[#1565D8] shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 group-hover:text-[#1565D8]">Admission Management</h4>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-normal font-medium">Convert enquiries to enrollments with structured workflows.</p>
                       </div>
-                      <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Register a new school or learning center on Vidhyaan</p>
-                    </div>
-                  </Link>
-
-                  <Link href="/for-schools" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                    <div className="w-12 h-12 rounded-xl bg-[#FFFBEB] group-hover:bg-[#FEF3C7] text-[#D97706] flex items-center justify-center shrink-0 transition-colors duration-300">
-                      <UserPlus className="w-5 h-5 fill-current" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Admissions CRM</span>
-                        <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                          <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Manage applications and convert enquiries into enrollments faster</p>
-                    </div>
-                  </Link>
-                </div>
-              </div>
-
-              {/* PLATFORM MODULES */}
-              <div className="pl-0 md:pl-8">
-                <div className="flex items-center gap-2 pb-3 mb-6 border-b border-slate-100">
-                  <Shield className="w-4 h-4 text-[#1565D8] fill-current" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-505">PLATFORM FEATURES</h3>
-                </div>
-                
-                <div className="space-y-4 pt-1">
-                  <div className="flex items-start gap-3">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">Advanced Analytics</h4>
-                      <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Track views, inquiry statistics, and school listing conversions dynamically.</p>
-                    </div>
+                    </Link>
                   </div>
                 </div>
+
+                {/* Column 2 */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Students, Fees & Courses</h3>
+                  <div className="space-y-4">
+                    <Link href="/products/student-management" className="group flex items-start gap-3 hover:text-[#1565D8] transition">
+                      <GraduationCap className="w-5 h-5 text-slate-400 group-hover:text-[#1565D8] shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 group-hover:text-[#1565D8]">Student Management</h4>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-normal font-medium">Maintain comprehensive digital records for every student.</p>
+                      </div>
+                    </Link>
+                    <Link href="/products/fee-management" className="group flex items-start gap-3 hover:text-[#1565D8] transition">
+                      <CreditCard className="w-5 h-5 text-slate-400 group-hover:text-[#1565D8] shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 group-hover:text-[#1565D8]">Fee Management & Payments</h4>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-normal font-medium">Automate fee collections, invoices, and payment tracking.</p>
+                      </div>
+                    </Link>
+                    <Link href="/products/course-management" className="group flex items-start gap-3 hover:text-[#1565D8] transition">
+                      <BookOpen className="w-5 h-5 text-slate-400 group-hover:text-[#1565D8] shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 group-hover:text-[#1565D8]">Course & Batch Management</h4>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-normal font-medium">Organize academic terms, courses, and class sections.</p>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Column 3 */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Engagement & Insights</h3>
+                  <div className="space-y-4">
+                    <Link href="/products/campaign-management" className="group flex items-start gap-3 hover:text-[#1565D8] transition">
+                      <MessageSquare className="w-5 h-5 text-slate-400 group-hover:text-[#1565D8] shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 group-hover:text-[#1565D8]">Campaign Management</h4>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-normal font-medium">Reach parents instantly with targeted broadcast campaigns.</p>
+                      </div>
+                    </Link>
+                    <Link href="/products/reporting-analytics" className="group flex items-start gap-3 hover:text-[#1565D8] transition">
+                      <BarChart3 className="w-5 h-5 text-slate-400 group-hover:text-[#1565D8] shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 group-hover:text-[#1565D8]">Reporting & Analytics</h4>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-normal font-medium">Track admission metrics and school performance trends.</p>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Column 4 */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Access & Platform</h3>
+                  <div className="space-y-4">
+                    <Link href="/products/role-based-access" className="group flex items-start gap-3 hover:text-[#1565D8] transition">
+                      <Lock className="w-5 h-5 text-slate-400 group-hover:text-[#1565D8] shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 group-hover:text-[#1565D8]">Role-Based Access</h4>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-normal font-medium">Secure access control for administrators, staff, and parents.</p>
+                      </div>
+                    </Link>
+                    <Link href="/products/institution-types" className="group flex items-start gap-3 hover:text-[#1565D8] transition">
+                      <Building className="w-5 h-5 text-slate-400 group-hover:text-[#1565D8] shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 group-hover:text-[#1565D8]">Institution Types</h4>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-normal font-medium">Tailored portals for K-12 schools, colleges, and academies.</p>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
+
               </div>
+
+              {/* Bottom banner row */}
+              <Link 
+                href="/register-school" 
+                className="mt-2 p-4 bg-blue-50/60 hover:bg-blue-50 rounded-2xl flex items-center justify-between border border-blue-100/50 transition duration-200 group cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-extrabold text-[#1565D8] uppercase tracking-wider bg-blue-100 px-2 py-0.5 rounded shrink-0">Listing offer</span>
+                  <p className="text-xs font-bold text-slate-700">
+                    Free Discovery Listing — List your school free and get discovered by parents
+                  </p>
+                </div>
+                <div className="text-xs font-extrabold text-[#1565D8] flex items-center gap-1 shrink-0">
+                  Get Started <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                </div>
+              </Link>
+
             </div>
           </div>
         )}
@@ -325,6 +371,28 @@ export default function MarketplaceHeader() {
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-slate-100 bg-white w-full py-4 px-4 flex flex-col gap-4 animate-in slide-in-from-top duration-200">
           <nav className="flex flex-col gap-3 font-semibold text-sm text-slate-600">
+            <div>
+              <button 
+                onClick={() => setIsMobileProductsOpen(!isMobileProductsOpen)}
+                className="w-full flex items-center justify-between hover:text-[#1565D8] transition py-1.5 text-left font-semibold text-sm text-slate-600 cursor-pointer"
+              >
+                Products
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isMobileProductsOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isMobileProductsOpen && (
+                <div className="pl-4 mt-2 space-y-2.5 border-l border-slate-100 flex flex-col">
+                  <Link href="/products/lead-management" onClick={() => setIsMobileMenuOpen(false)} className="text-xs font-semibold text-slate-500 hover:text-[#1565D8]">Lead Management</Link>
+                  <Link href="/products/admission-management" onClick={() => setIsMobileMenuOpen(false)} className="text-xs font-semibold text-slate-500 hover:text-[#1565D8]">Admission Management</Link>
+                  <Link href="/products/student-management" onClick={() => setIsMobileMenuOpen(false)} className="text-xs font-semibold text-slate-500 hover:text-[#1565D8]">Student Management</Link>
+                  <Link href="/products/fee-management" onClick={() => setIsMobileMenuOpen(false)} className="text-xs font-semibold text-slate-500 hover:text-[#1565D8]">Fee Management & Payments</Link>
+                  <Link href="/products/course-management" onClick={() => setIsMobileMenuOpen(false)} className="text-xs font-semibold text-slate-500 hover:text-[#1565D8]">Course & Batch Management</Link>
+                  <Link href="/products/campaign-management" onClick={() => setIsMobileMenuOpen(false)} className="text-xs font-semibold text-slate-500 hover:text-[#1565D8]">Campaign Management</Link>
+                  <Link href="/products/reporting-analytics" onClick={() => setIsMobileMenuOpen(false)} className="text-xs font-semibold text-slate-500 hover:text-[#1565D8]">Reporting & Analytics</Link>
+                  <Link href="/products/role-based-access" onClick={() => setIsMobileMenuOpen(false)} className="text-xs font-semibold text-slate-500 hover:text-[#1565D8]">Role-Based Access</Link>
+                  <Link href="/products/institution-types" onClick={() => setIsMobileMenuOpen(false)} className="text-xs font-semibold text-slate-500 hover:text-[#1565D8]">Institution Types</Link>
+                </div>
+              )}
+            </div>
             <Link 
               href="/schools" 
               onClick={() => setIsMobileMenuOpen(false)}

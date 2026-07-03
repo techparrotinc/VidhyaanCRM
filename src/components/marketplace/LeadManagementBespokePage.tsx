@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
@@ -9,16 +9,30 @@ import {
   Globe, Phone, Users, Store, Inbox, UserCheck, 
   Activity, Calendar, Clock, RefreshCw, ArrowRight, 
   CheckCircle, HelpCircle, ChevronDown, ChevronUp,
-  Sparkles, MessageSquare, Shield, Award, Send, PieChart
+  Sparkles, MessageSquare, Shield, Award, Send, PieChart,
+  Mail
 } from 'lucide-react'
 import { leadManagementContent } from '@/content/products/lead-management'
 
 export default function LeadManagementBespokePage() {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null)
+  const [showStickyNav, setShowStickyNav] = useState(false)
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index)
   }
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 400) {
+        setShowStickyNav(true)
+      } else {
+        setShowStickyNav(false)
+      }
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   // Define Icon mapping specifically for capabilities
   const IconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -32,9 +46,35 @@ export default function LeadManagementBespokePage() {
 
   return (
     <div className="w-full bg-white flex flex-col">
+      {/* STICKY IN-PAGE NAV (PART 4) */}
+      {showStickyNav && (
+        <div className="sticky top-16 left-0 right-0 bg-white/95 backdrop-blur-md border-b border-slate-200 z-30 hidden md:block transition-all duration-300 shadow-sm animate-in fade-in slide-in-from-top-2">
+          <div className="max-w-7xl mx-auto px-6 md:px-16 py-3 flex items-center justify-between">
+            <span className="text-xs font-black text-slate-800 uppercase tracking-widest font-poppins">
+              Lead Management
+            </span>
+            <div className="flex gap-8 text-xs font-bold text-slate-500">
+              <a href="#overview" className="hover:text-indigo-650 transition">Overview</a>
+              <a href="#capabilities" className="hover:text-indigo-650 transition">Capabilities</a>
+              <a href="#journey" className="hover:text-indigo-650 transition">The Journey</a>
+              <a href="#faq" className="hover:text-indigo-650 transition">FAQ</a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BREADCRUMB (PART 3) */}
+      <div className="max-w-7xl mx-auto px-6 md:px-16 pt-8 pb-2 flex items-center gap-2 text-xs font-semibold text-slate-400">
+        <Link href="/" className="hover:text-slate-655 transition">Home</Link>
+        <span>&gt;</span>
+        <Link href="/products/institution-types" className="hover:text-slate-655 transition">Products</Link>
+        <span>&gt;</span>
+        <span className="text-slate-655 font-bold">Lead Management</span>
+      </div>
+
       {/* 1. HERO SECTION */}
-      <section className="text-center py-20 px-6 md:px-16 space-y-8 bg-gradient-to-b from-indigo-50/60 via-indigo-50/20 to-white rounded-3xl">
-        <span className="inline-flex items-center gap-1.5 border border-indigo-200 text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-650 shadow-sm">
+      <section className="text-center py-16 md:py-20 px-6 md:px-16 space-y-8 bg-gradient-to-b from-indigo-50/60 via-indigo-50/20 to-white rounded-3xl">
+        <span className="inline-flex items-center gap-1.5 border border-indigo-200 text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-655 shadow-sm">
           <Sparkles className="w-3.5 h-3.5" />
           Next-Gen Admission CRM
         </span>
@@ -49,8 +89,13 @@ export default function LeadManagementBespokePage() {
         <p className="text-slate-600 font-semibold text-base md:text-xl leading-relaxed max-w-3xl mx-auto">
           {leadManagementContent.subhead}
         </p>
+
+        {/* Intro Paragraph (PART 5) */}
+        <p className="text-slate-500 text-sm md:text-base max-w-2xl mx-auto leading-relaxed font-semibold">
+          Most institutions switch to Vidhyaan after losing high-intent parent enquiries to manual register typos and fragmented WhatsApp threads. By consolidating all incoming channels into a single live dashboard, counsellors receive instant routing and automated daily follow-up alerts so no student enquiry is ever left cold.
+        </p>
         
-        <div className="pt-4 flex flex-col sm:flex-row justify-center items-center gap-4">
+        <div className="pt-2 flex flex-col sm:flex-row justify-center items-center gap-4">
           <Link href={leadManagementContent.primaryCta.href} className="w-full sm:w-auto">
             <Button className="w-full sm:w-auto bg-[#1565D8] hover:bg-blue-700 text-white font-extrabold text-base px-8 py-5 rounded-2xl h-auto shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 transition hover:-translate-y-0.5 cursor-pointer">
               {leadManagementContent.primaryCta.text}
@@ -60,7 +105,7 @@ export default function LeadManagementBespokePage() {
           {leadManagementContent.secondaryCta && (
             <Link 
               href={leadManagementContent.secondaryCta.href}
-              className="text-slate-650 hover:text-indigo-700 font-extrabold text-sm transition py-2"
+              className="text-slate-655 hover:text-indigo-700 font-extrabold text-sm transition py-2"
             >
               {leadManagementContent.secondaryCta.text}
             </Link>
@@ -98,7 +143,7 @@ export default function LeadManagementBespokePage() {
       </section>
 
       {/* PRODUCT SCREENSHOT SECTION (PART 2) */}
-      <section className="py-16 px-6 md:px-16 space-y-10 flex flex-col items-center bg-slate-50/30 rounded-3xl">
+      <section className="py-12 px-6 md:px-16 space-y-10 flex flex-col items-center bg-slate-50/30 rounded-3xl">
         <div className="text-center space-y-2.5">
           <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
             See your leads in one pipeline
@@ -120,7 +165,7 @@ export default function LeadManagementBespokePage() {
       </section>
 
       {/* 2. PROBLEM SECTION WITH ENHANCED GRAPHIC (PART 3) */}
-      <section className="py-16 px-6 md:px-16">
+      <section id="overview" className="py-16 px-6 md:px-16 scroll-mt-28">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Left Column: Problem Copy */}
           <div className="lg:col-span-7 space-y-6">
@@ -214,8 +259,8 @@ export default function LeadManagementBespokePage() {
         </div>
       </section>
 
-      {/* 360° LIFE-CYCLE TIMELINE INFOGRAPHIC (NEW INFOGRAPHIC B) */}
-      <section className="py-16 px-6 md:px-16 bg-slate-50/30 rounded-3xl space-y-12">
+      {/* 360° LIFE-CYCLE TIMELINE INFOGRAPHIC */}
+      <section id="journey" className="py-16 px-6 md:px-16 bg-slate-50/30 rounded-3xl space-y-12 scroll-mt-28">
         <div className="text-center space-y-3">
           <span className="text-[10px] font-black text-indigo-650 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">
             Engineered for Conversion
@@ -276,7 +321,7 @@ export default function LeadManagementBespokePage() {
       </section>
 
       {/* 3. CAPABILITIES */}
-      <section className="py-16 px-6 md:px-16 space-y-8">
+      <section id="capabilities" className="py-16 px-6 md:px-16 space-y-8 scroll-mt-28">
         <div className="border-b border-slate-200 pb-4">
           <h2 className="text-3xl font-black text-slate-900 tracking-tight font-poppins">
             Key Capabilities
@@ -454,7 +499,7 @@ export default function LeadManagementBespokePage() {
       </section>
 
       {/* 6. FAQ */}
-      <section className="py-16 px-6 md:px-16 bg-slate-50/30 rounded-3xl space-y-6">
+      <section id="faq" className="py-16 px-6 md:px-16 bg-slate-50/30 rounded-3xl space-y-6 scroll-mt-28">
         <div className="border-b border-slate-200 pb-4 flex items-center gap-2">
           <HelpCircle className="w-5 h-5 text-slate-500" />
           <h2 className="text-2xl font-black text-slate-900 tracking-tight font-poppins">
@@ -483,7 +528,7 @@ export default function LeadManagementBespokePage() {
                   )}
                 </button>
                 {isOpen && (
-                  <div className="px-6 pb-5 pt-1 text-slate-600 text-sm font-medium leading-relaxed border-t border-slate-100 bg-slate-50/20">
+                  <div className="px-6 pb-5 pt-1 text-slate-650 text-sm font-medium leading-relaxed border-t border-slate-100 bg-slate-50/20">
                     {item.a}
                   </div>
                 )}
@@ -498,9 +543,15 @@ export default function LeadManagementBespokePage() {
         <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
           {leadManagementContent.closingCta.heading}
         </h2>
-        <p className="text-slate-600 font-semibold text-sm md:text-base leading-relaxed max-w-xl mx-auto">
+        <p className="text-slate-605 font-semibold text-sm md:text-base leading-relaxed max-w-xl mx-auto">
           {leadManagementContent.closingCta.body}
         </p>
+
+        {/* Closing CTA Supporting Wording (PART 5) */}
+        <p className="text-xs text-slate-500 font-bold max-w-md mx-auto">
+          Start instantly with no credit card, no complex IT setup, and get your dashboard live on the same day.
+        </p>
+
         <div className="pt-4 flex justify-center">
           <Link href={leadManagementContent.closingCta.ctaHref} className="w-full sm:w-auto">
             <Button className="w-full sm:w-auto bg-[#1565D8] hover:bg-blue-700 text-white font-extrabold text-base px-8 py-4.5 rounded-2xl h-auto shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 transition hover:-translate-y-0.5 cursor-pointer">
@@ -511,23 +562,60 @@ export default function LeadManagementBespokePage() {
         </div>
       </section>
 
-      {/* 8. RELATED LINKS */}
-      {leadManagementContent.relatedLinks.length > 0 && (
-        <section className="py-6 px-6 md:px-16 flex flex-col sm:flex-row items-center gap-3 text-xs font-semibold text-slate-500 border-t border-slate-100">
-          <span>Explore related features:</span>
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {leadManagementContent.relatedLinks.map((link, idx) => (
-              <Link 
-                key={idx} 
-                href={link.href}
-                className="text-[#1565D8] hover:underline transition hover:text-indigo-700"
-              >
-                {link.text}
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* 8. RELATED LINKS (REDESIGNED CARDS - PART 1) */}
+      <section className="bg-slate-50/20 py-12 px-6 md:px-16 border-t border-slate-100 space-y-6">
+        <h3 className="text-sm font-extrabold text-slate-400 uppercase tracking-widest text-center">
+          Explore Related CRM Modules
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <Link href="/products/admission-management" className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md hover:border-purple-300 transition-all flex items-center gap-4 group">
+            <div className="p-3 rounded-xl bg-purple-50 text-purple-650 shrink-0">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-slate-800 text-sm md:text-base group-hover:text-purple-700 transition">
+                Admission Management
+              </h4>
+              <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider block">
+                Schools & Junior Colleges
+              </span>
+            </div>
+          </Link>
+
+          <Link href="/products/student-management" className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md hover:border-teal-300 transition-all flex items-center gap-4 group">
+            <div className="p-3 rounded-xl bg-teal-50 text-teal-650 shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-slate-800 text-sm md:text-base group-hover:text-teal-700 transition">
+                Student Management
+              </h4>
+              <span className="text-[10px] font-bold text-teal-600 uppercase tracking-wider block">
+                All Institution Types
+              </span>
+            </div>
+          </Link>
+
+          <Link href="/products/campaign-management" className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md hover:border-pink-300 transition-all flex items-center gap-4 group">
+            <div className="p-3 rounded-xl bg-pink-50 text-pink-650 shrink-0">
+              <Mail className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-slate-800 text-sm md:text-base group-hover:text-pink-700 transition">
+                Campaign Management
+              </h4>
+              <span className="text-[10px] font-bold text-pink-600 uppercase tracking-wider block">
+                WhatsApp & Email Drives
+              </span>
+            </div>
+          </Link>
+        </div>
+      </section>
+
+      {/* DPDP Trust line (PART 5) */}
+      <div className="w-full text-center py-4 bg-slate-50 border-t border-slate-100 text-[10px] font-bold text-slate-400">
+        🔒 ISO 27001 Certified &bull; 100% compliant with India's Digital Personal Data Protection (DPDP) Act, 2023. All parent PII is protected.
+      </div>
     </div>
   )
 }

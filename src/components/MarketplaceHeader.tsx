@@ -271,7 +271,7 @@ export default function MarketplaceHeader() {
                         href="/products/marketplace/free-listing" 
                         className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
                           <Building className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
@@ -282,7 +282,7 @@ export default function MarketplaceHeader() {
                         href="/products/marketplace/search-discovery" 
                         className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
                           <Search className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
@@ -293,7 +293,7 @@ export default function MarketplaceHeader() {
                         href="/products/marketplace/compare" 
                         className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                        <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 group-hover:bg-purple-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
                           <GitCompare className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
@@ -304,7 +304,7 @@ export default function MarketplaceHeader() {
                         href="/products/marketplace/track-application" 
                         className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                        <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
                           <Activity className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
@@ -315,7 +315,7 @@ export default function MarketplaceHeader() {
                         href="/products/marketplace/verified-badge" 
                         className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
                           <Award className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
@@ -338,7 +338,7 @@ export default function MarketplaceHeader() {
                         href="/products/lead-management" 
                         className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                        <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 group-hover:bg-rose-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
                           <Users className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
@@ -349,7 +349,7 @@ export default function MarketplaceHeader() {
                         href="/products/admission-management" 
                         className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                        <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 group-hover:bg-sky-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
                           <ClipboardList className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
@@ -360,7 +360,7 @@ export default function MarketplaceHeader() {
                         href="/products/student-management" 
                         className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                        <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 group-hover:bg-violet-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
                           <GraduationCap className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
@@ -371,7 +371,7 @@ export default function MarketplaceHeader() {
                         href="/products/course-management" 
                         className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                        <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 group-hover:bg-teal-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
                           <BookOpen className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
@@ -382,7 +382,7 @@ export default function MarketplaceHeader() {
                         href="/products/fee-management" 
                         className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
                           <CreditCard className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
@@ -393,7 +393,7 @@ export default function MarketplaceHeader() {
                         href="/products/campaign-management" 
                         className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                        <div className="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 group-hover:bg-pink-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
                           <MessageSquare className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
@@ -404,7 +404,7 @@ export default function MarketplaceHeader() {
                         href="/products/notifications-alerts" 
                         className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                        <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 group-hover:bg-orange-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
                           <Bell className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
@@ -415,7 +415,7 @@ export default function MarketplaceHeader() {
                         href="/products/parent-portal" 
                         className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
                           <User className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">
@@ -426,7 +426,7 @@ export default function MarketplaceHeader() {
                         href="/products/reporting-analytics" 
                         className="group flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all duration-200"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-200">
+                        <div className="w-8 h-8 rounded-lg bg-fuchsia-50 text-fuchsia-600 group-hover:bg-fuchsia-100/80 flex items-center justify-center shrink-0 transition-colors duration-200">
                           <BarChart3 className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors duration-200">

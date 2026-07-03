@@ -443,7 +443,7 @@ export default function AdmissionManagementBespokePage() {
         <div className="w-full max-w-5xl bg-gradient-to-tr from-slate-100 to-white border border-slate-200 p-4 rounded-3xl shadow-2xl overflow-hidden transition-all duration-300 hover:shadow-purple-500/5 hover:border-purple-100">
           <Image 
             src="/images/products/admission-management-screenshot.png"
-            alt="Vidhyaan Admission Management Pipeline Dashboard"
+            alt="Vidhyaan Admission Management kanban pipeline view displaying applicant stages from applied to verified, interview, and admitted."
             width={1024}
             height={873}
             className="w-full h-auto rounded-2xl border border-slate-150/75 shadow-sm"

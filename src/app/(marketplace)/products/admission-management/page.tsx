@@ -5,6 +5,29 @@ import { admissionManagementContent } from '@/content/products/admission-managem
 export const metadata: Metadata = {
   title: 'Admission Management System for Schools & Junior Colleges in India | Vidhyaan',
   description: 'Run your entire admission process on one platform — customizable pipelines, document collection, and instant conversion to enrolled student. Setup in under 15 minutes.',
+  openGraph: {
+    title: 'Admission Management System for Schools & Junior Colleges in India | Vidhyaan',
+    description: 'Run your entire admission process on one platform — customizable pipelines, document collection, and instant conversion to enrolled student. Setup in under 15 minutes.',
+    url: 'https://vidhyaan.com/products/admission-management',
+    images: [
+      {
+        url: 'https://vidhyaan.com/images/products/admission-management-screenshot.png',
+        width: 1024,
+        height: 873,
+        alt: 'Vidhyaan Admission Management Pipeline Dashboard displaying stages from applied to verified, interview, and admitted.',
+      }
+    ],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Admission Management System for Schools & Junior Colleges in India | Vidhyaan',
+    description: 'Run your entire admission process on one platform — customizable pipelines, document collection, and instant conversion to enrolled student. Setup in under 15 minutes.',
+    images: ['https://vidhyaan.com/images/products/admission-management-screenshot.png'],
+  },
+  alternates: {
+    canonical: 'https://vidhyaan.com/products/admission-management',
+  }
 }
 
 export default function AdmissionManagementPage() {

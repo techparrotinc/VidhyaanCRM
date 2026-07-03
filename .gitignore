@@ -53,3 +53,8 @@ next-env.d.ts
 
 
 /src/generated/prisma
+
+# local scratch & build artifacts
+scratch/
+tsconfig.tsbuildinfo
+*.txt.orig

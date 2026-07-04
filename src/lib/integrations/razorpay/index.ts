@@ -137,12 +137,20 @@ export function verifyPayment(
   }
 
   try {
-    const secret = process.env.RAZORPAY_KEY_SECRET || 'mock_secret'
+    const secret = process.env.RAZORPAY_KEY_SECRET
+    if (!secret) {
+      // Fail closed: without the real key secret every signature would be
+      // verifiable against a known fallback string.
+      console.error('[Razorpay] RAZORPAY_KEY_SECRET not configured; rejecting payment verification')
+      return false
+    }
     const generatedSignature = crypto
       .createHmac('sha256', secret)
       .update(`${orderId}|${paymentId}`)
       .digest('hex')
-    return generatedSignature === signature
+    const a = Buffer.from(generatedSignature, 'hex')
+    const b = Buffer.from(signature, 'hex')
+    return a.length === b.length && crypto.timingSafeEqual(a, b)
   } catch (error) {
     console.error('[Razorpay] verifyPayment error:', error)
     return false

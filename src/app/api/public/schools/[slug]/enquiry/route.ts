@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db/client'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 import { enquiryNotificationTemplate, enquiryConfirmationTemplate } from '@/lib/mail/templates'
@@ -10,12 +11,18 @@ export async function POST(
 ) {
   try {
     const { slug } = await context.params
-    const body = await req.json()
-    // TEMP DEBUG - remove after enquiry email diagnosis
-    console.log('[EnquiryDebug] Request body received:', JSON.stringify(body))
+    const body = z.object({
+      parentName: z.string().trim().max(150),
+      phone: z.string().max(20),
+      email: z.string().max(200).optional().nullable(),
+      childName: z.string().max(150).optional().nullable(),
+      gradeSought: z.string().max(50).optional().nullable(),
+      message: z.string().max(2000).optional().nullable(),
+      source: z.enum(['VIDHYAAN', 'WEBSITE', 'WALK_IN', 'PHONE', 'WHATSAPP', 'REFERRAL', 'OTHER']).catch('VIDHYAAN').default('VIDHYAAN')
+    }).parse(await req.json())
 
-    const { parentName, phone: rawPhone, email, childName, gradeSought, message, source = 'VIDHYAAN' } = body
-    const phone = typeof rawPhone === 'string' ? cleanPhoneNumber(rawPhone) as string : rawPhone
+    const { parentName, email, childName, gradeSought, message, source } = body
+    const phone = cleanPhoneNumber(body.phone) as string
 
 
     // 1. Validation
@@ -266,6 +273,12 @@ export async function POST(
       message: 'Enquiry sent successfully. The school will contact you soon.'
     })
   } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid input', details: error.flatten().fieldErrors },
+        { status: 400 }
+      )
+    }
     console.error('Enquiry API error:', error)
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to submit enquiry' },

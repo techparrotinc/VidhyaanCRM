@@ -15,25 +15,37 @@ export async function POST(req: NextRequest) {
 
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET
     if (!secret) {
-      console.warn('[Razorpay Webhook] Webhook secret not configured, skipping validation.')
-    } else {
-      // Validate signature against the raw body text
-      const expectedSignature = crypto
-        .createHmac('sha256', secret)
-        .update(rawBody)
-        .digest('hex')
+      // Fail closed: an unverifiable webhook must never mutate billing state.
+      console.error('[Razorpay Webhook] RAZORPAY_WEBHOOK_SECRET not configured; rejecting webhook.')
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 })
+    }
 
-      // Fallback signature check using the stringified parsed payload (some systems order props)
-      const expectedSignatureStringify = crypto
-        .createHmac('sha256', secret)
-        .update(JSON.stringify(JSON.parse(rawBody)))
-        .digest('hex')
-
-      if (signature !== expectedSignature && signature !== expectedSignatureStringify) {
-        console.error('[Razorpay Webhook] Cryptographic signature validation failed.')
-        // Return 200 to prevent Razorpay from repeatedly retrying bad payloads
-        return NextResponse.json({ success: true, message: 'Signature mismatch' })
+    const timingSafeMatch = (expectedHex: string) => {
+      try {
+        const a = Buffer.from(expectedHex, 'hex')
+        const b = Buffer.from(signature, 'hex')
+        return a.length === b.length && crypto.timingSafeEqual(a, b)
+      } catch {
+        return false
       }
+    }
+
+    // Validate signature against the raw body text
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(rawBody)
+      .digest('hex')
+
+    // Fallback signature check using the stringified parsed payload (some systems order props)
+    const expectedSignatureStringify = crypto
+      .createHmac('sha256', secret)
+      .update(JSON.stringify(JSON.parse(rawBody)))
+      .digest('hex')
+
+    if (!timingSafeMatch(expectedSignature) && !timingSafeMatch(expectedSignatureStringify)) {
+      console.error('[Razorpay Webhook] Cryptographic signature validation failed.')
+      // Return 200 to prevent Razorpay from repeatedly retrying bad payloads
+      return NextResponse.json({ success: true, message: 'Signature mismatch' })
     }
 
     const event = JSON.parse(rawBody)

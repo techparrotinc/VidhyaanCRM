@@ -514,7 +514,7 @@ export default function MarketplaceHomepage() {
           <div className="relative max-w-4xl mx-auto text-center z-10 space-y-5">
             
             {/* Badge above heading */}
-            <div className="inline-flex items-center gap-1.5 bg-white border border-blue-100/80 text-[#1565D8] text-[10px] uppercase tracking-wider font-extrabold px-3.5 py-1.5 rounded-full shadow-sm select-none">
+            <div className="inline-flex items-center gap-1.5 bg-white border border-blue-100/80 text-[#1565D8] text-[10px] uppercase tracking-wider font-bold px-3.5 py-1.5 rounded-full shadow-sm select-none">
               <Award className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20 shrink-0" />
               <span>India's Trusted Discovery Platform</span>
             </div>
@@ -524,14 +524,14 @@ export default function MarketplaceHomepage() {
               Discover the Best{' '}
               <span className="text-[#1565D8] relative whitespace-nowrap">
                 {activeTab === 'schools' ? 'Schools' : 'Learning Centers'}
-                <span className="absolute bottom-1.5 left-0 w-full h-[4px] bg-blue-100 -z-10 rounded-full" />
+                <span className="absolute bottom-1.5 left-0 w-full h-[4px] bg-[#FFC107] -z-10 rounded-full" />
               </span>
               <br className="hidden md:inline" />
               Near You
             </h1>
 
             {/* Dynamic Subheading */}
-            <p className="text-xs md:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed font-medium">
+            <p className="text-xs md:text-sm text-slate-700 max-w-xl mx-auto leading-relaxed font-medium">
               {activeTab === 'schools' 
                 ? "Search 500+ verified CBSE, ICSE and Matriculation schools across India. Compare fees, facilities and apply directly."
                 : "Discover 300+ verified dance classes, music academies, art studios and coaching centers near you. Book a trial class today."
@@ -573,7 +573,6 @@ export default function MarketplaceHomepage() {
                 
                 {/* Zone 1: Search Input */}
                 <div className="w-full md:flex-1 flex items-center bg-slate-50 md:bg-transparent border border-slate-200 md:border-0 rounded-xl md:rounded-none px-4 py-3 min-h-[50px] relative">
-                  <Search className="w-5 h-5 text-slate-400 shrink-0 mr-3" />
                   <SearchAutocomplete
                     value={search}
                     onChange={setSearch}
@@ -603,10 +602,10 @@ export default function MarketplaceHomepage() {
                   {/* Zone 3: Search Button */}
                   <Button
                     type="submit"
-                    className="w-[140px] md:w-[170px] bg-[#1565D8] hover:bg-blue-700 text-white font-black text-xs md:text-sm px-6 py-4 rounded-xl md:rounded-xl h-auto shrink-0 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-1.5 cursor-pointer justify-center select-none"
+                    className="w-[145px] md:w-[175px] bg-[#1565D8] hover:bg-blue-700 text-white font-black text-xs md:text-sm px-6 py-4 rounded-xl md:rounded-xl h-auto shrink-0 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-1.5 cursor-pointer justify-center select-none"
                   >
-                    <span>{activeTab === 'schools' ? 'Search' : 'Find'}</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <span>{activeTab === 'schools' ? 'Search Schools' : 'Find Centers'}</span>
+                    <ArrowRight className="w-4 h-4 shrink-0" />
                   </Button>
                 </div>
               </form>
@@ -614,7 +613,7 @@ export default function MarketplaceHomepage() {
 
             {/* Popular Searches */}
             <div className="mt-6 flex items-center justify-center gap-2 flex-wrap text-xs select-none">
-              <span className="text-slate-400 font-bold tracking-wide mr-1 uppercase text-[10px]">Popular:</span>
+              <span className="text-slate-600 font-bold tracking-wide mr-1 uppercase text-[10px]">Popular:</span>
               {(activeTab === 'schools' 
                 ? schoolsContent.hero.popularSearches 
                 : lcContent.hero.popularSearches
@@ -660,7 +659,7 @@ export default function MarketplaceHomepage() {
                       <div className="text-base md:text-lg font-black text-slate-800 leading-tight">
                         {stat.value}
                       </div>
-                      <div className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5 truncate">
+                      <div className="text-[9px] font-semibold text-slate-600 uppercase tracking-wider mt-0.5 truncate">
                         {stat.label}
                       </div>
                     </div>

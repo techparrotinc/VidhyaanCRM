@@ -30,6 +30,7 @@ interface LocationState {
   permissionStatus: PermissionStatusType
   detectionMethod: DetectionMethodType
   initialized: boolean
+  isSupportedCity: boolean
 
   setManualCity: (cityName: string) => void
   setManualArea: (areaName: string | null) => void
@@ -56,6 +57,7 @@ export const useLocationStore = create<LocationState>((set) => ({
   permissionStatus: 'idle',
   detectionMethod: null,
   initialized: false,
+  isSupportedCity: true,
 
   setManualCity: (cityName: string) => {
     set({
@@ -66,7 +68,8 @@ export const useLocationStore = create<LocationState>((set) => ({
       lng: null,
       detectionMethod: 'manual',
       loading: false,
-      error: null
+      error: null,
+      isSupportedCity: true
     })
     if (typeof window !== 'undefined') {
       const saveObj = {
@@ -107,7 +110,8 @@ export const useLocationStore = create<LocationState>((set) => ({
 
   setDetectedCity: (cityName: string | null, areaName: string | null, lat: number | null, lng: number | null, method: DetectionMethodType) => {
     set((state) => {
-      const active = state.manualCity || cityName
+      const isSupported = cityName ? SUPPORTED_CITIES.includes(cityName) : false
+      const active = state.manualCity || (isSupported ? cityName : null)
       return {
         detectedCity: cityName,
         detectedArea: areaName,
@@ -117,7 +121,8 @@ export const useLocationStore = create<LocationState>((set) => ({
         detectionMethod: method,
         loading: false,
         error: null,
-        initialized: true
+        initialized: true,
+        isSupportedCity: isSupported
       }
     })
     if (typeof window !== 'undefined') {
@@ -141,18 +146,20 @@ export const useLocationStore = create<LocationState>((set) => ({
   setInitialized: (initialized: boolean) => set({ initialized }),
   
   restoreCachedLocation: (saved: any) => {
+    const isSupported = saved.city ? SUPPORTED_CITIES.includes(saved.city) : false
     set({
       manualCity: saved.method === 'manual' ? saved.city : null,
       manualArea: saved.method === 'manual' ? (saved.area || null) : null,
       detectedCity: saved.method === 'gps' || saved.method === 'cached' ? saved.city : null,
       detectedArea: saved.method === 'gps' || saved.method === 'cached' ? (saved.detectedArea || null) : null,
-      activeCity: saved.city,
+      activeCity: saved.city ? (isSupported || saved.method === 'manual' ? saved.city : null) : null,
       lat: saved.lat,
       lng: saved.lng,
       detectionMethod: 'cached',
       permissionStatus: saved.method === 'gps' ? 'granted' : 'idle',
       loading: false,
-      initialized: true
+      initialized: true,
+      isSupportedCity: isSupported
     })
   },
 
@@ -168,7 +175,8 @@ export const useLocationStore = create<LocationState>((set) => ({
     error: null,
     permissionStatus: 'idle',
     detectionMethod: null,
-    initialized: false
+    initialized: false,
+    isSupportedCity: true
   })
 }))
 export type { LocationState }

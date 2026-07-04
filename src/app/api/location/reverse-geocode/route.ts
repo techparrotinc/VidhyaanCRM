@@ -7,41 +7,6 @@ const SUPPORTED_CITIES_LOWER = [
   'kochi', 'jaipur'
 ]
 
-function getFallbackCity(localityName: string | null, districtName: string | null, stateName: string | null) {
-  const checkMatch = (name: string | null) => {
-    if (!name) return null
-    const norm = name.toLowerCase()
-    if (SUPPORTED_CITIES_LOWER.includes(norm)) {
-      if (norm === 'bangalore' || norm === 'bengaluru') return 'Bengaluru'
-      if (norm === 'delhi' || norm === 'new delhi') return 'New Delhi'
-      return norm.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-    }
-    return null
-  }
-
-  // Try locality first
-  let matched = checkMatch(localityName)
-  if (matched) return matched
-
-  // Try district
-  matched = checkMatch(districtName)
-  if (matched) return matched
-
-  // Fallback based on state
-  if (stateName) {
-    const stateLower = stateName.toLowerCase()
-    if (stateLower.includes('tamil nadu')) return 'Chennai'
-    if (stateLower.includes('karnataka')) return 'Bengaluru'
-    if (stateLower.includes('telangana') || stateLower.includes('andhra')) return 'Hyderabad'
-    if (stateLower.includes('maharashtra')) return 'Mumbai'
-    if (stateLower.includes('delhi')) return 'New Delhi'
-    if (stateLower.includes('rajasthan')) return 'Jaipur'
-    if (stateLower.includes('kerala')) return 'Kochi'
-  }
-
-  return 'Chennai' // Ultimate fallback
-}
-
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
@@ -84,17 +49,18 @@ export async function GET(req: NextRequest) {
       const parts = cached.city.split('|')
       const area = parts[0] || null
       const city = parts[1]
-      const fallbackCity = getFallbackCity(city, null, cached.state)
+      const isSupportedCity = SUPPORTED_CITIES_LOWER.includes(city.toLowerCase())
 
       return NextResponse.json({
         success: true,
         city: city,
-        locality: fallbackCity,
+        locality: city,
         area: area,
-        district: fallbackCity,
+        district: null,
         state: cached.state,
         lat,
-        lng
+        lng,
+        isSupportedCity
       })
     }
 
@@ -110,7 +76,8 @@ export async function GET(req: NextRequest) {
         district: 'Chennai',
         state: 'Tamil Nadu',
         lat,
-        lng
+        lng,
+        isSupportedCity: true
       })
     }
 
@@ -194,17 +161,18 @@ export async function GET(req: NextRequest) {
       }
     }).catch(e => console.error('Failed to cache location:', e))
 
-    const fallbackCity = getFallbackCity(detectedCity, district || locality || null, state)
+    const isSupportedCity = SUPPORTED_CITIES_LOWER.includes(detectedCity.toLowerCase())
 
     return NextResponse.json({
       success: true,
       city: detectedCity,
-      locality: fallbackCity,
+      locality: locality || detectedCity,
       area: detectedArea,
-      district: fallbackCity,
+      district: district || null,
       state,
       lat,
-      lng
+      lng,
+      isSupportedCity
     })
   } catch (error: any) {
     console.error('Reverse geocoding route error:', error)

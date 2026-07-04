@@ -13,6 +13,7 @@ export { SUPPORTED_CITIES } from '@/stores/location.store'
 
 export function useLocation() {
   const store = useLocationStore()
+  const initialized = useLocationStore((state) => state.initialized)
 
   const reverseGeocode = useCallback(async (latitude: number, longitude: number) => {
     try {
@@ -43,24 +44,25 @@ export function useLocation() {
           finalCity = getMatchedCity(data.district)
         }
 
-        store.setDetectedCity(finalCity, latitude, longitude, 'gps')
+        useLocationStore.getState().setDetectedCity(finalCity, data.area || null, latitude, longitude, 'gps')
       } else {
         throw new Error('City not found in response')
       }
     } catch (err: any) {
       console.error('Reverse geocoding error:', err)
-      store.setError('Could not detect city')
+      useLocationStore.getState().setError('Could not detect city')
     }
-  }, [store])
+  }, [])
 
   const requestLocation = useCallback(() => {
-    store.setLoading(true)
-    store.setError(null)
-    store.setPermissionStatus('requesting')
+    const { setLoading, setError, setPermissionStatus } = useLocationStore.getState()
+    setLoading(true)
+    setError(null)
+    setPermissionStatus('requesting')
 
     if (typeof window === 'undefined' || !navigator.geolocation) {
-      store.setPermissionStatus('unavailable')
-      store.setLoading(false)
+      setPermissionStatus('unavailable')
+      setLoading(false)
       return
     }
 
@@ -68,16 +70,16 @@ export function useLocation() {
       (position) => {
         const latitude = position.coords.latitude
         const longitude = position.coords.longitude
-        store.setPermissionStatus('granted')
+        setPermissionStatus('granted')
         reverseGeocode(latitude, longitude)
       },
       (err) => {
         if (err.code === 1) {
-          store.setPermissionStatus('denied')
+          setPermissionStatus('denied')
         } else {
-          store.setPermissionStatus('unavailable')
+          setPermissionStatus('unavailable')
         }
-        store.setLoading(false)
+        setLoading(false)
       },
       {
         enableHighAccuracy: true,
@@ -85,11 +87,11 @@ export function useLocation() {
         maximumAge: 0
       }
     )
-  }, [reverseGeocode, store])
+  }, [reverseGeocode])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (store.initialized) return
+    if (initialized) return
 
     // Check localStorage
     const savedStr = localStorage.getItem('vidhyaan_location')
@@ -101,7 +103,7 @@ export function useLocation() {
         const isCityValid = saved.city === null || SUPPORTED_CITIES.includes(saved.city)
 
         if (!isExpired && isVersionValid && isCityValid) {
-          store.restoreCachedLocation(saved)
+          useLocationStore.getState().restoreCachedLocation(saved)
           return
         }
       } catch (e) {
@@ -111,12 +113,13 @@ export function useLocation() {
 
     // No cached or expired/invalid, call requestLocation
     requestLocation()
-  }, [requestLocation, store])
+  }, [requestLocation, initialized])
 
   return {
     city: store.activeCity,
     manualArea: store.manualArea,
     gpsCity: store.detectedCity,
+    detectedArea: store.detectedArea,
     lat: store.lat,
     lng: store.lng,
     loading: store.loading,
@@ -128,4 +131,3 @@ export function useLocation() {
     requestLocation
   }
 }
-

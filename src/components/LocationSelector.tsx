@@ -19,6 +19,7 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
   const {
     city,
     gpsCity,
+    detectedArea,
     loading: locationLoading,
     requestLocation,
     setManualCity,
@@ -92,7 +93,13 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
       >
         <div className="flex items-center gap-2 overflow-hidden">
           <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-          <span className="truncate">{city || "Select City"}</span>
+          <span className="truncate">
+            {city ? (
+              city === gpsCity && detectedArea
+                ? `${detectedArea}, ${city}`
+                : city
+            ) : "Select City"}
+          </span>
         </div>
         <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
       </button>
@@ -163,7 +170,7 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
                   <div className="overflow-hidden">
                     <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-none">Detected near you</div>
                     <div className="text-xs font-black text-slate-800 truncate mt-1">
-                      {gpsCity || "No location detected"}
+                      {detectedArea && gpsCity ? `${detectedArea}, ${gpsCity}` : (gpsCity || "No location detected")}
                     </div>
                   </div>
                 </div>

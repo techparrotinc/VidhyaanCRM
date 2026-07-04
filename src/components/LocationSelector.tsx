@@ -90,19 +90,50 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className={`flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 cursor-pointer text-slate-700 text-xs font-bold hover:bg-slate-100 hover:border-slate-350 transition-all select-none h-full outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] ${className}`}
+        className={`flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 cursor-pointer text-slate-700 text-xs font-bold hover:bg-slate-100 hover:border-slate-350 transition-all select-none w-full min-h-[46px] outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] ${className}`}
       >
-        <div className="flex items-center gap-2 overflow-hidden">
-          <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-          <span className="truncate">
-            {city ? (
-              city === gpsCity && detectedArea
-                ? `${detectedArea}, ${city}`
-                : city
-            ) : "Select City"}
-          </span>
+        <div className="flex items-center gap-2.5 w-full min-w-0">
+          {locationLoading ? (
+            // State 3: Loading/Detecting
+            <div className="flex items-center gap-2 w-full animate-pulse">
+              <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+              <div className="h-3.5 bg-slate-200 rounded w-24" />
+            </div>
+          ) : (city) ? (
+            // State 1: Supported City
+            <div className="flex items-center gap-2 min-w-0 w-full">
+              <MapPin className="w-4 h-4 text-[#1565D8] shrink-0" />
+              <span className="truncate text-slate-700 font-bold text-left">
+                {city === gpsCity && detectedArea
+                  ? `${detectedArea}, ${city}`
+                  : city}
+              </span>
+            </div>
+          ) : (gpsCity && !isSupportedCity) ? (
+            // State 2: Unsupported City (Two-line Layout)
+            <div className="flex items-start gap-2 min-w-0 w-full py-0.5">
+              <div className="relative shrink-0 mt-0.5">
+                <MapPin className="w-4 h-4 text-slate-400" />
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-500 border border-white animate-pulse" />
+              </div>
+              <div className="flex flex-col items-start min-w-0 text-left">
+                <span className="text-[11px] font-black text-slate-800 break-words leading-tight">
+                  {detectedArea ? `${detectedArea}, ${gpsCity}` : gpsCity}
+                </span>
+                <span className="text-[9px] text-amber-600 font-black tracking-normal mt-0.5 leading-none">
+                  No schools nearby your city
+                </span>
+              </div>
+            </div>
+          ) : (
+            // Fallback: No location detected / Select City
+            <div className="flex items-center gap-2 min-w-0 w-full">
+              <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="text-slate-505 font-bold">Select City</span>
+            </div>
+          )}
         </div>
-        <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
+        <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-1.5" />
       </button>
 
       {isOpen && typeof window !== 'undefined' && createPortal(
@@ -164,13 +195,13 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
               </div>
 
               <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 overflow-hidden">
+                <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-[#1565D8]/10 flex items-center justify-center shrink-0">
                     <MapPin className="w-4 h-4 text-[#1565D8]" />
                   </div>
-                  <div className="overflow-hidden">
+                  <div>
                     <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-none">Detected near you</div>
-                    <div className="text-xs font-black text-slate-800 truncate mt-1">
+                    <div className="text-xs font-black text-slate-800 mt-1">
                       {detectedArea && gpsCity ? `${detectedArea}, ${gpsCity}` : (gpsCity || "No location detected")}
                     </div>
                   </div>
@@ -186,7 +217,7 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
                     </button>
                   ) : (
                     <span className="text-[10px] text-amber-600 font-extrabold uppercase tracking-wider bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-100 select-none text-right max-w-[200px] leading-tight">
-                      Not yet available — choose a nearby city below
+                      No schools nearby your city
                     </span>
                   )
                 ) : (

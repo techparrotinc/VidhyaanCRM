@@ -486,10 +486,10 @@ export default function SchoolsSearchPage() {
             </div>
 
             {/* WHITE SEARCH CARD */}
-            <form onSubmit={handleSearchCardSubmit} className="bg-white rounded-2xl p-2.5 shadow-lg border border-slate-200 text-slate-800 flex flex-col md:flex-row items-stretch gap-2">
+            <form onSubmit={handleSearchCardSubmit} className="bg-white rounded-2xl p-2.5 shadow-lg border border-slate-200 text-slate-800 flex flex-col sm:flex-row sm:flex-wrap md:flex-nowrap items-stretch gap-2.5">
               
               {/* Category Selector */}
-              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 md:w-52 shrink-0 gap-2">
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-full sm:w-[48%] md:w-52 md:flex-none shrink-0 gap-2">
                 <LayoutGrid className="w-4 h-4 text-slate-400 shrink-0" />
                 <select
                   value={category}
@@ -502,7 +502,7 @@ export default function SchoolsSearchPage() {
               </div>
 
               {/* Search Input */}
-              <div className="flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 gap-2">
+              <div className="w-full sm:w-[48%] md:flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 gap-2">
                 <SearchAutocomplete
                   value={searchVal}
                   onChange={setSearchVal}
@@ -528,12 +528,14 @@ export default function SchoolsSearchPage() {
                 />
               </div>
 
-              <LocationSelector className="md:w-44" />
+              <div className="flex flex-row items-stretch gap-2.5 w-full md:w-auto md:contents">
+                <LocationSelector className="flex-1 md:flex-none md:w-72 md:min-w-[260px] md:shrink-0" />
 
-              {/* Search Button */}
-              <Button type="submit" className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl h-auto shrink-0 shadow-sm cursor-pointer whitespace-nowrap border border-transparent">
-                Search Schools
-              </Button>
+                {/* Search Button */}
+                <Button type="submit" className="w-[140px] md:w-[160px] bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs rounded-xl h-auto shrink-0 shadow-sm cursor-pointer whitespace-nowrap border border-transparent flex items-center justify-center">
+                  Search Schools
+                </Button>
+              </div>
             </form>
           </div>
         </section>

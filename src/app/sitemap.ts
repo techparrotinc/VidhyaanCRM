@@ -15,6 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/register-school`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/contact`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/about`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/pricing`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },
     
     // CRM Product Pages
     { url: `${baseUrl}/products/admission-management`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },

@@ -1,476 +1,450 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { 
+  Check, 
+  Minus, 
+  HelpCircle, 
+  CheckCircle2, 
+  ArrowRight,
+  Sparkles,
+  School,
+  ChevronDown,
+  Info
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import MarketplaceHeader from '@/components/MarketplaceHeader'
-import { Check, X, HelpCircle, CheckCircle2 } from 'lucide-react'
+import CompareBar from '@/components/CompareBar'
+import { Card } from '@/components/ui/card'
 
 export default function PricingPage() {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly' | 'annual'>('monthly')
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
 
-  const toggleFaq = (index: number) => {
-    setExpandedFaq(expandedFaq === index ? null : index)
+  // Dynamic Metadata
+  useEffect(() => {
+    document.title = "Vidhyaan Pricing | Free School Listing & Admission CRM Plans";
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (!metaDesc) {
+      metaDesc = document.createElement('meta');
+      metaDesc.setAttribute('name', 'description');
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.setAttribute('content', 'Vidhyaan is free forever for school discovery listings. Explore our premium admissions CRM Starter and Growth plans. Streamline lead tracking, fee invoicing, and campaigns today.');
+  }, []);
+
+  const toggleFaq = (idx: number) => {
+    setOpenFaq(openFaq === idx ? null : idx)
   }
 
-  // FAQ List (derived from for-schools FAQs)
   const faqs = [
     {
-      q: "Is the basic listing really free?",
-      a: "Yes. Creating and maintaining your school profile on Vidhyaan is completely free forever. You pay only when you want access to the CRM, parent communication, and advanced admissions management features."
+      q: "Is the free listing really free forever?",
+      a: "Yes, profile + discovery + enquiries never expire, no credit card needed."
     },
     {
-      q: "How do I claim my existing profile?",
-      a: "If your school is already listed on Vidhyaan, click 'Claim Your Free Profile' and search for your school. We verify ownership (typically using school domain email verification or supporting official documentation) and transfer the profile credentials to you within 24-48 hours."
+      q: "What happens after the 7-day trial?",
+      a: "Choose a plan to continue CRM access; your free listing and profile stay active either way."
     },
     {
-      q: "What is the 7-day free trial?",
-      a: "When you upgrade to any paid plan, you get 7 days of full access to all CRM, invoicing, and messaging capabilities at no charge. You can cancel anytime before the trial ends with no obligation."
+      q: "Do I need a credit card to start?",
+      a: "No — trial starts without any payment details."
     },
     {
-      q: "Do parents pay anything?",
-      a: "No. Vidhyaan is completely free for parents looking to search, compare, and connect with schools. Only educational institutions and learning centers pay for CRM subscriptions and marketing tools."
+      q: "What is the WhatsApp addon?",
+      a: "DLT-compliant WhatsApp campaign sending, available as a paid addon on CRM plans — contact us to enable."
     },
     {
-      q: "Can I manage multiple branches?",
-      a: "Yes. Our Growth and Enterprise plans support managing multiple branches under one unified corporate dashboard with role-based permissions and consolidated performance metrics."
-    },
-    {
-      q: "How are payments processed?",
-      a: "We use Razorpay for secure payment transactions. We support all major credit cards, debit cards, UPI, wallets, and internet banking options."
+      q: "Can I cancel anytime?",
+      a: "Yes, cancel anytime; your listing remains free and live."
     }
   ]
 
-  // Pricing calculations
-  const prices = {
-    free: { monthly: 0, quarterly: 0, annual: 0 },
-    starter: { monthly: 2999, quarterly: 2699, annual: 2249 },
-    growth: { monthly: 4999, quarterly: 4499, annual: 3749 }
-  }
-
-  const billText = {
-    monthly: '/month',
-    quarterly: '/month (billed quarterly)',
-    annual: '/month (billed annually)'
-  }
-
-  const billTotal = {
-    monthly: (p: number) => `₹${p.toLocaleString()}/mo`,
-    quarterly: (p: number) => `₹${(p * 3).toLocaleString()} billed every 3 mos`,
-    annual: (p: number) => `₹${(p * 12).toLocaleString()} billed every year`
-  }
+  // Compare Table Features definition
+  const comparisonFeatures = [
+    { name: "Free School Profile", free: "Check", starter: "Check", growth: "Check" },
+    { name: "Parent Enquiries", free: "Check", starter: "Check", growth: "Check" },
+    { name: "Lead Management", free: "Dash", starter: "Check", growth: "Check" },
+    { name: "Admission Management", free: "Dash", starter: "Check", growth: "Check" },
+    { name: "Student Management", free: "Dash", starter: "Check", growth: "Check" },
+    { name: "Fee Management", free: "Dash", starter: "Check", growth: "Check" },
+    { name: "Online Payments (Razorpay)", free: "Dash", starter: "Check", growth: "Check" },
+    { name: "Campaign Management", free: "Dash", starter: "500 / mo", growth: "5,000 / mo" },
+    { name: "Reports & Analytics", free: "Dash", starter: "Check", growth: "Check" },
+    { name: "Parent Portal", free: "Dash", starter: "Check", growth: "Check" },
+    { name: "WhatsApp Addon", free: "Dash", starter: "Add-on", growth: "Add-on" }
+  ]
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans antialiased text-slate-800 flex flex-col justify-between select-none">
+    <div className="min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-800 flex flex-col justify-between select-none">
       
-      {/* HEADER */}
+      {/* FAQPage Schema JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": faqs.map(faq => ({
+              "@type": "Question",
+              "name": faq.q,
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": faq.a
+              }
+            }))
+          })
+        }}
+      />
+
+      {/* TODO: add Offer schema when real prices set */}
+
       <MarketplaceHeader />
 
-      {/* HERO SECTION */}
-      <section className="text-center pt-20 pb-16 px-4 max-w-4xl mx-auto">
-        <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900 mb-4">
-          Simple, Transparent Pricing
-        </h1>
-        <p className="text-lg text-slate-600 font-medium">
-          Start free. Upgrade when ready. No hidden fees or onboarding costs.
-        </p>
-
-        {/* BILLING TOGGLE */}
-        <div className="mt-10 flex justify-center items-center">
-          <div className="bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-1">
-            <button
-              onClick={() => setBillingCycle('monthly')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                billingCycle === 'monthly'
-                  ? 'bg-[#1565D8] text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBillingCycle('quarterly')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all relative ${
-                billingCycle === 'quarterly'
-                  ? 'bg-[#1565D8] text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Quarterly
-              <span className="absolute -top-3.5 left-1/2 transform -translate-x-1/2 bg-green-150 text-green-700 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-green-200 bg-green-50 shadow-sm">
-                Save 10%
-              </span>
-            </button>
-            <button
-              onClick={() => setBillingCycle('annual')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all relative ${
-                billingCycle === 'annual'
-                  ? 'bg-[#1565D8] text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Annual
-              <span className="absolute -top-3.5 left-1/2 transform -translate-x-1/2 bg-blue-150 text-blue-700 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-blue-200 bg-blue-50 shadow-sm">
-                Save 25%
-              </span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* PLAN CARDS */}
-      <section className="px-4 max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
+      <main className="flex-grow">
         
-        {/* FREE PLAN */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow relative">
-          <div>
-            <h3 className="text-xl font-bold text-slate-900">Free</h3>
-            <p className="text-xs text-slate-500 font-medium mt-1">For basic visibility and listings</p>
-            <div className="mt-5 flex items-baseline gap-1">
-              <span className="text-4xl font-extrabold text-slate-900">₹0</span>
-              <span className="text-xs text-slate-400 font-bold">forever</span>
+        {/* 1. HERO BAND */}
+        <section className="bg-gradient-to-b from-blue-50/50 via-blue-50/10 to-[#F8FAFC] py-20 text-center relative overflow-hidden border-b border-slate-100">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-10 -right-10 w-72 h-72 rounded-full bg-blue-50/50 opacity-60 filter blur-3xl" />
+            <div className="absolute bottom-0 -left-10 w-64 h-64 rounded-full bg-indigo-50/30 opacity-40 filter blur-2xl" />
+          </div>
+          
+          <div className="relative max-w-4xl mx-auto px-4 z-10 flex flex-col items-center gap-3">
+            <span className="bg-blue-50 text-[#1565D8] text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-blue-100/50 select-none">
+              Pricing
+            </span>
+            <h1 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight tracking-tight font-poppins">
+              Simple, Transparent Pricing
+            </h1>
+            <p className="text-xs md:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed font-semibold">
+              Free forever for discovery. Pay only when you're ready to run your admissions on Vidhyaan.
+            </p>
+          </div>
+        </section>
+
+        {/* 2. TIER CARDS */}
+        <section className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch pt-6">
+            
+            {/* CARD 1 — Free Listing */}
+            <div className="bg-white rounded-3xl border border-slate-200 p-8 flex flex-col justify-between shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left relative overflow-hidden">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 font-poppins">Free Listing</h3>
+                  <p className="text-[11px] text-slate-450 font-bold mt-1 leading-relaxed">
+                    Get discovered by parents
+                  </p>
+                </div>
+                
+                <div className="pt-2">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-black tracking-tight text-slate-900 font-poppins">₹0</span>
+                    <span className="text-xs text-slate-400 font-bold">/ forever</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-bold mt-1">No credit card required</p>
+                </div>
+
+                <div className="border-t border-slate-100 pt-6 space-y-4">
+                  {[
+                    "Public school profile",
+                    "Verified badge eligibility",
+                    "Parent enquiries → lead inbox",
+                    "Marketplace search visibility"
+                  ].map((feat, idx) => (
+                    <div key={idx} className="flex gap-2.5 items-start text-xs font-semibold text-slate-650">
+                      <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <Link href="/register-school">
+                  <Button variant="outline" className="w-full border-blue-200 text-[#1565D8] hover:bg-blue-50 font-bold text-xs py-3.5 rounded-full h-auto shadow-sm">
+                    Claim Free Profile
+                  </Button>
+                </Link>
+              </div>
             </div>
-            <p className="text-xs text-slate-400 mt-1 font-semibold">No credit card required</p>
 
-            <ul className="mt-8 space-y-4">
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>School listing on Vidhyaan</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Receive up to 10 leads</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Basic profile management</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Email support</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-400">
-                <X className="w-4 h-4 text-slate-300 shrink-0 mt-0.5" />
-                <span>Admission management</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-400">
-                <X className="w-4 h-4 text-slate-300 shrink-0 mt-0.5" />
-                <span>Student management</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-400">
-                <X className="w-4 h-4 text-slate-300 shrink-0 mt-0.5" />
-                <span>Fee management</span>
-              </li>
-            </ul>
-          </div>
+            {/* CARD 2 — Starter */}
+            {/* TODO: real Starter price */}
+            <div className="bg-white rounded-3xl border border-slate-200 p-8 flex flex-col justify-between shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left relative overflow-hidden">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 font-poppins">Starter</h3>
+                  <p className="text-[11px] text-slate-450 font-bold mt-1 leading-relaxed">
+                    Full CRM for growing institutions
+                  </p>
+                </div>
+                
+                <div className="pt-2">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-black tracking-tight text-slate-900 font-poppins">₹—</span>
+                    <span className="text-xs text-slate-400 font-bold">/ month</span>
+                  </div>
+                  <p className="text-[10px] text-[#1565D8] font-bold mt-1">Launch pricing coming soon</p>
+                </div>
 
-          <div className="mt-8">
-            <Link href="/register" className="block text-center w-full py-2.5 rounded-lg border border-[#1565D8] text-[#1565D8] hover:bg-blue-50 transition text-sm font-bold">
-              Get Started Free
-            </Link>
-          </div>
-        </div>
+                <div className="border-t border-slate-100 pt-6 space-y-4">
+                  <div className="flex gap-2.5 items-start text-xs font-bold text-slate-800">
+                    <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                    <span>Everything in Free</span>
+                  </div>
+                  {[
+                    "Lead Management",
+                    "Admission Management",
+                    "Student Management",
+                    "Fee Management & online payments",
+                    "Campaigns (500 recipients/mo)",
+                    "Reports & Analytics"
+                  ].map((feat, idx) => (
+                    <div key={idx} className="flex gap-2.5 items-start text-xs font-semibold text-slate-650">
+                      <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-        {/* STARTER PLAN */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow relative">
-          <div className="absolute top-4 right-4 bg-blue-50 border border-blue-200 text-blue-600 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
-            7-day free trial
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-slate-900">Starter</h3>
-            <p className="text-xs text-slate-500 font-medium mt-1">For growing institutions & academies</p>
-            <div className="mt-5 flex items-baseline gap-1">
-              <span className="text-4xl font-extrabold text-slate-900">₹{prices.starter[billingCycle].toLocaleString()}</span>
-              <span className="text-xs text-slate-400 font-bold">{billText[billingCycle]}</span>
+              <div className="mt-8">
+                <Link href="/register-school?plan=starter">
+                  <Button className="w-full bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs py-3.5 rounded-full h-auto shadow-md">
+                    Start 7-Day Free Trial
+                  </Button>
+                </Link>
+              </div>
             </div>
-            <p className="text-[10px] text-slate-400 mt-1 font-semibold">{billTotal[billingCycle](prices.starter[billingCycle])}</p>
 
-            <ul className="mt-8 space-y-4">
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span className="font-bold text-slate-700">Everything in Free</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Unlimited leads</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Admission management</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Student management</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Basic reports</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Priority support</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-400">
-                <X className="w-4 h-4 text-slate-300 shrink-0 mt-0.5" />
-                <span>Fee management</span>
-              </li>
-            </ul>
-          </div>
+            {/* CARD 3 — Growth (HIGHLIGHTED) */}
+            {/* TODO: real Growth price */}
+            <div className="bg-white rounded-3xl border-2 border-[#1565D8] p-8 flex flex-col justify-between shadow-xl hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 text-left relative overflow-hidden scale-105 z-10 ring-8 ring-blue-50/50">
+              <div className="absolute top-4 right-4 bg-amber-500 text-white text-[8px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full select-none shadow-sm">
+                Most Popular
+              </div>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 font-poppins mt-2">Growth</h3>
+                  <p className="text-[11px] text-slate-450 font-bold mt-1 leading-relaxed">
+                    Multi-branch and high-volume admissions
+                  </p>
+                </div>
+                
+                <div className="pt-2">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-black tracking-tight text-slate-900 font-poppins">₹—</span>
+                    <span className="text-xs text-slate-400 font-bold">/ month</span>
+                  </div>
+                  <p className="text-[10px] text-amber-600 font-bold mt-1">Launch pricing coming soon</p>
+                </div>
 
-          <div className="mt-8">
-            <Link href="/register?plan=starter" className="block text-center w-full py-2.5 rounded-lg bg-[#1565D8] text-white hover:bg-blue-700 transition text-sm font-bold shadow-sm">
-              Start Free Trial
-            </Link>
-          </div>
-        </div>
+                <div className="border-t border-slate-100 pt-6 space-y-4">
+                  <div className="flex gap-2.5 items-start text-xs font-bold text-slate-800">
+                    <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                    <span>Everything in Starter</span>
+                  </div>
+                  {[
+                    "Campaigns (5,000 recipients/mo)",
+                    "Priority CRM support",
+                    "WhatsApp addon eligible"
+                  ].map((feat, idx) => (
+                    <div key={idx} className="flex gap-2.5 items-start text-xs font-semibold text-slate-650">
+                      <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-        {/* GROWTH PLAN */}
-        <div className="bg-white rounded-2xl border-2 border-[#1565D8] p-6 flex flex-col justify-between shadow-md relative ring-4 ring-blue-50">
-          <div className="absolute -top-3.5 left-1/2 transform -translate-x-1/2 bg-[#1565D8] text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-            Most Popular
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 mt-2">Growth</h3>
-            <p className="text-xs text-slate-500 font-medium mt-1">Full-scale CRM automation</p>
-            <div className="mt-5 flex items-baseline gap-1">
-              <span className="text-4xl font-extrabold text-slate-900">₹{prices.growth[billingCycle].toLocaleString()}</span>
-              <span className="text-xs text-slate-400 font-bold">{billText[billingCycle]}</span>
+              <div className="mt-8">
+                <Link href="/register-school?plan=growth">
+                  <Button className="w-full bg-[#FFC107] hover:bg-yellow-500 text-slate-950 font-black text-xs py-3.5 rounded-full h-auto shadow-md">
+                    Start 7-Day Free Trial
+                  </Button>
+                </Link>
+              </div>
             </div>
-            <p className="text-[10px] text-slate-400 mt-1 font-semibold">{billTotal[billingCycle](prices.growth[billingCycle])}</p>
 
-            <ul className="mt-8 space-y-4">
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span className="font-bold text-slate-700">Everything in Starter</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Fee management</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Campaign management</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Advanced reports</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>WhatsApp notifications</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Custom subdomain</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>API access</span>
-              </li>
-            </ul>
+          </div>
+        </section>
+
+        {/* 3. COMPARISON TABLE */}
+        <section className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-12 border-t border-slate-100">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <h2 className="text-2xl font-black tracking-tight text-slate-950 font-poppins">
+              Plan Comparison
+            </h2>
+            <p className="text-xs text-slate-500 font-semibold mt-1">
+              Compare CRM features, payments, and messaging capacities.
+            </p>
           </div>
 
-          <div className="mt-8">
-            <Link href="/register?plan=growth" className="block text-center w-full py-2.5 rounded-lg bg-[#1565D8] text-white hover:bg-blue-700 transition text-sm font-bold shadow-sm">
-              Start Free Trial
-            </Link>
+          <div className="overflow-x-auto rounded-2xl border border-slate-200/80 shadow-md bg-white">
+            <table className="w-full min-width-[800px] border-collapse text-left text-xs font-medium text-slate-700">
+              
+              {/* Sticky Table Header */}
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-slate-200 sticky top-0 backdrop-blur z-20">
+                  <th className="py-4.5 px-6 font-bold text-slate-900 w-1/3">Feature</th>
+                  <th className="py-4.5 px-6 font-bold text-slate-900 text-center w-2/9">Free</th>
+                  <th className="py-4.5 px-6 font-bold text-[#1565D8] text-center w-2/9">Starter</th>
+                  <th className="py-4.5 px-6 font-bold text-slate-900 text-center w-2/9">Growth</th>
+                </tr>
+              </thead>
+
+              {/* Table Rows */}
+              <tbody>
+                {comparisonFeatures.map((row, idx) => (
+                  <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors odd:bg-slate-50/20">
+                    <td className="py-4 px-6 font-bold text-slate-800">{row.name}</td>
+                    
+                    {/* Free Column */}
+                    <td className="py-4 px-6 text-center">
+                      {row.free === "Check" ? (
+                        <Check className="w-4 h-4 text-green-500 mx-auto" />
+                      ) : (
+                        <Minus className="w-4 h-4 text-slate-300 mx-auto" />
+                      )}
+                    </td>
+
+                    {/* Starter Column */}
+                    <td className="py-4 px-6 text-center font-bold text-slate-950">
+                      {row.starter === "Check" ? (
+                        <Check className="w-4 h-4 text-green-500 mx-auto" />
+                      ) : row.starter === "Dash" ? (
+                        <Minus className="w-4 h-4 text-slate-300 mx-auto" />
+                      ) : (
+                        <span>{row.starter}</span>
+                      )}
+                    </td>
+
+                    {/* Growth Column */}
+                    <td className="py-4 px-6 text-center font-bold text-slate-950">
+                      {row.growth === "Check" ? (
+                        <Check className="w-4 h-4 text-green-500 mx-auto" />
+                      ) : row.growth === "Dash" ? (
+                        <Minus className="w-4 h-4 text-slate-300 mx-auto" />
+                      ) : (
+                        <span>{row.growth}</span>
+                      )}
+                    </td>
+
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+        </section>
 
-        {/* ENTERPRISE PLAN */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow relative">
-          <div>
-            <h3 className="text-xl font-bold text-slate-900">Enterprise</h3>
-            <p className="text-xs text-slate-500 font-medium mt-1">For schools with complex multi-branch needs</p>
-            <div className="mt-5 flex items-baseline gap-1">
-              <span className="text-3xl font-extrabold text-slate-900">Custom</span>
-            </div>
-            <p className="text-xs text-slate-400 mt-1 font-semibold">Tailored deployment options</p>
+        {/* 4. INSTITUTION NOTE STRIP */}
+        <section className="bg-blue-50/40 border-t border-b border-blue-100/20 py-8 text-center">
+          <div className="max-w-4xl mx-auto px-4 flex items-center justify-center gap-2 text-xs font-semibold text-slate-500">
+            <Info className="w-4 h-4 text-[#1565D8]" />
+            <span>Same simple pricing for Schools, Junior Colleges, Learning Centers and Coaching Centers.</span>
+          </div>
+        </section>
 
-            <ul className="mt-8 space-y-4">
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span className="font-bold text-slate-700">Everything in Growth</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Multiple branches dashboard</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Custom domain support</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>White label option</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>Dedicated account manager</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>SLA guarantee</span>
-              </li>
-              <li className="flex gap-2 text-sm text-slate-600">
-                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                <span>On-premises option</span>
-              </li>
-            </ul>
+        {/* 5. PRICING FAQ (Accordion) */}
+        <section className="max-w-4xl mx-auto px-4 md:px-6 py-20 text-center">
+          <div className="max-w-2xl mx-auto mb-14 text-center">
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-950 font-poppins">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xs text-slate-500 font-semibold mt-1">
+              Have questions about billing, setup, or features? Read answers below.
+            </p>
           </div>
 
-          <div className="mt-8">
-            <Link href="/contact" className="block text-center w-full py-2.5 rounded-lg border border-slate-350 text-slate-700 hover:bg-slate-50 transition text-sm font-bold">
-              Contact Sales
-            </Link>
-          </div>
-        </div>
-
-      </section>
-
-      {/* FEATURE COMPARISON TABLE */}
-      <section className="max-w-7xl mx-auto w-full px-4 mb-24">
-        <h2 className="text-2xl font-extrabold text-slate-900 mb-8 text-center">Compare Plan Features</h2>
-        
-        <div className="overflow-x-auto bg-white rounded-2xl border border-slate-200 shadow-sm">
-          <table className="w-full text-left border-collapse">
-            {/* Sticky Header */}
-            <thead className="sticky top-0 bg-slate-900 text-white z-10 shadow-md">
-              <tr>
-                <th className="p-4 text-sm font-bold">Core Features</th>
-                <th className="p-4 text-sm font-bold text-center">Free</th>
-                <th className="p-4 text-sm font-bold text-center">Starter</th>
-                <th className="p-4 text-sm font-bold text-center">Growth</th>
-                <th className="p-4 text-sm font-bold text-center">Enterprise</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-sm">
-              <tr>
-                <td className="p-4 font-semibold text-slate-700">Marketplace Listing</td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-              </tr>
-              <tr>
-                <td className="p-4 font-semibold text-slate-700">Lead Capture Cap</td>
-                <td className="p-4 text-center text-slate-600 font-medium">Up to 10</td>
-                <td className="p-4 text-center text-slate-600 font-medium">Unlimited</td>
-                <td className="p-4 text-center text-slate-600 font-medium">Unlimited</td>
-                <td className="p-4 text-center text-slate-600 font-medium">Unlimited</td>
-              </tr>
-              <tr>
-                <td className="p-4 font-semibold text-slate-700">Admissions Pipeline Manager</td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-              </tr>
-              <tr>
-                <td className="p-4 font-semibold text-slate-700">Student & Batch Profiles</td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-              </tr>
-              <tr>
-                <td className="p-4 font-semibold text-slate-700">Fee Invoices & Payments</td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-              </tr>
-              <tr>
-                <td className="p-4 font-semibold text-slate-700">Admissions Campaign Engine</td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-              </tr>
-              <tr>
-                <td className="p-4 font-semibold text-slate-700">SMS & WhatsApp Alerts</td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-              </tr>
-              <tr>
-                <td className="p-4 font-semibold text-slate-700">API Access & Webhooks</td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-              </tr>
-              <tr>
-                <td className="p-4 font-semibold text-slate-700">Multi-Branch Dashboard</td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-              </tr>
-              <tr>
-                <td className="p-4 font-semibold text-slate-700">Custom Domain Mapping</td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center text-xs text-slate-600 font-semibold">Subdomain</td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-              </tr>
-              <tr>
-                <td className="p-4 font-semibold text-slate-700">White-Label Branding</td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                <td className="p-4 text-center"><Check className="w-5 h-5 text-green-500 mx-auto" /></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* FAQ SECTION */}
-      <section className="bg-slate-100 py-20 px-4">
-        <div className="max-w-4xl mx-auto w-full">
-          <h2 className="text-3xl font-extrabold text-slate-900 mb-12 text-center">Frequently Asked Questions</h2>
-          <div className="space-y-4">
+          <div className="space-y-4 max-w-3xl mx-auto">
             {faqs.map((faq, idx) => {
-              const isOpen = expandedFaq === idx
+              const isOpen = openFaq === idx
               return (
-                <div key={idx} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm transition-all">
+                <div 
+                  key={idx} 
+                  className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden transition-all shadow-sm hover:shadow-md"
+                >
                   <button
                     onClick={() => toggleFaq(idx)}
-                    className="w-full p-5 text-left flex justify-between items-center gap-4 hover:bg-slate-50 transition cursor-pointer"
+                    className="w-full py-5 px-6 flex items-center justify-between text-left font-bold text-xs md:text-sm text-slate-800 hover:text-[#1565D8] transition-colors"
                   >
-                    <span className="font-bold text-slate-800 md:text-base text-sm">{faq.q}</span>
-                    <span className="text-slate-400 shrink-0 font-bold text-lg">{isOpen ? '−' : '+'}</span>
+                    <span>{faq.q}</span>
+                    <ChevronDown className={`w-4 h-4 text-[#1565D8] transition-transform duration-300 shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
                   </button>
-                  {isOpen && (
-                    <div className="p-5 pt-0 text-slate-600 text-sm leading-relaxed border-t border-slate-150 bg-slate-50/50 animate-slide-down">
+                  
+                  <div 
+                    className={`transition-all duration-300 ease-in-out overflow-hidden text-left ${
+                      isOpen ? 'max-h-[140px] border-t border-slate-100 bg-slate-50/40' : 'max-h-0'
+                    }`}
+                  >
+                    <p className="p-6 text-xs text-slate-500 font-medium leading-relaxed">
                       {faq.a}
-                    </div>
-                  )}
+                    </p>
+                  </div>
                 </div>
               )
             })}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* FOOTER */}
-      <footer className="bg-slate-900 text-white pt-16 pb-8 px-4 md:px-8 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 border-b border-slate-800 pb-12 mb-8">
+        {/* 6. CTA BANNER */}
+        <section className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 pb-16">
+          <div className="rounded-3xl bg-gradient-to-br from-blue-900 to-[#1565D8] text-white p-8 md:p-12 shadow-2xl relative overflow-hidden text-center flex flex-col items-center gap-6">
+            <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] opacity-[0.04]" />
+            
+            <div className="space-y-2 relative z-10 max-w-xl">
+              <h2 className="text-2xl md:text-3xl font-black font-poppins tracking-tight">
+                Start growing your admissions today
+              </h2>
+              <p className="text-xs md:text-sm text-blue-100 font-medium leading-relaxed">
+                Claim your free directory listing or start a risk-free 7-day trial of our advanced Admissions CRM.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 relative z-10">
+              <Link href="/register-school">
+                <Button className="bg-white hover:bg-blue-50 text-blue-600 font-bold text-xs px-6 py-3 rounded-full h-auto shadow-md">
+                  Claim Free Profile
+                </Button>
+              </Link>
+              <Link href="/contact">
+                <Button variant="outline" className="border-white/40 hover:border-white text-white hover:bg-white/10 font-bold text-xs px-6 py-3 rounded-full h-auto">
+                  Contact Us
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      {/* 7. FOOTER */}
+      <CompareBar />
+      <footer className="bg-slate-900 text-white py-12 px-6 md:px-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 border-b border-slate-700 pb-8">
           
-          <div className="space-y-4">
-            <span className="text-xl font-black tracking-tight text-white">Vidhyaan</span>
-            <p className="text-xs font-semibold text-slate-400 leading-relaxed">
-              India's premier marketplace for discoverability, trust, and operations. Helping thousands of nursery schools, preschools, and learning academies capture admissions and automate fee invoicing securely.
+          {/* Brand column */}
+          <div className="space-y-4 text-left">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-[#1565D8] flex items-center justify-center text-white font-black text-xs shadow-md">
+                V
+              </div>
+              <span className="text-base font-black tracking-tight text-white">Vidhyaan</span>
+            </div>
+            <p className="text-xs leading-relaxed text-slate-400 font-medium max-w-xs">
+              India's trusted school discovery platform
             </p>
-            <div className="flex gap-4 text-slate-400">
+            <div className="flex gap-4 pt-1 text-slate-400">
+              <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="hover:text-white transition text-xs font-semibold">LinkedIn</a>
               <a href="https://twitter.com" target="_blank" rel="noreferrer" className="hover:text-white transition text-xs font-semibold">Twitter</a>
+              <a href="https://instagram.com" target="_blank" rel="noreferrer" className="hover:text-white transition text-xs font-semibold">Instagram</a>
               <a href="https://facebook.com" target="_blank" rel="noreferrer" className="hover:text-white transition text-xs font-semibold">Facebook</a>
             </div>
           </div>
 
-          <div className="space-y-3">
+          {/* Links columns */}
+          <div className="space-y-3 text-left">
             <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400">For Parents</h4>
             <div className="flex flex-col space-y-2 text-xs font-semibold text-slate-350">
               <Link href="/schools" className="hover:text-white transition">Find Schools</Link>
@@ -480,17 +454,17 @@ export default function PricingPage() {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 text-left">
             <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400">For Schools</h4>
             <div className="flex flex-col space-y-2 text-xs font-semibold text-slate-355">
-              <Link href="/register" className="hover:text-white transition">List Your School</Link>
+              <Link href="/signup" className="hover:text-white transition">List Your School</Link>
               <Link href="/dashboard" className="hover:text-white transition">CRM Features</Link>
               <Link href="/pricing" className="hover:text-white transition">Pricing</Link>
               <Link href="/login" className="hover:text-white transition">School Login</Link>
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 text-left">
             <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400">Company</h4>
             <div className="flex flex-col space-y-2 text-xs font-semibold text-slate-355">
               <Link href="/about" className="hover:text-white transition">About Us</Link>
@@ -498,14 +472,12 @@ export default function PricingPage() {
               <Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link>
               <Link href="/terms" className="hover:text-white transition">Terms of Service</Link>
               <Link href="/refunds" className="hover:text-white transition">Refund Policy</Link>
-              <Link href="/products/role-based-access" className="hover:text-white transition">Role-Based Access</Link>
-              <Link href="/products/institution-types" className="hover:text-white transition">Institution Types</Link>
             </div>
           </div>
 
         </div>
 
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-semibold text-slate-400">
+        <div className="max-w-7xl mx-auto pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-semibold text-slate-400">
           <span>&copy; 2026 TechParrot Innovations LLP. All rights reserved.</span>
         </div>
       </footer>

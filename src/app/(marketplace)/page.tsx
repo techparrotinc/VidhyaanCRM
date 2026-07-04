@@ -8,6 +8,8 @@ import {
   Search,
   MapPin,
   Building,
+  Building2,
+  Landmark,
   GraduationCap,
   Sparkles,
   Users,
@@ -38,7 +40,14 @@ import {
   GitCompare,
   CheckCircle,
   Calendar,
-  X
+  X,
+  Cpu,
+  Gem,
+  Waves,
+  Cog,
+  Church,
+  Anchor,
+  Castle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -55,7 +64,7 @@ import LocationSelector from '@/components/LocationSelector'
 const schoolsContent = {
   hero: {
     headline: "Discover the Best Schools Near You",
-    subheadline: "Search 500+ verified CBSE, ICSE and Matriculation schools across India. Compare fees, facilities and apply directly.",
+    subheadline: "Search 45+ verified CBSE, ICSE and Matriculation schools across India. Compare fees, facilities and apply directly.",
     searchPlaceholder: "School name, board or area...",
     popularSearches: [
       "CBSE Schools Chennai",
@@ -65,28 +74,28 @@ const schoolsContent = {
     ]
   },
   stats: [
-    { value: "500+", label: "Verified Schools", icon: School },
-    { value: "25+", label: "Cities Covered", icon: MapPin },
+    { value: "45+", label: "Verified Schools", icon: School },
+    { value: "11", label: "Cities Covered", icon: MapPin },
     { value: "10,000+", label: "Happy Parents", icon: Users },
     { value: "4.8★", label: "Average Rating", icon: Star }
   ],
   categoriesHeading: "Browse by Curriculum",
   categories: [
-    { name: "CBSE", fullName: "Central Board", emoji: "📚", count: "16 schools", color: "blue" },
-    { name: "ICSE", fullName: "Indian Certificate", emoji: "🎓", count: "4 schools", color: "purple" },
-    { name: "State Board", fullName: "Tamil Nadu Board", emoji: "🏫", count: "5 schools", color: "green" },
-    { name: "International", fullName: "IB / Cambridge", emoji: "🌍", count: "3 schools", color: "orange" }
+    { name: "CBSE", fullName: "Central Board", count: "16 schools", color: "blue" },
+    { name: "ICSE", fullName: "Indian Certificate", count: "4 schools", color: "purple" },
+    { name: "State Board", fullName: "Tamil Nadu Board", count: "5 schools", color: "green" },
+    { name: "International", fullName: "IB / Cambridge", count: "3 schools", color: "orange" }
   ],
   citiesHeading: "Schools Near You",
   howItWorks: [
-    { step: 1, icon: Search, title: "Search & Discover", desc: "Browse 500+ verified schools with smart filters for board, location and fees" },
+    { step: 1, icon: Search, title: "Search & Discover", desc: "Browse 45+ verified schools with smart filters for board, location and fees" },
     { step: 2, icon: GitCompare, title: "Compare Schools", desc: "Side-by-side comparison of fees, facilities, curriculum and parent reviews" },
     { step: 3, icon: CheckCircle, title: "Apply & Track", desc: "Apply directly and get real-time admission status updates on your phone" }
   ],
   cta: {
     badge: "For Schools & Learning Centers",
     heading: "Grow Your Admissions with Vidhyaan CRM",
-    description: "Join 500+ schools already using Vidhyaan. Manage leads, admissions, students and fees all in one powerful platform.",
+    description: "Join schools already using Vidhyaan. Manage leads, admissions, students and fees all in one powerful platform.",
     benefits: [
       "Free school listing forever",
       "Full CRM with 7-day trial",
@@ -118,14 +127,14 @@ const lcContent = {
   ],
   categoriesHeading: "Browse by Activity",
   categories: [
-    { name: "Dance", fullName: "Bharatanatyam, Western, Ballet", emoji: "💃", count: "42 centers", color: "purple" },
-    { name: "Music", fullName: "Carnatic, Guitar, Keyboard, Vocals", emoji: "🎵", count: "38 centers", color: "blue" },
-    { name: "Art & Craft", fullName: "Drawing, Painting, Pottery", emoji: "🎨", count: "28 centers", color: "orange" },
-    { name: "Fitness & Sports", fullName: "Yoga, Karate, Swimming, Football", emoji: "🏋", count: "35 centers", color: "green" },
-    { name: "Academic Coaching", fullName: "NEET, JEE, Board Exams, Tuition", emoji: "📚", count: "55 centers", color: "indigo" },
-    { name: "Coding & Technology", fullName: "Python, Robotics, Web Dev, AI", emoji: "💻", count: "22 centers", color: "cyan" },
-    { name: "Performing Arts", fullName: "Theatre, Drama, Storytelling", emoji: "🎭", count: "15 centers", color: "rose" },
-    { name: "Language Classes", fullName: "English, French, German, Spanish", emoji: "🌍", count: "18 centers", color: "teal" }
+    { name: "Dance", fullName: "Bharatanatyam, Western, Ballet", count: "42 centers", color: "purple" },
+    { name: "Music", fullName: "Carnatic, Guitar, Keyboard, Vocals", count: "38 centers", color: "blue" },
+    { name: "Art & Craft", fullName: "Drawing, Painting, Pottery", count: "28 centers", color: "orange" },
+    { name: "Fitness & Sports", fullName: "Yoga, Karate, Swimming, Football", count: "35 centers", color: "green" },
+    { name: "Academic Coaching", fullName: "NEET, JEE, Board Exams, Tuition", count: "55 centers", color: "indigo" },
+    { name: "Coding & Technology", fullName: "Python, Robotics, Web Dev, AI", count: "22 centers", color: "cyan" },
+    { name: "Performing Arts", fullName: "Theatre, Drama, Storytelling", count: "15 centers", color: "rose" },
+    { name: "Language Classes", fullName: "English, French, German, Spanish", count: "18 centers", color: "teal" }
   ],
   citiesHeading: "Learning Centers Near You",
   howItWorks: [
@@ -136,7 +145,7 @@ const lcContent = {
   cta: {
     badge: "For Dance Studios, Music Academies & Coaching Centers",
     heading: "Grow Your Learning Center with Vidhyaan",
-    description: "Join 300+ learning centers already on Vidhyaan. Reach thousands of parents searching for the perfect activity classes for their children.",
+    description: "Join learning centers already on Vidhyaan. Reach thousands of parents searching for the perfect activity classes for their children.",
     benefits: [
       "Free center listing forever",
       "Online enrollment management",
@@ -150,17 +159,32 @@ const lcContent = {
 
 // City counts matching both tabs
 const cities = [
-  { name: "Chennai", emoji: "🌊", schoolCount: 67, lcCount: 45 },
-  { name: "Bengaluru", emoji: "🌿", schoolCount: 89, lcCount: 62 },
-  { name: "Hyderabad", emoji: "💎", schoolCount: 54, lcCount: 38 },
-  { name: "Mumbai", emoji: "🏙", schoolCount: 112, lcCount: 75 },
-  { name: "New Delhi", emoji: "🕌", schoolCount: 143, lcCount: 95 },
-  { name: "Pune", emoji: "🎓", schoolCount: 45, lcCount: 32 },
-  { name: "Coimbatore", emoji: "🏭", schoolCount: 28, lcCount: 18 },
-  { name: "Madurai", emoji: "🏯", schoolCount: 19, lcCount: 12 },
-  { name: "Kochi", emoji: "🌴", schoolCount: 31, lcCount: 22 },
-  { name: "Jaipur", emoji: "🏰", schoolCount: 38, lcCount: 28 }
+  { name: "Chennai", schoolCount: 67, lcCount: 45 },
+  { name: "Bengaluru", schoolCount: 89, lcCount: 62 },
+  { name: "Hyderabad", schoolCount: 54, lcCount: 38 },
+  { name: "Mumbai", schoolCount: 112, lcCount: 75 },
+  { name: "New Delhi", schoolCount: 143, lcCount: 95 },
+  { name: "Pune", schoolCount: 45, lcCount: 32 },
+  { name: "Coimbatore", schoolCount: 28, lcCount: 18 },
+  { name: "Madurai", schoolCount: 19, lcCount: 12 },
+  { name: "Kochi", schoolCount: 31, lcCount: 22 },
+  { name: "Jaipur", schoolCount: 38, lcCount: 28 }
 ]
+
+// Unique Lucide icons & color classes mapping for each city
+const cityMeta: Record<string, { icon: React.ComponentType<any>; colorClass: string; bgClass: string; borderHoverClass: string; shadowHoverClass: string }> = {
+  "Chennai": { icon: Landmark, colorClass: "text-amber-600", bgClass: "bg-amber-50", borderHoverClass: "hover:border-amber-400", shadowHoverClass: "hover:shadow-amber-100/50" },
+  "Bengaluru": { icon: Cpu, colorClass: "text-emerald-600", bgClass: "bg-emerald-50", borderHoverClass: "hover:border-emerald-400", shadowHoverClass: "hover:shadow-emerald-100/50" },
+  "Hyderabad": { icon: Gem, colorClass: "text-cyan-600", bgClass: "bg-cyan-50", borderHoverClass: "hover:border-cyan-400", shadowHoverClass: "hover:shadow-cyan-100/50" },
+  "Mumbai": { icon: Waves, colorClass: "text-blue-600", bgClass: "bg-blue-50", borderHoverClass: "hover:border-blue-400", shadowHoverClass: "hover:shadow-blue-100/50" },
+  "New Delhi": { icon: Building, colorClass: "text-red-600", bgClass: "bg-red-50", borderHoverClass: "hover:border-red-400", shadowHoverClass: "hover:shadow-red-100/50" },
+  "Pune": { icon: GraduationCap, colorClass: "text-violet-600", bgClass: "bg-violet-50", borderHoverClass: "hover:border-violet-400", shadowHoverClass: "hover:shadow-violet-100/50" },
+  "Coimbatore": { icon: Cog, colorClass: "text-orange-600", bgClass: "bg-orange-50", borderHoverClass: "hover:border-orange-400", shadowHoverClass: "hover:shadow-orange-100/50" },
+  "Madurai": { icon: Church, colorClass: "text-rose-600", bgClass: "bg-rose-50", borderHoverClass: "hover:border-rose-400", shadowHoverClass: "hover:shadow-rose-100/50" },
+  "Kochi": { icon: Anchor, colorClass: "text-teal-600", bgClass: "bg-teal-50", borderHoverClass: "hover:border-teal-400", shadowHoverClass: "hover:shadow-teal-100/50" },
+  "Jaipur": { icon: Castle, colorClass: "text-pink-600", bgClass: "bg-pink-50", borderHoverClass: "hover:border-pink-400", shadowHoverClass: "hover:shadow-pink-100/50" }
+}
+
 
 // Featured Centers (LC only)
 const featuredCenters = [
@@ -309,6 +333,7 @@ export default function MarketplaceHomepage() {
   const [search, setSearch] = useState('')
   const [city, setCity] = useState('')
   const [citySelectOpen, setCitySelectOpen] = useState(false)
+  const [activeFaq, setActiveFaq] = useState<number | null>(null)
 
   const [apiCities, setApiCities] = useState<any[]>([])
 
@@ -424,7 +449,7 @@ export default function MarketplaceHomepage() {
       metaDesc.setAttribute('name', 'description');
       document.head.appendChild(metaDesc);
     }
-    metaDesc.setAttribute('content', 'Discover and compare 500+ verified schools and learning centers across India. Search by board, location, fees. Apply directly and track admissions. Free for parents.');
+    metaDesc.setAttribute('content', 'Discover and compare 45+ verified schools and learning centers across India. Search by board, location, fees. Apply directly and track admissions. Free for parents.');
   }, []);
 
   const handleSearchSubmit = (e?: React.FormEvent, customSearch?: string, customCity?: string) => {
@@ -494,6 +519,83 @@ export default function MarketplaceHomepage() {
 
       <MarketplaceHeader />
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "Vidhyaan School Discovery Platform",
+            "image": "https://vidhyaan.com/favicon.ico",
+            "description": "Find and compare the best schools and learning centers near you.",
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.8",
+              "reviewCount": "10000"
+            }
+          })
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How do I find the best schools near me?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Use Vidhyaan's search to filter verified schools by city, area, board (CBSE, ICSE, State Board, International), fees, and facilities. Compare shortlisted schools side by side and read parent reviews before applying."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is Vidhyaan free for parents?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Searching schools, comparing options, reading reviews, and sending admission enquiries on Vidhyaan is completely free for parents."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What does 'Verified School' mean on Vidhyaan?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Verified schools have had their profile details reviewed and confirmed by the Vidhyaan team, so parents can trust the information about boards, facilities, and contact details."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I compare school fees on Vidhyaan?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. School profiles include fee range information where provided, and you can compare fees, facilities, and curriculum across multiple schools side by side."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How do I apply for admission through Vidhyaan?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Send an enquiry directly from any school's profile page. The school's admission team receives it instantly and contacts you — you can track your application status from your parent account."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Which cities does Vidhyaan cover?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Vidhyaan currently covers 11 cities including Chennai, Bengaluru, Hyderabad, Mumbai, New Delhi, Pune, Coimbatore, Madurai, Kochi, and Jaipur — with more cities being added."
+                }
+              }
+            ]
+          })
+        }}
+      />
+
         <LocationBanner
           permissionStatus={permissionStatus}
           city={detectedCity}
@@ -533,7 +635,7 @@ export default function MarketplaceHomepage() {
             {/* Dynamic Subheading */}
             <p className="text-xs md:text-sm text-slate-700 max-w-xl mx-auto leading-relaxed font-medium">
               {activeTab === 'schools' 
-                ? "Search 500+ verified CBSE, ICSE and Matriculation schools across India. Compare fees, facilities and apply directly."
+                ? "Search 45+ verified CBSE, ICSE and Matriculation schools across India. Compare fees, facilities and apply directly."
                 : "Discover 300+ verified dance classes, music academies, art studios and coaching centers near you. Book a trial class today."
               }
             </p>
@@ -599,7 +701,6 @@ export default function MarketplaceHomepage() {
                   {/* Vertical Hairline Separator 2 (Desktop only) */}
                   <div className="hidden md:block w-[1px] bg-slate-200 self-stretch my-3 shrink-0 mr-2" />
 
-                  {/* Zone 3: Search Button */}
                   <Button
                     type="submit"
                     className="w-[145px] md:w-[175px] bg-[#1565D8] hover:bg-blue-700 text-white font-black text-xs md:text-sm px-6 py-4 rounded-xl md:rounded-xl h-auto shrink-0 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-1.5 cursor-pointer justify-center select-none"
@@ -611,32 +712,53 @@ export default function MarketplaceHomepage() {
               </form>
             </div>
 
-            {/* Popular Searches */}
-            <div className="mt-6 flex items-center justify-center gap-2 flex-wrap text-xs select-none">
-              <span className="text-slate-600 font-bold tracking-wide mr-1 uppercase text-[10px]">Popular:</span>
-              {(activeTab === 'schools' 
-                ? schoolsContent.hero.popularSearches 
-                : lcContent.hero.popularSearches
-              ).map((term) => (
-                <button
-                  key={term}
-                  type="button"
-                  onClick={() => {
-                    const params = new URLSearchParams()
-                    params.append('search', term)
-                    if (city) params.append('city', city)
-                    
-                    if (activeTab === 'schools') {
-                      router.push(`/schools?${params.toString()}`)
-                    } else {
-                      router.push(`/learning-centers?${params.toString()}`)
-                    }
-                  }}
-                  className="text-slate-600 hover:text-[#1565D8] bg-slate-100 hover:bg-blue-50 border border-slate-200/55 hover:border-blue-100 px-3.5 py-1.5 rounded-full font-bold transition-all duration-200 cursor-pointer text-[11px]"
-                >
-                  {term}
-                </button>
-              ))}
+            {/* Trust Strip */}
+            <div className="pt-6 border-t border-slate-200/50 mt-8 flex flex-wrap justify-center items-center gap-x-4 gap-y-2 text-xs text-slate-600 font-bold select-none">
+              {activeTab === 'schools' ? (
+                <>
+                  <span className="flex items-center gap-1.5">
+                    <School className="w-4 h-4 text-[#1565D8]/80 shrink-0" />
+                    <span>{liveStats ? `${liveStats.verifiedSchoolsCount} Verified Schools` : "45 Verified Schools"}</span>
+                  </span>
+                  <span className="text-slate-300">·</span>
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-[#1565D8]/80 shrink-0" />
+                    <span>{liveStats ? `${liveStats.citiesCoveredCount} Cities` : "11 Cities"}</span>
+                  </span>
+                  <span className="text-slate-300">·</span>
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-[#1565D8]/80 shrink-0" />
+                    <span>10,000+ Happy Parents</span>
+                  </span>
+                  <span className="text-slate-300">·</span>
+                  <span className="flex items-center gap-1.5">
+                    <Star className="w-4 h-4 text-amber-500 fill-amber-500/20 shrink-0" />
+                    <span>4.8★ Average Rating</span>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="flex items-center gap-1.5">
+                    <Building className="w-4 h-4 text-[#1565D8]/80 shrink-0" />
+                    <span>300+ Verified Centers</span>
+                  </span>
+                  <span className="text-slate-300">·</span>
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-[#1565D8]/80 shrink-0" />
+                    <span>20+ Activity Types</span>
+                  </span>
+                  <span className="text-slate-300">·</span>
+                  <span className="flex items-center gap-1.5">
+                    <GraduationCap className="w-4 h-4 text-[#1565D8]/80 shrink-0" />
+                    <span>5,000+ Enrolled Students</span>
+                  </span>
+                  <span className="text-slate-300">·</span>
+                  <span className="flex items-center gap-1.5">
+                    <Star className="w-4 h-4 text-amber-500 fill-amber-500/20 shrink-0" />
+                    <span>4.7★ Average Rating</span>
+                  </span>
+                </>
+              )}
             </div>
 
           </div>
@@ -645,135 +767,138 @@ export default function MarketplaceHomepage() {
         {/* DYNAMIC SECTIONS CONTAINER WITH TRANSITION OPACITY */}
         <div className={`transition-opacity ease-in-out ${transitioning ? 'duration-150 opacity-0' : 'duration-300 opacity-100'}`}>
           
-          {/* 3. STATS BAR */}
-          <section className="max-w-4xl mx-auto px-4 -mt-4 relative z-20">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {displayStats.map((stat) => {
-                const StatIcon = stat.icon
-                return (
-                  <div key={stat.label} className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-100 shadow-sm p-3.5 flex items-center gap-3 transition hover:border-slate-200">
-                    <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-[#1565D8] shrink-0">
-                      <StatIcon className="w-4 h-4" />
-                    </div>
-                    <div className="text-left min-w-0">
-                      <div className="text-base md:text-lg font-black text-slate-800 leading-tight">
-                        {stat.value}
-                      </div>
-                      <div className="text-[9px] font-semibold text-slate-600 uppercase tracking-wider mt-0.5 truncate">
-                        {stat.label}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* SEO Supporting Text */}
-            <div className="mt-6 max-w-2xl mx-auto text-center px-4">
-              <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-                Find CBSE schools, ICSE schools, Matriculation schools, International schools, IB schools near Chennai, Bengaluru, Hyderabad, Mumbai and across India. Compare school fees, facilities, admission process and parent reviews. Discover the best learning centers for dance, music, art, fitness and academic coaching near you.
-              </p>
-            </div>
-          </section>
-
-          {/* 4. FEATURED CITIES */}
-          <section className="bg-slate-50 py-20 mt-12 border-y border-slate-150/40">
+          {/* SECTION 3 — EXPLORE BY CITY */}
+          <section className="bg-slate-50 py-16 border-b border-slate-100">
             <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 space-y-8">
-              <div className="text-center">
+              <div className="text-center max-w-2xl mx-auto space-y-2">
                 <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight font-poppins">
-                  {content.citiesHeading}
+                  {isLC 
+                    ? "Find Learning Centers in Chennai, Bengaluru, Hyderabad & More" 
+                    : "Find Schools in Chennai, Bengaluru, Hyderabad & More"
+                  }
                 </h2>
-                <p className="text-xs text-slate-450 font-bold mt-1 uppercase tracking-wider">
-                  Browse top cities across India
+                <p className="text-xs md:text-sm text-slate-500 font-medium">
+                  {isLC
+                    ? "Explore top-rated dance classes, music academies, art studios, and activity coaching centers across India's major cities."
+                    : "Discover CBSE, ICSE, Matriculation, and International schools across India's leading education hubs."
+                  }
                 </p>
               </div>
 
-              {/* Grid list with horizontal scroll on mobile */}
-              <div className="flex overflow-x-auto lg:grid lg:grid-cols-5 gap-4 pb-4 lg:pb-0 scrollbar-none snap-x snap-mandatory">
-                {displayCities.map((c) => (
-                  <button
-                    key={c.name}
-                    onClick={() => {
-                      if (displayTab === 'schools') {
-                        router.push(`/schools?city=${c.name}`)
-                      } else {
-                        router.push(`/learning-centers?city=${c.name}`)
-                      }
-                    }}
-                    className="w-[calc((100vw-48px)/3)] sm:w-auto min-w-[95px] sm:min-w-0 snap-align-start bg-white rounded-2xl border border-slate-200 p-4 text-center hover:border-[#1565D8] hover:shadow-lg transition-all duration-300 cursor-pointer group flex flex-col items-center justify-center shrink-0"
-                  >
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-2 sm:mb-3 group-hover:bg-[#1565D8] transition-colors duration-300 border border-blue-100/50">
-                      <span className="text-lg sm:text-xl group-hover:scale-110 transition-transform duration-300">{c.emoji}</span>
-                    </div>
-                    <h4 className="text-[10px] sm:text-sm font-black text-slate-805 leading-none">{c.name}</h4>
-                    <span className="text-[8px] sm:text-[10px] text-slate-400 font-bold block mt-1 uppercase tracking-wider">
-                      {isLC ? `${c.lcCount} centers` : `${c.schoolCount} schools`}
-                    </span>
-                  </button>
-                ))}
+              {/* Grid list - 5/3/2 cols by breakpoint */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {displayCities.map((c) => {
+                  const count = isLC ? c.lcCount : c.schoolCount
+                  const hasMany = count > 5
+                  const meta = cityMeta[c.name] || {
+                    icon: Building2,
+                    colorClass: "text-[#1565D8]",
+                    bgClass: "bg-blue-50",
+                    borderHoverClass: "hover:border-[#1565D8]",
+                    shadowHoverClass: "hover:shadow-blue-100/50"
+                  }
+                  const CityIcon = meta.icon
+                  return (
+                    <Link
+                      key={c.name}
+                      href={isLC ? `/learning-centers?city=${c.name}` : `/schools?city=${c.name}`}
+                      className={`bg-white rounded-2xl border border-slate-200 p-5 text-center transition-all duration-300 group flex flex-col items-center justify-center animate-fade-in hover:-translate-y-1 hover:shadow-lg ${meta.borderHoverClass} ${meta.shadowHoverClass}`}
+                    >
+                      <div className={`w-12 h-12 rounded-full ${meta.bgClass} flex items-center justify-center mx-auto mb-3 border border-slate-100/50 transition-colors duration-300`}>
+                        <CityIcon className={`w-5 h-5 ${meta.colorClass} transition-transform duration-300 group-hover:scale-110`} />
+                      </div>
+                      <h4 className="text-sm sm:text-base font-bold text-slate-800 leading-none">{c.name}</h4>
+                      {hasMany ? (
+                        <span className="text-[10px] bg-blue-50 text-[#1565D8] font-bold px-2 py-0.5 rounded-full mt-2 group-hover:bg-blue-100 transition-colors">
+                          {count} {isLC ? 'centers' : 'schools'}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-bold block mt-2 group-hover:text-[#1565D8] transition-colors">
+                          Explore →
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
               </div>
             </div>
           </section>
 
-          {/* 5. CATEGORIES SECTION */}
-          <section className="py-20 bg-white">
+          {/* SECTION 4 — BROWSE BY BOARD */}
+          <section className="py-16 bg-[#1565D8]/3 border-b border-slate-100">
             <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 space-y-10">
-              <h2 className="text-2xl md:text-3xl font-black text-slate-900 text-center tracking-tight font-poppins">
-                {content.categoriesHeading}
-              </h2>
+              <div className="text-center max-w-2xl mx-auto space-y-2">
+                <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight font-poppins">
+                  {isLC 
+                    ? "Browse Activities by Category" 
+                    : "CBSE, ICSE, State Board & International Schools"
+                  }
+                </h2>
+                <p className="text-xs md:text-sm text-slate-550 font-medium">
+                  {isLC
+                    ? "Find the perfect extracurricular activities and coaching programs to help your child excel."
+                    : "Explore top schools affiliated with central, international, and state boards across India."
+                  }
+                </p>
+              </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {displayCategories.map((cat, idx) => {
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {displayCategories.map((cat) => {
                   if (!isLC) {
-                    // Schools Category Cards (Curriculum Layout)
+                    const boardIcons = {
+                      "CBSE": BookOpen,
+                      "ICSE": GraduationCap,
+                      "State Board": School,
+                      "International": Globe
+                    };
+                    const BoardIcon = boardIcons[cat.name as keyof typeof boardIcons] || School;
+
                     return (
                       <Link 
                         key={cat.name} 
                         href={`/schools?board=${cat.name}`}
-                        className="animate-fade-in-up"
-                        style={{ animationDelay: `${idx * 75}ms` }}
+                        className="bg-white rounded-2xl p-5 text-center border border-slate-200 hover:shadow-lg hover:border-[#1565D8] transition-all cursor-pointer flex flex-col justify-between items-center group h-40"
                       >
-                        <Card className="bg-gradient-to-br from-blue-50/70 to-indigo-50/70 rounded-2xl p-5 text-center border border-blue-100 hover:shadow-md hover:border-[#1565D8] transition-all cursor-pointer h-32 flex flex-col justify-between group">
-                          <span className="text-3xl filter drop-shadow block mt-1">{cat.emoji}</span>
-                          <div>
-                            <h4 className="text-sm font-black text-slate-850">{cat.name}</h4>
-                            <span className="text-[10px] text-slate-450 font-bold block mt-1 uppercase tracking-wider group-hover:text-[#1565D8] transition-colors">
-                              {cat.count} &rarr;
-                            </span>
-                          </div>
-                        </Card>
+                        <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-3 group-hover:bg-[#1565D8] group-hover:text-white transition-colors duration-300">
+                          <BoardIcon className="w-5 h-5 text-[#1565D8] group-hover:text-white transition-colors duration-300" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm sm:text-base font-black text-slate-800">{cat.name}</h4>
+                          <span className="inline-block text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full mt-2 group-hover:bg-blue-50 group-hover:text-[#1565D8] transition-colors">
+                            {cat.count}
+                          </span>
+                        </div>
                       </Link>
                     )
                   } else {
-                    // Learning Centers Category Cards (Compact Layout, Colored Gradients)
-                    const gradientColors = {
-                      purple: "from-purple-100 to-purple-50 border-purple-200 hover:border-purple-400",
-                      blue: "from-blue-100 to-blue-50 border-blue-200 hover:border-blue-400",
-                      orange: "from-orange-100 to-orange-50 border-orange-200 hover:border-orange-400",
-                      green: "from-green-100 to-green-50 border-green-200 hover:border-green-400",
-                      indigo: "from-indigo-100 to-indigo-50 border-indigo-200 hover:border-indigo-400",
-                      cyan: "from-cyan-100 to-cyan-50 border-cyan-200 hover:border-cyan-400",
-                      rose: "from-rose-100 to-rose-50 border-rose-200 hover:border-rose-400",
-                      teal: "from-teal-100 to-teal-50 border-teal-200 hover:border-teal-400",
-                    }[cat.color] || "from-slate-100 to-slate-50 border-slate-200"
+                    const activityIcons = {
+                      "Dance": Music,
+                      "Music": Music,
+                      "Art & Craft": Palette,
+                      "Fitness & Sports": Dumbbell,
+                      "Academic Coaching": BookOpen,
+                      "Coding & Technology": Globe,
+                      "Performing Arts": Sparkles,
+                      "Language Classes": Globe
+                    };
+                    const ActivityIcon = activityIcons[cat.name as keyof typeof activityIcons] || Sparkles;
 
                     return (
                       <Link 
                         key={cat.name} 
                         href={`/learning-centers?activity=${cat.name}`}
-                        className="animate-fade-in-up"
-                        style={{ animationDelay: `${idx * 75}ms` }}
+                        className="bg-white rounded-2xl p-5 text-center border border-slate-200 hover:shadow-lg hover:border-[#1565D8] transition-all cursor-pointer flex flex-col justify-between items-center group h-40"
                       >
-                        <Card className={`bg-gradient-to-br ${gradientColors} rounded-2xl p-4 text-center border hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer h-36 flex flex-col justify-between group`}>
-                          <span className="text-3xl filter drop-shadow block">{cat.emoji}</span>
-                          <div className="flex-1 flex flex-col justify-center my-1.5">
-                            <h4 className="text-xs sm:text-sm font-black text-slate-850 leading-tight">{cat.name}</h4>
-                            <p className="text-[9px] text-slate-500 font-semibold mt-0.5 line-clamp-1">{cat.fullName}</p>
-                          </div>
-                          <span className="text-[10px] text-slate-650 font-bold block uppercase tracking-wider">
-                            {cat.count}
-                          </span>
-                        </Card>
+                        <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-3 group-hover:bg-[#1565D8] group-hover:text-white transition-colors duration-300">
+                          <ActivityIcon className="w-5 h-5 text-[#1565D8] group-hover:text-white transition-colors duration-300" />
+                        </div>
+                        <div className="flex-1 flex flex-col justify-center my-1">
+                          <h4 className="text-xs sm:text-sm font-black text-slate-800 leading-tight">{cat.name}</h4>
+                          <p className="text-[9px] text-slate-500 font-semibold mt-0.5 line-clamp-1">{cat.fullName}</p>
+                        </div>
+                        <span className="inline-block text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full mt-1 group-hover:bg-blue-50 group-hover:text-[#1565D8] transition-colors">
+                          {cat.count}
+                        </span>
                       </Link>
                     )
                   }
@@ -782,7 +907,118 @@ export default function MarketplaceHomepage() {
             </div>
           </section>
 
-          {/* 6. FEATURED CENTERS (LC Tab Only) */}
+          {/* SECTION 6 — LEARNING CENTERS TEASER */}
+          <section className="py-12 bg-white border-b border-slate-100">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="text-left max-w-md">
+                <h3 className="text-lg md:text-xl font-black text-slate-900 tracking-tight font-poppins leading-tight">
+                  Explore Dance, Music, Coaching & Activity Classes
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  Discover top activity academies and tutors near your area.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 md:max-w-2xl justify-start md:justify-end">
+                {[
+                  { name: "Dance", icon: Music },
+                  { name: "Music", icon: Music },
+                  { name: "Art", icon: Palette },
+                  { name: "Abacus", icon: School },
+                  { name: "Sports", icon: Dumbbell },
+                  { name: "Coaching", icon: BookOpen },
+                  { name: "STEM", icon: Globe }
+                ].map((item) => {
+                  const ItemIcon = item.icon
+                  return (
+                    <Link
+                      key={item.name}
+                      href={`/learning-centers?activity=${item.name}`}
+                      className="inline-flex items-center gap-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-150 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 hover:text-[#1565D8] transition-all"
+                    >
+                      <ItemIcon className="w-3.5 h-3.5" />
+                      <span>{item.name}</span>
+                    </Link>
+                  )
+                })}
+
+                <Link
+                  href="/learning-centers"
+                  className="text-xs text-[#1565D8] hover:underline font-bold px-3 py-2 shrink-0 inline-flex items-center gap-1"
+                >
+                  <span>View All Learning Centers</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          </section>
+
+          {/* SECTION 5 — HOW IT WORKS */}
+          <section className="py-20 bg-white border-b border-slate-100">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 space-y-12">
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 text-center tracking-tight font-poppins">
+                {isLC 
+                  ? "How Vidhyaan Helps Parents Find the Right Learning Center" 
+                  : "How Vidhyaan Helps Parents Find the Right School"
+                }
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative max-w-5xl mx-auto">
+                
+                {/* Connector line for large screens (desktop) */}
+                <div className="hidden md:block absolute top-7 left-[15%] right-[15%] h-0.5 bg-[#1565D8]/10 -z-10" />
+
+                {/* Step 1 */}
+                <div className="flex flex-col items-center text-center relative space-y-4">
+                  <div className="w-14 h-14 rounded-full bg-[#1565D8] text-white flex items-center justify-center text-lg font-black shadow-md border-4 border-white relative z-10">
+                    1
+                  </div>
+                  <div className="md:hidden absolute top-14 left-1/2 -translate-x-1/2 w-0.5 h-12 bg-[#1565D8]/10 -z-10" />
+                  <div className="space-y-2 pt-2">
+                    <h4 className="text-base font-bold text-slate-805">
+                      {isLC ? "Search & Discover Classes" : "Search & Compare Schools"}
+                    </h4>
+                    <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed max-w-xs">
+                      {isLC 
+                        ? "Filters for activity types, age groups, timings, fees, and location to find the perfect match." 
+                        : "Filters for board (CBSE, ICSE, etc.), fees, location, and facilities."
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 2 */}
+                <div className="flex flex-col items-center text-center relative space-y-4 pt-12 md:pt-0">
+                  <div className="w-14 h-14 rounded-full bg-[#1565D8] text-white flex items-center justify-center text-lg font-black shadow-md border-4 border-white relative z-10">
+                    2
+                  </div>
+                  <div className="md:hidden absolute top-14 left-1/2 -translate-x-1/2 w-0.5 h-12 bg-[#1565D8]/10 -z-10" />
+                  <div className="space-y-2 pt-2">
+                    <h4 className="text-base font-bold text-slate-805">Read Verified Reviews</h4>
+                    <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed max-w-xs">
+                      Real parent reviews and ratings help you make an informed decision for your child.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div className="flex flex-col items-center text-center relative space-y-4 pt-12 md:pt-0">
+                  <div className="w-14 h-14 rounded-full bg-[#1565D8] text-white flex items-center justify-center text-lg font-black shadow-md border-4 border-white relative z-10">
+                    3
+                  </div>
+                  <div className="space-y-2 pt-2">
+                    <h4 className="text-base font-bold text-slate-805">Apply & Track Admission</h4>
+                    <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed max-w-xs">
+                      Apply or send enquiries directly, and track application status updates in real-time.
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </section>
+
+          {/* FEATURED CENTERS (LC Tab Only, Emojis removed) */}
           {isLC && (
             <section className="py-20 bg-white border-b border-slate-150/40 animate-slide-in-right">
               <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 space-y-8">
@@ -802,15 +1038,27 @@ export default function MarketplaceHomepage() {
                       href={`/learning-centers/${center.slug}`}
                       className="w-[260px] shrink-0 snap-align-start bg-white rounded-3xl border border-slate-200 overflow-hidden hover:shadow-xl hover:border-blue-400 transition-all duration-300 flex flex-col group cursor-pointer"
                     >
-                      {/* Top Area (Gradient) */}
                       <div className={`h-[140px] bg-gradient-to-br ${getLCGradient(center.activity)} flex items-center justify-center relative`}>
-                        <span className="text-5xl group-hover:scale-110 transition-transform duration-300 filter drop-shadow">{center.emoji}</span>
-                        <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-[#D97706] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm">
-                          ⭐ Featured
+                        {(() => {
+                          const activityIcons = {
+                            "Dance": Music,
+                            "Music": Music,
+                            "Art & Craft": Palette,
+                            "Fitness & Sports": Dumbbell,
+                            "Academic Coaching": BookOpen,
+                            "Coding": Globe,
+                            "Performing Arts": Sparkles,
+                            "Language Classes": Globe
+                          };
+                          const CenterIcon = activityIcons[center.activity as keyof typeof activityIcons] || Sparkles;
+                          return <CenterIcon className="w-12 h-12 text-white/95 group-hover:scale-110 transition-transform duration-300 filter drop-shadow" />
+                        })()}
+                        <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-amber-600 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1 select-none">
+                          <Star className="w-3 h-3 fill-amber-500 text-amber-500 shrink-0" />
+                          <span>Featured</span>
                         </span>
                       </div>
 
-                      {/* Bottom Content Area */}
                       <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
                         <div>
                           <h4 className="text-sm font-black text-slate-900 group-hover:text-[#1565D8] transition-colors leading-tight line-clamp-1">
@@ -826,8 +1074,8 @@ export default function MarketplaceHomepage() {
                             </div>
                           </div>
                           <p className="text-[11px] text-slate-400 font-bold mt-2.5 uppercase tracking-wide flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5 text-slate-350 shrink-0" />
-                            <span>{center.location} · {center.distance}</span>
+                            <MapPin className="w-3.5 h-3.5 text-slate-355 shrink-0" />
+                            <span>{center.location}</span>
                           </p>
                         </div>
 
@@ -851,7 +1099,7 @@ export default function MarketplaceHomepage() {
             </section>
           )}
 
-          {/* 7. AGE GROUP SECTION (LC Tab Only) */}
+          {/* AGE GROUP SECTION (LC Tab Only, Emojis removed) */}
           {isLC && (
             <section className="py-20 bg-white border-b border-slate-150/40 animate-slide-in-bottom">
               <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 space-y-8">
@@ -859,7 +1107,7 @@ export default function MarketplaceHomepage() {
                   <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight font-poppins">
                     Find by Age Group
                   </h2>
-                  <p className="text-xs text-slate-450 font-bold mt-1 uppercase tracking-wider">
+                  <p className="text-xs text-slate-455 font-bold mt-1 uppercase tracking-wider">
                     Classes designed for every stage of your child's growth
                   </p>
                 </div>
@@ -871,8 +1119,19 @@ export default function MarketplaceHomepage() {
                       onClick={() => router.push(`/learning-centers?age=${group.query}`)}
                       className={`p-6 rounded-3xl border ${group.bg} hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between items-start text-left h-[260px] cursor-pointer group`}
                     >
-                      <div className="space-y-3">
-                        <span className="text-4xl filter drop-shadow block group-hover:scale-110 transition-transform duration-300">{group.emoji}</span>
+                      <div className="space-y-3 w-full">
+                        <span className="text-4xl filter drop-shadow block group-hover:scale-110 transition-transform duration-300">
+                          {(() => {
+                            const ageIcons = {
+                              "Little Ones": Sparkles,
+                              "Kids": BookOpen,
+                              "Pre-teens": GraduationCap,
+                              "Teens & Adults": School
+                            };
+                            const AgeIcon = ageIcons[group.title as keyof typeof ageIcons] || Sparkles;
+                            return <AgeIcon className="w-10 h-10 text-[#1565D8]" />
+                          })()}
+                        </span>
                         <div>
                           <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">{group.age}</span>
                           <h4 className="text-base font-black text-slate-800 mt-0.5">{group.title}</h4>
@@ -891,27 +1150,119 @@ export default function MarketplaceHomepage() {
             </section>
           )}
 
-          {/* 8. HOW IT WORKS */}
-          <section className="py-20 bg-white">
-            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 space-y-12">
+          {/* SECTION 7 — TESTIMONIALS */}
+          <section className="bg-gradient-to-b from-blue-50/40 via-blue-50/10 to-white py-20 border-y border-slate-100">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 space-y-8">
+              <div className="text-center max-w-xl mx-auto space-y-2">
+                <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight font-poppins">
+                  What Parents Say About Vidhyaan
+                </h2>
+                <p className="text-xs md:text-sm text-slate-500 font-medium">
+                  Hear from families who found the perfect educational environment for their children.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                  {
+                    name: 'Rajesh Subramanian',
+                    city: 'Chennai',
+                    initials: 'RS',
+                    bg: 'bg-blue-50 text-[#1565D8]',
+                    quote: 'Vidhyaan made shortlisting schools extremely easy. The comparison dashboard saved us weeks of school visits.'
+                  },
+                  {
+                    name: 'Priya Krishnan',
+                    city: 'Bengaluru',
+                    initials: 'PK',
+                    bg: 'bg-amber-50 text-amber-600',
+                    quote: 'Highly recommend using the parent enquiry tool. The response times from schools were very fast.'
+                  },
+                  {
+                    name: 'Anjali Sharma',
+                    city: 'Chennai',
+                    initials: 'AS',
+                    bg: 'bg-indigo-50 text-[#1565D8]',
+                    quote: 'Finding verified reviews from other parents in our locality helped us pick the perfect CBSE school for our daughter.'
+                  }
+                ].map((t, idx) => (
+                  <div key={idx} className="p-6 bg-white border border-slate-200 border-t-[3px] border-t-[#FFC107] shadow-sm rounded-2xl flex flex-col justify-between space-y-4 hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star key={star} className="w-3.5 h-3.5 fill-[#FFC107] text-[#FFC107]" />
+                        ))}
+                      </div>
+                      <p className="text-xs leading-relaxed text-slate-650 italic font-medium font-poppins">
+                        "{t.quote}"
+                      </p>
+                    </div>
+                    <div className="border-t border-slate-100 pt-4 flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${t.bg}`}>
+                        {t.initials}
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-800 block leading-none">{t.name}</span>
+                        <span className="text-[10px] text-slate-400 font-bold block mt-0.5">{t.city}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* SECTION 8 — FAQ */}
+          <section className="py-20 bg-slate-50/50 border-b border-slate-100 relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(#1565d8_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.03] pointer-events-none" />
+            <div className="relative max-w-4xl mx-auto px-4 md:px-6 space-y-8">
               <h2 className="text-2xl md:text-3xl font-black text-slate-900 text-center tracking-tight font-poppins">
-                How It Works
+                Frequently Asked Questions
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-                {/* Connector line for large screens */}
-                <div className="hidden md:block absolute top-6 left-[16%] right-[16%] h-0.5 bg-slate-100 -z-10" />
-
-                {content.howItWorks.map((step) => {
-                  const StepIcon = step.icon
+              <div className="space-y-4">
+                {[
+                  {
+                    q: "How do I find the best schools near me?",
+                    a: "Use Vidhyaan's search to filter verified schools by city, area, board (CBSE, ICSE, State Board, International), fees, and facilities. Compare shortlisted schools side by side and read parent reviews before applying."
+                  },
+                  {
+                    q: "Is Vidhyaan free for parents?",
+                    a: "Yes. Searching schools, comparing options, reading reviews, and sending admission enquiries on Vidhyaan is completely free for parents."
+                  },
+                  {
+                    q: "What does 'Verified School' mean on Vidhyaan?",
+                    a: "Verified schools have had their profile details reviewed and confirmed by the Vidhyaan team, so parents can trust the information about boards, facilities, and contact details."
+                  },
+                  {
+                    q: "Can I compare school fees on Vidhyaan?",
+                    a: "Yes. School profiles include fee range information where provided, and you can compare fees, facilities, and curriculum across multiple schools side by side."
+                  },
+                  {
+                    q: "How do I apply for admission through Vidhyaan?",
+                    a: "Send an enquiry directly from any school's profile page. The school's admission team receives it instantly and contacts you — you can track your application status from your parent account."
+                  },
+                  {
+                    q: "Which cities does Vidhyaan cover?",
+                    a: "Vidhyaan currently covers 11 cities including Chennai, Bengaluru, Hyderabad, Mumbai, New Delhi, Pune, Coimbatore, Madurai, Kochi, and Jaipur — with more cities being added."
+                  }
+                ].map((faq, idx) => {
+                  const isOpen = activeFaq === idx
                   return (
-                    <div key={step.step} className="text-center p-4 space-y-3 flex flex-col items-center relative animate-fade-in-up">
-                      <div className="w-12 h-12 rounded-full bg-[#1565D8] text-white flex items-center justify-center font-black shadow-md border border-white">
-                        <StepIcon className="w-5 h-5" />
-                      </div>
-                      <div className="space-y-1">
-                        <h4 className="text-xs sm:text-sm font-bold text-slate-800">{step.title}</h4>
-                        <p className="text-xs text-slate-450 font-semibold leading-relaxed max-w-xs">{step.desc}</p>
+                    <div key={idx} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm transition-all duration-300 hover:bg-blue-50/20">
+                      <button
+                        type="button"
+                        onClick={() => setActiveFaq(isOpen ? null : idx)}
+                        className="w-full flex items-center justify-between p-5 text-left font-bold text-sm md:text-base text-slate-850 hover:text-[#1565D8] transition-colors focus:outline-none"
+                        aria-expanded={isOpen}
+                      >
+                        <span>{faq.q}</span>
+                        <ChevronDown className={`w-5 h-5 text-[#1565D8] shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-[200px] border-t border-slate-100 bg-slate-50/50' : 'max-h-0'}`}>
+                        <p className="p-5 text-xs md:text-sm text-slate-650 leading-relaxed font-medium">
+                          {faq.a}
+                        </p>
                       </div>
                     </div>
                   )
@@ -920,92 +1271,27 @@ export default function MarketplaceHomepage() {
             </div>
           </section>
 
-          {/* 9. TESTIMONIALS */}
-          {!isLC ? (
-            // Schools Testimonials Section
-            <section className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-20 space-y-8">
-              <div className="text-center">
-                <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight font-poppins">
-                  What Parents Say
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {schoolTestimonials.map((t, idx) => (
-                  <Card key={idx} className="p-6 bg-white border-slate-200 shadow-sm rounded-2xl flex flex-col justify-between space-y-4">
-                    <p className="text-xs leading-relaxed text-slate-500 italic font-medium">
-                      "{t.quote}"
-                    </p>
-                    <div className="border-t border-slate-100 pt-4 flex justify-between items-center">
-                      <span className="text-xs font-bold text-slate-700">{t.name}</span>
-                      <div className="flex items-center gap-0.5">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star key={star} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                        ))}
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </section>
-          ) : (
-            // Learning Centers Testimonials Section
-            <section className="py-20 bg-[#F5F7FA] border-y border-slate-150/40">
-              <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 space-y-8">
-                <div className="text-center">
-                  <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight font-poppins">
-                    What Parents Say
-                  </h2>
-                  <p className="text-xs text-slate-450 font-bold mt-1 uppercase tracking-wider">
-                    Real stories from parents whose children attend our partner learning centers
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {lcTestimonials.map((t, idx) => (
-                    <Card key={idx} className="p-6 bg-white border-slate-200 shadow-sm rounded-2xl flex flex-col justify-between space-y-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-0.5">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star key={star} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                          ))}
-                        </div>
-                        <p className="text-xs leading-relaxed text-slate-650 italic font-semibold">
-                          "{t.quote}"
-                        </p>
-                      </div>
-                      
-                      <div className="border-t border-slate-100 pt-4 flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${t.bg}`}>
-                          {t.initials}
-                        </div>
-                        <div>
-                          <span className="text-xs font-black text-slate-800 block leading-tight">{t.name}</span>
-                          <span className="text-[10px] text-slate-400 font-bold block mt-0.5">{t.info}</span>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* 10. FOR INSTITUTIONS CTA BANNER */}
-          <section className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-10">
-            <Card className="bg-gradient-to-r from-[#1565D8] to-blue-700 border-0 rounded-3xl p-8 md:p-12 shadow-xl text-white text-center relative overflow-hidden">
+          {/* SECTION 9 — FOR INSTITUTIONS CTA BANNER */}
+          <section className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-16">
+            <div className="bg-gradient-to-r from-[#1565D8] to-blue-700 border-0 rounded-3xl p-8 md:p-12 shadow-xl text-white text-center relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-400/10 rounded-full blur-2xl pointer-events-none" />
 
               <span className="inline-block bg-white/10 text-white border border-white/20 text-[10px] font-black uppercase tracking-wider px-3.5 py-1 rounded-full mb-4">
-                {content.cta.badge}
+                {isLC ? "For Learning Centers & Academies" : "For Schools & Institutions"}
               </span>
-              <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight max-w-2xl mx-auto">
-                {content.cta.heading}
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight max-w-2xl mx-auto font-poppins">
+                {isLC 
+                  ? "Grow Your Academy with Vidhyaan Management Software" 
+                  : "Grow Your Admissions with Vidhyaan School Management Software & CRM"
+                }
               </h2>
 
-              <p className="text-blue-100 text-xs md:text-sm max-w-xl mx-auto mt-4 leading-relaxed font-semibold">
-                {content.cta.description}
+              <p className="text-blue-100 text-xs md:text-sm max-w-xl mx-auto mt-4 leading-relaxed font-semibold font-poppins">
+                {isLC 
+                  ? "Join leading academies already using Vidhyaan to manage enquiries, online registrations, and fee collections in one unified platform."
+                  : "Join institutions using Vidhyaan admission CRM to streamline lead tracking, parent communications, and student admissions."
+                }
               </p>
               
               <div className="flex gap-4 justify-center flex-wrap mt-8">
@@ -1014,9 +1300,9 @@ export default function MarketplaceHomepage() {
                     {content.cta.primaryButton}
                   </Button>
                 </Link>
-                <Link href="/signup">
-                  <Button variant="outline" className="border-white hover:bg-white/10 text-white font-bold text-xs px-8 py-3.5 rounded-xl h-auto">
-                    {content.cta.secondaryButton}
+                <Link href="/pricing">
+                  <Button variant="outline" className="border-white hover:bg-white/10 text-white font-bold text-xs px-8 py-3.5 rounded-xl h-auto bg-transparent border">
+                    Explore CRM Features
                   </Button>
                 </Link>
               </div>
@@ -1029,7 +1315,74 @@ export default function MarketplaceHomepage() {
                   </React.Fragment>
                 ))}
               </div>
-            </Card>
+            </div>
+          </section>
+
+          {/* SECTION 10 — SEO FOOTER BLOCK */}
+          <section className="bg-blue-50/40 border-t border-slate-200/60 py-16">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 space-y-8 text-xs text-slate-500 leading-relaxed font-medium">
+              
+              {/* Columns as Styled Mini-Panels */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 space-y-4 shadow-sm hover:border-[#1565D8]/30 transition-all duration-300">
+                  <h3 className="font-black text-slate-900 tracking-tight uppercase text-xs md:text-sm font-poppins flex items-center gap-2 select-none">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-[#1565D8] shrink-0 border border-blue-100/50">
+                      <School className="w-4 h-4" />
+                    </div>
+                    <span>Vidhyaan School Admissions and Discovery</span>
+                  </h3>
+                  <p className="text-slate-600 font-medium leading-relaxed">
+                    Vidhyaan is India's premier marketplace for school discoverability, helping parents find the most suitable educational institutions for their children. We index detailed profiles, fee structures, curriculum details, and verified parent reviews for institutions across the country. Whether you are looking for top-rated <Link href="/schools?board=CBSE" className="text-[#1565D8] hover:underline font-semibold">CBSE schools</Link>, academic <Link href="/schools?board=ICSE" className="text-[#1565D8] hover:underline font-semibold">ICSE board schools</Link>, state syllabus institutions, or premier international baccalaureate (IB) and Cambridge affiliated schools, our comprehensive directory makes comparison effortless.
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 space-y-4 shadow-sm hover:border-[#1565D8]/30 transition-all duration-300">
+                  <h3 className="font-black text-slate-900 tracking-tight uppercase text-xs md:text-sm font-poppins flex items-center gap-2 select-none">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-[#1565D8] shrink-0 border border-blue-100/50">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <span>Verified Learning Centers and Extra-Curriculars</span>
+                  </h3>
+                  <p className="text-slate-600 font-medium leading-relaxed">
+                    Beyond formal schooling, Vidhyaan connects children with exceptional extracurricular academies. Browse verified dance schools, vocal and instrumental music classes, art and craft studios, sports training programs, abacus classes, and academic coaching centers. Tutors and center administrators use <Link href="/dashboard" className="text-[#1565D8] hover:underline font-semibold">Vidhyaan CRM</Link> and student management software to manage schedules, admissions, and automate parent billing securely.
+                  </p>
+                </div>
+              </div>
+
+              {/* Restyled city/curriculum links as Wrapped Pill Chips */}
+              <div className="border-t border-slate-200/80 pt-8 space-y-6">
+                <div>
+                  <span className="font-black text-slate-700 uppercase text-[10px] tracking-wider block mb-3 font-poppins select-none">Explore Schools by City:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {cities.map((c) => (
+                      <Link
+                        key={c.name}
+                        href={`/schools?city=${c.name}`}
+                        className="text-[11px] font-bold text-slate-600 bg-white hover:bg-blue-50 hover:text-[#1565D8] border border-slate-200/80 hover:border-blue-200 px-3.5 py-1.5 rounded-full transition-all duration-200 shadow-sm"
+                      >
+                        {c.name} Schools
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="font-black text-slate-700 uppercase text-[10px] tracking-wider block mb-3 font-poppins select-none">Search by Curriculum:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {["CBSE", "ICSE", "State Board", "International"].map((board) => (
+                      <Link
+                        key={board}
+                        href={`/schools?board=${board}`}
+                        className="text-[11px] font-bold text-slate-600 bg-white hover:bg-blue-50 hover:text-[#1565D8] border border-slate-200/80 hover:border-blue-200 px-3.5 py-1.5 rounded-full transition-all duration-200 shadow-sm"
+                      >
+                        {board} Schools
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </section>
 
         </div>

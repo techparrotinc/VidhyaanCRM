@@ -35,7 +35,15 @@ import {
   Activity,
   Award,
   Zap,
-  Cloud
+  Cloud,
+  Store,
+  Building2,
+  ClipboardCheck,
+  Wallet,
+  IndianRupee,
+  GitBranch,
+  MessageCircle,
+  Sparkles
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -49,10 +57,43 @@ export default function MarketplaceHeader() {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
 
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobileProductsOpen, setIsMobileProductsOpen] = useState(false)
   const [isMobileMarketplaceOpen, setIsMobileMarketplaceOpen] = useState(false)
   const [isMobileCrmOpen, setIsMobileCrmOpen] = useState(false)
+
+  // Escape key down listener to close products mega-menu
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsProductsOpen(false)
+      }
+    }
+    if (isProductsOpen) {
+      window.addEventListener('keydown', handleKeyDown)
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isProductsOpen])
+
+  // Click outside to close products mega-menu
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target.closest('.products-trigger') || target.closest('.products-dropdown')) {
+        return
+      }
+      setIsProductsOpen(false)
+    }
+    if (isProductsOpen) {
+      document.addEventListener('click', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [isProductsOpen])
 
   // Listen to deletion message query parameter
   useEffect(() => {
@@ -108,10 +149,21 @@ export default function MarketplaceHeader() {
           {/* Navigation Links */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600 h-full">
             <div 
-              className="h-full flex items-center"
+              className="h-full flex items-center products-trigger"
               onMouseEnter={() => setIsProductsOpen(true)}
             >
-              <button className="flex items-center gap-1 hover:text-[#1565D8] transition cursor-pointer py-5">
+              <button 
+                onClick={() => setIsProductsOpen(!isProductsOpen)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setIsProductsOpen(!isProductsOpen)
+                  }
+                }}
+                className="flex items-center gap-1 hover:text-[#1565D8] transition cursor-pointer py-5 focus:outline-none focus:text-[#1565D8] focus:underline"
+                aria-expanded={isProductsOpen}
+                aria-haspopup="true"
+              >
                 Products <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isProductsOpen ? 'rotate-180' : ''}`} />
               </button>
             </div>
@@ -255,196 +307,242 @@ export default function MarketplaceHeader() {
         {/* Mega Menu Dropdown */}
         {isProductsOpen && (
           <div 
-            className="absolute left-1/2 -translate-x-1/2 top-[60px] w-[90vw] max-w-[1200px] bg-white border border-slate-200 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] z-40 transition-all duration-300 ease-out overflow-hidden"
+            className="absolute left-0 right-0 top-[64px] w-full bg-white border-t-3 border-t-[#1565D8] rounded-b-2xl shadow-2xl z-40 overflow-hidden animate-slide-down-fade focus-within:ring-2 focus-within:ring-[#1565D8]/20 focus-within:outline-none products-dropdown"
             onMouseEnter={() => setIsProductsOpen(true)}
+            tabIndex={-1}
           >
-            <div className="grid grid-cols-[300px_1fr_340px] w-full">
+            <style>{`
+              @keyframes slideDownFade {
+                from {
+                  opacity: 0;
+                  transform: translateY(-8px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
+              .animate-slide-down-fade {
+                animation: slideDownFade 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+              }
+              @media (prefers-reduced-motion: reduce) {
+                .animate-slide-down-fade {
+                  animation: none !important;
+                  transition: none !important;
+                }
+              }
+            `}</style>
+
+            <div className="grid grid-cols-[210px_1fr_1fr_230px] w-full max-w-screen-2xl mx-auto divide-x divide-slate-100/80 bg-white">
               
-              {/* Column 1 — Curated Shortcuts (What do you want to do?) */}
-              <div className="bg-slate-50/80 pt-12 pb-12 pl-12 pr-10 flex flex-col gap-6 shrink-0 border-r border-slate-200/50">
-                <h3 className="text-2xl font-semibold font-poppins text-slate-800 pb-4 border-b border-slate-100 mb-6">
-                  What do you want to do?
-                </h3>
-                <div className="flex flex-col gap-y-[14px]">
-                  <Link 
-                    href="/register-school" 
-                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
-                  >
-                    List your school for free
-                  </Link>
-                  <Link 
-                    href="/products/parent-portal" 
-                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
-                  >
-                    Track your child's application
-                  </Link>
-                  <Link 
-                    href="/products/fee-management" 
-                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
-                  >
-                    Collect fees online
-                  </Link>
-                  <Link 
-                    href="/products/admission-management" 
-                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
-                  >
-                    Manage admissions end-to-end
-                  </Link>
-                  <Link 
-                    href="/products/campaign-management" 
-                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
-                  >
-                    Send WhatsApp updates to parents
-                  </Link>
+              {/* ZONE A — INTRO PANEL */}
+              <div className="bg-slate-50/50 p-6 flex flex-col text-left select-none justify-start">
+                <div>
+                  <h4 className="text-[13px] font-black text-slate-800 leading-snug font-poppins">
+                    One platform for schools, learning centers and parents
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-2 font-semibold leading-relaxed">
+                    Discovery marketplace plus a full admission CRM.
+                  </p>
+                </div>
+                <Link 
+                  href="/pricing" 
+                  onClick={() => setIsProductsOpen(false)}
+                  className="text-xs font-black text-[#1565D8] hover:text-blue-700 transition flex items-center gap-1 mt-5 hover:underline w-fit"
+                >
+                  <span>See all products</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+
+              {/* ZONE B — MARKETPLACE GROUP */}
+              <div className="p-6 bg-white flex flex-col gap-4 text-left">
+                <div className="pb-1 text-left select-none">
+                  <span className="text-[10px] font-black text-[#1565D8] uppercase tracking-wider pb-1 border-b-2 border-[#FFC107] inline-block font-poppins">
+                    MARKETPLACE — FOR PARENTS
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3.5 mt-1">
+                  {[
+                    {
+                      href: "/schools",
+                      name: "Find Schools",
+                      icon: Search,
+                      tintClass: "bg-blue-50 text-blue-600 border border-blue-100/50"
+                    },
+                    {
+                      href: "/learning-centers",
+                      name: "Find Learning Centers",
+                      icon: Sparkles,
+                      tintClass: "bg-teal-50 text-teal-600 border border-teal-100/50"
+                    },
+                    {
+                      href: "/schools/compare",
+                      name: "Compare Schools",
+                      icon: GitCompare,
+                      tintClass: "bg-violet-50 text-violet-600 border border-violet-100/50"
+                    },
+                    {
+                      href: "/parent/applications",
+                      name: "Track Application",
+                      icon: ClipboardCheck,
+                      tintClass: "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
+                    },
+                    {
+                      href: "/products/parent-portal",
+                      name: "Parent Portal",
+                      icon: FileText,
+                      tintClass: "bg-cyan-50 text-cyan-600 border border-cyan-100/50"
+                    },
+                    {
+                      href: "/products/marketplace/verified-badge",
+                      name: "Verified Schools",
+                      icon: Award,
+                      tintClass: "bg-amber-50 text-amber-600 border border-amber-100/50"
+                    },
+                    {
+                      href: "/register-school",
+                      name: "Free Listing",
+                      icon: Store,
+                      tintClass: "bg-[#1565D8] text-white",
+                    }
+                  ].map((item, idx) => {
+                    const ItemIcon = item.icon
+                    return (
+                      <Link 
+                        key={idx}
+                        href={item.href}
+                        onClick={() => setIsProductsOpen(false)}
+                        className="group flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-slate-50 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:ring-offset-1"
+                      >
+                        <div className={`w-[30px] h-[30px] rounded-md flex items-center justify-center shrink-0 transition-colors duration-200 ${item.tintClass}`}>
+                          <ItemIcon className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[13px] font-medium text-slate-705 group-hover:text-[#1565D8] transition-colors leading-none whitespace-nowrap font-poppins">
+                          {item.name}
+                        </span>
+                      </Link>
+                    )
+                  })}
                 </div>
               </div>
 
-              {/* Column 2 — Explore Vidhyaan (Core Product Lists) */}
-              <div className="pt-12 pb-12 px-12 bg-white flex flex-col">
-                <h3 className="text-2xl font-semibold font-poppins text-slate-800 pb-4 border-b border-slate-100 mb-6">
-                  Explore Vidhyaan
-                </h3>
-                <div className="grid grid-cols-2 gap-x-12 gap-y-8">
-                  
-                  {/* Marketplace Group */}
-                  <div className="flex flex-col gap-3">
-                    <h4 className="text-xs font-bold text-[#1565D8] uppercase tracking-wider mb-2.5">
-                      Marketplace
-                    </h4>
-                    <div className="flex flex-col gap-y-[14px]">
+              {/* ZONE C — ADMISSION CRM GROUP */}
+              <div className="p-6 bg-white flex flex-col gap-4 text-left">
+                <div className="pb-1 text-left select-none">
+                  <span className="text-[10px] font-black text-[#1565D8] uppercase tracking-wider pb-1 border-b-2 border-[#FFC107] inline-block font-poppins">
+                    ADMISSION CRM — FOR INSTITUTIONS
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3.5 mt-1">
+                  {[
+                    {
+                      href: "/products/lead-management",
+                      name: "Lead Management",
+                      icon: Users,
+                      tintClass: "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
+                    },
+                    {
+                      href: "/products/admission-management",
+                      name: "Admissions",
+                      icon: ClipboardList,
+                      tintClass: "bg-violet-50 text-violet-600 border border-violet-100/50"
+                    },
+                    {
+                      href: "/products/student-management",
+                      name: "Students",
+                      icon: GraduationCap,
+                      tintClass: "bg-pink-50 text-pink-600 border border-pink-100/50"
+                    },
+                    {
+                      href: "/products/course-management",
+                      name: "Courses & Batches",
+                      icon: BookOpen,
+                      tintClass: "bg-orange-50 text-orange-600 border border-orange-100/50"
+                    },
+                    {
+                      href: "/products/fee-management",
+                      name: "Fees & Payments",
+                      icon: CreditCard,
+                      tintClass: "bg-rose-50 text-rose-600 border border-rose-100/50"
+                    },
+                    {
+                      href: "/products/campaign-management",
+                      name: "Campaigns",
+                      icon: MessageSquare,
+                      tintClass: "bg-blue-50 text-blue-600 border border-blue-100/50"
+                    },
+                    {
+                      href: "/products/notifications-alerts",
+                      name: "Notifications",
+                      icon: Bell,
+                      tintClass: "bg-amber-50 text-amber-600 border border-amber-100/50"
+                    },
+                    {
+                      href: "/products/parent-portal",
+                      name: "Parent Portal",
+                      icon: FileText,
+                      tintClass: "bg-cyan-50 text-cyan-600 border border-cyan-100/50"
+                    },
+                    {
+                      href: "/products/reporting-analytics",
+                      name: "Reports & Analytics",
+                      icon: BarChart3,
+                      tintClass: "bg-purple-50 text-purple-600 border border-purple-100/50"
+                    }
+                  ].map((item, idx) => {
+                    const ItemIcon = item.icon
+                    return (
                       <Link 
-                        href="/products/marketplace/free-listing" 
-                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
+                        key={idx}
+                        href={item.href}
+                        onClick={() => setIsProductsOpen(false)}
+                        className="group flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-slate-50 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:ring-offset-1"
                       >
-                        Free School Listing
+                        <div className={`w-[30px] h-[30px] rounded-md flex items-center justify-center shrink-0 transition-colors duration-200 ${item.tintClass}`}>
+                          <ItemIcon className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[13px] font-medium text-slate-705 group-hover:text-[#1565D8] transition-colors leading-none whitespace-nowrap font-poppins">
+                          {item.name}
+                        </span>
                       </Link>
-                      <Link 
-                        href="/products/marketplace/search-discovery" 
-                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
-                      >
-                        Parent Search & Discovery
-                      </Link>
-                      <Link 
-                        href="/products/marketplace/compare" 
-                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
-                      >
-                        Compare Schools
-                      </Link>
-                      <Link 
-                        href="/products/marketplace/verified-badge" 
-                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
-                      >
-                        Verified Profile Badge
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Admission CRM Group */}
-                  <div className="flex flex-col gap-3">
-                    <h4 className="text-xs font-bold text-[#1565D8] uppercase tracking-wider mb-2.5">
-                      Admission CRM
-                    </h4>
-                    <div className="flex flex-col gap-y-[14px]">
-                      <Link 
-                        href="/products/lead-management" 
-                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
-                      >
-                        Lead Management
-                      </Link>
-                      <Link 
-                        href="/products/admission-management" 
-                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
-                      >
-                        Admission Management
-                      </Link>
-                      <Link 
-                        href="/products/student-management" 
-                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
-                      >
-                        Student Management
-                      </Link>
-                      <Link 
-                        href="/products/course-management" 
-                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
-                      >
-                        Course & Batch Management
-                      </Link>
-                      <Link 
-                        href="/products/fee-management" 
-                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
-                      >
-                        Fee & Payment Management
-                      </Link>
-                      <Link 
-                        href="/products/campaign-management" 
-                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
-                      >
-                        Campaign Management
-                      </Link>
-                      <Link 
-                        href="/products/notifications-alerts" 
-                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
-                      >
-                        Notifications & Alerts
-                      </Link>
-                      <Link 
-                        href="/products/parent-portal" 
-                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
-                      >
-                        Parent Portal
-                      </Link>
-                      <Link 
-                        href="/products/reporting-analytics" 
-                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
-                      >
-                        Reports & Analytics
-                      </Link>
-                    </div>
-                  </div>
-
+                    )
+                  })}
                 </div>
               </div>
 
-              {/* Column 3 — Spotlight Promotional Cards */}
-              <div className="pt-12 pb-12 pl-10 pr-12 bg-white border-l border-slate-200/50 flex flex-col gap-6 shrink-0">
-                <h3 className="text-2xl font-semibold font-poppins text-slate-800 pb-4 border-b border-slate-100 mb-6">
-                  Spotlight
-                </h3>
-                <div className="flex flex-col gap-5">
-                  
-                  {/* Spotlight Card 1 */}
-                  <div className="group rounded-xl border border-slate-100 hover:border-blue-100 p-6 bg-slate-50/40 hover:bg-blue-50/20 transition-all duration-200">
-                    <h4 className="text-[17px] font-bold font-poppins text-slate-800 mb-1.5">
-                      Free Discovery Listing
-                    </h4>
-                    <p className="text-sm text-slate-500 font-normal leading-relaxed mb-3">
-                      List your school free and get discovered by parents.
-                    </p>
-                    <Link 
-                      href="/register-school" 
-                      className="inline-flex items-center gap-1 text-sm font-semibold text-[#1565D8] hover:text-blue-700 transition"
-                    >
-                      Get started <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
-                    </Link>
+              {/* ZONE D — PROMO RAIL */}
+              <div className="bg-slate-50/50 p-6 flex flex-col gap-4 text-left justify-center shrink-0 select-none">
+                
+                {/* Tile 1 */}
+                <div className="group relative rounded-xl bg-[#1565D8] p-4 text-white shadow-sm flex flex-col justify-between h-[105px] text-left">
+                  <div>
+                    <h4 className="text-[12px] font-black font-poppins tracking-tight">List your school free</h4>
+                    <p className="text-[10px] text-blue-100 mt-1 font-semibold leading-tight">Get discovered by local parents.</p>
                   </div>
-
-                  {/* Spotlight Card 2 */}
-                  <div className="group rounded-xl border border-slate-100 hover:border-blue-100 p-6 bg-slate-50/40 hover:bg-blue-50/20 transition-all duration-200">
-                    <h4 className="text-[17px] font-bold font-poppins text-slate-800 mb-1.5">
-                      Razorpay Payments
-                    </h4>
-                    <p className="text-sm text-slate-500 font-normal leading-relaxed mb-3">
-                      Collect fees online, fully integrated with your invoices.
-                    </p>
-                    <Link 
-                      href="/products/fee-management" 
-                      className="inline-flex items-center gap-1 text-[14px] font-semibold text-[#1565D8] hover:text-blue-700 transition"
-                    >
-                      Learn more <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
-                    </Link>
-                  </div>
-
+                  <Link href="/register-school" onClick={() => setIsProductsOpen(false)} className="text-[10px] font-bold text-white hover:text-blue-100 underline mt-2 block w-fit">
+                    Get started
+                  </Link>
                 </div>
+
+                {/* Tile 2 */}
+                <div className="group rounded-xl border border-amber-200 bg-amber-50/50 p-4 shadow-sm flex flex-col justify-between h-[105px] text-left">
+                  <div>
+                    <div className="flex items-center justify-between gap-1">
+                      <h4 className="text-[12px] font-black font-poppins text-slate-900 leading-tight">Razorpay payments</h4>
+                      <span className="bg-amber-500 text-white text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full select-none">
+                        NEW
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1 font-medium leading-tight">Collect fees online.</p>
+                  </div>
+                  <Link href="/products/fee-management" onClick={() => setIsProductsOpen(false)} className="text-[10px] font-black text-[#1565D8] hover:text-blue-700 transition mt-2 block w-fit hover:underline">
+                    Learn more
+                  </Link>
+                </div>
+
               </div>
 
             </div>

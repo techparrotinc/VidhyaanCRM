@@ -15,15 +15,12 @@ import {
   Shield,
   ChevronDown,
   ChevronRight,
-  Search,
   Bell,
   Menu,
   X,
   Eye,
   Plus,
-  List,
   Download,
-  LayoutGrid,
   Trash2,
   Mail,
   MessageCircle,
@@ -32,7 +29,6 @@ import {
   MoreVertical,
   Check,
   AlertCircle,
-  Columns,
   Loader2,
   UserPlus
 } from 'lucide-react'
@@ -54,6 +50,7 @@ import PipelineSummaryStrip from '@/components/admissions/PipelineSummaryStrip'
 import PaginationFooter from '@/components/admissions/PaginationFooter'
 import GridView from '@/components/admissions/GridView'
 import KanbanView from '@/components/admissions/KanbanView'
+import FilterBar from '@/components/admissions/FilterBar'
 
 const moduleLabel = config.moduleLabel[type]
 export default function AdmissionManagementPage() {
@@ -96,13 +93,6 @@ export default function AdmissionManagementPage() {
   const [filterStage, setFilterStage] = useState<string | null>(null)
   const [filterDateRange, setFilterDateRange] = useState<string | null>(null)
   const [filterPriority, setFilterPriority] = useState<string | null>(null)
-
-  // UI state for dropdown filter panels
-  const [showApplyingForDropdown, setShowApplyingForDropdown] = useState(false)
-  const [showCounsellorFilterDropdown, setShowCounsellorFilterDropdown] = useState(false)
-  const [showStageFilterDropdown, setShowStageFilterDropdown] = useState(false)
-  const [showDateFilterDropdown, setShowDateFilterDropdown] = useState(false)
-  const [showPriorityFilterDropdown, setShowPriorityFilterDropdown] = useState(false)
 
   const [stages, setStages] =
     useState<any[]>([])
@@ -608,6 +598,21 @@ export default function AdmissionManagementPage() {
     setSelectedItems([])
   }
 
+  const handleSearchInput = (value: string) => {
+    setSearchQuery(value)
+    clearTimeout(searchTimeout.current)
+    searchTimeout.current = setTimeout(() => {
+      setFilters(f => ({ ...f, search: value }))
+      setPagination(p => ({ ...p, page: 1 }))
+    }, 300)
+  }
+
+  const handleSearchClear = () => {
+    setSearchQuery('')
+    setFilters(f => ({ ...f, search: '' }))
+    setPagination(p => ({ ...p, page: 1 }))
+  }
+
   // ===================================================================
   // ACTIONS / LOGIC HANDLERS
   // ===================================================================
@@ -1108,274 +1113,26 @@ export default function AdmissionManagementPage() {
             ) : (
               <div className="bg-white border border-slate-200 rounded-xl overflow-hidden mx-4 mb-4 shadow-sm">
                 
-                {/* Search and filter row */}
-                <div className="flex flex-col gap-2 px-4 py-3 border-b border-slate-100 bg-white w-full">
-                  {/* Row 1: Search */}
-                  <div className="w-full">
-                    <div className="relative flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-4 w-full h-10 sm:h-9">
-                    <Search size={15} className="text-slate-400" strokeWidth={1.5} />
-                    <input
-                      type="text"
-                      placeholder={`Search by name, ID, ${config.applyingForLabel[type]}...`}
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value)
-                        clearTimeout(searchTimeout.current)
-                        searchTimeout.current = setTimeout(
-                          () => {
-                            setFilters(f => ({
-                              ...f,
-                              search: e.target.value
-                            }))
-                            setPagination(p =>
-                              ({ ...p, page: 1 }))
-                          },
-                          300
-                        )
-                      }}
-                      className="bg-transparent border-none outline-none text-sm w-full text-slate-750 placeholder-slate-500 font-sans"
-                    />
-                    {searchQuery && (
-                      <button onClick={() => {
-                        setSearchQuery('')
-                        setFilters(f => ({
-                          ...f,
-                          search: ''
-                        }))
-                        setPagination(p => ({ ...p, page: 1 }))
-                      }} className="text-slate-400 hover:text-slate-650">
-                        <X size={14} />
-                      </button>
-                    )}
-                    </div>
-                  </div>
-
-                  {/* Filters row */}
-                  <div className="flex items-center gap-2 min-w-0">
-                    {/* Scrollable buttons zone */}
-                    <div
-                      className="flex items-center gap-2 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-                      style={{ WebkitOverflowScrolling: 'touch' }}
-                    >
-                    {/* Applying For */}
-                    <div className="relative w-full sm:w-auto flex-shrink-0">
-                      <button
-                        onClick={() => {
-                          setShowApplyingForDropdown(!showApplyingForDropdown)
-                          setShowCounsellorFilterDropdown(false)
-                          setShowStageFilterDropdown(false)
-                          setShowDateFilterDropdown(false)
-                          setShowPriorityFilterDropdown(false)
-                        }}
-                        className="flex-shrink-0 whitespace-nowrap flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                      >
-                        <span>{filterApplyingFor ? `${config.applyingForLabel[type]}: ${getGradeLabel(filterApplyingFor)}` : `${config.applyingForLabel[type]} ▾`}</span>
-                      </button>
-                      {showApplyingForDropdown && (
-                        <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] max-h-48 overflow-y-auto w-full sm:w-auto">
-                          <div 
-                            onClick={() => { setFilterApplyingFor(null); setShowApplyingForDropdown(false) }}
-                            className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                          >
-                            All Classes
-                          </div>
-                          {uniqueApplyingFor.map((option: any) => (
-                            <div
-                              key={option}
-                              onClick={() => { setFilterApplyingFor(option); setShowApplyingForDropdown(false) }}
-                              className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                                filterApplyingFor === option ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                              }`}
-                            >
-                              <span>{getGradeLabel(option)}</span>
-                              {filterApplyingFor === option && <Check size={12} className="text-[#1565D8]" />}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Counsellor */}
-                    <div className="relative w-full sm:w-auto flex-shrink-0">
-                      <button
-                        onClick={() => {
-                          setShowCounsellorFilterDropdown(!showCounsellorFilterDropdown)
-                          setShowApplyingForDropdown(false)
-                          setShowStageFilterDropdown(false)
-                          setShowDateFilterDropdown(false)
-                          setShowPriorityFilterDropdown(false)
-                        }}
-                        className="flex-shrink-0 whitespace-nowrap flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                      >
-                        <span>{filterCounsellor ? `Counsellor: ${filterCounsellor}` : 'Counsellor ▾'}</span>
-                      </button>
-                      {showCounsellorFilterDropdown && (
-                        <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] w-full sm:w-auto">
-                          <div 
-                            onClick={() => { setFilterCounsellor(null); setShowCounsellorFilterDropdown(false) }}
-                            className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                          >
-                            All Counsellors
-                          </div>
-                          {counsellors.map((c: any) => (
-                            <div
-                              key={c.id}
-                              onClick={() => { setFilterCounsellor(c.name); setShowCounsellorFilterDropdown(false) }}
-                              className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                                filterCounsellor === c.name ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                              }`}
-                            >
-                              <span>{c.name}</span>
-                              {filterCounsellor === c.name && <Check size={12} className="text-[#1565D8]" />}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-
-
-                    {/* Date Range */}
-                    <div className="relative w-full sm:w-auto flex-shrink-0">
-                      <button
-                        onClick={() => {
-                          setShowDateFilterDropdown(!showDateFilterDropdown)
-                          setShowApplyingForDropdown(false)
-                          setShowCounsellorFilterDropdown(false)
-                          setShowStageFilterDropdown(false)
-                          setShowPriorityFilterDropdown(false)
-                        }}
-                        className="flex-shrink-0 whitespace-nowrap flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                      >
-                        <span>{filterDateRange ? `Date: ${filterDateRange}` : 'Date Range ▾'}</span>
-                      </button>
-                      {showDateFilterDropdown && (
-                        <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[140px] w-full sm:w-auto">
-                          <div 
-                            onClick={() => { setFilterDateRange(null); setShowDateFilterDropdown(false) }}
-                            className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                          >
-                            All Time
-                          </div>
-                          {['May', 'Apr'].map(month => (
-                            <div
-                              key={month}
-                              onClick={() => { setFilterDateRange(month); setShowDateFilterDropdown(false) }}
-                              className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                                filterDateRange === month ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                              }`}
-                            >
-                              <span>{month === 'May' ? 'May 2026' : 'April 2026'}</span>
-                              {filterDateRange === month && <Check size={12} className="text-[#1565D8]" />}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Priority */}
-                    <div className="relative w-full sm:w-auto flex-shrink-0">
-                      <button
-                        onClick={() => {
-                          setShowPriorityFilterDropdown(!showPriorityFilterDropdown)
-                          setShowApplyingForDropdown(false)
-                          setShowCounsellorFilterDropdown(false)
-                          setShowStageFilterDropdown(false)
-                          setShowDateFilterDropdown(false)
-                        }}
-                        className="flex-shrink-0 whitespace-nowrap flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                      >
-                        <span>{filterPriority ? `Priority: ${filterPriority}` : 'Priority ▾'}</span>
-                      </button>
-                      {showPriorityFilterDropdown && (
-                        <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[140px] w-full sm:w-auto">
-                          <div 
-                            onClick={() => { setFilterPriority(null); setShowPriorityFilterDropdown(false) }}
-                            className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                          >
-                            All Priorities
-                          </div>
-                          {['Normal', 'High', 'Urgent'].map(p => (
-                            <div
-                              key={p}
-                              onClick={() => { setFilterPriority(p); setShowPriorityFilterDropdown(false) }}
-                              className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                                filterPriority === p ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                              }`}
-                            >
-                              <span>{p}</span>
-                              {filterPriority === p && <Check size={12} className="text-[#1565D8]" />}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Clear Filters */}
-                    {isAnyFilterActive && (
-                      <button
-                        onClick={handleClearAllFilters}
-                        className="flex-shrink-0 whitespace-nowrap text-xs font-medium text-slate-400 hover:text-red-500 flex items-center gap-1 px-1.5 py-1.5 font-sans cursor-pointer w-full sm:w-auto justify-center sm:justify-start"
-                      >
-                        <X size={13} />
-                        Clear Filters
-                      </button>
-                    )}
-                  </div>
-
-                    {/* View toggle — always visible, never shrinks */}
-                    <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-1 flex-shrink-0 ml-auto">
-                      {/* List */}
-                      <button
-                        onClick={() => setActiveView('list')}
-                        className={`rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
-                          (activeView as string) === 'list'
-                            ? 'bg-white shadow-sm'
-                            : 'bg-transparent hover:bg-slate-200'
-                        }`}
-                      >
-                        <List
-                          size={16}
-                          strokeWidth={1.5}
-                          className={(activeView as string) === 'list' ? 'text-[#1565D8]' : 'text-slate-400'}
-                        />
-                      </button>
-
-                      {/* Grid */}
-                      <button
-                        onClick={() => setActiveView('grid')}
-                        className={`hidden sm:inline-flex rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
-                          (activeView as string) === 'grid'
-                            ? 'bg-white shadow-sm'
-                            : 'bg-transparent hover:bg-slate-200'
-                        }`}
-                      >
-                        <LayoutGrid
-                          size={16}
-                          strokeWidth={1.5}
-                          className={(activeView as string) === 'grid' ? 'text-[#1565D8]' : 'text-slate-400'}
-                        />
-                      </button>
-
-                      {/* Kanban */}
-                      <button
-                        onClick={() => setActiveView('kanban')}
-                        className={`rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
-                          (activeView as string) === 'kanban'
-                            ? 'bg-white shadow-sm'
-                            : 'bg-transparent hover:bg-slate-200'
-                        }`}
-                      >
-                        <Columns
-                          size={16}
-                          strokeWidth={1.5}
-                          className={(activeView as string) === 'kanban' ? 'text-[#1565D8]' : 'text-slate-400'}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
+                <FilterBar
+                  variant="list"
+                  searchQuery={searchQuery}
+                  onSearchInput={handleSearchInput}
+                  onSearchClear={handleSearchClear}
+                  applyingForOptions={uniqueApplyingFor as string[]}
+                  filterApplyingFor={filterApplyingFor}
+                  onFilterApplyingFor={setFilterApplyingFor}
+                  counsellors={counsellors}
+                  filterCounsellor={filterCounsellor}
+                  onFilterCounsellor={setFilterCounsellor}
+                  filterDateRange={filterDateRange}
+                  onFilterDateRange={setFilterDateRange}
+                  filterPriority={filterPriority}
+                  onFilterPriority={setFilterPriority}
+                  isAnyFilterActive={!!isAnyFilterActive}
+                  onClearAll={handleClearAllFilters}
+                  activeView={activeView}
+                  onViewChange={setActiveView}
+                />
 
                  {/* Desktop/Tablet Table View */}
                 <div className="hidden sm:block w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -1983,268 +1740,26 @@ export default function AdmissionManagementPage() {
             )
           ) : (
             <>
-              {/* Separate Search/Filter Bar (for grid and kanban views or empty state list view) */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-md p-3 sm:p-4 flex flex-col sm:flex-row gap-2 flex-wrap border-t-2 border-t-slate-300 items-start sm:items-center justify-between mx-4 mb-4">
-                {/* Search Input */}
-                <div className="relative flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-4 flex-1 min-w-0 max-w-xs sm:max-w-sm h-10 sm:h-9">
-                  <Search size={15} className="text-slate-400" strokeWidth={1.5} />
-                  <input
-                    type="text"
-                    placeholder={`Search by name, ID, ${config.applyingForLabel[type]}...`}
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value)
-                      clearTimeout(searchTimeout.current)
-                      searchTimeout.current = setTimeout(
-                        () => {
-                          setFilters(f => ({
-                            ...f,
-                            search: e.target.value
-                          }))
-                          setPagination(p =>
-                            ({ ...p, page: 1 }))
-                        },
-                        300
-                      )
-                    }}
-                    className="bg-transparent border-none outline-none text-sm w-full text-slate-750 placeholder-slate-500 font-sans"
-                  />
-                  {searchQuery && (
-                    <button onClick={() => {
-                      setSearchQuery('')
-                      setFilters(f => ({
-                        ...f,
-                        search: ''
-                      }))
-                      setPagination(p => ({ ...p, page: 1 }))
-                    }} className="text-slate-400 hover:text-slate-650">
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-
-                {/* Filter Buttons */}
-                <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto relative">
-                  {/* Applying For */}
-                  <div className="relative w-full sm:w-auto">
-                    <button
-                      onClick={() => {
-                        setShowApplyingForDropdown(!showApplyingForDropdown)
-                        setShowCounsellorFilterDropdown(false)
-                        setShowStageFilterDropdown(false)
-                        setShowDateFilterDropdown(false)
-                        setShowPriorityFilterDropdown(false)
-                      }}
-                      className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                    >
-                      <span>{filterApplyingFor ? `${config.applyingForLabel[type]}: ${getGradeLabel(filterApplyingFor)}` : `${config.applyingForLabel[type]} ▾`}</span>
-                    </button>
-                    {showApplyingForDropdown && (
-                      <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] max-h-48 overflow-y-auto w-full sm:w-auto">
-                        <div 
-                          onClick={() => { setFilterApplyingFor(null); setShowApplyingForDropdown(false) }}
-                          className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                        >
-                          All Classes
-                        </div>
-                        {uniqueApplyingFor.map((option: any) => (
-                          <div
-                            key={option}
-                            onClick={() => { setFilterApplyingFor(option); setShowApplyingForDropdown(false) }}
-                            className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                              filterApplyingFor === option ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                            }`}
-                          >
-                            <span>{getGradeLabel(option)}</span>
-                            {filterApplyingFor === option && <Check size={12} className="text-[#1565D8]" />}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Counsellor */}
-                  <div className="relative w-full sm:w-auto">
-                    <button
-                      onClick={() => {
-                        setShowCounsellorFilterDropdown(!showCounsellorFilterDropdown)
-                        setShowApplyingForDropdown(false)
-                        setShowStageFilterDropdown(false)
-                        setShowDateFilterDropdown(false)
-                        setShowPriorityFilterDropdown(false)
-                      }}
-                      className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                    >
-                      <span>{filterCounsellor ? `Counsellor: ${filterCounsellor}` : 'Counsellor ▾'}</span>
-                    </button>
-                    {showCounsellorFilterDropdown && (
-                      <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px] w-full sm:w-auto">
-                        <div 
-                          onClick={() => { setFilterCounsellor(null); setShowCounsellorFilterDropdown(false) }}
-                          className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                        >
-                          All Counsellors
-                        </div>
-                        {counsellors.map((c: any) => (
-                          <div
-                            key={c.id}
-                            onClick={() => { setFilterCounsellor(c.name); setShowCounsellorFilterDropdown(false) }}
-                            className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                              filterCounsellor === c.name ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                            }`}
-                          >
-                            <span>{c.name}</span>
-                            {filterCounsellor === c.name && <Check size={12} className="text-[#1565D8]" />}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-
-
-                  {/* Date Range */}
-                  <div className="relative w-full sm:w-auto">
-                    <button
-                      onClick={() => {
-                        setShowDateFilterDropdown(!showDateFilterDropdown)
-                        setShowApplyingForDropdown(false)
-                        setShowCounsellorFilterDropdown(false)
-                        setShowStageFilterDropdown(false)
-                        setShowPriorityFilterDropdown(false)
-                      }}
-                      className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                    >
-                      <span>{filterDateRange ? `Date: ${filterDateRange}` : 'Date Range ▾'}</span>
-                    </button>
-                    {showDateFilterDropdown && (
-                      <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[140px] w-full sm:w-auto">
-                        <div 
-                          onClick={() => { setFilterDateRange(null); setShowDateFilterDropdown(false) }}
-                          className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                        >
-                          All Time
-                        </div>
-                        {['May', 'Apr'].map(month => (
-                          <div
-                            key={month}
-                            onClick={() => { setFilterDateRange(month); setShowDateFilterDropdown(false) }}
-                            className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                              filterDateRange === month ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                            }`}
-                          >
-                            <span>{month === 'May' ? 'May 2026' : 'April 2026'}</span>
-                            {filterDateRange === month && <Check size={12} className="text-[#1565D8]" />}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Priority */}
-                  <div className="relative w-full sm:w-auto">
-                    <button
-                      onClick={() => {
-                        setShowPriorityFilterDropdown(!showPriorityFilterDropdown)
-                        setShowApplyingForDropdown(false)
-                        setShowCounsellorFilterDropdown(false)
-                        setShowStageFilterDropdown(false)
-                        setShowDateFilterDropdown(false)
-                      }}
-                      className="flex items-center justify-between w-full sm:w-auto bg-white border border-slate-300 rounded-lg px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer font-sans h-10 sm:h-9"
-                    >
-                      <span>{filterPriority ? `Priority: ${filterPriority}` : 'Priority ▾'}</span>
-                    </button>
-                    {showPriorityFilterDropdown && (
-                      <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[140px] w-full sm:w-auto">
-                        <div 
-                          onClick={() => { setFilterPriority(null); setShowPriorityFilterDropdown(false) }}
-                          className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50 rounded-lg cursor-pointer font-medium"
-                        >
-                          All Priorities
-                        </div>
-                        {['Normal', 'High', 'Urgent'].map(p => (
-                          <div
-                            key={p}
-                            onClick={() => { setFilterPriority(p); setShowPriorityFilterDropdown(false) }}
-                            className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer font-medium flex items-center justify-between ${
-                              filterPriority === p ? 'bg-blue-50 text-[#1565D8]' : 'text-slate-700 hover:bg-slate-50'
-                            }`}
-                          >
-                            <span>{p}</span>
-                            {filterPriority === p && <Check size={12} className="text-[#1565D8]" />}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Clear Filters */}
-                  {isAnyFilterActive && (
-                    <button
-                      onClick={handleClearAllFilters}
-                      className="text-xs font-medium text-slate-400 hover:text-red-500 flex items-center gap-1 px-1.5 py-1.5 font-sans cursor-pointer w-full sm:w-auto justify-center sm:justify-start"
-                    >
-                      <X size={13} />
-                      Clear Filters
-                    </button>
-                  )}
-                </div>
-
-                {/* Right group */}
-                <div className="flex gap-2 flex-wrap w-full sm:w-auto justify-end mt-2 sm:mt-0">
-                  {/* View Toggle */}
-                  <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-1 w-full sm:w-auto justify-center sm:justify-start">
-                    {/* List */}
-                    <button
-                      onClick={() => setActiveView('list')}
-                      className={`rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
-                        activeView === 'list'
-                          ? 'bg-white shadow-sm'
-                          : 'bg-transparent hover:bg-slate-200'
-                      }`}
-                    >
-                      <List
-                        size={16}
-                        strokeWidth={1.5}
-                        className={activeView === 'list' ? 'text-[#1565D8]' : 'text-slate-400'}
-                      />
-                    </button>
-
-                    {/* Grid */}
-                    <button
-                      onClick={() => setActiveView('grid')}
-                      className={`hidden sm:inline-flex rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
-                        activeView === 'grid'
-                          ? 'bg-white shadow-sm'
-                          : 'bg-transparent hover:bg-slate-200'
-                      }`}
-                    >
-                      <LayoutGrid
-                        size={16}
-                        strokeWidth={1.5}
-                        className={activeView === 'grid' ? 'text-[#1565D8]' : 'text-slate-400'}
-                      />
-                    </button>
-
-                    {/* Kanban */}
-                    <button
-                      onClick={() => setActiveView('kanban')}
-                      className={`rounded-md p-1.5 transition-all duration-150 cursor-pointer ${
-                        activeView === 'kanban'
-                          ? 'bg-white shadow-sm'
-                          : 'bg-transparent hover:bg-slate-200'
-                      }`}
-                    >
-                      <Columns
-                        size={16}
-                        strokeWidth={1.5}
-                        className={activeView === 'kanban' ? 'text-[#1565D8]' : 'text-slate-400'}
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <FilterBar
+                variant="standalone"
+                searchQuery={searchQuery}
+                onSearchInput={handleSearchInput}
+                onSearchClear={handleSearchClear}
+                applyingForOptions={uniqueApplyingFor as string[]}
+                filterApplyingFor={filterApplyingFor}
+                onFilterApplyingFor={setFilterApplyingFor}
+                counsellors={counsellors}
+                filterCounsellor={filterCounsellor}
+                onFilterCounsellor={setFilterCounsellor}
+                filterDateRange={filterDateRange}
+                onFilterDateRange={setFilterDateRange}
+                filterPriority={filterPriority}
+                onFilterPriority={setFilterPriority}
+                isAnyFilterActive={!!isAnyFilterActive}
+                onClearAll={handleClearAllFilters}
+                activeView={activeView}
+                onViewChange={setActiveView}
+              />
 
               {/* Grid View */}
               {activeView === 'grid' && (

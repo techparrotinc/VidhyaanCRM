@@ -84,7 +84,7 @@ export default function FeeManagementBespokePage() {
           </span>
         </h1>
         
-        <p className="text-slate-605 font-semibold text-base md:text-xl leading-relaxed max-w-3xl mx-auto">
+        <p className="text-slate-600 font-semibold text-base md:text-xl leading-relaxed max-w-3xl mx-auto">
           Stop chasing fee payments manually. Vidhyaan's fee management software automates invoicing, sends payment reminders, and now lets parents pay online directly through Razorpay — with every payment automatically reconciled against the right invoice.
         </p>
         
@@ -97,7 +97,7 @@ export default function FeeManagementBespokePage() {
           </Link>
           <Link 
             href="#how-it-works"
-            className="text-slate-605 hover:text-emerald-755 font-extrabold text-sm transition py-2"
+            className="text-slate-600 hover:text-emerald-775 font-extrabold text-sm transition py-2"
           >
             See it in action
           </Link>
@@ -114,7 +114,7 @@ export default function FeeManagementBespokePage() {
           <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
             Seamless Automated Billing Cycle
           </h2>
-          <p className="text-slate-605 font-semibold text-base leading-relaxed max-w-xl mx-auto">
+          <p className="text-slate-600 font-semibold text-base leading-relaxed max-w-xl mx-auto">
             From invoice to reconciled payment, without a spreadsheet in between.
           </p>
         </div>

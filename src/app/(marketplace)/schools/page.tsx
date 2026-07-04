@@ -118,7 +118,7 @@ export default function SchoolsSearchPage() {
   const [searchVal, setSearchVal] = useState(filters.search)
   
   // Sidebar state
-  const [distanceRadius, setDistanceRadius] = useState<number>(40)
+  const [distanceRadius, setDistanceRadius] = useState<number>(20)
   const [minFees, setMinFees] = useState('')
   const [maxFees, setMaxFees] = useState('')
 
@@ -619,6 +619,33 @@ export default function SchoolsSearchPage() {
                   </button>
                 </div>
 
+                {/* Distance Section */}
+                <div className="space-y-2 pb-3 border-b border-slate-100">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">DISTANCE</label>
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold mb-1">
+                    <span>0 km</span>
+                    <span className="text-[#1565D8]">Within {distanceRadius} km</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="40"
+                    value={distanceRadius}
+                    onChange={(e) => {
+                      setDistanceRadius(Number(e.target.value))
+                      setPagination((prev) => ({ ...prev, page: 1 }))
+                    }}
+                    className="w-full accent-[#1565D8] cursor-pointer animate-fade-in"
+                  />
+                  <div className="flex justify-between text-[8px] text-slate-400 font-black px-0.5">
+                    <span>0</span>
+                    <span>10</span>
+                    <span>20</span>
+                    <span>30</span>
+                    <span>40 km</span>
+                  </div>
+                </div>
+
                 {/* Curriculum / Board Section */}
                 <div className="space-y-2 pb-3 border-b border-slate-100">
                   <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">CURRICULUM</label>
@@ -647,7 +674,7 @@ export default function SchoolsSearchPage() {
                               {item.label}
                             </span>
                           </div>
-                          <span className="text-[9px] text-slate-450 bg-slate-100 px-2 py-0.5 rounded-full font-bold">
+                          <span className="text-[9px] text-slate-455 bg-slate-100 px-2 py-0.5 rounded-full font-bold">
                             {item.count}
                           </span>
                         </label>
@@ -670,8 +697,8 @@ export default function SchoolsSearchPage() {
                             type="checkbox"
                             checked={filters.admissionOpen === item.val}
                             onChange={(e) => {
-                              setFilters({ ...filters, admissionOpen: e.target.checked ? item.val : '' })
-                              setPagination((prev) => ({ ...prev, page: 1 }))
+                                setFilters({ ...filters, admissionOpen: e.target.checked ? item.val : '' })
+                                setPagination((prev) => ({ ...prev, page: 1 }))
                             }}
                             className="w-4 h-4 rounded border-slate-305 accent-[#1565D8] cursor-pointer"
                           />
@@ -721,32 +748,6 @@ export default function SchoolsSearchPage() {
                   </div>
                 </div>
 
-                {/* Distance Section */}
-                <div className="space-y-2 pb-3 border-b border-slate-100">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">DISTANCE</label>
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold mb-1">
-                    <span>0 km</span>
-                    <span className="text-[#1565D8]">Within {distanceRadius} km</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="40"
-                    value={distanceRadius}
-                    onChange={(e) => {
-                      setDistanceRadius(Number(e.target.value))
-                      setPagination((prev) => ({ ...prev, page: 1 }))
-                    }}
-                    className="w-full accent-[#1565D8] cursor-pointer animate-fade-in"
-                  />
-                  <div className="flex justify-between text-[8px] text-slate-400 font-black px-0.5">
-                    <span>0</span>
-                    <span>10</span>
-                    <span>20</span>
-                    <span>30</span>
-                    <span>40 km</span>
-                  </div>
-                </div>
 
                 {/* Fees Range Section */}
                 <div className="space-y-2">

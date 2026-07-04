@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 
     const userLat = latStr ? parseFloat(latStr) : null
     const userLng = lngStr ? parseFloat(lngStr) : null
-    const maxDistance = maxDistanceStr ? parseFloat(maxDistanceStr) : 40 // default 40km
+    const maxDistance = maxDistanceStr ? parseFloat(maxDistanceStr) : 20 // default 20km
 
     const where: any = {
       deletedAt: null,

@@ -15,7 +15,6 @@ import {
   ClipboardList,
   Shield,
   ChevronDown,
-  ChevronRight,
   Search,
   Bell,
   Menu,
@@ -28,14 +27,12 @@ import {
   LayoutList,
   Download,
   LayoutGrid,
-  CheckSquare,
   Trash2,
   Mail,
   MessageCircle,
   Phone,
   Pencil,
   MoreVertical,
-  ChevronLeft,
   ArrowRight,
   Check,
   TriangleAlert,
@@ -48,6 +45,21 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 import ConvertToAdmissionModal from '@/components/modals/ConvertToAdmissionModal'
+import LeadDetailDrawer from '@/components/leads/LeadDetailDrawer'
+import DeleteLeadModal from '@/components/leads/DeleteLeadModal'
+import LeadPagination from '@/components/leads/LeadPagination'
+import LeadBulkActionBar from '@/components/leads/LeadBulkActionBar'
+import {
+  institutionType,
+  applyingForLabel,
+  statusLabels,
+  statusConfig,
+  sourceConfig,
+  courses,
+  sources,
+  formatDate,
+  leadRowBorderColor,
+} from '@/components/leads/leadConfig'
 
 import {
   Dialog,
@@ -69,214 +81,9 @@ import {
 // ===================================================================
 // DATA CONSTANTS
 // ===================================================================
-const institutionType = 'school'
-
-const applyingForLabel = {
-  school: 'Applying For',
-  institute: 'Course / Program',
-  learning_center: 'Course / Program',
-}
-
 const isPremium = false
-
 const leadsUsed = 18
 const leadsMax = 25
-
-const statusLabels: Record<string, string> = {
-  NEW: 'New',
-  CONTACTED: 'Contacted',
-  INTERESTED: 'Interested',
-  FOLLOW_UP_PENDING: 'Follow-up',
-  CONVERTED: 'Converted',
-  NOT_INTERESTED: 'Rejected'
-}
-
-const currentUser = {
-  name: 'Saran Kumar',
-  firstName: 'Saran',
-}
-
-
-
-const statusConfig = {
-  NEW: {
-    bg: 'bg-blue-100',
-    text: 'text-blue-800',
-    dot: 'bg-blue-500',
-    border: 'border-blue-200',
-  },
-  CONTACTED: {
-    bg: 'bg-amber-100',
-    text: 'text-amber-800',
-    dot: 'bg-amber-500',
-    border: 'border-amber-200',
-  },
-  INTERESTED: {
-    bg: 'bg-indigo-100',
-    text: 'text-indigo-800',
-    dot: 'bg-indigo-500',
-    border: 'border-indigo-200',
-  },
-  FOLLOW_UP_PENDING: {
-    bg: 'bg-orange-100',
-    text: 'text-orange-800',
-    dot: 'bg-orange-500',
-    border: 'border-orange-200',
-  },
-  CONVERTED: {
-    bg: 'bg-green-100',
-    text: 'text-green-800',
-    dot: 'bg-green-500',
-    border: 'border-green-200',
-  },
-  NOT_INTERESTED: {
-    bg: 'bg-red-100',
-    text: 'text-red-700',
-    dot: 'bg-red-500',
-    border: 'border-red-200',
-  },
-}
-
-const sourceConfig = {
-  VIDHYAAN: {
-    bg: 'bg-blue-100',
-    text: 'text-blue-800',
-    dot: 'bg-blue-500',
-  },
-  WEBSITE: {
-    bg: 'bg-slate-200',
-    text: 'text-slate-700',
-    dot: 'bg-slate-400',
-  },
-  PHONE: {
-    bg: 'bg-purple-100',
-    text: 'text-purple-800',
-    dot: 'bg-purple-500',
-  },
-  WALK_IN: {
-    bg: 'bg-teal-100',
-    text: 'text-teal-800',
-    dot: 'bg-teal-500',
-  },
-  WHATSAPP: {
-    bg: 'bg-green-100',
-    text: 'text-green-800',
-    dot: 'bg-green-500',
-  },
-  REFERRAL: {
-    bg: 'bg-pink-100',
-    text: 'text-pink-800',
-    dot: 'bg-pink-500',
-  },
-  OTHER: {
-    bg: 'bg-orange-100',
-    text: 'text-orange-800',
-    dot: 'bg-orange-500',
-  },
-  EMAIL: {
-    bg: 'bg-slate-100',
-    text: 'text-slate-700',
-    dot: 'bg-slate-400',
-  },
-  SOCIAL_MEDIA: {
-    bg: 'bg-pink-100',
-    text: 'text-pink-800',
-    dot: 'bg-pink-500',
-  },
-  GOOGLE_ADS: {
-    bg: 'bg-indigo-100',
-    text: 'text-indigo-800',
-    dot: 'bg-indigo-500',
-  },
-  META_ADS: {
-    bg: 'bg-indigo-100',
-    text: 'text-indigo-800',
-    dot: 'bg-indigo-500',
-  },
-  JUSTDIAL: {
-    bg: 'bg-amber-100',
-    text: 'text-amber-800',
-    dot: 'bg-amber-500',
-  },
-  CAMPAIGN: {
-    bg: 'bg-violet-100',
-    text: 'text-violet-800',
-    dot: 'bg-violet-500',
-  },
-  EVENT: {
-    bg: 'bg-cyan-100',
-    text: 'text-cyan-800',
-    dot: 'bg-cyan-500',
-  },
-  NEWSPAPER: {
-    bg: 'bg-stone-100',
-    text: 'text-stone-800',
-    dot: 'bg-stone-500',
-  },
-  HOARDING: {
-    bg: 'bg-yellow-100',
-    text: 'text-yellow-800',
-    dot: 'bg-yellow-500',
-  },
-  IMPORT: {
-    bg: 'bg-emerald-100',
-    text: 'text-emerald-800',
-    dot: 'bg-emerald-500',
-  },
-}
-
-// Grades constants are imported from @/constants/grades
-
-const courses = [
-  'Bharatanatyam', 'Hip Hop', 'Guitar - Beginner',
-  'Guitar - Advanced', 'Keyboard', 'Vocals',
-  'Yoga - Morning', 'Yoga - Evening', 'Zumba',
-  'Karate', 'Swimming',
-]
-
-const sources = [
-  { id: 'VIDHYAAN', label: 'Vidhyaan', dot: 'bg-blue-500' },
-  { id: 'WEBSITE', label: 'Website', dot: 'bg-slate-400' },
-  { id: 'WALK_IN', label: 'Walk-in', dot: 'bg-teal-500' },
-  { id: 'PHONE', label: 'Phone', dot: 'bg-purple-500' },
-  { id: 'WHATSAPP', label: 'WhatsApp', dot: 'bg-green-500' },
-  { id: 'REFERRAL', label: 'Referral', dot: 'bg-pink-500' },
-  { id: 'OTHER', label: 'Other', dot: 'bg-orange-500' },
-]
-
-const formatDate = (dateStr?: string) => {
-  if (!dateStr) return '—'
-  return format(new Date(dateStr), 'd MMM')
-}
-
-const leadRowBorderColor = (status: string): string => {
-  const colors: Record<string, string> = {
-    NEW: 'border-l-slate-300',
-    CONTACTED: 'border-l-blue-400',
-    INTERESTED: 'border-l-purple-400',
-    FOLLOW_UP_PENDING: 'border-l-amber-400',
-    CONVERTED: 'border-l-green-500',
-    NOT_INTERESTED: 'border-l-red-400',
-  }
-  return colors[status] || 'border-l-slate-200'
-}
-
-
-interface Lead {
-  id: string
-  name: string
-  parentName: string
-  phone: string
-  email: string
-  applyingFor: string
-  source: string
-  counsellor: string | null
-  counsellorAvatar: string | null
-  createdDate: string
-  status: string
-  avatar: string
-  followUpDate?: string
-}
 
 export default function LeadManagementPage() {
   const router = useRouter()
@@ -1790,421 +1597,43 @@ export default function LeadManagementPage() {
 
           {/* SECTION 7 — PAGINATION */}
           {filteredLeads.length > 0 && (
-            <section className="bg-white border border-slate-200 shadow-sm rounded-xl px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm text-slate-500 font-medium">
-                Showing {((pagination.page - 1) * pagination.limit) + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} leads
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={pagination.page <= 1}
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                  className={`flex items-center gap-1.5 border border-slate-200 bg-white rounded-lg px-3 py-2 text-sm font-medium transition ${
-                    pagination.page <= 1
-                      ? 'text-slate-400 opacity-50 cursor-not-allowed'
-                      : 'text-slate-600 hover:bg-slate-50 cursor-pointer'
-                  }`}
-                >
-                  <ChevronLeft className="size-4" />
-                  <span>Prev</span>
-                </button>
-                
-                {pagination.totalPages <= 5 ? (
-                  Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(p => {
-                    const isCurrent = p === pagination.page
-                    return (
-                      <button
-                        key={p}
-                        onClick={() => setPagination(prev => ({ ...prev, page: p }))}
-                        className={`w-9 h-9 rounded-lg text-sm font-semibold flex items-center justify-center transition-colors cursor-pointer ${
-                          isCurrent 
-                            ? 'bg-[#1565D8] text-white' 
-                            : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    )
-                  })
-                ) : (
-                  Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(p => {
-                    if (
-                      p === 1 || 
-                      p === pagination.totalPages || 
-                      Math.abs(p - pagination.page) <= 1
-                    ) {
-                      const isCurrent = p === pagination.page
-                      return (
-                        <button
-                          key={p}
-                          onClick={() => setPagination(prev => ({ ...prev, page: p }))}
-                          className={`w-9 h-9 rounded-lg text-sm font-semibold flex items-center justify-center transition-colors cursor-pointer ${
-                            isCurrent 
-                              ? 'bg-[#1565D8] text-white' 
-                              : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      )
-                    }
-                    
-                    if (
-                      (p === 2 && pagination.page > 3) || 
-                      (p === pagination.totalPages - 1 && pagination.page < pagination.totalPages - 2)
-                    ) {
-                      return (
-                        <span key={p} className="text-slate-400 px-1 font-bold">...</span>
-                      )
-                    }
-                    
-                    return null
-                  })
-                )}
-
-                <button
-                  disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                  className={`flex items-center gap-1.5 border border-slate-200 bg-white rounded-lg px-3 py-2 text-sm font-medium transition ${
-                    pagination.page >= pagination.totalPages
-                      ? 'text-slate-400 opacity-50 cursor-not-allowed'
-                      : 'text-slate-600 hover:bg-slate-50 cursor-pointer'
-                  }`}
-                >
-                  <span>Next</span>
-                  <ChevronRight className="size-4" />
-                </button>
-              </div>
-            </section>
+            <LeadPagination
+              page={pagination.page}
+              limit={pagination.limit}
+              total={pagination.total}
+              totalPages={pagination.totalPages}
+              onPageChange={(page) => setPagination(prev => ({ ...prev, page }))}
+            />
           )}
 
           {/* SECTION 5 — BULK ACTION BAR */}
-          {selectedLeads.length > 0 && (
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white rounded-2xl px-4 py-2.5 sm:px-6 sm:py-3 shadow-2xl flex items-center gap-3 sm:gap-4 z-50 animate-fade-in max-w-[95%] sm:max-w-none">
-              <div className="flex items-center gap-2">
-                <CheckSquare className="size-4 text-blue-400" />
-                <span className="text-sm font-semibold">{selectedLeads.length} selected</span>
-              </div>
-              <div className="w-px h-5 bg-slate-600" />
-              
-              <div className="flex items-center gap-3 sm:gap-4 text-sm font-medium">
-                <button className="hover:text-blue-300 cursor-pointer transition flex items-center" title="Assign Counsellor">
-                  <UserPlus size={16} className="sm:hidden" />
-                  <span className="hidden sm:inline">Assign Counsellor</span>
-                </button>
-                <button className="hover:text-blue-300 cursor-pointer transition flex items-center" title="Change Status">
-                  <ClipboardList size={16} className="sm:hidden" />
-                  <span className="hidden sm:inline">Change Status</span>
-                </button>
-                <button className="hover:text-blue-300 cursor-pointer transition flex items-center" title="Export Selected">
-                  <Download size={16} className="sm:hidden" />
-                  <span className="hidden sm:inline">Export Selected</span>
-                </button>
-              </div>
-              <div className="w-px h-5 bg-slate-600" />
-
-              <button className="flex items-center gap-1 text-red-400 hover:text-red-300 transition cursor-pointer text-sm font-medium" title="Delete">
-                <Trash2 className="size-4" />
-                <span className="hidden sm:inline">Delete</span>
-              </button>
-
-              <button
-                onClick={() => setSelectedLeads([])}
-                className="ml-1 sm:ml-2 text-slate-400 hover:text-slate-200 cursor-pointer"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-          )}
+          <LeadBulkActionBar
+            selectedCount={selectedLeads.length}
+            onClear={() => setSelectedLeads([])}
+          />
 
           {/* SECTION 8 — LEAD DETAIL DRAWER */}
-          {drawerOpen && selectedLead && (
-            <>
-              {/* Drawer backdrop */}
-              <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setDrawerOpen(false)} />
-              
-              {/* Sliding drawer panel */}
-              <div className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white shadow-2xl border-l border-slate-200 z-50 flex flex-col transform transition-transform duration-300 translate-x-0">
-                
-                {/* DRAWER HEADER */}
-                <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setDrawerOpen(false)}
-                      className="w-8 h-8 rounded-lg hover:bg-slate-100 transition flex items-center justify-center cursor-pointer"
-                    >
-                      <ChevronLeft className="size-[18px] text-slate-500" />
-                    </button>
-                    <div>
-                      <h3 className="text-base font-bold text-slate-800" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                        {selectedLead.name}
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {(institutionType === 'school' ? getGradeLabel(selectedLead.applyingFor) : selectedLead.applyingFor)} · {selectedLead.source}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                          Lead ID
-                        </span>
-                        <span className="text-xs font-bold text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded-md">
-                          {selectedLead.leadCode}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleNavigate(`/lead-management/${selectedLead?.id}`)}
-                      className="flex items-center gap-1.5 border border-[#1565D8] bg-blue-50 text-[#1565D8] text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-lg hover:bg-blue-100 transition cursor-pointer"
-                      title="View Full Page"
-                    >
-                      <ExternalLink size={13} strokeWidth={1.5} className="flex-shrink-0" />
-                      <span className="hidden sm:inline">View Full Page</span>
-                    </button>
-                    <button className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition cursor-pointer">
-                      <Pencil className="size-3.5 text-slate-500" />
-                    </button>
-                    <button className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition cursor-pointer">
-                      <MoreVertical className="size-3.5 text-slate-500" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* DRAWER BODY */}
-                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-                  
-                  {/* CONTACT SECTION */}
-                  <div>
-                    <h5 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
-                      CONTACT
-                    </h5>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-blue-50 rounded-lg w-8 h-8 flex items-center justify-center shrink-0">
-                          <Phone className="size-3.5 text-blue-500" />
-                        </div>
-                        <span className="text-sm font-medium text-slate-700">{selectedLead.phone}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="bg-slate-50 rounded-lg w-8 h-8 flex items-center justify-center shrink-0">
-                          <Mail className="size-3.5 text-slate-500" />
-                        </div>
-                        <span className="text-sm font-medium text-slate-700">{selectedLead.email}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="bg-green-50 rounded-lg w-8 h-8 flex items-center justify-center shrink-0">
-                          <MessageCircle className="size-3.5 text-green-500" />
-                        </div>
-                        <a
-                          href={`https://wa.me/${selectedLead.phone}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm font-medium text-green-600 hover:underline cursor-pointer"
-                        >
-                          Send WhatsApp
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-slate-200 my-5" />
-
-                  {/* LEAD DETAILS SECTION */}
-                  <div>
-                    <h5 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
-                      LEAD DETAILS
-                    </h5>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1 block">Source</span>
-                        <div className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full w-fit ${sourceConfig[selectedLead.source as keyof typeof sourceConfig]?.bg || 'bg-slate-100'} ${sourceConfig[selectedLead.source as keyof typeof sourceConfig]?.text || 'text-slate-600'}`}>
-                          <span>{selectedLead.source}</span>
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1 block">
-                          {applyingForLabel[institutionType as keyof typeof applyingForLabel]}
-                        </span>
-                        <span className="text-sm font-semibold text-slate-700">{institutionType === 'school' ? getGradeLabel(selectedLead.applyingFor) : selectedLead.applyingFor}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1 block">Counsellor</span>
-                        <span className="text-sm font-semibold text-slate-700">{selectedLead.counsellor || 'Unassigned'}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1 block">Created</span>
-                        <span className="text-sm font-semibold text-slate-700">{selectedLead.createdDate}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1 block">Status</span>
-                        <div className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full w-fit ${statusConfig[selectedLead.status as keyof typeof statusConfig]?.bg} ${statusConfig[selectedLead.status as keyof typeof statusConfig]?.text}`}>
-                          <span>{statusLabels[selectedLead.status] || selectedLead.status}</span>
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1 block">Lead ID</span>
-                        <span className="text-sm font-semibold text-slate-400">{selectedLead.leadCode}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-slate-200 my-5" />
-
-                  {/* ACTIVITY TIMELINE */}
-                  <div>
-                    <h5 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
-                      ACTIVITY TIMELINE
-                    </h5>
-                    <div className="space-y-0">
-                      {[
-                        { title: `Lead created from ${selectedLead.source}`, date: selectedLead.createdDate },
-                        { title: 'Contacted via phone', date: '19 May 2026' },
-                        { title: `Status changed to ${selectedLead.status}`, date: '20 May 2026' }
-                      ].map((item, idx, arr) => (
-                        <div key={idx} className="flex gap-3 pb-4 relative">
-                          <div className="flex flex-col items-center shrink-0">
-                            <div className="w-2.5 h-2.5 rounded-full bg-[#1565D8] flex-shrink-0 mt-1.5" />
-                            {idx < arr.length - 1 && (
-                              <div className="w-px flex-grow bg-slate-100 mt-1" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-slate-700 leading-tight">{item.title}</p>
-                            <span className="text-xs text-slate-400 mt-0.5 block">{item.date}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="border-t border-slate-200 my-5" />
-
-                  {/* ADD NOTE SECTION */}
-                  <div>
-                    <h5 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
-                      ADD NOTE
-                    </h5>
-                    <textarea
-                      placeholder="Type a note about this lead..."
-                      value={currentNoteText}
-                      onChange={(e) => setCurrentNoteText(e.target.value)}
-                      rows={3}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 resize-none focus:outline-none focus:border-[#1565D8] focus:ring-1 focus:ring-[#1565D8]"
-                    />
-                    <Button
-                      onClick={handleSaveNote}
-                      className="mt-2 bg-slate-800 text-white text-sm font-semibold px-4 py-2 h-auto rounded-lg hover:bg-slate-700 transition"
-                    >
-                      Save Note
-                    </Button>
-                  </div>
-                </div>
-
-                {/* DRAWER FOOTER */}
-                <div className="px-6 py-4 border-t border-slate-200 bg-slate-50">
-                  {institutionType === 'school' ? (
-                    selectedLead?.status === 'CONVERTED' ? (
-                      <Button 
-                        disabled
-                        className="w-full bg-slate-100 text-slate-400 border border-slate-200 text-sm font-bold py-3 h-auto rounded-xl flex items-center justify-center gap-2 cursor-not-allowed opacity-60"
-                      >
-                        <span>Already Converted</span>
-                        <Check className="size-4 text-green-500" strokeWidth={2.5} />
-                      </Button>
-                    ) : (
-                      <Button 
-                        onClick={() => openConvertModal(selectedLead)}
-                        className="w-full bg-[#1565D8] text-white text-sm font-bold py-3 h-auto rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition"
-                      >
-                        <span>Convert to Admission</span>
-                        <ArrowRight className="size-4" strokeWidth={2.5} />
-                      </Button>
-                    )
-                  ) : (
-                    <Button className="w-full bg-green-600 text-white text-sm font-bold py-3 h-auto rounded-xl flex items-center justify-center gap-2 hover:bg-green-700 transition">
-                      <span>Mark as Enrolled</span>
-                      <ArrowRight className="size-4" strokeWidth={2.5} />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
+          <LeadDetailDrawer
+            lead={selectedLead}
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            onViewFullPage={(id) => handleNavigate(`/lead-management/${id}`)}
+            noteText={currentNoteText}
+            onNoteChange={setCurrentNoteText}
+            onSaveNote={handleSaveNote}
+            onConvert={openConvertModal}
+          />
 
           {/* DELETE CONFIRMATION MODAL */}
-          <Dialog open={deleteModalLead !== null} onOpenChange={(open) => !open && setDeleteModalLead(null)}>
-            <DialogContent className="max-w-sm w-[calc(100%-2rem)] sm:w-full">
-              <DialogHeader>
-                <div className="flex items-start gap-4 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
-                    <Trash2 size={22} className="text-red-500" strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <DialogTitle style={{ fontFamily: "'Poppins', sans-serif" }}>Delete Lead?</DialogTitle>
-                    <DialogDescription className="mt-0.5">This action cannot be undone.</DialogDescription>
-                  </div>
-                </div>
-              </DialogHeader>
-
-              {deleteModalLead && (
-                <>
-                  {/* LEAD INFO BOX */}
-                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex items-center gap-3 mb-1">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center font-sans">
-                      {deleteModalLead.avatar}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800 font-sans">{deleteModalLead.name}</h4>
-                      <p className="text-xs text-slate-400 mt-0.5 font-sans">
-                        {(institutionType === 'school' ? getGradeLabel(deleteModalLead.applyingFor) : deleteModalLead.applyingFor)} · {deleteModalLead.id}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* WARNING TEXT */}
-                  <div className="text-xs text-slate-500 leading-relaxed font-sans mb-1">
-                    Deleting {deleteModalLead.name} will permanently remove:
-                    <ul className="mt-2 space-y-1">
-                      <li className="flex items-center gap-2 text-xs text-slate-500">
-                        <X size={12} className="text-red-400" strokeWidth={1.5} />
-                        <span>The lead record and all details</span>
-                      </li>
-                      <li className="flex items-center gap-2 text-xs text-slate-500">
-                        <X size={12} className="text-red-400" strokeWidth={1.5} />
-                        <span>All activity history and notes</span>
-                      </li>
-                      <li className="flex items-center gap-2 text-xs text-slate-500">
-                        <X size={12} className="text-red-400" strokeWidth={1.5} />
-                        <span>Associated follow-up reminders</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  {/* BUTTONS */}
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setDeleteModalLead(null)}
-                      className="flex-1 border border-slate-200 bg-white text-slate-600 text-sm font-semibold h-11 rounded-xl hover:bg-slate-50 transition cursor-pointer flex items-center justify-center font-sans"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={async () => {
-                        await deleteLead(deleteModalLead.id)
-                        setDeleteModalLead(null)
-                        showToast("Lead deleted", "info")
-                      }}
-                      className="flex-1 bg-red-500 text-white text-sm font-bold h-11 rounded-xl flex items-center justify-center gap-2 hover:bg-red-600 transition cursor-pointer font-sans"
-                    >
-                      <Trash2 size={16} strokeWidth={1.5} />
-                      <span>Delete Lead</span>
-                    </button>
-                  </div>
-                </>
-              )}
-            </DialogContent>
-          </Dialog>
+          <DeleteLeadModal
+            lead={deleteModalLead}
+            onClose={() => setDeleteModalLead(null)}
+            onConfirm={async (leadId) => {
+              await deleteLead(leadId)
+              setDeleteModalLead(null)
+              showToast("Lead deleted", "info")
+            }}
+          />
 
           {/* UNSAVED CHANGES WARNING MODAL */}
           <Dialog open={unsavedWarning.show} onOpenChange={(open) => !open && setUnsavedWarning({ pendingLeadId: null, show: false })}>

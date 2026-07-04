@@ -44,24 +44,30 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    // Legacy cache records missing "|" separator are treated as invalid/expired to force fresh Google API query
+    // Legacy cache records missing "|" separator or having duplicate area/city names are treated as invalid/expired to force fresh Google API query
     if (cached && cached.city.includes('|')) {
       const parts = cached.city.split('|')
       const area = parts[0] || null
       const city = parts[1]
-      const isSupportedCity = SUPPORTED_CITIES_LOWER.includes(city.toLowerCase())
+      
+      // Safeguard: if area and city are identical non-empty strings, treat as invalid/stale
+      if (area && city && area.trim().toLowerCase() === city.trim().toLowerCase()) {
+        console.log(`Cache entry for ${latRounded}, ${lngRounded} contains duplicate area/city "${city}". Forcing fresh fetch.`);
+      } else {
+        const isSupportedCity = SUPPORTED_CITIES_LOWER.includes(city.toLowerCase())
 
-      return NextResponse.json({
-        success: true,
-        city: city,
-        locality: city,
-        area: area,
-        district: null,
-        state: cached.state,
-        lat,
-        lng,
-        isSupportedCity
-      })
+        return NextResponse.json({
+          success: true,
+          city: city,
+          locality: city,
+          area: area,
+          district: null,
+          state: cached.state,
+          lat,
+          lng,
+          isSupportedCity
+        })
+      }
     }
 
     // If no Google Maps API Key is configured, fallback to mock response for development
@@ -104,7 +110,8 @@ export async function GET(req: NextRequest) {
     let sublocality = ''
     let neighborhood = ''
     let locality = ''
-    let district = ''
+    let adminArea3 = ''
+    let adminArea2 = ''
     let state = ''
 
     // Parse the response to extract address components
@@ -118,16 +125,37 @@ export async function GET(req: NextRequest) {
       if (component.types.includes('locality')) {
         locality = component.long_name
       }
+      if (component.types.includes('administrative_area_level_3')) {
+        adminArea3 = component.long_name
+      }
       if (component.types.includes('administrative_area_level_2')) {
-        district = component.long_name
+        adminArea2 = component.long_name
       }
       if (component.types.includes('administrative_area_level_1')) {
         state = component.long_name
       }
     }
 
-    const detectedArea = sublocality || neighborhood || null
-    const detectedCity = locality || district
+    let detectedArea = sublocality || neighborhood || null
+    
+    // Resolve city using priority order: locality -> adminArea3 -> adminArea2 (district)
+    // The candidate must be different from detectedArea to avoid duplicate display
+    let detectedCity = ''
+    const areaCompare = detectedArea ? detectedArea.trim().toLowerCase() : ''
+    
+    const candidates = [locality, adminArea3, adminArea2]
+    for (const cand of candidates) {
+      if (cand && cand.trim().toLowerCase() !== areaCompare) {
+        detectedCity = cand
+        break
+      }
+    }
+    
+    // If every candidate equals detectedArea (rare fallback)
+    if (!detectedCity && detectedArea) {
+      detectedCity = detectedArea
+      detectedArea = null
+    }
 
     if (!detectedCity) {
       return NextResponse.json(
@@ -168,7 +196,7 @@ export async function GET(req: NextRequest) {
       city: detectedCity,
       locality: locality || detectedCity,
       area: detectedArea,
-      district: district || null,
+      district: adminArea2 || null,
       state,
       lat,
       lng,

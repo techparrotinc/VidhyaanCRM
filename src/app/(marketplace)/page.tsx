@@ -501,33 +501,37 @@ export default function MarketplaceHomepage() {
         />
 
         {/* 2. HERO SECTION */}
-        <section className="bg-white pt-8 pb-10 px-4 overflow-hidden relative border-b border-slate-150/60 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:20px_20px] max-h-[85vh]">
+        <section className="bg-gradient-to-b from-[#1565D8]/5 via-[#1565D8]/2 to-transparent border-b border-slate-100 relative overflow-hidden pt-12 pb-16 px-4">
           
-          {/* Background Blobs Decoration */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-blue-50/60 opacity-60 filter blur-3xl" />
-            <div className="absolute bottom-0 -left-10 w-64 h-64 rounded-full bg-indigo-50/40 opacity-40 filter blur-2xl" />
+          {/* Background Blobs and Dot Grid Decoration */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
+            {/* Subtle blue/yellow blurred glow blobs */}
+            <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-blue-400/10 blur-[100px] mix-blend-multiply" />
+            <div className="absolute top-1/3 right-1/4 translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-amber-200/10 blur-[80px] mix-blend-multiply" />
+            <div className="absolute inset-0 bg-[radial-gradient(#1565d8_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.04]" />
           </div>
 
-          <div className="relative max-w-4xl mx-auto text-center z-10 space-y-4">
+          <div className="relative max-w-4xl mx-auto text-center z-10 space-y-5">
             
             {/* Badge above heading */}
-            <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 text-[#1565D8] text-xs font-bold px-4 py-1.5 rounded-full shadow-sm animate-fade-in">
-              🏆 India's Trusted Discovery Platform
+            <div className="inline-flex items-center gap-1.5 bg-white border border-blue-100/80 text-[#1565D8] text-[10px] uppercase tracking-wider font-bold px-3.5 py-1.5 rounded-full shadow-sm select-none">
+              <Award className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20 shrink-0" />
+              <span>India's Trusted Discovery Platform</span>
             </div>
 
             {/* Main Dynamic Heading */}
-            <h1 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight tracking-tight font-poppins">
+            <h1 className="text-3xl md:text-5xl font-black text-slate-900 leading-[1.15] tracking-tight font-poppins max-w-3xl mx-auto">
               Discover the Best{' '}
-              <span className="text-[#1565D8]">
+              <span className="text-[#1565D8] relative whitespace-nowrap">
                 {activeTab === 'schools' ? 'Schools' : 'Learning Centers'}
+                <span className="absolute bottom-1.5 left-0 w-full h-[4px] bg-[#FFC107] -z-10 rounded-full" />
               </span>
               <br className="hidden md:inline" />
               Near You
             </h1>
 
             {/* Dynamic Subheading */}
-            <p className="text-xs md:text-sm text-slate-500 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xs md:text-sm text-slate-700 max-w-xl mx-auto leading-relaxed font-medium">
               {activeTab === 'schools' 
                 ? "Search 500+ verified CBSE, ICSE and Matriculation schools across India. Compare fees, facilities and apply directly."
                 : "Discover 300+ verified dance classes, music academies, art studios and coaching centers near you. Book a trial class today."
@@ -535,38 +539,40 @@ export default function MarketplaceHomepage() {
             </p>
 
             {/* SEARCH WIDGET CARD */}
-            <Card className="bg-white rounded-3xl p-4 md:p-5 shadow-2xl max-w-3xl mx-auto border border-slate-200 text-slate-800 text-left mt-5">
-              {/* Tabs Row (takes full width equally on mobile) */}
-              <div className="flex gap-2 border-b border-slate-100 pb-3 mb-3">
+            <div className="bg-white rounded-3xl p-4 md:p-6 shadow-[0_20px_50px_rgba(21,101,216,0.12)] max-w-4xl mx-auto border border-slate-100 text-slate-800 text-left mt-8 relative z-10 backdrop-blur-md">
+              {/* Tabs Row - Segmented Pill Toggle INSIDE the card top */}
+              <div className="inline-flex p-1 bg-slate-100 rounded-xl mb-5 select-none w-full md:w-auto">
                 <button
                   type="button"
                   onClick={() => setActiveTab('schools')}
-                  className={`text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer flex-1 justify-center md:flex-none md:justify-start ${
+                  className={`text-xs font-bold px-5 py-2.5 rounded-lg transition-all duration-300 flex items-center gap-2 cursor-pointer flex-1 justify-center md:flex-none ${
                     activeTab === 'schools'
-                      ? 'bg-blue-50 text-[#1565D8]'
-                      : 'text-slate-500 hover:bg-slate-50'
+                      ? 'bg-[#1565D8] text-white shadow-md'
+                      : 'text-slate-500 hover:text-slate-850 hover:bg-slate-200/50'
                   }`}
                 >
-                  <Building className="w-4 h-4" />
-                  🏫 Schools
+                  <Building className="w-3.5 h-3.5 shrink-0" />
+                  <span>Schools</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('learning-centers')}
-                  className={`text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer flex-1 justify-center md:flex-none md:justify-start ${
+                  className={`text-xs font-bold px-5 py-2.5 rounded-lg transition-all duration-300 flex items-center gap-2 cursor-pointer flex-1 justify-center md:flex-none ${
                     activeTab === 'learning-centers'
-                      ? 'bg-blue-50 text-[#1565D8]'
-                      : 'text-slate-500 hover:bg-slate-50'
+                      ? 'bg-[#1565D8] text-white shadow-md'
+                      : 'text-slate-500 hover:text-slate-850 hover:bg-slate-200/50'
                   }`}
                 >
-                  <Sparkles className="w-4 h-4" />
-                  💃 Learning Centers
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <span>Learning Centers</span>
                 </button>
               </div>
 
-              {/* Search fields Row */}
-              <form onSubmit={(e) => handleSearchSubmit(e)} className="flex flex-col md:flex-row items-stretch gap-2.5">
-                <div className="flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5">
+              {/* Main row - Airbnb style unified bar */}
+              <form onSubmit={(e) => handleSearchSubmit(e)} className="flex flex-col md:flex-row items-stretch gap-3 md:gap-0 bg-white md:bg-slate-50 border border-slate-200 md:rounded-2xl p-0 md:p-1.5 shadow-sm">
+                
+                {/* Zone 1: Search Input */}
+                <div className="w-full md:flex-1 flex items-center bg-slate-50 md:bg-transparent border border-slate-200 md:border-0 rounded-xl md:rounded-none px-4 py-3 min-h-[50px] relative">
                   <SearchAutocomplete
                     value={search}
                     onChange={setSearch}
@@ -576,21 +582,38 @@ export default function MarketplaceHomepage() {
                     }}
                     institutionType={activeTab === 'schools' ? 'SCHOOL' : 'LEARNING_CENTER'}
                     placeholder={activeTab === 'schools' ? 'School name, board or area...' : 'Dance class, music academy, coaching center...'}
-                    className="bg-transparent border-0 outline-none text-slate-700 text-xs placeholder-slate-400 w-full font-medium"
+                    className="bg-transparent border-0 outline-none text-slate-700 text-sm placeholder-slate-450 w-full font-medium focus:ring-0 focus:outline-none"
                   />
                 </div>
 
-                <LocationSelector className="md:w-48" />
+                {/* Vertical Hairline Separator 1 (Desktop only) */}
+                <div className="hidden md:block w-[1px] bg-slate-200 self-stretch my-3 shrink-0" />
 
-                <Button type="submit" className="bg-[#1565D8] hover:bg-blue-700 text-white font-black text-xs px-8 py-3.5 rounded-xl h-auto shrink-0 shadow-md flex items-center gap-1 cursor-pointer">
-                  {activeTab === 'schools' ? 'Search Schools' : 'Find Centers'} &rarr;
-                </Button>
+                {/* Mobile: Row 2 container containing Location (flex-grow) + Button (fixed width) */}
+                {/* Desktop: Ignored wrapper container because of md:contents */}
+                <div className="flex flex-row items-stretch gap-3 md:gap-0 w-full md:w-auto md:contents">
+                  
+                  {/* Zone 2: Location Selector */}
+                  <LocationSelector className="flex-1 md:flex-none md:w-72 md:min-w-[280px] md:shrink-0 md:border-0 border border-slate-200 rounded-xl md:rounded-none bg-slate-50 md:bg-transparent px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-[#1565D8]/20 focus-within:border-[#1565D8] transition-all" />
+
+                  {/* Vertical Hairline Separator 2 (Desktop only) */}
+                  <div className="hidden md:block w-[1px] bg-slate-200 self-stretch my-3 shrink-0 mr-2" />
+
+                  {/* Zone 3: Search Button */}
+                  <Button
+                    type="submit"
+                    className="w-[145px] md:w-[175px] bg-[#1565D8] hover:bg-blue-700 text-white font-black text-xs md:text-sm px-6 py-4 rounded-xl md:rounded-xl h-auto shrink-0 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-1.5 cursor-pointer justify-center select-none"
+                  >
+                    <span>{activeTab === 'schools' ? 'Search Schools' : 'Find Centers'}</span>
+                    <ArrowRight className="w-4 h-4 shrink-0" />
+                  </Button>
+                </div>
               </form>
-            </Card>
+            </div>
 
             {/* Popular Searches */}
-            <div className="mt-5 flex items-center justify-center gap-2 flex-wrap text-xs">
-              <span className="text-slate-400 font-bold">Popular:</span>
+            <div className="mt-6 flex items-center justify-center gap-2 flex-wrap text-xs select-none">
+              <span className="text-slate-600 font-bold tracking-wide mr-1 uppercase text-[10px]">Popular:</span>
               {(activeTab === 'schools' 
                 ? schoolsContent.hero.popularSearches 
                 : lcContent.hero.popularSearches
@@ -609,7 +632,7 @@ export default function MarketplaceHomepage() {
                       router.push(`/learning-centers?${params.toString()}`)
                     }
                   }}
-                  className="text-[#1565D8] hover:underline bg-blue-50/70 border border-blue-100/50 px-3 py-1 rounded-full font-semibold transition cursor-pointer"
+                  className="text-slate-600 hover:text-[#1565D8] bg-slate-100 hover:bg-blue-50 border border-slate-200/55 hover:border-blue-100 px-3.5 py-1.5 rounded-full font-bold transition-all duration-200 cursor-pointer text-[11px]"
                 >
                   {term}
                 </button>
@@ -623,20 +646,22 @@ export default function MarketplaceHomepage() {
         <div className={`transition-opacity ease-in-out ${transitioning ? 'duration-150 opacity-0' : 'duration-300 opacity-100'}`}>
           
           {/* 3. STATS BAR */}
-          <section className="max-w-4xl mx-auto px-4 -mt-6 relative z-20">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <section className="max-w-4xl mx-auto px-4 -mt-4 relative z-20">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {displayStats.map((stat) => {
                 const StatIcon = stat.icon
                 return (
-                  <div key={stat.label} className="bg-white rounded-2xl border border-slate-150 shadow-lg p-4 text-center flex flex-col items-center justify-center">
-                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-[#1565D8] mb-2 border border-blue-100/30">
+                  <div key={stat.label} className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-100 shadow-sm p-3.5 flex items-center gap-3 transition hover:border-slate-200">
+                    <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-[#1565D8] shrink-0">
                       <StatIcon className="w-4 h-4" />
                     </div>
-                    <div className="text-xl md:text-2xl font-black text-[#1565D8] font-poppins">
-                      {stat.value}
-                    </div>
-                    <div className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">
-                      {stat.label}
+                    <div className="text-left min-w-0">
+                      <div className="text-base md:text-lg font-black text-slate-800 leading-tight">
+                        {stat.value}
+                      </div>
+                      <div className="text-[9px] font-semibold text-slate-600 uppercase tracking-wider mt-0.5 truncate">
+                        {stat.label}
+                      </div>
                     </div>
                   </div>
                 )
@@ -645,7 +670,7 @@ export default function MarketplaceHomepage() {
 
             {/* SEO Supporting Text */}
             <div className="mt-6 max-w-2xl mx-auto text-center px-4">
-              <p className="text-[11px] text-slate-400 leading-relaxed">
+              <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
                 Find CBSE schools, ICSE schools, Matriculation schools, International schools, IB schools near Chennai, Bengaluru, Hyderabad, Mumbai and across India. Compare school fees, facilities, admission process and parent reviews. Discover the best learning centers for dance, music, art, fitness and academic coaching near you.
               </p>
             </div>

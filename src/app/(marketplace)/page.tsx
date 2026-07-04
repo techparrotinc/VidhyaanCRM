@@ -40,7 +40,14 @@ import {
   GitCompare,
   CheckCircle,
   Calendar,
-  X
+  X,
+  Cpu,
+  Gem,
+  Waves,
+  Cog,
+  Church,
+  Anchor,
+  Castle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -163,6 +170,21 @@ const cities = [
   { name: "Kochi", schoolCount: 31, lcCount: 22 },
   { name: "Jaipur", schoolCount: 38, lcCount: 28 }
 ]
+
+// Unique Lucide icons & color classes mapping for each city
+const cityMeta: Record<string, { icon: React.ComponentType<any>; colorClass: string; bgClass: string; borderHoverClass: string; shadowHoverClass: string }> = {
+  "Chennai": { icon: Landmark, colorClass: "text-amber-600", bgClass: "bg-amber-50", borderHoverClass: "hover:border-amber-400", shadowHoverClass: "hover:shadow-amber-100/50" },
+  "Bengaluru": { icon: Cpu, colorClass: "text-emerald-600", bgClass: "bg-emerald-50", borderHoverClass: "hover:border-emerald-400", shadowHoverClass: "hover:shadow-emerald-100/50" },
+  "Hyderabad": { icon: Gem, colorClass: "text-cyan-600", bgClass: "bg-cyan-50", borderHoverClass: "hover:border-cyan-400", shadowHoverClass: "hover:shadow-cyan-100/50" },
+  "Mumbai": { icon: Waves, colorClass: "text-blue-600", bgClass: "bg-blue-50", borderHoverClass: "hover:border-blue-400", shadowHoverClass: "hover:shadow-blue-100/50" },
+  "New Delhi": { icon: Building, colorClass: "text-red-600", bgClass: "bg-red-50", borderHoverClass: "hover:border-red-400", shadowHoverClass: "hover:shadow-red-100/50" },
+  "Pune": { icon: GraduationCap, colorClass: "text-violet-600", bgClass: "bg-violet-50", borderHoverClass: "hover:border-violet-400", shadowHoverClass: "hover:shadow-violet-100/50" },
+  "Coimbatore": { icon: Cog, colorClass: "text-orange-600", bgClass: "bg-orange-50", borderHoverClass: "hover:border-orange-400", shadowHoverClass: "hover:shadow-orange-100/50" },
+  "Madurai": { icon: Church, colorClass: "text-rose-600", bgClass: "bg-rose-50", borderHoverClass: "hover:border-rose-400", shadowHoverClass: "hover:shadow-rose-100/50" },
+  "Kochi": { icon: Anchor, colorClass: "text-teal-600", bgClass: "bg-teal-50", borderHoverClass: "hover:border-teal-400", shadowHoverClass: "hover:shadow-teal-100/50" },
+  "Jaipur": { icon: Castle, colorClass: "text-pink-600", bgClass: "bg-pink-50", borderHoverClass: "hover:border-pink-400", shadowHoverClass: "hover:shadow-pink-100/50" }
+}
+
 
 // Featured Centers (LC only)
 const featuredCenters = [
@@ -427,7 +449,7 @@ export default function MarketplaceHomepage() {
       metaDesc.setAttribute('name', 'description');
       document.head.appendChild(metaDesc);
     }
-    metaDesc.setAttribute('content', 'Discover and compare 500+ verified schools and learning centers across India. Search by board, location, fees. Apply directly and track admissions. Free for parents.');
+    metaDesc.setAttribute('content', 'Discover and compare 45+ verified schools and learning centers across India. Search by board, location, fees. Apply directly and track admissions. Free for parents.');
   }, []);
 
   const handleSearchSubmit = (e?: React.FormEvent, customSearch?: string, customCity?: string) => {
@@ -613,7 +635,7 @@ export default function MarketplaceHomepage() {
             {/* Dynamic Subheading */}
             <p className="text-xs md:text-sm text-slate-700 max-w-xl mx-auto leading-relaxed font-medium">
               {activeTab === 'schools' 
-                ? "Search 500+ verified CBSE, ICSE and Matriculation schools across India. Compare fees, facilities and apply directly."
+                ? "Search 45+ verified CBSE, ICSE and Matriculation schools across India. Compare fees, facilities and apply directly."
                 : "Discover 300+ verified dance classes, music academies, art studios and coaching centers near you. Book a trial class today."
               }
             </p>
@@ -768,14 +790,22 @@ export default function MarketplaceHomepage() {
                 {displayCities.map((c) => {
                   const count = isLC ? c.lcCount : c.schoolCount
                   const hasMany = count > 5
+                  const meta = cityMeta[c.name] || {
+                    icon: Building2,
+                    colorClass: "text-[#1565D8]",
+                    bgClass: "bg-blue-50",
+                    borderHoverClass: "hover:border-[#1565D8]",
+                    shadowHoverClass: "hover:shadow-blue-100/50"
+                  }
+                  const CityIcon = meta.icon
                   return (
                     <Link
                       key={c.name}
                       href={isLC ? `/learning-centers?city=${c.name}` : `/schools?city=${c.name}`}
-                      className="bg-white rounded-2xl border border-slate-200 p-5 text-center hover:border-[#1565D8] hover:shadow-lg transition-all duration-300 group flex flex-col items-center justify-center animate-fade-in"
+                      className={`bg-white rounded-2xl border border-slate-200 p-5 text-center transition-all duration-300 group flex flex-col items-center justify-center animate-fade-in hover:-translate-y-1 hover:shadow-lg ${meta.borderHoverClass} ${meta.shadowHoverClass}`}
                     >
-                      <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3 group-hover:bg-[#1565D8] group-hover:text-white transition-colors duration-300 border border-blue-100/50">
-                        <Building2 className="w-5 h-5 text-[#1565D8] group-hover:text-white transition-colors duration-300" />
+                      <div className={`w-12 h-12 rounded-full ${meta.bgClass} flex items-center justify-center mx-auto mb-3 border border-slate-100/50 transition-colors duration-300`}>
+                        <CityIcon className={`w-5 h-5 ${meta.colorClass} transition-transform duration-300 group-hover:scale-110`} />
                       </div>
                       <h4 className="text-sm sm:text-base font-bold text-slate-800 leading-none">{c.name}</h4>
                       {hasMany ? (
@@ -1121,68 +1151,71 @@ export default function MarketplaceHomepage() {
           )}
 
           {/* SECTION 7 — TESTIMONIALS */}
-          <section className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-20 space-y-8 mt-12">
-            <div className="text-center max-w-xl mx-auto space-y-2">
-              <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight font-poppins">
-                What Parents Say About Vidhyaan
-              </h2>
-              <p className="text-xs md:text-sm text-slate-500 font-medium">
-                Hear from families who found the perfect educational environment for their children.
-              </p>
-            </div>
+          <section className="bg-gradient-to-b from-blue-50/40 via-blue-50/10 to-white py-20 border-y border-slate-100">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 space-y-8">
+              <div className="text-center max-w-xl mx-auto space-y-2">
+                <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight font-poppins">
+                  What Parents Say About Vidhyaan
+                </h2>
+                <p className="text-xs md:text-sm text-slate-500 font-medium">
+                  Hear from families who found the perfect educational environment for their children.
+                </p>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[
-                {
-                  name: 'Rajesh Subramanian',
-                  city: 'Chennai',
-                  initials: 'RS',
-                  bg: 'bg-blue-50 text-[#1565D8]',
-                  quote: 'Vidhyaan made shortlisting schools extremely easy. The comparison dashboard saved us weeks of school visits.'
-                },
-                {
-                  name: 'Priya Krishnan',
-                  city: 'Bengaluru',
-                  initials: 'PK',
-                  bg: 'bg-amber-50 text-amber-600',
-                  quote: 'Highly recommend using the parent enquiry tool. The response times from schools were very fast.'
-                },
-                {
-                  name: 'Anjali Sharma',
-                  city: 'Chennai',
-                  initials: 'AS',
-                  bg: 'bg-indigo-50 text-[#1565D8]',
-                  quote: 'Finding verified reviews from other parents in our locality helped us pick the perfect CBSE school for our daughter.'
-                }
-              ].map((t, idx) => (
-                <div key={idx} className="p-6 bg-white border border-slate-200 shadow-sm rounded-2xl flex flex-col justify-between space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-0.5">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className="w-3.5 h-3.5 fill-[#FFC107] text-[#FFC107]" />
-                      ))}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                  {
+                    name: 'Rajesh Subramanian',
+                    city: 'Chennai',
+                    initials: 'RS',
+                    bg: 'bg-blue-50 text-[#1565D8]',
+                    quote: 'Vidhyaan made shortlisting schools extremely easy. The comparison dashboard saved us weeks of school visits.'
+                  },
+                  {
+                    name: 'Priya Krishnan',
+                    city: 'Bengaluru',
+                    initials: 'PK',
+                    bg: 'bg-amber-50 text-amber-600',
+                    quote: 'Highly recommend using the parent enquiry tool. The response times from schools were very fast.'
+                  },
+                  {
+                    name: 'Anjali Sharma',
+                    city: 'Chennai',
+                    initials: 'AS',
+                    bg: 'bg-indigo-50 text-[#1565D8]',
+                    quote: 'Finding verified reviews from other parents in our locality helped us pick the perfect CBSE school for our daughter.'
+                  }
+                ].map((t, idx) => (
+                  <div key={idx} className="p-6 bg-white border border-slate-200 border-t-[3px] border-t-[#FFC107] shadow-sm rounded-2xl flex flex-col justify-between space-y-4 hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star key={star} className="w-3.5 h-3.5 fill-[#FFC107] text-[#FFC107]" />
+                        ))}
+                      </div>
+                      <p className="text-xs leading-relaxed text-slate-650 italic font-medium font-poppins">
+                        "{t.quote}"
+                      </p>
                     </div>
-                    <p className="text-xs leading-relaxed text-slate-650 italic font-medium font-poppins">
-                      "{t.quote}"
-                    </p>
+                    <div className="border-t border-slate-100 pt-4 flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${t.bg}`}>
+                        {t.initials}
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-800 block leading-none">{t.name}</span>
+                        <span className="text-[10px] text-slate-400 font-bold block mt-0.5">{t.city}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="border-t border-slate-100 pt-4 flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${t.bg}`}>
-                      {t.initials}
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-slate-800 block leading-none">{t.name}</span>
-                      <span className="text-[10px] text-slate-400 font-bold block mt-0.5">{t.city}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </section>
 
           {/* SECTION 8 — FAQ */}
-          <section className="py-16 bg-slate-50 border-t border-b border-slate-100">
-            <div className="max-w-4xl mx-auto px-4 md:px-6 space-y-8">
+          <section className="py-20 bg-slate-50/50 border-b border-slate-100 relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(#1565d8_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.03] pointer-events-none" />
+            <div className="relative max-w-4xl mx-auto px-4 md:px-6 space-y-8">
               <h2 className="text-2xl md:text-3xl font-black text-slate-900 text-center tracking-tight font-poppins">
                 Frequently Asked Questions
               </h2>
@@ -1216,7 +1249,7 @@ export default function MarketplaceHomepage() {
                 ].map((faq, idx) => {
                   const isOpen = activeFaq === idx
                   return (
-                    <div key={idx} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm transition-all duration-300">
+                    <div key={idx} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm transition-all duration-300 hover:bg-blue-50/20">
                       <button
                         type="button"
                         onClick={() => setActiveFaq(isOpen ? null : idx)}
@@ -1224,7 +1257,7 @@ export default function MarketplaceHomepage() {
                         aria-expanded={isOpen}
                       >
                         <span>{faq.q}</span>
-                        <ChevronDown className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-[#1565D8]' : ''}`} />
+                        <ChevronDown className={`w-5 h-5 text-[#1565D8] shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                       </button>
                       <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-[200px] border-t border-slate-100 bg-slate-50/50' : 'max-h-0'}`}>
                         <p className="p-5 text-xs md:text-sm text-slate-650 leading-relaxed font-medium">
@@ -1286,48 +1319,69 @@ export default function MarketplaceHomepage() {
           </section>
 
           {/* SECTION 10 — SEO FOOTER BLOCK */}
-          <section className="bg-slate-50 border-t border-slate-200/60 py-12">
-            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 space-y-6 text-xs text-slate-500 leading-relaxed font-medium">
+          <section className="bg-blue-50/40 border-t border-slate-200/60 py-16">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 space-y-8 text-xs text-slate-500 leading-relaxed font-medium">
+              
+              {/* Columns as Styled Mini-Panels */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-3">
-                  <h4 className="text-sm font-black text-slate-800 tracking-wide uppercase text-[11px] font-poppins">Vidhyaan School Admissions and Discovery</h4>
-                  <p>
-                    Vidhyaan is India's premier marketplace for school discoverability, helping parents find the most suitable educational institutions for their children. We index detailed profiles, fee structures, curriculum details, and verified parent reviews for institutions across the country. Whether you are looking for top-rated <Link href="/schools?board=CBSE" className="text-[#1565D8] hover:underline font-bold">CBSE schools</Link>, academic <Link href="/schools?board=ICSE" className="text-[#1565D8] hover:underline font-bold">ICSE board schools</Link>, state syllabus institutions, or premier international baccalaureate (IB) and Cambridge affiliated schools, our comprehensive directory makes comparison effortless.
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 space-y-4 shadow-sm hover:border-[#1565D8]/30 transition-all duration-300">
+                  <h3 className="font-black text-slate-900 tracking-tight uppercase text-xs md:text-sm font-poppins flex items-center gap-2 select-none">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-[#1565D8] shrink-0 border border-blue-100/50">
+                      <School className="w-4 h-4" />
+                    </div>
+                    <span>Vidhyaan School Admissions and Discovery</span>
+                  </h3>
+                  <p className="text-slate-600 font-medium leading-relaxed">
+                    Vidhyaan is India's premier marketplace for school discoverability, helping parents find the most suitable educational institutions for their children. We index detailed profiles, fee structures, curriculum details, and verified parent reviews for institutions across the country. Whether you are looking for top-rated <Link href="/schools?board=CBSE" className="text-[#1565D8] hover:underline font-semibold">CBSE schools</Link>, academic <Link href="/schools?board=ICSE" className="text-[#1565D8] hover:underline font-semibold">ICSE board schools</Link>, state syllabus institutions, or premier international baccalaureate (IB) and Cambridge affiliated schools, our comprehensive directory makes comparison effortless.
                   </p>
                 </div>
-                <div className="space-y-3">
-                  <h4 className="text-sm font-black text-slate-800 tracking-wide uppercase text-[11px] font-poppins">Verified Learning Centers and Extra-Curriculars</h4>
-                  <p>
-                    Beyond formal schooling, Vidhyaan connects children with exceptional extracurricular academies. Browse verified dance schools, vocal and instrumental music classes, art and craft studios, sports training programs, abacus classes, and academic coaching centers. Tutors and center administrators use <Link href="/dashboard" className="text-[#1565D8] hover:underline font-bold">Vidhyaan CRM</Link> and student management software to manage schedules, admissions, and automate parent billing securely.
+
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 space-y-4 shadow-sm hover:border-[#1565D8]/30 transition-all duration-300">
+                  <h3 className="font-black text-slate-900 tracking-tight uppercase text-xs md:text-sm font-poppins flex items-center gap-2 select-none">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-[#1565D8] shrink-0 border border-blue-100/50">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <span>Verified Learning Centers and Extra-Curriculars</span>
+                  </h3>
+                  <p className="text-slate-600 font-medium leading-relaxed">
+                    Beyond formal schooling, Vidhyaan connects children with exceptional extracurricular academies. Browse verified dance schools, vocal and instrumental music classes, art and craft studios, sports training programs, abacus classes, and academic coaching centers. Tutors and center administrators use <Link href="/dashboard" className="text-[#1565D8] hover:underline font-semibold">Vidhyaan CRM</Link> and student management software to manage schedules, admissions, and automate parent billing securely.
                   </p>
                 </div>
               </div>
 
-              <div className="border-t border-slate-200/80 pt-6 space-y-4">
+              {/* Restyled city/curriculum links as Wrapped Pill Chips */}
+              <div className="border-t border-slate-200/80 pt-8 space-y-6">
                 <div>
-                  <span className="font-black text-slate-700 uppercase text-[10px] tracking-wide block mb-2 font-poppins">Explore Schools by City:</span>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1">
-                    {cities.map((c, idx) => (
-                      <React.Fragment key={c.name}>
-                        {idx > 0 && <span className="text-slate-300">|</span>}
-                        <Link href={`/schools?city=${c.name}`} className="hover:text-[#1565D8] transition font-semibold">{c.name} Schools</Link>
-                      </React.Fragment>
+                  <span className="font-black text-slate-700 uppercase text-[10px] tracking-wider block mb-3 font-poppins select-none">Explore Schools by City:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {cities.map((c) => (
+                      <Link
+                        key={c.name}
+                        href={`/schools?city=${c.name}`}
+                        className="text-[11px] font-bold text-slate-600 bg-white hover:bg-blue-50 hover:text-[#1565D8] border border-slate-200/80 hover:border-blue-200 px-3.5 py-1.5 rounded-full transition-all duration-200 shadow-sm"
+                      >
+                        {c.name} Schools
+                      </Link>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <span className="font-black text-slate-700 uppercase text-[10px] tracking-wide block mb-2 font-poppins">Search by Curriculum:</span>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1">
-                    {["CBSE", "ICSE", "State Board", "International"].map((board, idx) => (
-                      <React.Fragment key={board}>
-                        {idx > 0 && <span className="text-slate-300">|</span>}
-                        <Link href={`/schools?board=${board}`} className="hover:text-[#1565D8] transition font-semibold">{board} Schools</Link>
-                      </React.Fragment>
+                  <span className="font-black text-slate-700 uppercase text-[10px] tracking-wider block mb-3 font-poppins select-none">Search by Curriculum:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {["CBSE", "ICSE", "State Board", "International"].map((board) => (
+                      <Link
+                        key={board}
+                        href={`/schools?board=${board}`}
+                        className="text-[11px] font-bold text-slate-600 bg-white hover:bg-blue-50 hover:text-[#1565D8] border border-slate-200/80 hover:border-blue-200 px-3.5 py-1.5 rounded-full transition-all duration-200 shadow-sm"
+                      >
+                        {board} Schools
+                      </Link>
                     ))}
                   </div>
                 </div>
               </div>
+
             </div>
           </section>
 

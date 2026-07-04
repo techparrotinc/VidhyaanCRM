@@ -319,10 +319,10 @@ export default function MarketplaceHeader() {
             <div className="grid grid-cols-[210px_1fr_1fr_230px] w-full max-w-screen-2xl mx-auto divide-x divide-slate-100/80 bg-white">
               
               {/* ZONE A — INTRO PANEL */}
-              <div className="bg-slate-50/50 p-6 flex flex-col justify-between text-left select-none">
+              <div className="bg-slate-50/50 p-6 flex flex-col text-left select-none justify-start">
                 <div>
                   <h4 className="text-[13px] font-black text-slate-800 leading-snug font-poppins">
-                    One platform for schools and parents
+                    One platform for schools, learning centers and parents
                   </h4>
                   <p className="text-[11px] text-slate-500 mt-2 font-semibold leading-relaxed">
                     Discovery marketplace plus a full admission CRM.
@@ -330,7 +330,7 @@ export default function MarketplaceHeader() {
                 </div>
                 <Link 
                   href="/pricing" 
-                  className="text-xs font-black text-[#1565D8] hover:text-blue-700 transition flex items-center gap-1 mt-4 hover:underline"
+                  className="text-xs font-black text-[#1565D8] hover:text-blue-700 transition flex items-center gap-1 mt-5 hover:underline w-fit"
                 >
                   <span>See all products</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -352,6 +352,12 @@ export default function MarketplaceHeader() {
                       name: "Find Schools",
                       icon: Search,
                       tintClass: "bg-blue-50 text-blue-600 border border-blue-100/50"
+                    },
+                    {
+                      href: "/learning-centers",
+                      name: "Find Learning Centers",
+                      icon: Sparkles,
+                      tintClass: "bg-teal-50 text-teal-600 border border-teal-100/50"
                     },
                     {
                       href: "/schools/compare",

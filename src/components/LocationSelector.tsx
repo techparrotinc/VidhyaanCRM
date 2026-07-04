@@ -129,7 +129,7 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
             // Fallback: No location detected / Select City
             <div className="flex items-center gap-2 min-w-0 w-full">
               <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-              <span className="text-slate-505 font-bold">Select City</span>
+              <span className="text-slate-500 font-bold">Select City</span>
             </div>
           )}
         </div>

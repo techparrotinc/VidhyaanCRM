@@ -115,6 +115,7 @@ export function useLocation() {
 
   return {
     city: store.activeCity,
+    manualArea: store.manualArea,
     gpsCity: store.detectedCity,
     lat: store.lat,
     lng: store.lng,
@@ -123,6 +124,8 @@ export function useLocation() {
     permissionStatus: store.permissionStatus,
     detectionMethod: store.detectionMethod,
     setManualCity: store.setManualCity,
+    setManualArea: store.setManualArea,
     requestLocation
   }
 }
+

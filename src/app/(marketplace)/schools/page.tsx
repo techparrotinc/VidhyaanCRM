@@ -92,7 +92,7 @@ export default function SchoolsSearchPage() {
   const [loginPromptOpen, setLoginPromptOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
 
-  const { city: detectedCity, lat, lng } = useLocation()
+  const { city: detectedCity, manualArea, lat, lng } = useLocation()
 
   // State Management
   const [schools, setSchools] = useState<School[]>([])
@@ -244,6 +244,7 @@ export default function SchoolsSearchPage() {
       const params = new URLSearchParams()
       if (filters.search) params.append('search', filters.search)
       if (filters.city) params.append('city', filters.city)
+      if (manualArea) params.append('area', manualArea)
       
       // Handle board list
       if (filters.board) {
@@ -301,7 +302,8 @@ export default function SchoolsSearchPage() {
 
   useEffect(() => {
     fetchSchools()
-  }, [filters.search, filters.board, filters.admissionOpen, filters.type, filters.city, filters.sortBy, pagination.page, lat, lng, distanceRadius])
+  }, [filters.search, filters.board, filters.admissionOpen, filters.type, filters.city, filters.sortBy, pagination.page, lat, lng, distanceRadius, manualArea])
+
 
   const handleSearchCardSubmit = (e: React.FormEvent) => {
     e.preventDefault()

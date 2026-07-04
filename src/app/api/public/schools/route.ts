@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
 
     const city = searchParams.get('city') ?? undefined
+    const area = searchParams.get('area') ?? undefined
     const board = searchParams.get('board') ?? undefined
     const search = searchParams.get('search') ?? undefined
     const admissionOpen = searchParams.get('admissionOpen')
@@ -69,14 +70,21 @@ export async function GET(req: NextRequest) {
       ]
     }
 
-    if (city) {
+    if (city || area) {
+      const locationConditions: any = {
+        deletedAt: null
+      }
+      if (city) {
+        locationConditions.city = { contains: city, mode: 'insensitive' }
+      }
+      if (area) {
+        locationConditions.addressLine = { contains: area, mode: 'insensitive' }
+      }
       where.locations = {
-        some: {
-          city: { contains: city, mode: 'insensitive' },
-          deletedAt: null
-        }
+        some: locationConditions
       }
     }
+
 
     if (board) {
       where.affiliations = {

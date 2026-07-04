@@ -39,10 +39,18 @@ export async function GET(req: NextRequest) {
     })
 
     if (cached) {
+      let city = cached.city
+      let area: string | null = null
+      if (cached.city.includes('|')) {
+        const parts = cached.city.split('|')
+        area = parts[0]
+        city = parts[1]
+      }
       return NextResponse.json({
         success: true,
-        city: cached.city,
-        locality: cached.city,
+        city: city,
+        locality: city,
+        area: area,
         district: null,
         state: cached.state,
         lat,
@@ -53,11 +61,12 @@ export async function GET(req: NextRequest) {
     // If no Google Maps API Key is configured, fallback to mock response for development
     const apiKey = process.env.GOOGLE_MAPS_API_KEY
     if (!apiKey) {
-      console.log('GOOGLE_MAPS_API_KEY not configured. Returning mock Chennai response.')
+      console.log('GOOGLE_MAPS_API_KEY not configured. Returning mock Chennai/Nanmangalam response.')
       return NextResponse.json({
         success: true,
         city: 'Chennai',
         locality: 'Chennai',
+        area: 'Nanmangalam',
         district: 'Chennai',
         state: 'Tamil Nadu',
         lat,
@@ -65,8 +74,8 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Call Google Maps Geocoding API with locality and administrative_area_level_2 types
-    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&result_type=locality|administrative_area_level_2&language=en`
+    // Call Google Maps Geocoding API (broadened to include sublocality/neighborhood level)
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&language=en`
     const response = await fetch(geocodeUrl)
     if (!response.ok) {
       return NextResponse.json(
@@ -85,12 +94,20 @@ export async function GET(req: NextRequest) {
     }
 
     const result = data.results[0]
+    let sublocality = ''
+    let neighborhood = ''
     let locality = ''
     let district = ''
     let state = ''
 
-    // Find city and state in address components
+    // Parse the response to extract address components
     for (const component of result.address_components) {
+      if (component.types.includes('sublocality_level_1')) {
+        sublocality = component.long_name
+      }
+      if (component.types.includes('neighborhood')) {
+        neighborhood = component.long_name
+      }
       if (component.types.includes('locality')) {
         locality = component.long_name
       }
@@ -102,14 +119,18 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const cityToCache = locality || district
+    const detectedArea = sublocality || neighborhood || null
+    const detectedCity = locality || district
 
-    if (!cityToCache) {
+    if (!detectedCity) {
       return NextResponse.json(
         { success: false, error: 'City not found' },
         { status: 404 }
       )
     }
+
+    // Cache key/expiry structure unchanged, cache the richer data: "detectedArea|detectedCity"
+    const cityToCache = detectedArea ? `${detectedArea}|${detectedCity}` : detectedCity
 
     // Save to cache (using upsert to avoid duplicate key issues if checked concurrently)
     await prisma.locationCache.upsert({
@@ -135,8 +156,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      city: cityToCache,
+      city: detectedCity,
       locality: locality || null,
+      area: detectedArea,
       district: district || null,
       state,
       lat,

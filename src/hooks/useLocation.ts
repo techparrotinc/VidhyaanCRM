@@ -43,7 +43,7 @@ export function useLocation() {
           finalCity = getMatchedCity(data.district)
         }
 
-        store.setDetectedCity(finalCity, latitude, longitude, 'gps')
+        store.setDetectedCity(finalCity, data.area || null, latitude, longitude, 'gps')
       } else {
         throw new Error('City not found in response')
       }
@@ -117,6 +117,7 @@ export function useLocation() {
     city: store.activeCity,
     manualArea: store.manualArea,
     gpsCity: store.detectedCity,
+    detectedArea: store.detectedArea,
     lat: store.lat,
     lng: store.lng,
     loading: store.loading,

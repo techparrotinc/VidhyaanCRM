@@ -21,6 +21,7 @@ interface LocationState {
   manualCity: string | null
   manualArea: string | null
   detectedCity: string | null
+  detectedArea: string | null
   activeCity: string | null
   lat: number | null
   lng: number | null
@@ -32,7 +33,7 @@ interface LocationState {
 
   setManualCity: (cityName: string) => void
   setManualArea: (areaName: string | null) => void
-  setDetectedCity: (cityName: string | null, lat: number | null, lng: number | null, method: DetectionMethodType) => void
+  setDetectedCity: (cityName: string | null, areaName: string | null, lat: number | null, lng: number | null, method: DetectionMethodType) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   setPermissionStatus: (status: PermissionStatusType) => void
@@ -46,6 +47,7 @@ export const useLocationStore = create<LocationState>((set) => ({
   manualCity: null,
   manualArea: null,
   detectedCity: null,
+  detectedArea: null,
   activeCity: null,
   lat: null,
   lng: null,
@@ -103,11 +105,12 @@ export const useLocationStore = create<LocationState>((set) => ({
     }
   },
 
-  setDetectedCity: (cityName: string | null, lat: number | null, lng: number | null, method: DetectionMethodType) => {
+  setDetectedCity: (cityName: string | null, areaName: string | null, lat: number | null, lng: number | null, method: DetectionMethodType) => {
     set((state) => {
       const active = state.manualCity || cityName
       return {
         detectedCity: cityName,
+        detectedArea: areaName,
         activeCity: active,
         lat: state.manualCity ? null : lat,
         lng: state.manualCity ? null : lng,
@@ -120,6 +123,7 @@ export const useLocationStore = create<LocationState>((set) => ({
     if (typeof window !== 'undefined') {
       const saveObj = {
         city: cityName || null,
+        detectedArea: areaName || null,
         lat: lat,
         lng: lng,
         detectedAt: Date.now(),
@@ -141,6 +145,7 @@ export const useLocationStore = create<LocationState>((set) => ({
       manualCity: saved.method === 'manual' ? saved.city : null,
       manualArea: saved.method === 'manual' ? (saved.area || null) : null,
       detectedCity: saved.method === 'gps' || saved.method === 'cached' ? saved.city : null,
+      detectedArea: saved.method === 'gps' || saved.method === 'cached' ? (saved.detectedArea || null) : null,
       activeCity: saved.city,
       lat: saved.lat,
       lng: saved.lng,
@@ -155,6 +160,7 @@ export const useLocationStore = create<LocationState>((set) => ({
     manualCity: null,
     manualArea: null,
     detectedCity: null,
+    detectedArea: null,
     activeCity: null,
     lat: null,
     lng: null,

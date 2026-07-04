@@ -885,10 +885,24 @@ export default function SchoolsSearchPage() {
                 <div className="space-y-4">
                   {schools.map((school) => {
                     const isBookmarked = bookmarkedIds.includes(school.id)
-                    const primaryAddress = school.locations?.[0]
-                    const addressString = primaryAddress 
-                      ? `${primaryAddress.city ?? ''}` 
-                      : 'India'
+                     const primaryAddress = school.locations?.[0]
+                     let addressString = 'India'
+                     if (primaryAddress) {
+                       const city = primaryAddress.city ?? ''
+                       const addressLine = primaryAddress.addressLine ?? ''
+                       let area: string | null = null
+                       if (addressLine && city) {
+                         const parts = addressLine.split(',').map((p: string) => p.trim()).filter(Boolean)
+                         for (let i = parts.length - 1; i >= 0; i--) {
+                           const part = parts[i]
+                           if (part.toLowerCase() !== city.toLowerCase()) {
+                             area = part
+                             break
+                           }
+                         }
+                       }
+                       addressString = area ? `${area}, ${city}` : city
+                     }
                     
                     const hasEnquiries = school._count?.enquiries ?? 0
                     const hasViews = school.viewCount || school._count?.views || 0

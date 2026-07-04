@@ -245,23 +245,115 @@ export default function AdmissionManagementBespokePage() {
       </section>
 
       {/* NEW SECTION: WHY SCHOOLS SWITCH TO VIDHYAAN */}
-      <section className="py-16 px-6 md:px-16 max-w-4xl mx-auto text-center space-y-6">
-        <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
-          Why Schools Switch to Vidhyaan
-        </h2>
-        <p className="text-slate-600 font-semibold text-base md:text-lg leading-relaxed max-w-3xl mx-auto">
-          Manual applicant logs get lost between counsellor handoffs and document updates. By routing documents, scheduling interviews, and recording fee payments in a single visual pipeline, your administration has total transparency on seats and classes.
-        </p>
+      <section className="py-16 px-6 md:px-16 max-w-5xl mx-auto scroll-mt-28">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          <div className="lg:col-span-7 text-left space-y-4">
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
+              Why Schools Switch to Vidhyaan
+            </h2>
+            <p className="text-slate-600 font-semibold text-base leading-relaxed">
+              Manual applicant logs get lost between counsellor handoffs and document updates. By routing documents, scheduling interviews, and recording fee payments in a single visual pipeline, your administration has total transparency on seats and classes.
+            </p>
+          </div>
+          <div className="lg:col-span-5 flex items-center justify-center p-6 bg-slate-50/50 border border-slate-200 rounded-3xl shadow-sm relative overflow-hidden h-64">
+            {/* Background design pattern */}
+            <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,#fff,rgba(255,255,255,0.6))]" />
+            
+            <div className="flex items-center justify-between w-full max-w-sm relative z-10">
+              {/* Scattered Chaos Left Side */}
+              <div className="relative w-36 h-36 flex items-center justify-center">
+                {/* Paper/Doc */}
+                <div className="absolute top-2 left-2 p-2 bg-white rounded-xl border border-slate-200 shadow-sm rotate-[-12deg]">
+                  <FileText className="w-5 h-5 text-slate-400" />
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-black">×</span>
+                </div>
+                
+                {/* WhatsApp */}
+                <div className="absolute top-4 right-2 p-2 bg-white rounded-xl border border-slate-200 shadow-sm rotate-[15deg]">
+                  <MessageSquare className="w-5 h-5 text-slate-400" />
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-black">×</span>
+                </div>
+                
+                {/* Excel/Spreadsheet */}
+                <div className="absolute bottom-4 left-4 p-2 bg-white rounded-xl border border-slate-200 shadow-sm rotate-[6deg]">
+                  <BarChart className="w-5 h-5 text-slate-400" />
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-black">×</span>
+                </div>
+                
+                {/* Phone */}
+                <div className="absolute bottom-2 right-6 p-2 bg-white rounded-xl border border-slate-200 shadow-sm rotate-[-8deg]">
+                  <Phone className="w-5 h-5 text-slate-400" />
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-black">×</span>
+                </div>
+              </div>
+
+              {/* Transition Arrow Center */}
+              <div className="flex-1 flex justify-center">
+                <ArrowRight className="w-6 h-6 text-purple-600 animate-pulse shrink-0" />
+              </div>
+
+              {/* Vidhyaan Unified Right Side */}
+              <div className="relative p-5 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl shadow-md flex items-center justify-center">
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="flex items-center gap-1 bg-white p-2 rounded-lg border border-purple-100 shadow-sm">
+                    <div className="w-2.5 h-2.5 rounded-full bg-purple-600" />
+                    <div className="w-4 h-1.5 rounded-full bg-purple-200" />
+                    <div className="w-2 h-2 rounded-full bg-purple-300" />
+                  </div>
+                  <span className="text-[9px] font-black uppercase text-purple-700 tracking-wider font-poppins">Pipeline</span>
+                </div>
+                <span className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-black shadow-sm">✓</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* 2. PROBLEM SECTION (PART 3) */}
-      <section id="overview" className="py-16 px-6 md:px-16 scroll-mt-28 max-w-4xl mx-auto text-center space-y-6">
-        <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight font-poppins">
-          Admission season shouldn't mean chaos
-        </h2>
-        <p className="text-slate-600 font-semibold text-base leading-relaxed max-w-3xl mx-auto">
-          Every admission cycle, counsellors juggle paper applications, WhatsApp threads, and Excel trackers. Applicants get lost between desks and follow-ups get missed. Vidhyaan's admission management system puts every applicant in one pipeline your whole team can see — so nothing depends on one counsellor's memory.
-        </p>
+      <section id="overview" className="py-16 px-6 md:px-16 scroll-mt-28 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          <div className="lg:col-span-5 lg:order-1 flex items-center justify-center p-6 bg-amber-50/20 border border-amber-100/70 rounded-3xl shadow-sm relative overflow-hidden h-64">
+            {/* Background pattern */}
+            <div className="absolute inset-0 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:16px_16px] opacity-10" />
+            
+            <div className="relative w-full h-full flex items-center justify-center">
+              {/* Overlapping, messy chaos icons */}
+              {/* Document 1 */}
+              <div className="absolute top-6 left-12 p-3 bg-red-50 border border-red-100 text-red-500 rounded-xl shadow-sm rotate-[-25deg] z-10">
+                <FileText className="w-6 h-6" />
+              </div>
+              
+              {/* Chat bubble */}
+              <div className="absolute top-10 right-10 p-3 bg-amber-50 border border-amber-150 text-amber-600 rounded-xl shadow-sm rotate-[18deg] z-20">
+                <MessageSquare className="w-7 h-7" />
+              </div>
+              
+              {/* Phone */}
+              <div className="absolute bottom-6 left-10 p-3.5 bg-red-50 border border-red-150 text-red-600 rounded-full shadow-md rotate-[-15deg] z-30 animate-bounce">
+                <Phone className="w-6 h-6" />
+              </div>
+              
+              {/* Spreadsheet */}
+              <div className="absolute bottom-8 right-12 p-3.5 bg-amber-50 border border-amber-100 text-amber-500 rounded-xl shadow-sm rotate-[32deg] z-10">
+                <BarChart className="w-6 h-6" />
+              </div>
+
+              {/* Warning/Alert badge inside chaos */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-2 bg-red-500 text-white rounded-full shadow-lg z-40 rotate-[12deg]">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5">Where is the TC?</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="lg:col-span-7 lg:order-2 text-left space-y-4">
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight font-poppins">
+              Admission season shouldn't mean chaos
+            </h2>
+            <p className="text-slate-600 font-semibold text-base leading-relaxed">
+              Every admission cycle, counsellors juggle paper applications, WhatsApp threads, and Excel trackers. Applicants get lost between desks and follow-ups get missed. Vidhyaan's admission management system puts every applicant in one pipeline your whole team can see — so nothing depends on one counsellor's memory.
+            </p>
+          </div>
+        </div>
       </section>
 
       {/* THE COMPLETE ADMISSION JOURNEY */}
@@ -273,7 +365,7 @@ export default function AdmissionManagementBespokePage() {
           <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
             The Complete Admission Journey
           </h2>
-          <p className="text-slate-500 font-semibold text-sm md:text-base max-w-xl mx-auto">
+          <p className="text-slate-555 font-semibold text-sm md:text-base max-w-xl mx-auto">
             How Vidhyaan streamlines the applicant lifecycle from lead conversion to active enrollment.
           </p>
         </div>
@@ -340,37 +432,44 @@ export default function AdmissionManagementBespokePage() {
             {
               title: "Fully customizable admission stages",
               body: "Define the exact stages your school uses — application received, document verification, interview scheduled, admitted, waitlisted, rejected — and move applicants through them with a simple stage change. This gives your admin team real-time clarity on seats.",
-              icon: "Settings"
+              icon: "Settings",
+              color: "bg-purple-50 text-purple-700 border-purple-100 shadow-purple-100/50"
             },
             {
               title: "Document collection, built in",
               body: "Parents and counsellors upload required documents directly against each applicant's record — no more chasing certificates over email or WhatsApp with no central place to store them.",
-              icon: "FileText"
+              icon: "FileText",
+              color: "bg-amber-50 text-amber-700 border-amber-100 shadow-amber-100/50"
             },
             {
               title: "Complete activity timeline",
               body: "Every call, note, WhatsApp message, and email tied to an applicant is logged in one place — any counsellor can pick up where another left off without asking \"what's the status on this one?\"",
-              icon: "Clock"
+              icon: "Clock",
+              color: "bg-indigo-50 text-indigo-750 border-indigo-100 shadow-indigo-100/50"
             },
             {
               title: "One-click conversion to enrolled student",
               body: "Once an applicant is admitted, convert them directly into a full student record — no re-entering the same name, grade, and guardian details a second time.",
-              icon: "UserCheck"
+              icon: "UserCheck",
+              color: "bg-emerald-50 text-emerald-700 border-emerald-100 shadow-emerald-100/50"
             },
             {
               title: "Pipeline visibility for leadership",
               body: "See conversion rates and pipeline health at a glance — how many applications are stuck at document verification, how many are ready for interview, how many convert to admitted — without asking your admissions team for a manual count.",
-              icon: "BarChart"
+              icon: "BarChart",
+              color: "bg-violet-50 text-violet-750 border-violet-100 shadow-violet-100/50"
             },
             {
               title: "Works on any device",
               body: "Vidhyaan works entirely in your browser with a fully responsive layout. Manage enquiries on the go, with no mobile app install required.",
-              icon: "Phone"
+              icon: "Phone",
+              color: "bg-sky-50 text-sky-700 border-sky-100 shadow-sky-100/50"
             },
             {
               title: "Filter and act fast",
               body: "Quickly sort applicants by status directly from the dashboard to focus on document verification, interview calls, or approvals.",
-              icon: "Activity"
+              icon: "Activity",
+              color: "bg-rose-50 text-rose-700 border-rose-100 shadow-rose-100/50"
             }
           ].map((cap, idx) => {
             const CapIcon = IconMap[cap.icon]
@@ -382,8 +481,8 @@ export default function AdmissionManagementBespokePage() {
                   isEven ? '' : 'md:flex-row-reverse'
                 }`}
               >
-                <div className="p-4 rounded-2xl shrink-0 bg-purple-50 text-purple-700 shadow-sm">
-                  {CapIcon ? <CapIcon className="w-7 h-7" /> : <CheckCircle className="w-7 h-7" />}
+                <div className={`p-5 md:p-6 rounded-3xl shrink-0 shadow-md border ${cap.color}`}>
+                  {CapIcon ? <CapIcon className="w-8 h-8 md:w-9 md:h-9" /> : <CheckCircle className="w-8 h-8 md:w-9 md:h-9" />}
                 </div>
                 <div className="space-y-2 flex-1">
                   <h3 className="font-extrabold text-slate-800 text-lg md:text-xl font-poppins">
@@ -740,7 +839,7 @@ export default function AdmissionManagementBespokePage() {
 
       {/* DPDP Trust line */}
       <div className="w-full text-center py-4 bg-slate-50 border-t border-slate-100 text-[10px] font-bold text-slate-400">
-        🔒 ISO 27001 Certified &bull; 100% compliant with India's Digital Personal Data Protection (DPDP) Act, 2023. All parent PII is protected.
+        🔒 100% compliant with India's Digital Personal Data Protection (DPDP) Act, 2023. All parent PII is protected.
       </div>
     </div>
   )

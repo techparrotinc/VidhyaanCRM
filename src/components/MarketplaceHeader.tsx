@@ -78,6 +78,23 @@ export default function MarketplaceHeader() {
     }
   }, [isProductsOpen])
 
+  // Click outside to close products mega-menu
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target.closest('.products-trigger') || target.closest('.products-dropdown')) {
+        return
+      }
+      setIsProductsOpen(false)
+    }
+    if (isProductsOpen) {
+      document.addEventListener('click', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [isProductsOpen])
+
   // Listen to deletion message query parameter
   useEffect(() => {
     const msg = searchParams.get('message')
@@ -132,7 +149,7 @@ export default function MarketplaceHeader() {
           {/* Navigation Links */}
           <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600 h-full">
             <div 
-              className="h-full flex items-center"
+              className="h-full flex items-center products-trigger"
               onMouseEnter={() => setIsProductsOpen(true)}
             >
               <button 
@@ -290,7 +307,7 @@ export default function MarketplaceHeader() {
         {/* Mega Menu Dropdown */}
         {isProductsOpen && (
           <div 
-            className="absolute left-0 right-0 top-[64px] w-full bg-white border-t-3 border-t-[#1565D8] rounded-b-2xl shadow-2xl z-40 overflow-hidden animate-slide-down-fade focus-within:ring-2 focus-within:ring-[#1565D8]/20 focus-within:outline-none"
+            className="absolute left-0 right-0 top-[64px] w-full bg-white border-t-3 border-t-[#1565D8] rounded-b-2xl shadow-2xl z-40 overflow-hidden animate-slide-down-fade focus-within:ring-2 focus-within:ring-[#1565D8]/20 focus-within:outline-none products-dropdown"
             onMouseEnter={() => setIsProductsOpen(true)}
             tabIndex={-1}
           >
@@ -330,6 +347,7 @@ export default function MarketplaceHeader() {
                 </div>
                 <Link 
                   href="/pricing" 
+                  onClick={() => setIsProductsOpen(false)}
                   className="text-xs font-black text-[#1565D8] hover:text-blue-700 transition flex items-center gap-1 mt-5 hover:underline w-fit"
                 >
                   <span>See all products</span>
@@ -395,6 +413,7 @@ export default function MarketplaceHeader() {
                       <Link 
                         key={idx}
                         href={item.href}
+                        onClick={() => setIsProductsOpen(false)}
                         className="group flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-slate-50 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:ring-offset-1"
                       >
                         <div className={`w-[30px] h-[30px] rounded-md flex items-center justify-center shrink-0 transition-colors duration-200 ${item.tintClass}`}>
@@ -479,6 +498,7 @@ export default function MarketplaceHeader() {
                       <Link 
                         key={idx}
                         href={item.href}
+                        onClick={() => setIsProductsOpen(false)}
                         className="group flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-slate-50 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:ring-offset-1"
                       >
                         <div className={`w-[30px] h-[30px] rounded-md flex items-center justify-center shrink-0 transition-colors duration-200 ${item.tintClass}`}>
@@ -502,7 +522,7 @@ export default function MarketplaceHeader() {
                     <h4 className="text-[12px] font-black font-poppins tracking-tight">List your school free</h4>
                     <p className="text-[10px] text-blue-100 mt-1 font-semibold leading-tight">Get discovered by local parents.</p>
                   </div>
-                  <Link href="/register-school" className="text-[10px] font-bold text-white hover:text-blue-100 underline mt-2 block w-fit">
+                  <Link href="/register-school" onClick={() => setIsProductsOpen(false)} className="text-[10px] font-bold text-white hover:text-blue-100 underline mt-2 block w-fit">
                     Get started
                   </Link>
                 </div>
@@ -518,7 +538,7 @@ export default function MarketplaceHeader() {
                     </div>
                     <p className="text-[10px] text-slate-500 mt-1 font-medium leading-tight">Collect fees online.</p>
                   </div>
-                  <Link href="/products/fee-management" className="text-[10px] font-black text-[#1565D8] hover:text-blue-700 transition mt-2 block w-fit hover:underline">
+                  <Link href="/products/fee-management" onClick={() => setIsProductsOpen(false)} className="text-[10px] font-black text-[#1565D8] hover:text-blue-700 transition mt-2 block w-fit hover:underline">
                     Learn more
                   </Link>
                 </div>

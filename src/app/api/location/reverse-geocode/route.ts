@@ -1,6 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
+const SUPPORTED_CITIES_LOWER = [
+  'chennai', 'bengaluru', 'bangalore', 'hyderabad', 'mumbai',
+  'delhi', 'new delhi', 'pune', 'coimbatore', 'madurai',
+  'kochi', 'jaipur'
+]
+
+function getFallbackCity(localityName: string | null, districtName: string | null, stateName: string | null) {
+  const checkMatch = (name: string | null) => {
+    if (!name) return null
+    const norm = name.toLowerCase()
+    if (SUPPORTED_CITIES_LOWER.includes(norm)) {
+      if (norm === 'bangalore' || norm === 'bengaluru') return 'Bengaluru'
+      if (norm === 'delhi' || norm === 'new delhi') return 'New Delhi'
+      return norm.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+    }
+    return null
+  }
+
+  // Try locality first
+  let matched = checkMatch(localityName)
+  if (matched) return matched
+
+  // Try district
+  matched = checkMatch(districtName)
+  if (matched) return matched
+
+  // Fallback based on state
+  if (stateName) {
+    const stateLower = stateName.toLowerCase()
+    if (stateLower.includes('tamil nadu')) return 'Chennai'
+    if (stateLower.includes('karnataka')) return 'Bengaluru'
+    if (stateLower.includes('telangana') || stateLower.includes('andhra')) return 'Hyderabad'
+    if (stateLower.includes('maharashtra')) return 'Mumbai'
+    if (stateLower.includes('delhi')) return 'New Delhi'
+    if (stateLower.includes('rajasthan')) return 'Jaipur'
+    if (stateLower.includes('kerala')) return 'Kochi'
+  }
+
+  return 'Chennai' // Ultimate fallback
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
@@ -38,20 +79,19 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    if (cached) {
-      let city = cached.city
-      let area: string | null = null
-      if (cached.city.includes('|')) {
-        const parts = cached.city.split('|')
-        area = parts[0]
-        city = parts[1]
-      }
+    // Legacy cache records missing "|" separator are treated as invalid/expired to force fresh Google API query
+    if (cached && cached.city.includes('|')) {
+      const parts = cached.city.split('|')
+      const area = parts[0] || null
+      const city = parts[1]
+      const fallbackCity = getFallbackCity(city, null, cached.state)
+
       return NextResponse.json({
         success: true,
         city: city,
-        locality: city,
+        locality: fallbackCity,
         area: area,
-        district: null,
+        district: fallbackCity,
         state: cached.state,
         lat,
         lng
@@ -129,8 +169,8 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Cache key/expiry structure unchanged, cache the richer data: "detectedArea|detectedCity"
-    const cityToCache = detectedArea ? `${detectedArea}|${detectedCity}` : detectedCity
+    // Cache key/expiry structure unchanged, cache the richer data: "detectedArea|detectedCity" (always with separator)
+    const cityToCache = `${detectedArea || ''}|${detectedCity}`
 
     // Save to cache (using upsert to avoid duplicate key issues if checked concurrently)
     await prisma.locationCache.upsert({
@@ -154,12 +194,14 @@ export async function GET(req: NextRequest) {
       }
     }).catch(e => console.error('Failed to cache location:', e))
 
+    const fallbackCity = getFallbackCity(detectedCity, district || locality || null, state)
+
     return NextResponse.json({
       success: true,
       city: detectedCity,
-      locality: locality || null,
+      locality: fallbackCity,
       area: detectedArea,
-      district: district || null,
+      district: fallbackCity,
       state,
       lat,
       lng

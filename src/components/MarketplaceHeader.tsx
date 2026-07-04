@@ -289,7 +289,7 @@ export default function MarketplaceHeader() {
         {/* Mega Menu Dropdown */}
         {isProductsOpen && (
           <div 
-            className="absolute left-1/2 -translate-x-1/2 top-[60px] w-[90vw] max-w-[1200px] bg-white/95 backdrop-blur-md border border-slate-100 rounded-2xl shadow-2xl z-40 overflow-hidden animate-slide-down-fade focus-within:ring-2 focus-within:ring-[#1565D8]/20 focus-within:outline-none"
+            className="absolute left-1/2 -translate-x-1/2 top-[60px] w-[90vw] max-w-[1400px] bg-white/95 backdrop-blur-md border border-slate-100 rounded-2xl shadow-2xl z-40 overflow-hidden animate-slide-down-fade focus-within:ring-2 focus-within:ring-[#1565D8]/20 focus-within:outline-none"
             onMouseEnter={() => setIsProductsOpen(true)}
             tabIndex={-1}
           >
@@ -379,15 +379,15 @@ export default function MarketplaceHeader() {
                 <h3 className="text-sm font-black font-poppins text-slate-800 uppercase tracking-wider pb-3 border-b border-slate-100 mb-6">
                   Explore Vidhyaan
                 </h3>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+                <div className="grid grid-cols-3 gap-x-8 gap-y-6">
                   
                   {/* Marketplace Group */}
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 col-span-1">
                     <h4 className="text-[11px] font-black text-[#1565D8] uppercase tracking-wider mb-1 flex items-center gap-1.5 select-none">
                       <LayoutGrid className="w-3.5 h-3.5 shrink-0 text-[#1565D8]/80" />
                       <span>Marketplace</span>
                     </h4>
-                    <div className="flex flex-col gap-y-1">
+                    <div className="flex flex-col gap-y-2">
                       {[
                         {
                           href: "/products/marketplace/free-listing",
@@ -446,101 +446,137 @@ export default function MarketplaceHeader() {
                   </div>
 
                   {/* Admission CRM Group */}
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 col-span-2">
                     <h4 className="text-[11px] font-black text-[#1565D8] uppercase tracking-wider mb-1 flex items-center gap-1.5 select-none">
                       <Activity className="w-3.5 h-3.5 shrink-0 text-[#1565D8]/80" />
                       <span>Admission CRM</span>
                     </h4>
-                    <div className="flex flex-col gap-y-1">
-                      {[
-                        {
-                          href: "/products/lead-management",
-                          name: "Lead Management",
-                          desc: "Capture and convert every enquiry",
-                          icon: Users,
-                          tintClass: "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
-                        },
-                        {
-                          href: "/products/admission-management",
-                          name: "Admission Management",
-                          desc: "Streamline registrations and documents",
-                          icon: ClipboardList,
-                          tintClass: "bg-violet-50 text-violet-600 border border-violet-100/50"
-                        },
-                        {
-                          href: "/products/student-management",
-                          name: "Student Management",
-                          desc: "Manage student profiles and rosters",
-                          icon: GraduationCap,
-                          tintClass: "bg-pink-50 text-pink-600 border border-pink-100/50"
-                        },
-                        {
-                          href: "/products/course-management",
-                          name: "Course & Batch Management",
-                          desc: "Schedule classes and batch timings",
-                          icon: BookOpen,
-                          tintClass: "bg-orange-50 text-orange-600 border border-orange-100/50"
-                        },
-                        {
-                          href: "/products/fee-management",
-                          name: "Fee & Payment Management",
-                          desc: "Invoices, online payments, receipts",
-                          icon: CreditCard,
-                          tintClass: "bg-rose-50 text-rose-600 border border-rose-100/50"
-                        },
-                        {
-                          href: "/products/campaign-management",
-                          name: "Campaign Management",
-                          desc: "Broadcasting custom parent updates",
-                          icon: MessageSquare,
-                          tintClass: "bg-teal-50 text-teal-600 border border-teal-100/50"
-                        },
-                        {
-                          href: "/products/notifications-alerts",
-                          name: "Notifications & Alerts",
-                          desc: "Instant SMS and email automated alerts",
-                          icon: Bell,
-                          tintClass: "bg-yellow-50 text-yellow-600 border border-yellow-100/50"
-                        },
-                        {
-                          href: "/products/parent-portal",
-                          name: "Parent Portal",
-                          desc: "Self-service admissions application tracker",
-                          icon: FileText,
-                          tintClass: "bg-sky-50 text-sky-600 border border-sky-100/50"
-                        },
-                        {
-                          href: "/products/reporting-analytics",
-                          name: "Reports & Analytics",
-                          desc: "Actionable insight on lead pipelines",
-                          icon: BarChart3,
-                          tintClass: "bg-purple-50 text-purple-600 border border-purple-100/50"
-                        }
-                      ].map((item) => {
-                        const ItemIcon = item.icon
-                        return (
-                          <Link 
-                            key={item.href}
-                            href={item.href}
-                            className="group flex items-center justify-between p-1.5 rounded-xl hover:bg-slate-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:ring-offset-1 focus:rounded-lg"
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.tintClass}`}>
-                                <ItemIcon className="w-3.5 h-3.5" />
+                    
+                    <div className="grid grid-cols-2 gap-x-6">
+                      
+                      {/* Col A */}
+                      <div className="flex flex-col gap-y-2">
+                        {[
+                          {
+                            href: "/products/lead-management",
+                            name: "Lead Management",
+                            desc: "Capture and convert every enquiry",
+                            icon: Users,
+                            tintClass: "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
+                          },
+                          {
+                            href: "/products/admission-management",
+                            name: "Admission Management",
+                            desc: "Streamline registrations and docs",
+                            icon: ClipboardList,
+                            tintClass: "bg-violet-50 text-violet-600 border border-violet-100/50"
+                          },
+                          {
+                            href: "/products/student-management",
+                            name: "Student Management",
+                            desc: "Manage student profiles and records",
+                            icon: GraduationCap,
+                            tintClass: "bg-pink-50 text-pink-600 border border-pink-100/50"
+                          },
+                          {
+                            href: "/products/course-management",
+                            name: "Course & Batch Management",
+                            desc: "Schedule classes and batches",
+                            icon: BookOpen,
+                            tintClass: "bg-orange-50 text-orange-600 border border-orange-100/50"
+                          },
+                          {
+                            href: "/products/fee-management",
+                            name: "Fee & Payment Management",
+                            desc: "Invoices, online payments, receipts",
+                            icon: CreditCard,
+                            tintClass: "bg-rose-50 text-rose-600 border border-rose-100/50"
+                          }
+                        ].map((item) => {
+                          const ItemIcon = item.icon
+                          return (
+                            <Link 
+                              key={item.href}
+                              href={item.href}
+                              className="group flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:ring-offset-1 focus:rounded-lg"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.tintClass}`}>
+                                  <ItemIcon className="w-4 h-4" />
+                                </div>
+                                <div className="text-left min-w-0">
+                                  <h5 className="text-[13px] font-bold text-slate-800 group-hover:text-[#1565D8] transition-colors leading-snug">
+                                    {item.name}
+                                  </h5>
+                                  <p className="text-[10px] text-slate-450 font-semibold group-hover:text-slate-600 transition-colors leading-tight line-clamp-1">
+                                    {item.desc}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="text-left min-w-0">
-                                <h5 className="text-[12px] font-bold text-slate-800 group-hover:text-[#1565D8] transition-colors leading-tight">
-                                  {item.name}
-                                </h5>
-                                <p className="text-[9.5px] text-slate-450 font-semibold group-hover:text-slate-600 transition-colors leading-none truncate max-w-[170px]">
-                                  {item.desc}
-                                </p>
+                              <ArrowRight className="w-3.5 h-3.5 text-[#1565D8] opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 shrink-0" />
+                            </Link>
+                          )
+                        })}
+                      </div>
+
+                      {/* Col B */}
+                      <div className="flex flex-col gap-y-2">
+                        {[
+                          {
+                            href: "/products/campaign-management",
+                            name: "Campaign Management",
+                            desc: "Custom parent updates at scale",
+                            icon: MessageSquare,
+                            tintClass: "bg-teal-50 text-teal-600 border border-teal-100/50"
+                          },
+                          {
+                            href: "/products/notifications-alerts",
+                            name: "Notifications & Alerts",
+                            desc: "Instant SMS and email alerts",
+                            icon: Bell,
+                            tintClass: "bg-yellow-50 text-yellow-600 border border-yellow-100/50"
+                          },
+                          {
+                            href: "/products/parent-portal",
+                            name: "Parent Portal",
+                            desc: "Self-service admissions for parents",
+                            icon: FileText,
+                            tintClass: "bg-sky-50 text-sky-600 border border-sky-100/50"
+                          },
+                          {
+                            href: "/products/reporting-analytics",
+                            name: "Reports & Analytics",
+                            desc: "Insights on pipeline and fees",
+                            icon: BarChart3,
+                            tintClass: "bg-purple-50 text-purple-600 border border-purple-100/50"
+                          }
+                        ].map((item) => {
+                          const ItemIcon = item.icon
+                          return (
+                            <Link 
+                              key={item.href}
+                              href={item.href}
+                              className="group flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:ring-offset-1 focus:rounded-lg"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.tintClass}`}>
+                                  <ItemIcon className="w-4 h-4" />
+                                </div>
+                                <div className="text-left min-w-0">
+                                  <h5 className="text-[13px] font-bold text-slate-800 group-hover:text-[#1565D8] transition-colors leading-snug">
+                                    {item.name}
+                                  </h5>
+                                  <p className="text-[10px] text-slate-450 font-semibold group-hover:text-slate-600 transition-colors leading-tight line-clamp-1">
+                                    {item.desc}
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                            <ArrowRight className="w-3 h-3 text-[#1565D8] opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 shrink-0" />
-                          </Link>
-                        )
-                      })}
+                              <ArrowRight className="w-3.5 h-3.5 text-[#1565D8] opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 shrink-0" />
+                            </Link>
+                          )
+                        })}
+                      </div>
+
                     </div>
                   </div>
 

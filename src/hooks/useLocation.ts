@@ -13,15 +13,7 @@ export { SUPPORTED_CITIES } from '@/stores/location.store'
 
 export function useLocation() {
   const store = useLocationStore()
-  
-  // Destructure stable state actions to keep hook callback dependency chains stable
-  const {
-    setDetectedCity,
-    setLoading,
-    setError,
-    setPermissionStatus,
-    restoreCachedLocation
-  } = store
+  const initialized = useLocationStore((state) => state.initialized)
 
   const reverseGeocode = useCallback(async (latitude: number, longitude: number) => {
     try {
@@ -52,17 +44,18 @@ export function useLocation() {
           finalCity = getMatchedCity(data.district)
         }
 
-        setDetectedCity(finalCity, data.area || null, latitude, longitude, 'gps')
+        useLocationStore.getState().setDetectedCity(finalCity, data.area || null, latitude, longitude, 'gps')
       } else {
         throw new Error('City not found in response')
       }
     } catch (err: any) {
       console.error('Reverse geocoding error:', err)
-      setError('Could not detect city')
+      useLocationStore.getState().setError('Could not detect city')
     }
-  }, [setDetectedCity, setError])
+  }, [])
 
   const requestLocation = useCallback(() => {
+    const { setLoading, setError, setPermissionStatus } = useLocationStore.getState()
     setLoading(true)
     setError(null)
     setPermissionStatus('requesting')
@@ -94,11 +87,11 @@ export function useLocation() {
         maximumAge: 0
       }
     )
-  }, [reverseGeocode, setLoading, setError, setPermissionStatus])
+  }, [reverseGeocode])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (store.initialized) return
+    if (initialized) return
 
     // Check localStorage
     const savedStr = localStorage.getItem('vidhyaan_location')
@@ -110,7 +103,7 @@ export function useLocation() {
         const isCityValid = saved.city === null || SUPPORTED_CITIES.includes(saved.city)
 
         if (!isExpired && isVersionValid && isCityValid) {
-          restoreCachedLocation(saved)
+          useLocationStore.getState().restoreCachedLocation(saved)
           return
         }
       } catch (e) {
@@ -120,7 +113,7 @@ export function useLocation() {
 
     // No cached or expired/invalid, call requestLocation
     requestLocation()
-  }, [requestLocation, restoreCachedLocation, store.initialized])
+  }, [requestLocation, initialized])
 
   return {
     city: store.activeCity,

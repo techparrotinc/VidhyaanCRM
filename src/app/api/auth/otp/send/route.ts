@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           error: 'Invalid request',
-          details: error.errors
+          details: (error as any).errors
         },
         { status: 400 }
       )

@@ -13,6 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/schools`, lastModified: currentDate, changeFrequency: 'daily', priority: 0.8 },
     { url: `${baseUrl}/learning-centers`, lastModified: currentDate, changeFrequency: 'daily', priority: 0.8 },
     { url: `${baseUrl}/register-school`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/contact`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },
     
     // CRM Product Pages
     { url: `${baseUrl}/products/admission-management`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },

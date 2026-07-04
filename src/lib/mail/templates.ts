@@ -281,3 +281,73 @@ export function feeInvoiceTemplate(params: {
     </div>
   `
 }
+
+export function contactSupportNotificationTemplate(params: {
+  name: string
+  email: string
+  phone: string
+  role: string
+  subject?: string
+  message: string
+}): string {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+      <div style="background-color: #1565D8; padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 24px;">
+        <h2 style="color: #ffffff; margin: 0; font-size: 18px; font-weight: 700;">New Contact Form Enquiry 📨</h2>
+      </div>
+      <div style="color: #334155; line-height: 1.6; font-size: 14px;">
+        <p>A new support request has been submitted on the Vidhyaan Contact Us page:</p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <tbody>
+            <tr style="border-bottom: 1px solid #edf2f7;">
+              <td style="padding: 8px 0; font-weight: bold; color: #475569; width: 35%;">Submitter Name:</td>
+              <td style="padding: 8px 0; color: #0f172a;">${params.name}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #edf2f7;">
+              <td style="padding: 8px 0; font-weight: bold; color: #475569;">Email Address:</td>
+              <td style="padding: 8px 0; color: #0f172a;"><a href="mailto:${params.email}">${params.email}</a></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #edf2f7;">
+              <td style="padding: 8px 0; font-weight: bold; color: #475569;">Phone Number:</td>
+              <td style="padding: 8px 0; color: #0f172a;">+91 ${params.phone}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #edf2f7;">
+              <td style="padding: 8px 0; font-weight: bold; color: #475569;">Role / User Type:</td>
+              <td style="padding: 8px 0; color: #0f172a; text-transform: capitalize;">${params.role}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #edf2f7;">
+              <td style="padding: 8px 0; font-weight: bold; color: #475569;">Subject:</td>
+              <td style="padding: 8px 0; color: #0f172a;">${params.subject || 'No Subject'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #475569; vertical-align: top;">Message:</td>
+              <td style="padding: 8px 0; color: #0f172a; white-space: pre-wrap;">${params.message}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `
+}
+
+export function contactUserConfirmationTemplate(params: {
+  name: string
+}): string {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+      <div style="padding: 20px; border-radius: 8px; background-color: #f0fdf4; border: 1px solid #bbf7d0; margin-bottom: 24px; text-align: center;">
+        <h2 style="color: #166534; margin: 0; font-size: 18px; font-weight: bold;">Message Received!</h2>
+      </div>
+      <div style="color: #334155; line-height: 1.6; font-size: 14px;">
+        <p>Dear ${params.name},</p>
+        <p>Thank you for contacting Vidhyaan. We have received your message and support ticket.</p>
+        
+        <p>Our support team is reviewing your request and we will get back to you within 24 hours.</p>
+        
+        <hr style="border: none; border-top: 1px solid #edf2f7; margin: 24px 0;" />
+        <p style="font-size: 12px; color: #64748b; margin: 0;">This is an automated confirmation of your request. Please do not reply directly to this email.</p>
+      </div>
+    </div>
+  `
+}

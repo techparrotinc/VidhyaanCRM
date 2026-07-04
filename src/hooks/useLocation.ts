@@ -43,6 +43,9 @@ export function useLocation() {
         if (!finalCity) {
           finalCity = getMatchedCity(data.district)
         }
+        if (!finalCity) {
+          finalCity = data.city || null
+        }
 
         useLocationStore.getState().setDetectedCity(finalCity, data.area || null, latitude, longitude, 'gps')
       } else {
@@ -120,6 +123,7 @@ export function useLocation() {
     manualArea: store.manualArea,
     gpsCity: store.detectedCity,
     detectedArea: store.detectedArea,
+    isSupportedCity: store.isSupportedCity,
     lat: store.lat,
     lng: store.lng,
     loading: store.loading,

@@ -20,6 +20,7 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
     city,
     gpsCity,
     detectedArea,
+    isSupportedCity,
     loading: locationLoading,
     requestLocation,
     setManualCity,
@@ -175,13 +176,19 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
                   </div>
                 </div>
                 {gpsCity ? (
-                  <button
-                    type="button"
-                    onClick={() => handleSelectCity(gpsCity)}
-                    className="bg-[#1565D8] hover:bg-blue-700 text-white font-extrabold text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-lg shrink-0 transition cursor-pointer"
-                  >
-                    Use this
-                  </button>
+                  isSupportedCity ? (
+                    <button
+                      type="button"
+                      onClick={() => handleSelectCity(gpsCity)}
+                      className="bg-[#1565D8] hover:bg-blue-700 text-white font-extrabold text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-lg shrink-0 transition cursor-pointer"
+                    >
+                      Use this
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-amber-600 font-extrabold uppercase tracking-wider bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-100 select-none text-right max-w-[200px] leading-tight">
+                      Not yet available — choose a nearby city below
+                    </span>
+                  )
                 ) : (
                   <button
                     type="button"

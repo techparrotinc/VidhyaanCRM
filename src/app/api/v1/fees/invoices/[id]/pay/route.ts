@@ -7,6 +7,7 @@ import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
 import { PaymentMethod, PaymentStatus, InvoiceStatus } from '@prisma/client'
 import { createNotification } from '@/lib/services/notifications'
+import { sumSuccessfulPayments, remainingBalance, nextInvoiceStatus } from '@/lib/fees'
 
 export const POST = route({
   module: MODULES.FEE_MANAGEMENT,
@@ -42,11 +43,8 @@ export const POST = route({
       throw Errors.businessRule('Invoice is already fully paid')
     }
 
-    const totalPaid = invoice.payments
-      .filter(p => p.status === 'SUCCESS')
-      .reduce((sum, p) => sum + Number(p.amount), 0)
-
-    const remaining = Number(invoice.totalAmount) - totalPaid
+    const totalPaid = sumSuccessfulPayments(invoice.payments)
+    const remaining = remainingBalance(invoice.totalAmount, totalPaid)
 
     if (body.amount > remaining) {
       throw Errors.businessRule(
@@ -99,12 +97,7 @@ export const POST = route({
     })
 
     const newTotalPaid = totalPaid + body.amount
-    const newStatus: InvoiceStatus =
-      newTotalPaid >= Number(invoice.totalAmount)
-      ? 'PAID'
-      : newTotalPaid > 0
-      ? 'PARTIALLY_PAID'
-      : 'UNPAID'
+    const newStatus: InvoiceStatus = nextInvoiceStatus(invoice.totalAmount, newTotalPaid)
 
     await db.invoice.update({
       where: { id: invoice.id },

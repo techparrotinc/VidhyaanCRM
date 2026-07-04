@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server'
 import { startOfMonth, endOfMonth, parseISO } from 'date-fns'
 import { InvoiceStatus, InvoiceType } from '@prisma/client'
 import { asEnum } from '@/lib/api/query'
+import { sumLineItems, resolveScheduleStatus } from '@/lib/fees'
 
 export const GET = route({
   module: MODULES.FEE_MANAGEMENT,
@@ -219,24 +220,10 @@ export const POST = route({
           const invoiceNumber =
             'INV-' + year + '-' + String(initialCount + 1 + i).padStart(5, '0')
 
-          // Calculate total from items
-          const totalAmount = inv.items.reduce(
-            (sum, item) => sum + item.unitPrice * item.quantity,
-            0
+          const totalAmount = sumLineItems(
+            inv.items.map(item => ({ price: item.unitPrice, quantity: item.quantity }))
           )
-
-          let status: 'SCHEDULED' | 'UNPAID' = 'UNPAID'
-          let scheduledDateVal: Date | null = null
-
-          if (inv.scheduledDate) {
-            const parsedDate = new Date(inv.scheduledDate)
-            if (!isNaN(parsedDate.getTime())) {
-              scheduledDateVal = parsedDate
-              if (parsedDate > new Date()) {
-                status = 'SCHEDULED'
-              }
-            }
-          }
+          const { status, scheduledDate: scheduledDateVal } = resolveScheduleStatus(inv.scheduledDate)
 
           const invoice = await tx.invoice.create({
             data: {
@@ -301,24 +288,10 @@ export const POST = route({
     const invoiceNumber =
       'INV-' + year + '-' + String(count + 1).padStart(5, '0')
 
-    // Calculate total from items
-    const totalAmount = body.items.reduce(
-      (sum, item) => sum + item.amount * item.quantity,
-      0
+    const totalAmount = sumLineItems(
+      body.items.map(item => ({ price: item.amount, quantity: item.quantity }))
     )
-
-    let status: 'SCHEDULED' | 'UNPAID' = 'UNPAID'
-    let scheduledDateVal: Date | null = null
-
-    if (body.scheduledDate) {
-      const parsedDate = new Date(body.scheduledDate)
-      if (!isNaN(parsedDate.getTime())) {
-        scheduledDateVal = parsedDate
-        if (parsedDate > new Date()) {
-          status = 'SCHEDULED'
-        }
-      }
-    }
+    const { status, scheduledDate: scheduledDateVal } = resolveScheduleStatus(body.scheduledDate)
 
     // Create invoice with items
     const invoice = await db.invoice.create({

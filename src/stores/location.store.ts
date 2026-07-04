@@ -19,6 +19,7 @@ export const SUPPORTED_CITIES = [
 
 interface LocationState {
   manualCity: string | null
+  manualArea: string | null
   detectedCity: string | null
   activeCity: string | null
   lat: number | null
@@ -30,6 +31,7 @@ interface LocationState {
   initialized: boolean
 
   setManualCity: (cityName: string) => void
+  setManualArea: (areaName: string | null) => void
   setDetectedCity: (cityName: string | null, lat: number | null, lng: number | null, method: DetectionMethodType) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
@@ -42,6 +44,7 @@ interface LocationState {
 
 export const useLocationStore = create<LocationState>((set) => ({
   manualCity: null,
+  manualArea: null,
   detectedCity: null,
   activeCity: null,
   lat: null,
@@ -55,6 +58,7 @@ export const useLocationStore = create<LocationState>((set) => ({
   setManualCity: (cityName: string) => {
     set({
       manualCity: cityName,
+      manualArea: null, // Clear manualArea on city change
       activeCity: cityName,
       lat: null,
       lng: null,
@@ -65,11 +69,35 @@ export const useLocationStore = create<LocationState>((set) => ({
     if (typeof window !== 'undefined') {
       const saveObj = {
         city: cityName || null,
+        area: null,
         lat: null,
         lng: null,
         detectedAt: Date.now(),
         method: 'manual',
         version: CACHE_VERSION
+      }
+      localStorage.setItem('vidhyaan_location', JSON.stringify(saveObj))
+    }
+  },
+
+  setManualArea: (areaName: string | null) => {
+    set((state) => ({
+      manualArea: areaName,
+      loading: false,
+      error: null
+    }))
+    if (typeof window !== 'undefined') {
+      const savedStr = localStorage.getItem('vidhyaan_location')
+      let saved: any = {}
+      if (savedStr) {
+        try {
+          saved = JSON.parse(savedStr)
+        } catch (e) {}
+      }
+      const saveObj = {
+        ...saved,
+        area: areaName || null,
+        detectedAt: Date.now()
       }
       localStorage.setItem('vidhyaan_location', JSON.stringify(saveObj))
     }
@@ -111,6 +139,7 @@ export const useLocationStore = create<LocationState>((set) => ({
   restoreCachedLocation: (saved: any) => {
     set({
       manualCity: saved.method === 'manual' ? saved.city : null,
+      manualArea: saved.method === 'manual' ? (saved.area || null) : null,
       detectedCity: saved.method === 'gps' || saved.method === 'cached' ? saved.city : null,
       activeCity: saved.city,
       lat: saved.lat,
@@ -124,6 +153,7 @@ export const useLocationStore = create<LocationState>((set) => ({
 
   resetLocation: () => set({
     manualCity: null,
+    manualArea: null,
     detectedCity: null,
     activeCity: null,
     lat: null,

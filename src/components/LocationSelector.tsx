@@ -21,7 +21,8 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
     gpsCity,
     loading: locationLoading,
     requestLocation,
-    setManualCity
+    setManualCity,
+    setManualArea
   } = useLocation()
 
   const activeCityName = city || gpsCity
@@ -66,14 +67,21 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
 
   const handleSelectLocSuggestion = (suggestion: any) => {
     setManualCity(suggestion.cityName)
+    if (suggestion.type === 'area') {
+      setManualArea(suggestion.name)
+    } else {
+      setManualArea(null)
+    }
     setIsOpen(false)
     setLocSearch('')
   }
 
   const handleSelectCity = (cityName: string) => {
     setManualCity(cityName)
+    setManualArea(null)
     setIsOpen(false)
   }
+
 
   return (
     <>

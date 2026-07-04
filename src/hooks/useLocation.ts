@@ -1,43 +1,18 @@
 "use client"
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
+import {
+  useLocationStore,
+  PermissionStatusType,
+  DetectionMethodType,
+  CACHE_VERSION,
+  SUPPORTED_CITIES
+} from '@/stores/location.store'
 
-export const SUPPORTED_CITIES = [
-  'Chennai',
-  'Bengaluru',
-  'Hyderabad',
-  'Mumbai',
-  'New Delhi',
-  'Pune',
-  'Coimbatore',
-  'Madurai',
-  'Kochi',
-  'Jaipur'
-]
-
-const CACHE_VERSION = 2
-
-export type PermissionStatusType = 'idle' | 'requesting' | 'granted' | 'denied' | 'unavailable'
-export type DetectionMethodType = 'gps' | 'manual' | 'cached' | null
-
-interface SavedLocation {
-  city: string | null
-  lat: number | null
-  lng: number | null
-  detectedAt: number
-  method: DetectionMethodType
-  version?: number
-}
+export { SUPPORTED_CITIES } from '@/stores/location.store'
 
 export function useLocation() {
-  const [city, setCity] = useState<string | null>(null)
-  const [gpsCity, setGpsCity] = useState<string | null>(null)
-  const [lat, setLat] = useState<number | null>(null)
-  const [lng, setLng] = useState<number | null>(null)
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
-  const [permissionStatus, setPermissionStatus] = useState<PermissionStatusType>('idle')
-  const [detectionMethod, setDetectionMethod] = useState<DetectionMethodType>(null)
+  const store = useLocationStore()
 
   const reverseGeocode = useCallback(async (latitude: number, longitude: number) => {
     try {
@@ -68,42 +43,24 @@ export function useLocation() {
           finalCity = getMatchedCity(data.district)
         }
 
-        setCity(finalCity)
-        setGpsCity(finalCity)
-        setLat(latitude)
-        setLng(longitude)
-        setDetectionMethod('gps')
-        setError(null)
-        
-        // Save to localStorage
-        const saveObj: SavedLocation = {
-          city: finalCity,
-          lat: latitude,
-          lng: longitude,
-          detectedAt: Date.now(),
-          method: 'gps',
-          version: CACHE_VERSION
-        }
-        localStorage.setItem('vidhyaan_location', JSON.stringify(saveObj))
+        store.setDetectedCity(finalCity, latitude, longitude, 'gps')
       } else {
         throw new Error('City not found in response')
       }
     } catch (err: any) {
       console.error('Reverse geocoding error:', err)
-      setError('Could not detect city')
-    } finally {
-      setLoading(false)
+      store.setError('Could not detect city')
     }
-  }, [])
+  }, [store])
 
   const requestLocation = useCallback(() => {
-    setLoading(true)
-    setError(null)
-    setPermissionStatus('requesting')
+    store.setLoading(true)
+    store.setError(null)
+    store.setPermissionStatus('requesting')
 
     if (typeof window === 'undefined' || !navigator.geolocation) {
-      setPermissionStatus('unavailable')
-      setLoading(false)
+      store.setPermissionStatus('unavailable')
+      store.setLoading(false)
       return
     }
 
@@ -111,16 +68,16 @@ export function useLocation() {
       (position) => {
         const latitude = position.coords.latitude
         const longitude = position.coords.longitude
-        setPermissionStatus('granted')
+        store.setPermissionStatus('granted')
         reverseGeocode(latitude, longitude)
       },
       (err) => {
         if (err.code === 1) {
-          setPermissionStatus('denied')
+          store.setPermissionStatus('denied')
         } else {
-          setPermissionStatus('unavailable')
+          store.setPermissionStatus('unavailable')
         }
-        setLoading(false)
+        store.setLoading(false)
       },
       {
         enableHighAccuracy: true,
@@ -128,51 +85,23 @@ export function useLocation() {
         maximumAge: 0
       }
     )
-  }, [reverseGeocode])
-
-  const setManualCity = useCallback((cityName: string) => {
-    setCity(cityName)
-    setLat(null)
-    setLng(null)
-    setDetectionMethod('manual')
-    setLoading(false)
-    setError(null)
-
-    if (typeof window !== 'undefined') {
-      const saveObj: SavedLocation = {
-        city: cityName || null,
-        lat: null,
-        lng: null,
-        detectedAt: Date.now(),
-        method: 'manual',
-        version: CACHE_VERSION
-      }
-      localStorage.setItem('vidhyaan_location', JSON.stringify(saveObj))
-    }
-  }, [])
+  }, [reverseGeocode, store])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+    if (store.initialized) return
 
     // Check localStorage
     const savedStr = localStorage.getItem('vidhyaan_location')
     if (savedStr) {
       try {
-        const saved: SavedLocation = JSON.parse(savedStr)
+        const saved = JSON.parse(savedStr)
         const isExpired = Date.now() - saved.detectedAt > 24 * 60 * 60 * 1000
         const isVersionValid = saved.version === CACHE_VERSION
         const isCityValid = saved.city === null || SUPPORTED_CITIES.includes(saved.city)
 
         if (!isExpired && isVersionValid && isCityValid) {
-          setCity(saved.city)
-          if (saved.method === 'gps') {
-            setGpsCity(saved.city)
-          }
-          setLat(saved.lat)
-          setLng(saved.lng)
-          setDetectionMethod('cached')
-          setPermissionStatus(saved.method === 'gps' ? 'granted' : 'idle')
-          setLoading(false)
+          store.restoreCachedLocation(saved)
           return
         }
       } catch (e) {
@@ -182,18 +111,18 @@ export function useLocation() {
 
     // No cached or expired/invalid, call requestLocation
     requestLocation()
-  }, [requestLocation])
+  }, [requestLocation, store])
 
   return {
-    city,
-    gpsCity,
-    lat,
-    lng,
-    loading,
-    error,
-    permissionStatus,
-    detectionMethod,
-    setManualCity,
+    city: store.activeCity,
+    gpsCity: store.detectedCity,
+    lat: store.lat,
+    lng: store.lng,
+    loading: store.loading,
+    error: store.error,
+    permissionStatus: store.permissionStatus,
+    detectionMethod: store.detectionMethod,
+    setManualCity: store.setManualCity,
     requestLocation
   }
 }

@@ -32,9 +32,9 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') ?? undefined
     const admissionOpen = searchParams.get('admissionOpen')
     const sort = searchParams.get('sort') ?? 'relevance'
-    const page = Number(searchParams.get('page') ?? 1)
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1') || 1)
     const limitParam = searchParams.get('limit')
-    const limit = limitParam ? Number(limitParam) : 10
+    const limit = Math.min(50, Math.max(1, parseInt(limitParam ?? '10') || 10))
     const skip = limitParam ? 0 : (page - 1) * limit
 
     // Support both parameter names: institutionType and type

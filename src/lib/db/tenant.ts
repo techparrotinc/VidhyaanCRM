@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client'
 import { prisma } from './client'
 
 const TENANT_MODELS = [
@@ -21,101 +20,94 @@ const softDeleteModelSet = new Set(SOFT_DELETE_MODELS.map(m => m.toLowerCase()))
 const isTenantModel = (model: string) => tenantModelSet.has(model.toLowerCase())
 const isSoftDeleteModel = (model: string) => softDeleteModelSet.has(model.toLowerCase())
 
+// Every operation that filters by `where` gets orgId injected. Relies on
+// Prisma's extendedWhereUnique (GA since 5.0) for the *Unique/update/delete
+// variants, which accept non-unique fields alongside the unique selector.
+const WHERE_SCOPED_READS = new Set([
+  'findFirst', 'findFirstOrThrow', 'findMany',
+  'findUnique', 'findUniqueOrThrow',
+  'count', 'aggregate', 'groupBy'
+])
+
+const WHERE_SCOPED_WRITES = new Set(['update', 'updateMany'])
+
+function scopeWhere(args: any, orgId: string, softDelete: boolean) {
+  args.where = args.where ?? {}
+  args.where.orgId = orgId
+  if (softDelete) {
+    // ??= so callers can still query deleted rows explicitly (trash views)
+    args.where.deletedAt ??= null
+  }
+}
+
+const camelCase = (model: string) => model.charAt(0).toLowerCase() + model.slice(1)
+
 export function forOrg(orgId: string) {
   return prisma.$extends({
     query: {
       $allModels: {
-        async create(this: any, { model, args, query }: any) {
-          if (isTenantModel(model)) {
+        async $allOperations({ model, operation, args, query }: any) {
+          if (!isTenantModel(model)) {
+            return query(args)
+          }
+
+          const softDelete = isSoftDeleteModel(model)
+
+          if (operation === 'create') {
             args.data = args.data ?? {}
             args.data.orgId = orgId
+            return query(args)
           }
-          return query(args)
-        },
-        async createMany(this: any, { model, args, query }: any) {
-          if (isTenantModel(model)) {
+
+          if (operation === 'createMany' || operation === 'createManyAndReturn') {
             if (args.data) {
               if (Array.isArray(args.data)) {
-                args.data.forEach((item: any) => {
-                  item.orgId = orgId
-                })
+                args.data.forEach((item: any) => { item.orgId = orgId })
               } else {
                 args.data.orgId = orgId
               }
             }
+            return query(args)
           }
-          return query(args)
-        },
-        async findFirst(this: any, { model, args, query }: any) {
-          if (isTenantModel(model)) {
+
+          if (operation === 'upsert') {
             args.where = args.where ?? {}
             args.where.orgId = orgId
+            args.create = args.create ?? {}
+            args.create.orgId = orgId
+            return query(args)
           }
-          if (isSoftDeleteModel(model)) {
-            args.where = args.where ?? {}
-            args.where.deletedAt = null
+
+          if (WHERE_SCOPED_READS.has(operation)) {
+            scopeWhere(args, orgId, softDelete)
+            return query(args)
           }
-          return query(args)
-        },
-        async findMany(this: any, { model, args, query }: any) {
-          if (isTenantModel(model)) {
-            args.where = args.where ?? {}
-            args.where.orgId = orgId
+
+          if (WHERE_SCOPED_WRITES.has(operation)) {
+            scopeWhere(args, orgId, /* softDelete */ false)
+            return query(args)
           }
-          if (isSoftDeleteModel(model)) {
-            args.where = args.where ?? {}
-            args.where.deletedAt = null
-          }
-          return query(args)
-        },
-        async findUnique(this: any, { model, args, query }: any) {
-          if (isTenantModel(model)) {
-            const camelModel = model.charAt(0).toLowerCase() + model.slice(1)
-            return this[camelModel].findFirst(args)
-          }
-          return query(args)
-        },
-        async update(this: any, { model, args, query }: any) {
-          if (isTenantModel(model)) {
-            args.where = args.where ?? {}
-            args.where.orgId = orgId
-          }
-          return query(args)
-        },
-        async updateMany(this: any, { model, args, query }: any) {
-          if (isTenantModel(model)) {
-            args.where = args.where ?? {}
-            args.where.orgId = orgId
-          }
-          return query(args)
-        },
-        async delete(this: any, { model, args, query }: any) {
-          if (isSoftDeleteModel(model)) {
-            const camelModel = model.charAt(0).toLowerCase() + model.slice(1)
-            const updateArgs = {
-              where: args.where,
-              data: { deletedAt: new Date() }
+
+          if (operation === 'delete' || operation === 'deleteMany') {
+            const where = { ...(args.where ?? {}), orgId }
+            if (softDelete) {
+              // Rewrite to soft delete on the base client; orgId in where
+              // keeps it tenant-scoped even though this bypasses the extension.
+              const delegate = (prisma as any)[camelCase(model)]
+              const data = { deletedAt: new Date() }
+              return operation === 'delete'
+                ? delegate.update({ where, data })
+                : delegate.updateMany({ where, data })
             }
-            return this[camelModel].update(updateArgs)
-          } else if (isTenantModel(model)) {
-            args.where = args.where ?? {}
-            args.where.orgId = orgId
+            args.where = where
+            return query(args)
           }
-          return query(args)
-        },
-        async deleteMany(this: any, { model, args, query }: any) {
-          if (isSoftDeleteModel(model)) {
-            const camelModel = model.charAt(0).toLowerCase() + model.slice(1)
-            const updateManyArgs = {
-              where: args.where,
-              data: { deletedAt: new Date() }
-            }
-            return this[camelModel].updateMany(updateManyArgs)
-          } else if (isTenantModel(model)) {
-            args.where = args.where ?? {}
-            args.where.orgId = orgId
-          }
-          return query(args)
+
+          // Fail closed: an operation this extension doesn't know how to
+          // scope must not silently run cross-tenant.
+          throw new Error(
+            `Tenant-scoped client does not support operation "${operation}" on model "${model}"`
+          )
         }
       }
     }

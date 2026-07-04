@@ -21,7 +21,21 @@ import {
   CheckCircle2,
   X,
   Loader2,
-  Menu
+  Menu,
+  Users,
+  ClipboardList,
+  GraduationCap,
+  CreditCard,
+  BookOpen,
+  MessageSquare,
+  BarChart3,
+  Lock,
+  Search,
+  GitCompare,
+  Activity,
+  Award,
+  Zap,
+  Cloud
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -36,6 +50,9 @@ export default function MarketplaceHeader() {
   const [toastMsg, setToastMsg] = useState<string | null>(null)
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isMobileProductsOpen, setIsMobileProductsOpen] = useState(false)
+  const [isMobileMarketplaceOpen, setIsMobileMarketplaceOpen] = useState(false)
+  const [isMobileCrmOpen, setIsMobileCrmOpen] = useState(false)
 
   // Listen to deletion message query parameter
   useEffect(() => {
@@ -238,84 +255,198 @@ export default function MarketplaceHeader() {
         {/* Mega Menu Dropdown */}
         {isProductsOpen && (
           <div 
-            className="absolute left-0 right-0 top-16 w-full bg-white border-t-[3px] border-[#1565D8] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15),0_15px_25px_-10px_rgba(0,0,0,0.1)] z-40 transition-all duration-300 ease-out"
+            className="absolute left-1/2 -translate-x-1/2 top-[60px] w-[90vw] max-w-[1200px] bg-white border border-slate-200 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] z-40 transition-all duration-300 ease-out overflow-hidden"
             onMouseEnter={() => setIsProductsOpen(true)}
           >
-            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 grid grid-cols-2 gap-8 relative">
-              <div className="absolute top-8 bottom-8 left-1/2 w-px bg-[#E2E8F0] -translate-x-1/2 hidden md:block" />
-
-              {/* CORE PRODUCTS */}
-              <div className="pr-0 md:pr-8">
-                <div className="flex items-center gap-2 pb-3 mb-6 border-b border-slate-100">
-                  <LayoutGrid className="w-4 h-4 text-[#1565D8] fill-current" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-505">CORE PRODUCTS</h3>
-                </div>
-                
-                <div className="space-y-3">
-                  <Link href="/for-schools" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                    <div className="w-12 h-12 rounded-xl bg-[#EFF6FF] group-hover:bg-[#DBEAFE] text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-300">
-                      <Building className="w-5 h-5 fill-current" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">School Profile</span>
-                        <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                          <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Create and manage school listings and learning institutes online</p>
-                    </div>
+            <div className="grid grid-cols-[300px_1fr_340px] w-full">
+              
+              {/* Column 1 — Curated Shortcuts (What do you want to do?) */}
+              <div className="bg-slate-50/80 pt-12 pb-12 pl-12 pr-10 flex flex-col gap-6 shrink-0 border-r border-slate-200/50">
+                <h3 className="text-2xl font-semibold font-poppins text-slate-800 pb-4 border-b border-slate-100 mb-6">
+                  What do you want to do?
+                </h3>
+                <div className="flex flex-col gap-y-[14px]">
+                  <Link 
+                    href="/register-school" 
+                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
+                  >
+                    List your school for free
                   </Link>
-
-                  <Link href="/register-school" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 group-hover:bg-blue-100 text-[#1565D8] flex items-center justify-center shrink-0 transition-colors duration-300">
-                      <Building className="w-5 h-5 text-[#1565D8]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Register School</span>
-                        <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                          <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Register a new school or learning center on Vidhyaan</p>
-                    </div>
+                  <Link 
+                    href="/products/parent-portal" 
+                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
+                  >
+                    Track your child's application
                   </Link>
-
-                  <Link href="/for-schools" className="flex items-start gap-4 p-3 rounded-r-2xl border-l-[3px] border-transparent hover:border-[#1565D8] hover:bg-[#F8FAFF] transition-all duration-300 group cursor-pointer">
-                    <div className="w-12 h-12 rounded-xl bg-[#FFFBEB] group-hover:bg-[#FEF3C7] text-[#D97706] flex items-center justify-center shrink-0 transition-colors duration-300">
-                      <UserPlus className="w-5 h-5 fill-current" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="text-base font-bold text-[#0F172A] group-hover:text-[#1565D8] transition-colors duration-300">Admissions CRM</span>
-                        <div className="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center shrink-0 text-slate-400 group-hover:bg-[#1565D8] group-hover:border-[#1565D8] group-hover:text-white transition-all duration-300">
-                          <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-500 font-medium mt-0.5 leading-relaxed">Manage applications and convert enquiries into enrollments faster</p>
-                    </div>
+                  <Link 
+                    href="/products/fee-management" 
+                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
+                  >
+                    Collect fees online
+                  </Link>
+                  <Link 
+                    href="/products/admission-management" 
+                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
+                  >
+                    Manage admissions end-to-end
+                  </Link>
+                  <Link 
+                    href="/products/campaign-management" 
+                    className="text-[16px] font-medium font-poppins text-slate-700 hover:text-[#1565D8] transition-colors leading-relaxed block"
+                  >
+                    Send WhatsApp updates to parents
                   </Link>
                 </div>
               </div>
 
-              {/* PLATFORM MODULES */}
-              <div className="pl-0 md:pl-8">
-                <div className="flex items-center gap-2 pb-3 mb-6 border-b border-slate-100">
-                  <Shield className="w-4 h-4 text-[#1565D8] fill-current" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-505">PLATFORM FEATURES</h3>
-                </div>
-                
-                <div className="space-y-4 pt-1">
-                  <div className="flex items-start gap-3">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">Advanced Analytics</h4>
-                      <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">Track views, inquiry statistics, and school listing conversions dynamically.</p>
+              {/* Column 2 — Explore Vidhyaan (Core Product Lists) */}
+              <div className="pt-12 pb-12 px-12 bg-white flex flex-col">
+                <h3 className="text-2xl font-semibold font-poppins text-slate-800 pb-4 border-b border-slate-100 mb-6">
+                  Explore Vidhyaan
+                </h3>
+                <div className="grid grid-cols-2 gap-x-12 gap-y-8">
+                  
+                  {/* Marketplace Group */}
+                  <div className="flex flex-col gap-3">
+                    <h4 className="text-xs font-bold text-[#1565D8] uppercase tracking-wider mb-2.5">
+                      Marketplace
+                    </h4>
+                    <div className="flex flex-col gap-y-[14px]">
+                      <Link 
+                        href="/products/marketplace/free-listing" 
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
+                      >
+                        Free School Listing
+                      </Link>
+                      <Link 
+                        href="/products/marketplace/search-discovery" 
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
+                      >
+                        Parent Search & Discovery
+                      </Link>
+                      <Link 
+                        href="/products/marketplace/compare" 
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
+                      >
+                        Compare Schools
+                      </Link>
+                      <Link 
+                        href="/products/marketplace/verified-badge" 
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
+                      >
+                        Verified Profile Badge
+                      </Link>
                     </div>
                   </div>
+
+                  {/* Admission CRM Group */}
+                  <div className="flex flex-col gap-3">
+                    <h4 className="text-xs font-bold text-[#1565D8] uppercase tracking-wider mb-2.5">
+                      Admission CRM
+                    </h4>
+                    <div className="flex flex-col gap-y-[14px]">
+                      <Link 
+                        href="/products/lead-management" 
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
+                      >
+                        Lead Management
+                      </Link>
+                      <Link 
+                        href="/products/admission-management" 
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
+                      >
+                        Admission Management
+                      </Link>
+                      <Link 
+                        href="/products/student-management" 
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
+                      >
+                        Student Management
+                      </Link>
+                      <Link 
+                        href="/products/course-management" 
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
+                      >
+                        Course & Batch Management
+                      </Link>
+                      <Link 
+                        href="/products/fee-management" 
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
+                      >
+                        Fee & Payment Management
+                      </Link>
+                      <Link 
+                        href="/products/campaign-management" 
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
+                      >
+                        Campaign Management
+                      </Link>
+                      <Link 
+                        href="/products/notifications-alerts" 
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
+                      >
+                        Notifications & Alerts
+                      </Link>
+                      <Link 
+                        href="/products/parent-portal" 
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
+                      >
+                        Parent Portal
+                      </Link>
+                      <Link 
+                        href="/products/reporting-analytics" 
+                        className="text-[16px] font-medium text-slate-600 hover:text-[#1565D8] transition-colors"
+                      >
+                        Reports & Analytics
+                      </Link>
+                    </div>
+                  </div>
+
                 </div>
               </div>
+
+              {/* Column 3 — Spotlight Promotional Cards */}
+              <div className="pt-12 pb-12 pl-10 pr-12 bg-white border-l border-slate-200/50 flex flex-col gap-6 shrink-0">
+                <h3 className="text-2xl font-semibold font-poppins text-slate-800 pb-4 border-b border-slate-100 mb-6">
+                  Spotlight
+                </h3>
+                <div className="flex flex-col gap-5">
+                  
+                  {/* Spotlight Card 1 */}
+                  <div className="group rounded-xl border border-slate-100 hover:border-blue-100 p-6 bg-slate-50/40 hover:bg-blue-50/20 transition-all duration-200">
+                    <h4 className="text-[17px] font-bold font-poppins text-slate-800 mb-1.5">
+                      Free Discovery Listing
+                    </h4>
+                    <p className="text-sm text-slate-500 font-normal leading-relaxed mb-3">
+                      List your school free and get discovered by parents.
+                    </p>
+                    <Link 
+                      href="/register-school" 
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-[#1565D8] hover:text-blue-700 transition"
+                    >
+                      Get started <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+                    </Link>
+                  </div>
+
+                  {/* Spotlight Card 2 */}
+                  <div className="group rounded-xl border border-slate-100 hover:border-blue-100 p-6 bg-slate-50/40 hover:bg-blue-50/20 transition-all duration-200">
+                    <h4 className="text-[17px] font-bold font-poppins text-slate-800 mb-1.5">
+                      Razorpay Payments
+                    </h4>
+                    <p className="text-sm text-slate-500 font-normal leading-relaxed mb-3">
+                      Collect fees online, fully integrated with your invoices.
+                    </p>
+                    <Link 
+                      href="/products/fee-management" 
+                      className="inline-flex items-center gap-1 text-[14px] font-semibold text-[#1565D8] hover:text-blue-700 transition"
+                    >
+                      Learn more <span className="group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+                    </Link>
+                  </div>
+
+                </div>
+              </div>
+
             </div>
           </div>
         )}
@@ -325,6 +456,165 @@ export default function MarketplaceHeader() {
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-slate-100 bg-white w-full py-4 px-4 flex flex-col gap-4 animate-in slide-in-from-top duration-200">
           <nav className="flex flex-col gap-3 font-semibold text-sm text-slate-600">
+            {/* Marketplace Accordion */}
+            <div>
+              <button 
+                onClick={() => setIsMobileMarketplaceOpen(!isMobileMarketplaceOpen)}
+                className="w-full flex items-center justify-between hover:text-[#1565D8] transition py-1.5 text-left font-semibold text-sm text-slate-600 cursor-pointer"
+              >
+                Marketplace Platform
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isMobileMarketplaceOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isMobileMarketplaceOpen && (
+                <div className="pl-4 mt-2 space-y-3 border-l border-slate-100 flex flex-col">
+                  <Link 
+                    href="/products/marketplace/free-listing" 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="group flex items-center gap-2.5 py-1 hover:text-[#1565D8] transition"
+                  >
+                    <div className="w-6 h-6 rounded bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
+                      <Building className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Free School Listing</span>
+                  </Link>
+                  <Link 
+                    href="/products/marketplace/search-discovery" 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="group flex items-center gap-2.5 py-1 hover:text-[#1565D8] transition"
+                  >
+                    <div className="w-6 h-6 rounded bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
+                      <Search className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Parent Search & Discovery</span>
+                  </Link>
+                  <Link 
+                    href="/products/marketplace/compare" 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="group flex items-center gap-2.5 py-1 hover:text-[#1565D8] transition"
+                  >
+                    <div className="w-6 h-6 rounded bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
+                      <GitCompare className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Compare Schools</span>
+                  </Link>
+                  <Link 
+                    href="/products/marketplace/verified-badge" 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="group flex items-center gap-2.5 py-1 hover:text-[#1565D8] transition"
+                  >
+                    <div className="w-6 h-6 rounded bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
+                      <Award className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Verified Profile Badge</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Admission CRM Accordion */}
+            <div>
+              <button 
+                onClick={() => setIsMobileCrmOpen(!isMobileCrmOpen)}
+                className="w-full flex items-center justify-between hover:text-[#1565D8] transition py-1.5 text-left font-semibold text-sm text-slate-600 cursor-pointer"
+              >
+                Admission CRM
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isMobileCrmOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isMobileCrmOpen && (
+                <div className="pl-4 mt-2 space-y-3 border-l border-slate-100 flex flex-col">
+                  <Link 
+                    href="/products/lead-management" 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="group flex items-center gap-2.5 py-1 hover:text-[#1565D8] transition"
+                  >
+                    <div className="w-6 h-6 rounded bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
+                      <Users className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Lead Management</span>
+                  </Link>
+                  <Link 
+                    href="/products/admission-management" 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="group flex items-center gap-2.5 py-1 hover:text-[#1565D8] transition"
+                  >
+                    <div className="w-6 h-6 rounded bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
+                      <ClipboardList className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Admission Management</span>
+                  </Link>
+                  <Link 
+                    href="/products/student-management" 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="group flex items-center gap-2.5 py-1 hover:text-[#1565D8] transition"
+                  >
+                    <div className="w-6 h-6 rounded bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
+                      <GraduationCap className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Student Management</span>
+                  </Link>
+                  <Link 
+                    href="/products/course-management" 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="group flex items-center gap-2.5 py-1 hover:text-[#1565D8] transition"
+                  >
+                    <div className="w-6 h-6 rounded bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
+                      <BookOpen className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Course & Batch Management</span>
+                  </Link>
+                  <Link 
+                    href="/products/fee-management" 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="group flex items-center gap-2.5 py-1 hover:text-[#1565D8] transition"
+                  >
+                    <div className="w-6 h-6 rounded bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
+                      <CreditCard className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Fee & Payment Management</span>
+                  </Link>
+                  <Link 
+                    href="/products/campaign-management" 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="group flex items-center gap-2.5 py-1 hover:text-[#1565D8] transition"
+                  >
+                    <div className="w-6 h-6 rounded bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
+                      <MessageSquare className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Campaign Management</span>
+                  </Link>
+                  <Link 
+                    href="/products/notifications-alerts" 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="group flex items-center gap-2.5 py-1 hover:text-[#1565D8] transition"
+                  >
+                    <div className="w-6 h-6 rounded bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
+                      <Bell className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Notifications & Alerts</span>
+                  </Link>
+                  <Link 
+                    href="/products/parent-portal" 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="group flex items-center gap-2.5 py-1 hover:text-[#1565D8] transition"
+                  >
+                    <div className="w-6 h-6 rounded bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
+                      <User className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Parent Portal</span>
+                  </Link>
+                  <Link 
+                    href="/products/reporting-analytics" 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="group flex items-center gap-2.5 py-1 hover:text-[#1565D8] transition"
+                  >
+                    <div className="w-6 h-6 rounded bg-blue-50 text-[#1565D8] flex items-center justify-center shrink-0">
+                      <BarChart3 className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 group-hover:text-[#1565D8] transition-colors">Reports & Analytics</span>
+                  </Link>
+                </div>
+              )}
+            </div>
             <Link 
               href="/schools" 
               onClick={() => setIsMobileMenuOpen(false)}

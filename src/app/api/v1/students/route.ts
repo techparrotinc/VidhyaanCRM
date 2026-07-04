@@ -5,6 +5,7 @@ import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { Gender, StudentStatus } from '@prisma/client'
+import { parseQuery, paginationShape, enumParam } from '@/lib/api/query'
 
 export const GET = route({
   module: MODULES.STUDENT_MANAGEMENT,
@@ -18,9 +19,10 @@ export const GET = route({
   handler: async ({ req, db }) => {
     const { searchParams } = new URL(req.url)
 
-    const page = Number(searchParams.get('page') ?? 1)
-    const limit = Number(searchParams.get('limit') ?? 25)
-    const status = searchParams.get('status') ?? undefined
+    const { page, limit, status } = parseQuery(req.url, {
+      ...paginationShape,
+      status: enumParam(StudentStatus)
+    })
     const GRADE_LABEL_MAP: Record<string, string> = {
       'pre_kg': 'Pre-KG',
       'nursery': 'Nursery',
@@ -55,7 +57,7 @@ export const GET = route({
     const skip = (page - 1) * limit
 
     const where: any = { deletedAt: null }
-    if (status) where.status = status as StudentStatus
+    if (status) where.status = status
     if (gradeLabel) {
       where.gradeLabel = gradeLabel
     }

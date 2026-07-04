@@ -6,6 +6,8 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db/client'
 import { redis } from '@/lib/redis'
+import { AdmissionStatus, LeadPriority } from '@prisma/client'
+import { asEnum } from '@/lib/api/query'
 
 export const GET = route({
   module: MODULES.ADMISSION_MANAGEMENT,
@@ -18,8 +20,8 @@ export const GET = route({
   handler: async ({ req, db, user }) => {
     const { searchParams } = new URL(req.url)
 
-    const page = Number(searchParams.get('page') ?? 1)
-    const limit = Number(searchParams.get('limit') ?? 25)
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1') || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '25') || 25))
     const stageId = searchParams.get('stageId')
     const assignedToId = searchParams.get('assignedToId') ?? searchParams.get('counsellorId') ?? undefined
     const priority = searchParams.get('priority') ?? undefined
@@ -60,13 +62,13 @@ export const GET = route({
       }),
       ...(priority && {
         lead: {
-          priority: priority as any
+          priority: asEnum(LeadPriority, priority, 'priority')
         }
       }),
       ...(dateFrom && {
         createdAt: { gte: new Date(dateFrom) }
       }),
-      ...(status && { status }),
+      ...(status && { status: asEnum(AdmissionStatus, status, 'status') }),
       ...(academicYearId && {
         OR: [
           { academicYearId: academicYearId },

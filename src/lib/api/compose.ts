@@ -12,7 +12,6 @@ const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
 type RouteConfig = {
   module?: string
   roles?: string[]
-  allowPublic?: boolean
   handler: (ctx: RouteContext) => Promise<NextResponse>
 }
 

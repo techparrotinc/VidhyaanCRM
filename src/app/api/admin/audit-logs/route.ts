@@ -17,8 +17,8 @@ export async function GET(req: NextRequest) {
     const action = searchParams.get('action')
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = Math.max(1, parseInt(searchParams.get('limit') || '10'))
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1') || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '10') || 10))
 
     const where: any = {}
 

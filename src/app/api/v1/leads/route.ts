@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db'
 import { LeadSource, LeadStatus, LeadPriority } from '@prisma/client'
 import { createNotification } from '@/lib/services/notifications'
 import { cleanPhoneNumber } from '@/lib/utils'
+import { parseQuery, paginationShape, enumParam, textParam } from '@/lib/api/query'
 
 export const GET = route({
   module: MODULES.LEAD_MANAGEMENT,
@@ -18,23 +19,25 @@ export const GET = route({
     ROLES.RECEPTIONIST
   ],
   handler: async ({ req, db }) => {
-    const { searchParams } = new URL(req.url)
-
-    const page = Number(searchParams.get('page') ?? 1)
-    const limit = Number(searchParams.get('limit') ?? 25)
-    const status = searchParams.get('status') ?? undefined
-    const source = searchParams.get('source') ?? undefined
-    const counsellorId = searchParams.get('counsellorId') ?? searchParams.get('assignedToId') ?? undefined
-    const search = searchParams.get('search') ?? undefined
-    const priority = searchParams.get('priority') ?? undefined
+    const q = parseQuery(req.url, {
+      ...paginationShape,
+      status: enumParam(LeadStatus),
+      source: enumParam(LeadSource),
+      priority: enumParam(LeadPriority),
+      counsellorId: textParam,
+      assignedToId: textParam,
+      search: textParam
+    })
+    const { page, limit, status, source, priority, search } = q
+    const counsellorId = q.counsellorId ?? q.assignedToId
 
     const skip = (page - 1) * limit
 
     const where: any = {}
 
-    if (status) where.status = status as LeadStatus
-    if (source) where.source = source as LeadSource
-    if (priority) where.priority = priority as LeadPriority
+    if (status) where.status = status
+    if (source) where.source = source
+    if (priority) where.priority = priority
     if (counsellorId) {
       where.assignedToId = counsellorId
     }

@@ -24,6 +24,15 @@ const nextConfig: NextConfig = {
   },
   typescript: {
     ignoreBuildErrors: false
+  },
+  async redirects() {
+    return [
+      {
+        source: "/products/marketplace/track-application",
+        destination: "/products/parent-portal",
+        permanent: true,
+      },
+    ];
   }
 };
 

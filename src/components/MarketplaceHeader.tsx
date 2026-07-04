@@ -56,20 +56,7 @@ export default function MarketplaceHeader() {
   const [isProductsOpen, setIsProductsOpen] = useState(false)
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
-  const [activeProductsTab, setActiveProductsTab] = useState<'parents' | 'institutions'>('institutions')
 
-  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, tab: 'parents' | 'institutions') => {
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      const nextTab = tab === 'parents' ? 'institutions' : 'parents';
-      setActiveProductsTab(nextTab);
-      const targetId = nextTab === 'parents' ? 'tab-parents' : 'tab-institutions';
-      const targetEl = document.getElementById(targetId);
-      if (targetEl) {
-        targetEl.focus();
-      }
-    }
-  };
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobileProductsOpen, setIsMobileProductsOpen] = useState(false)
@@ -303,7 +290,7 @@ export default function MarketplaceHeader() {
         {/* Mega Menu Dropdown */}
         {isProductsOpen && (
           <div 
-            className="absolute left-1/2 -translate-x-1/2 top-[60px] w-[90vw] max-w-[700px] bg-white border border-slate-200 rounded-2xl shadow-2xl z-40 overflow-hidden animate-slide-down-fade focus-within:ring-2 focus-within:ring-[#1565D8]/20 focus-within:outline-none"
+            className="absolute left-0 right-0 top-[64px] w-full bg-white border-t-3 border-t-[#1565D8] rounded-b-2xl shadow-2xl z-40 overflow-hidden animate-slide-down-fade focus-within:ring-2 focus-within:ring-[#1565D8]/20 focus-within:outline-none"
             onMouseEnter={() => setIsProductsOpen(true)}
             tabIndex={-1}
           >
@@ -311,240 +298,225 @@ export default function MarketplaceHeader() {
               @keyframes slideDownFade {
                 from {
                   opacity: 0;
-                  transform: translate(-50%, -8px);
+                  transform: translateY(-8px);
                 }
                 to {
                   opacity: 1;
-                  transform: translate(-50%, 0);
+                  transform: translateY(0);
                 }
               }
               .animate-slide-down-fade {
-                animation: slideDownFade 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-              }
-              @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-              }
-              .animate-fade-in {
-                animation: fadeIn 0.15s ease-out forwards;
+                animation: slideDownFade 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
               }
               @media (prefers-reduced-motion: reduce) {
-                .animate-slide-down-fade, .animate-fade-in {
+                .animate-slide-down-fade {
                   animation: none !important;
                   transition: none !important;
                 }
               }
             `}</style>
 
-            <div className="p-5 flex flex-col gap-5 w-full bg-white text-slate-800">
+            <div className="grid grid-cols-[210px_1fr_1fr_230px] w-full max-w-screen-2xl mx-auto divide-x divide-slate-100/80 bg-white">
               
-              {/* 1. AUDIENCE TABS */}
-              <div role="tablist" className="flex bg-slate-100 p-1 rounded-full w-fit self-center select-none">
-                <button
-                  id="tab-institutions"
-                  role="tab"
-                  aria-selected={activeProductsTab === 'institutions'}
-                  aria-controls="panel-institutions"
-                  tabIndex={activeProductsTab === 'institutions' ? 0 : -1}
-                  onClick={() => setActiveProductsTab('institutions')}
-                  onKeyDown={(e) => handleTabKeyDown(e, 'institutions')}
-                  className={`px-5 py-2 rounded-full text-xs font-bold transition-all duration-150 outline-none focus:ring-2 focus:ring-[#1565D8]/20 cursor-pointer ${
-                    activeProductsTab === 'institutions'
-                      ? 'bg-[#1565D8] text-white shadow-sm'
-                      : 'text-slate-650 hover:text-slate-900'
-                  }`}
-                >
-                  For Institutions
-                </button>
-                <button
-                  id="tab-parents"
-                  role="tab"
-                  aria-selected={activeProductsTab === 'parents'}
-                  aria-controls="panel-parents"
-                  tabIndex={activeProductsTab === 'parents' ? 0 : -1}
-                  onClick={() => setActiveProductsTab('parents')}
-                  onKeyDown={(e) => handleTabKeyDown(e, 'parents')}
-                  className={`px-5 py-2 rounded-full text-xs font-bold transition-all duration-150 outline-none focus:ring-2 focus:ring-[#1565D8]/20 cursor-pointer ${
-                    activeProductsTab === 'parents'
-                      ? 'bg-[#1565D8] text-white shadow-sm'
-                      : 'text-slate-650 hover:text-slate-900'
-                  }`}
-                >
-                  For Parents
-                </button>
-              </div>
-
-              {/* 2. CARD GRID */}
-              <div 
-                key={activeProductsTab}
-                id={`panel-${activeProductsTab}`}
-                role="tabpanel"
-                aria-labelledby={`tab-${activeProductsTab}`}
-                className="grid grid-cols-3 gap-2.5 transition-opacity duration-150 motion-reduce:transition-none animate-fade-in"
-              >
-                {activeProductsTab === 'parents' ? (
-                  <>
-                    {[
-                      {
-                        href: "/schools",
-                        name: "Find Schools",
-                        desc: "Search verified schools by city and board",
-                        icon: Search,
-                        tintClass: "bg-blue-50 text-blue-600 border border-blue-100/50"
-                      },
-                      {
-                        href: "/schools/compare",
-                        name: "Compare Schools",
-                        desc: "Fees, facilities and reviews side by side",
-                        icon: GitCompare,
-                        tintClass: "bg-violet-50 text-violet-600 border border-violet-100/50"
-                      },
-                      {
-                        href: "/parent/applications",
-                        name: "Track Application",
-                        desc: "Real-time admission status updates",
-                        icon: ClipboardCheck,
-                        tintClass: "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
-                      },
-                      {
-                        href: "/products/parent-portal",
-                        name: "Parent Portal",
-                        desc: "Fees, receipts and updates in one place",
-                        icon: FileText,
-                        tintClass: "bg-cyan-50 text-cyan-600 border border-cyan-100/50"
-                      },
-                      {
-                        href: "/products/marketplace/verified-badge",
-                        name: "Verified Schools",
-                        desc: "Profiles reviewed before going live",
-                        icon: Award,
-                        tintClass: "bg-amber-50 text-amber-600 border border-amber-100/50"
-                      },
-                      {
-                        href: "/register-school",
-                        name: "List Your School Free",
-                        desc: "Get discovered by parents near you",
-                        icon: Store,
-                        tintClass: "bg-[#1565D8] text-white",
-                        cardClass: "bg-blue-50 border-2 border-[#1565D8] hover:border-blue-700/60 hover:bg-blue-50/80"
-                      }
-                    ].map((item, idx) => {
-                      const ItemIcon = item.icon
-                      return (
-                        <Link 
-                          key={idx}
-                          href={item.href}
-                          className={`group border border-slate-200 rounded-xl p-3.5 flex flex-col gap-3 text-left bg-white hover:border-[#1565D8]/45 hover:bg-blue-50/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:ring-offset-1 ${item.cardClass || ''}`}
-                        >
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-200 ${item.tintClass}`}>
-                            <ItemIcon className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <h5 className="text-[13px] font-semibold text-slate-900 font-poppins">{item.name}</h5>
-                            <p className="text-[11px] text-slate-500 mt-1.5 leading-tight">{item.desc}</p>
-                          </div>
-                        </Link>
-                      )
-                    })}
-                  </>
-                ) : (
-                  <>
-                    {[
-                      {
-                        href: "/products/lead-management",
-                        name: "Lead Management",
-                        desc: "Capture and convert every enquiry",
-                        icon: Users,
-                        tintClass: "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
-                      },
-                      {
-                        href: "/products/admission-management",
-                        name: "Admission Management",
-                        desc: "Pipeline from application to admit",
-                        icon: ClipboardList,
-                        tintClass: "bg-violet-50 text-violet-600 border border-violet-100/50"
-                      },
-                      {
-                        href: "/products/student-management",
-                        name: "Student Management",
-                        desc: "Profiles, guardians and records",
-                        icon: GraduationCap,
-                        tintClass: "bg-pink-50 text-pink-600 border border-pink-100/50"
-                      },
-                      {
-                        href: "/products/course-management",
-                        name: "Courses & Batches",
-                        desc: "Classes, schedules and enrollment",
-                        icon: BookOpen,
-                        tintClass: "bg-orange-50 text-orange-600 border border-orange-100/50"
-                      },
-                      {
-                        href: "/products/fee-management",
-                        name: "Fees & Payments",
-                        desc: "Invoices, online payments, receipts",
-                        icon: CreditCard,
-                        tintClass: "bg-rose-50 text-rose-600 border border-rose-100/50"
-                      },
-                      {
-                        href: "/products/campaign-management",
-                        name: "Campaigns",
-                        desc: "WhatsApp, SMS and email at scale",
-                        icon: MessageSquare,
-                        tintClass: "bg-blue-50 text-blue-600 border border-blue-100/50"
-                      },
-                      {
-                        href: "/products/notifications-alerts",
-                        name: "Notifications",
-                        desc: "Automatic alerts for every event",
-                        icon: Bell,
-                        tintClass: "bg-amber-50 text-amber-600 border border-amber-100/50"
-                      },
-                      {
-                        href: "/products/parent-portal",
-                        name: "Parent Portal",
-                        desc: "Self-service payments for parents",
-                        icon: FileText,
-                        tintClass: "bg-cyan-50 text-cyan-600 border border-cyan-100/50"
-                      },
-                      {
-                        href: "/products/reporting-analytics",
-                        name: "Reports",
-                        desc: "Insights on pipeline and collections",
-                        icon: BarChart3,
-                        tintClass: "bg-purple-50 text-purple-600 border border-purple-100/50"
-                      }
-                    ].map((item, idx) => {
-                      const ItemIcon = item.icon
-                      return (
-                        <Link 
-                          key={idx}
-                          href={item.href}
-                          className="group border border-slate-200 rounded-xl p-3.5 flex flex-col gap-3 text-left bg-white hover:border-[#1565D8]/45 hover:bg-blue-50/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:ring-offset-1"
-                        >
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-200 ${item.tintClass}`}>
-                            <ItemIcon className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <h5 className="text-[13px] font-semibold text-slate-900 font-poppins">{item.name}</h5>
-                            <p className="text-[11px] text-slate-500 mt-1.5 leading-tight">{item.desc}</p>
-                          </div>
-                        </Link>
-                      )
-                    })}
-                  </>
-                )}
-              </div>
-
-              {/* 3. BOTTOM STRIP */}
-              <div className="border-t border-slate-100 pt-4 flex items-center justify-between text-xs font-semibold select-none">
-                <div className="flex items-center gap-1.5 text-slate-500 font-bold">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span>New — Razorpay online fee payments for institutions</span>
+              {/* ZONE A — INTRO PANEL */}
+              <div className="bg-slate-50/50 p-6 flex flex-col justify-between text-left select-none">
+                <div>
+                  <h4 className="text-[13px] font-black text-slate-800 leading-snug font-poppins">
+                    One platform for schools and parents
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-2 font-semibold leading-relaxed">
+                    Discovery marketplace plus a full admission CRM.
+                  </p>
                 </div>
-                <Link href="/pricing" className="text-[#1565D8] hover:text-blue-700 font-black hover:underline flex items-center gap-1">
+                <Link 
+                  href="/pricing" 
+                  className="text-xs font-black text-[#1565D8] hover:text-blue-700 transition flex items-center gap-1 mt-4 hover:underline"
+                >
                   <span>See all products</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
+              </div>
+
+              {/* ZONE B — MARKETPLACE GROUP */}
+              <div className="p-6 bg-white flex flex-col gap-4 text-left">
+                <div className="pb-1 text-left select-none">
+                  <span className="text-[10px] font-black text-[#1565D8] uppercase tracking-wider pb-1 border-b-2 border-[#FFC107] inline-block font-poppins">
+                    MARKETPLACE — FOR PARENTS
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3.5 mt-1">
+                  {[
+                    {
+                      href: "/schools",
+                      name: "Find Schools",
+                      icon: Search,
+                      tintClass: "bg-blue-50 text-blue-600 border border-blue-100/50"
+                    },
+                    {
+                      href: "/schools/compare",
+                      name: "Compare Schools",
+                      icon: GitCompare,
+                      tintClass: "bg-violet-50 text-violet-600 border border-violet-100/50"
+                    },
+                    {
+                      href: "/parent/applications",
+                      name: "Track Application",
+                      icon: ClipboardCheck,
+                      tintClass: "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
+                    },
+                    {
+                      href: "/products/parent-portal",
+                      name: "Parent Portal",
+                      icon: FileText,
+                      tintClass: "bg-cyan-50 text-cyan-600 border border-cyan-100/50"
+                    },
+                    {
+                      href: "/products/marketplace/verified-badge",
+                      name: "Verified Schools",
+                      icon: Award,
+                      tintClass: "bg-amber-50 text-amber-600 border border-amber-100/50"
+                    },
+                    {
+                      href: "/register-school",
+                      name: "Free Listing",
+                      icon: Store,
+                      tintClass: "bg-[#1565D8] text-white",
+                    }
+                  ].map((item, idx) => {
+                    const ItemIcon = item.icon
+                    return (
+                      <Link 
+                        key={idx}
+                        href={item.href}
+                        className="group flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-slate-50 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:ring-offset-1"
+                      >
+                        <div className={`w-[30px] h-[30px] rounded-md flex items-center justify-center shrink-0 transition-colors duration-200 ${item.tintClass}`}>
+                          <ItemIcon className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[13px] font-medium text-slate-705 group-hover:text-[#1565D8] transition-colors leading-none whitespace-nowrap font-poppins">
+                          {item.name}
+                        </span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* ZONE C — ADMISSION CRM GROUP */}
+              <div className="p-6 bg-white flex flex-col gap-4 text-left">
+                <div className="pb-1 text-left select-none">
+                  <span className="text-[10px] font-black text-[#1565D8] uppercase tracking-wider pb-1 border-b-2 border-[#FFC107] inline-block font-poppins">
+                    ADMISSION CRM — FOR INSTITUTIONS
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3.5 mt-1">
+                  {[
+                    {
+                      href: "/products/lead-management",
+                      name: "Lead Management",
+                      icon: Users,
+                      tintClass: "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
+                    },
+                    {
+                      href: "/products/admission-management",
+                      name: "Admissions",
+                      icon: ClipboardList,
+                      tintClass: "bg-violet-50 text-violet-600 border border-violet-100/50"
+                    },
+                    {
+                      href: "/products/student-management",
+                      name: "Students",
+                      icon: GraduationCap,
+                      tintClass: "bg-pink-50 text-pink-600 border border-pink-100/50"
+                    },
+                    {
+                      href: "/products/course-management",
+                      name: "Courses & Batches",
+                      icon: BookOpen,
+                      tintClass: "bg-orange-50 text-orange-600 border border-orange-100/50"
+                    },
+                    {
+                      href: "/products/fee-management",
+                      name: "Fees & Payments",
+                      icon: CreditCard,
+                      tintClass: "bg-rose-50 text-rose-600 border border-rose-100/50"
+                    },
+                    {
+                      href: "/products/campaign-management",
+                      name: "Campaigns",
+                      icon: MessageSquare,
+                      tintClass: "bg-blue-50 text-blue-600 border border-blue-100/50"
+                    },
+                    {
+                      href: "/products/notifications-alerts",
+                      name: "Notifications",
+                      icon: Bell,
+                      tintClass: "bg-amber-50 text-amber-600 border border-amber-100/50"
+                    },
+                    {
+                      href: "/products/parent-portal",
+                      name: "Parent Portal",
+                      icon: FileText,
+                      tintClass: "bg-cyan-50 text-cyan-600 border border-cyan-100/50"
+                    },
+                    {
+                      href: "/products/reporting-analytics",
+                      name: "Reports & Analytics",
+                      icon: BarChart3,
+                      tintClass: "bg-purple-50 text-purple-600 border border-purple-100/50"
+                    }
+                  ].map((item, idx) => {
+                    const ItemIcon = item.icon
+                    return (
+                      <Link 
+                        key={idx}
+                        href={item.href}
+                        className="group flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-slate-50 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:ring-offset-1"
+                      >
+                        <div className={`w-[30px] h-[30px] rounded-md flex items-center justify-center shrink-0 transition-colors duration-200 ${item.tintClass}`}>
+                          <ItemIcon className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[13px] font-medium text-slate-705 group-hover:text-[#1565D8] transition-colors leading-none whitespace-nowrap font-poppins">
+                          {item.name}
+                        </span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* ZONE D — PROMO RAIL */}
+              <div className="bg-slate-50/50 p-6 flex flex-col gap-4 text-left justify-center shrink-0 select-none">
+                
+                {/* Tile 1 */}
+                <div className="group relative rounded-xl bg-[#1565D8] p-4 text-white shadow-sm flex flex-col justify-between h-[105px] text-left">
+                  <div>
+                    <h4 className="text-[12px] font-black font-poppins tracking-tight">List your school free</h4>
+                    <p className="text-[10px] text-blue-100 mt-1 font-semibold leading-tight">Get discovered by local parents.</p>
+                  </div>
+                  <Link href="/register-school" className="text-[10px] font-bold text-white hover:text-blue-100 underline mt-2 block w-fit">
+                    Get started
+                  </Link>
+                </div>
+
+                {/* Tile 2 */}
+                <div className="group rounded-xl border border-amber-200 bg-amber-50/50 p-4 shadow-sm flex flex-col justify-between h-[105px] text-left">
+                  <div>
+                    <div className="flex items-center justify-between gap-1">
+                      <h4 className="text-[12px] font-black font-poppins text-slate-900 leading-tight">Razorpay payments</h4>
+                      <span className="bg-amber-500 text-white text-[7px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full select-none">
+                        NEW
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1 font-medium leading-tight">Collect fees online.</p>
+                  </div>
+                  <Link href="/products/fee-management" className="text-[10px] font-black text-[#1565D8] hover:text-blue-700 transition mt-2 block w-fit hover:underline">
+                    Learn more
+                  </Link>
+                </div>
+
               </div>
 
             </div>

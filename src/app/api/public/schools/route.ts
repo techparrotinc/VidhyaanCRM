@@ -103,9 +103,10 @@ export async function GET(req: NextRequest) {
     }
 
     const hasCoords = userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)
-    const shouldApplyDistanceFilter = hasCoords && !city
+    const shouldApplyDistanceFilter = hasCoords
 
     const includeRelations = {
+
       locations: {
         where: { deletedAt: null }
       },

@@ -40,7 +40,9 @@ export default function AdmissionManagementBespokePage() {
     FileText,
     Clock,
     UserCheck,
-    BarChart
+    BarChart,
+    Phone,
+    Activity
   }
 
   return (
@@ -78,45 +80,38 @@ export default function AdmissionManagementBespokePage() {
           Structured Admission CRM
         </span>
         
-        <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-[1.1] max-w-4xl mx-auto font-poppins">
+        <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-[1.15] max-w-5xl mx-auto font-poppins py-1">
           Admission Management System for{' '}
-          <span className="bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-800 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-800 bg-clip-text text-transparent px-1">
             Schools & Junior Colleges
           </span>
         </h1>
         
         <p className="text-slate-600 font-semibold text-base md:text-xl leading-relaxed max-w-3xl mx-auto">
-          {admissionManagementContent.subhead}
-        </p>
-
-        {/* Intro Paragraph */}
-        <p className="text-slate-500 text-sm md:text-base max-w-2xl mx-auto leading-relaxed font-semibold">
-          Admission desks transition to Vidhyaan when manual applicant logs get lost between counsellor handoffs and document updates. By routing documents, scheduling interviews, and recording fee payments in a single visual pipeline, your administration has total transparency on seats and classes.
+          Replace registers and spreadsheets with a real admission management system, built for how Indian schools and junior colleges actually admit students — from application received to admitted, waitlisted, or rejected, with nothing falling through the cracks.
         </p>
         
         <div className="pt-2 flex flex-col sm:flex-row justify-center items-center gap-4">
-          <Link href={admissionManagementContent.primaryCta.href} className="w-full sm:w-auto">
+          <Link href="/register-school" className="w-full sm:w-auto">
             <Button className="w-full sm:w-auto bg-[#1565D8] hover:bg-blue-700 text-white font-extrabold text-base px-8 py-5 rounded-2xl h-auto shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 transition hover:-translate-y-0.5 cursor-pointer">
-              {admissionManagementContent.primaryCta.text}
+              Claim Your Free Profile
               <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
-          {admissionManagementContent.secondaryCta && (
-            <Link 
-              href={admissionManagementContent.secondaryCta.href}
-              className="text-slate-600 hover:text-purple-700 font-extrabold text-sm transition py-2"
-            >
-              {admissionManagementContent.secondaryCta.text}
-            </Link>
-          )}
+          <Link 
+            href="#how-it-works"
+            className="text-slate-600 hover:text-purple-700 font-extrabold text-sm transition py-2"
+          >
+            See it in action
+          </Link>
         </div>
 
         <p className="text-xs text-slate-400 font-semibold tracking-wide">
-          {admissionManagementContent.trustLine}
+          Free listing forever · Setup in under 15 minutes · No credit card required
         </p>
       </section>
 
-      {/* 2. STAGE-STEPPER CENTERPIECE (PART 2) */}
+      {/* 2. STAGE-STEPPER CENTERPIECE */}
       <section className="py-16 px-6 md:px-16 bg-slate-50/50 rounded-3xl space-y-12 max-w-6xl mx-auto border border-slate-100 shadow-sm">
         <div className="text-center space-y-3">
           <span className="text-[10px] font-black text-purple-700 uppercase tracking-widest bg-purple-50 px-3 py-1 rounded-full">
@@ -249,24 +244,24 @@ export default function AdmissionManagementBespokePage() {
         </div>
       </section>
 
+      {/* NEW SECTION: WHY SCHOOLS SWITCH TO VIDHYAAN */}
+      <section className="py-16 px-6 md:px-16 max-w-4xl mx-auto text-center space-y-6">
+        <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
+          Why Schools Switch to Vidhyaan
+        </h2>
+        <p className="text-slate-600 font-semibold text-base md:text-lg leading-relaxed max-w-3xl mx-auto">
+          Manual applicant logs get lost between counsellor handoffs and document updates. By routing documents, scheduling interviews, and recording fee payments in a single visual pipeline, your administration has total transparency on seats and classes.
+        </p>
+      </section>
+
       {/* 2. PROBLEM SECTION (PART 3) */}
       <section id="overview" className="py-16 px-6 md:px-16 scroll-mt-28 max-w-4xl mx-auto text-center space-y-6">
         <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-tight font-poppins">
-          {admissionManagementContent.problem.heading}
+          Admission season shouldn't mean chaos
         </h2>
         <p className="text-slate-600 font-semibold text-base leading-relaxed max-w-3xl mx-auto">
-          {admissionManagementContent.problem.body}
+          Every admission cycle, counsellors juggle paper applications, WhatsApp threads, and Excel trackers. Applicants get lost between desks and follow-ups get missed. Vidhyaan's admission management system puts every applicant in one pipeline your whole team can see — so nothing depends on one counsellor's memory.
         </p>
-        <div className="flex flex-col sm:flex-row justify-center items-center gap-6 pt-4">
-          <div className="flex items-center gap-2.5">
-            <CheckCircle className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
-            <span className="text-sm font-bold text-slate-700">Digital verification of certificates speeds up eligibility logs</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <CheckCircle className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
-            <span className="text-sm font-bold text-slate-700">Central audit trail tracks every stage upgrade automatically</span>
-          </div>
-        </div>
       </section>
 
       {/* THE COMPLETE ADMISSION JOURNEY */}
@@ -331,28 +326,70 @@ export default function AdmissionManagementBespokePage() {
       </section>
 
       {/* 3. CAPABILITIES */}
-      <section id="capabilities" className="py-16 px-6 md:px-16 space-y-8 scroll-mt-28">
-        <div className="border-b border-slate-200 pb-4">
+      <section id="capabilities" className="py-16 px-6 md:px-16 space-y-12 scroll-mt-28 max-w-5xl mx-auto">
+        <div className="border-b border-slate-200 pb-6 text-center">
           <h2 className="text-3xl font-black text-slate-900 tracking-tight font-poppins">
             Key Capabilities
           </h2>
+          <p className="text-slate-500 font-semibold text-sm mt-2 max-w-xl mx-auto">
+            Everything your team needs to manage admissions end-to-end.
+          </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {admissionManagementContent.capabilities.map((cap, idx) => {
+        <div className="divide-y divide-slate-100">
+          {[
+            {
+              title: "Fully customizable admission stages",
+              body: "Define the exact stages your school uses — application received, document verification, interview scheduled, admitted, waitlisted, rejected — and move applicants through them with a simple stage change. This gives your admin team real-time clarity on seats.",
+              icon: "Settings"
+            },
+            {
+              title: "Document collection, built in",
+              body: "Parents and counsellors upload required documents directly against each applicant's record — no more chasing certificates over email or WhatsApp with no central place to store them.",
+              icon: "FileText"
+            },
+            {
+              title: "Complete activity timeline",
+              body: "Every call, note, WhatsApp message, and email tied to an applicant is logged in one place — any counsellor can pick up where another left off without asking \"what's the status on this one?\"",
+              icon: "Clock"
+            },
+            {
+              title: "One-click conversion to enrolled student",
+              body: "Once an applicant is admitted, convert them directly into a full student record — no re-entering the same name, grade, and guardian details a second time.",
+              icon: "UserCheck"
+            },
+            {
+              title: "Pipeline visibility for leadership",
+              body: "See conversion rates and pipeline health at a glance — how many applications are stuck at document verification, how many are ready for interview, how many convert to admitted — without asking your admissions team for a manual count.",
+              icon: "BarChart"
+            },
+            {
+              title: "Works on any device",
+              body: "Vidhyaan works entirely in your browser with a fully responsive layout. Manage enquiries on the go, with no mobile app install required.",
+              icon: "Phone"
+            },
+            {
+              title: "Filter and act fast",
+              body: "Quickly sort applicants by status directly from the dashboard to focus on document verification, interview calls, or approvals.",
+              icon: "Activity"
+            }
+          ].map((cap, idx) => {
             const CapIcon = IconMap[cap.icon]
+            const isEven = idx % 2 === 0
             return (
               <div 
                 key={idx} 
-                className="bg-white border border-slate-150 p-6 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-250 transition-all duration-200 flex gap-4 items-start"
+                className={`py-8 flex flex-col md:flex-row gap-6 items-start md:items-center ${
+                  isEven ? '' : 'md:flex-row-reverse'
+                }`}
               >
-                <div className="p-3 rounded-xl shrink-0 bg-purple-50 text-purple-600">
-                  {CapIcon ? <CapIcon className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
+                <div className="p-4 rounded-2xl shrink-0 bg-purple-50 text-purple-700 shadow-sm">
+                  {CapIcon ? <CapIcon className="w-7 h-7" /> : <CheckCircle className="w-7 h-7" />}
                 </div>
-                <div className="space-y-1.5">
-                  <h3 className="font-extrabold text-slate-800 text-lg font-poppins">
+                <div className="space-y-2 flex-1">
+                  <h3 className="font-extrabold text-slate-800 text-lg md:text-xl font-poppins">
                     {cap.title}
                   </h3>
-                  <p className="text-slate-500 font-semibold text-sm leading-relaxed">
+                  <p className="text-slate-500 font-semibold text-sm md:text-base leading-relaxed">
                     {cap.body}
                   </p>
                 </div>
@@ -362,49 +399,94 @@ export default function AdmissionManagementBespokePage() {
         </div>
       </section>
 
-      {/* PRODUCT SCREENSHOT SECTION (MOVED DOWN - PART 2) */}
-      <section className="py-16 px-6 md:px-16 space-y-10 flex flex-col items-center bg-slate-50/30 rounded-3xl w-full">
-        <div className="text-center space-y-2.5 max-w-2xl">
+      {/* 4. HOW IT WORKS NARRATIVE FLOW */}
+      <section id="how-it-works" className="py-16 px-6 md:px-16 space-y-16 bg-slate-50/30 rounded-3xl w-full scroll-mt-28">
+        <div className="text-center space-y-2.5 max-w-2xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight font-poppins">
-            See it in action
+            How Admission Management Works
           </h2>
           <p className="text-slate-500 font-semibold text-sm md:text-base leading-relaxed">
-            The real Admission Management pipeline your team uses every day — from list view to individual applicant tracking.
+            A structured workflow designed for speed, clarity, and control — from applicant entry to active enrollment.
           </p>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-6xl">
-          {/* List screenshot card */}
-          <div className="flex flex-col space-y-3 bg-gradient-to-tr from-slate-100 to-white border border-slate-200 p-4 rounded-3xl shadow-xl transition-all duration-300 hover:shadow-purple-500/5 hover:border-purple-100">
-            <div className="overflow-hidden rounded-2xl border border-slate-150/75 shadow-sm">
-              <Image 
-                src="/images/products/admission-management-list-screenshot.png"
-                alt="Vidhyaan Admission Management pipeline list dashboard showing stage status tabs, KPIs, search fields, and counsellor assignments."
-                width={1024}
-                height={572}
-                className="w-full h-auto"
-                loading="lazy"
-              />
+
+        <div className="max-w-6xl mx-auto space-y-20">
+          {/* Sub-block A: List view screenshot LEFT, text RIGHT */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            <div className="lg:col-span-7 flex flex-col space-y-3 bg-gradient-to-tr from-slate-100 to-white border border-slate-200 p-4 rounded-3xl shadow-xl">
+              <div className="overflow-hidden rounded-2xl border border-slate-150/75 shadow-sm">
+                <Image 
+                  src="/images/products/admission-management-list-screenshot.png"
+                  alt="Vidhyaan Admission Management pipeline list dashboard showing stage status tabs, KPIs, search fields, and counsellor assignments."
+                  width={1024}
+                  height={572}
+                  className="w-full h-auto"
+                  loading="lazy"
+                />
+              </div>
             </div>
-            <p className="text-xs font-bold text-slate-500 text-center">
-              Pipeline view — every applicant, every stage, at a glance
-            </p>
+            <div className="lg:col-span-5 space-y-6">
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight font-poppins">
+                Every applicant, one pipeline
+              </h3>
+              <p className="text-slate-500 font-semibold text-sm leading-relaxed">
+                Admissions teams get a single visual workspace to track all candidate flows. No more scanning disconnected sheets or files to understand where an application stands.
+              </p>
+              <ul className="space-y-3.5">
+                <li className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+                  <span className="text-sm font-bold text-slate-700">Stage tabs for clear categorization</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+                  <span className="text-sm font-bold text-slate-700">Applicant counts at each funnel stage</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+                  <span className="text-sm font-bold text-slate-700">Quick status view with counselor assignments</span>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          {/* Detail screenshot card */}
-          <div className="flex flex-col space-y-3 bg-gradient-to-tr from-slate-100 to-white border border-slate-200 p-4 rounded-3xl shadow-xl transition-all duration-300 hover:shadow-purple-500/5 hover:border-purple-100">
-            <div className="overflow-hidden rounded-2xl border border-slate-150/75 shadow-sm">
-              <Image 
-                src="/images/products/admission-management-detail-screenshot.png"
-                alt="Vidhyaan Admission Management manual entry form for student applications showing student information and enrollment configurations."
-                width={1024}
-                height={585}
-                className="w-full h-auto"
-                loading="lazy"
-              />
+          {/* Sub-block B: Detail view screenshot RIGHT, text LEFT */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            {/* On mobile, this renders first. On desktop, lg:order-2 moves it to the right */}
+            <div className="lg:col-span-7 lg:order-2 flex flex-col space-y-3 bg-gradient-to-tr from-slate-100 to-white border border-slate-200 p-4 rounded-3xl shadow-xl">
+              <div className="overflow-hidden rounded-2xl border border-slate-150/75 shadow-sm">
+                <Image 
+                  src="/images/products/admission-management-detail-screenshot.png"
+                  alt="Vidhyaan Admission Management manual entry form for student applications showing student information and enrollment configurations."
+                  width={1024}
+                  height={585}
+                  className="w-full h-auto"
+                  loading="lazy"
+                />
+              </div>
             </div>
-            <p className="text-xs font-bold text-slate-500 text-center">
-              Applicant detail — stage history and activity timeline in one place
-            </p>
+            {/* On mobile, this renders second. On desktop, lg:order-1 moves it to the left */}
+            <div className="lg:col-span-5 lg:order-1 space-y-6">
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight font-poppins">
+                Full history, one click away
+              </h3>
+              <p className="text-slate-500 font-semibold text-sm leading-relaxed">
+                Dive deep into each candidate profile. Check interaction details, verification status, and notes left by other staff members instantly.
+              </p>
+              <ul className="space-y-3.5">
+                <li className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+                  <span className="text-sm font-bold text-slate-700">Interactive stage dropdown for quick updates</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+                  <span className="text-sm font-bold text-slate-700">Activity timeline tracking every interaction</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
+                  <span className="text-sm font-bold text-slate-700">Direct document access and verification checklist</span>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -478,76 +560,68 @@ export default function AdmissionManagementBespokePage() {
         </div>
       </section>
 
-      {/* SUB-FEATURE HIGHLIGHTS */}
-      <section className="py-16 px-6 md:px-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          <div className="flex gap-4 items-start p-6 bg-slate-50 rounded-2xl border border-slate-150/80 shadow-sm">
-            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl shrink-0">
-              <Phone className="w-5 h-5" />
-            </div>
-            <div className="space-y-1">
-              <h4 className="font-extrabold text-slate-800 text-base">Works on any device</h4>
-              <p className="text-slate-500 font-semibold text-xs leading-relaxed">
-                Vidhyaan works entirely in your browser with a fully responsive layout. Manage enquiries on the go, with no mobile app install required.
+      {/* 5. INSTITUTION FIT CALLOUT */}
+      <section className="py-16 px-6 md:px-16 max-w-5xl mx-auto">
+        <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-3xl p-8 md:p-12 space-y-8 shadow-sm">
+          <div className="text-center space-y-2">
+            <span className="text-[10px] font-black text-purple-700 uppercase tracking-widest bg-purple-50 px-3 py-1 rounded-full border border-purple-100 shadow-sm">
+              Institution Type Fit
+            </span>
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight font-poppins">
+              Is This Right for Your Institution?
+            </h2>
+            <p className="text-slate-500 font-semibold text-sm max-w-xl mx-auto">
+              Vidhyaan adapts to your specific enrollment workflows automatically based on your setup.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:divide-x md:divide-slate-200">
+            {/* Left Column: Schools & Junior Colleges */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-black flex items-center gap-2 font-poppins text-emerald-800">
+                <CheckCircle className="w-5 h-5 text-emerald-600" />
+                Schools & Junior Colleges
+              </h3>
+              <p className="text-sm font-semibold text-slate-500 leading-relaxed">
+                Perfect for institutions with structured, multi-stage enrollment criteria, parent interviews, and board eligibility checks.
               </p>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-2.5">
+                  <span className="text-emerald-600 font-black shrink-0 mt-0.5">✓</span>
+                  <span className="text-xs font-bold text-slate-700">Customizable pipelines match multi-stage admission workflows</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="text-emerald-600 font-black shrink-0 mt-0.5">✓</span>
+                  <span className="text-xs font-bold text-slate-700">Integrated document collection handles certificates and mark sheets</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="text-emerald-600 font-black shrink-0 mt-0.5">✓</span>
+                  <span className="text-xs font-bold text-slate-700">One-click conversion syncs admitted lists directly to student rosters</span>
+                </li>
+              </ul>
             </div>
-          </div>
 
-          <div className="flex gap-4 items-start p-6 bg-slate-50 rounded-2xl border border-slate-150/80 shadow-sm">
-            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl shrink-0">
-              <Activity className="w-5 h-5" />
-            </div>
-            <div className="space-y-1">
-              <h4 className="font-extrabold text-slate-800 text-base">Filter and act fast</h4>
-              <p className="text-slate-500 font-semibold text-xs leading-relaxed">
-                Quickly sort applicants by status directly from the dashboard to focus on document verification, interview calls, or approvals.
+            {/* Right Column: Learning Centers & Coaching Centers */}
+            <div className="space-y-4 md:pl-8">
+              <h3 className="text-lg font-black text-slate-800 flex items-center gap-2 font-poppins">
+                <ArrowRight className="w-5 h-5 text-slate-500" />
+                Learning & Coaching Centers
+              </h3>
+              <p className="text-sm font-semibold text-slate-500 leading-relaxed">
+                Typically skip the formal admission pipeline. Enquiries convert directly to enrolled students once a batch or course is selected.
               </p>
+              <div className="p-4 bg-white rounded-2xl border border-slate-150/75 space-y-3">
+                <p className="text-xs font-semibold text-slate-650 leading-relaxed">
+                  Need direct course enrollments, batch management, and fee installments? Check out our Course Management module instead.
+                </p>
+                <Link href="/products/course-management" className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#1565D8] hover:text-blue-700 transition">
+                  Explore Course Management
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
           </div>
         </div>
-      </section>
-
-      {/* STATS ROW */}
-      <section className="py-16 px-6 md:px-16 bg-gradient-to-b from-purple-50/20 via-white to-slate-50/40 rounded-3xl">
-        <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-slate-200">
-          <div className="text-center space-y-2 py-4 md:py-0">
-            <span className="text-6xl font-black text-[#1565D8] block font-poppins tracking-tight">
-              0
-            </span>
-            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto block leading-tight">
-              Applications lost between desks
-            </span>
-          </div>
-          <div className="text-center space-y-2 pt-6 md:pt-0 py-4 md:py-0">
-            <span className="text-6xl font-black text-[#1565D8] block font-poppins tracking-tight">
-              1
-            </span>
-            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto block leading-tight">
-              Pipeline, every stage visible
-            </span>
-          </div>
-          <div className="text-center space-y-2 pt-6 md:pt-0 py-4 md:py-0">
-            <span className="text-6xl font-black text-[#1565D8] block font-poppins tracking-tight">
-              15m
-            </span>
-            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto block leading-tight">
-              Average setup time
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. WHO THIS IS FOR */}
-      <section className="py-12 px-6 md:px-16 space-y-4">
-        <div className="flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 shrink-0 text-purple-600" />
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight font-poppins">
-            {admissionManagementContent.whoThisIsFor.heading}
-          </h2>
-        </div>
-        <p className="text-slate-600 font-semibold text-base leading-relaxed">
-          {admissionManagementContent.whoThisIsFor.body}
-        </p>
       </section>
 
       {/* 6. FAQ */}

@@ -399,6 +399,7 @@ export default function SchoolProfilePage() {
     rating: 5,
     title: '',
     content: '',
+    reviewerName: '',
     ratingAcademics: 5,
     ratingFaculty: 5,
     ratingInfrastructure: 5,
@@ -712,7 +713,7 @@ export default function SchoolProfilePage() {
       content: reviewForm.content,
       createdAt: new Date().toISOString(),
       parent: {
-        name: enquiryForm.parentName || 'Verified Parent'
+        name: reviewForm.reviewerName || 'Verified Parent'
       },
       ratingAcademics: reviewForm.ratingAcademics,
       ratingFaculty: reviewForm.ratingFaculty,
@@ -730,6 +731,7 @@ export default function SchoolProfilePage() {
         rating: 5,
         title: '',
         content: '',
+        reviewerName: '',
         ratingAcademics: 5,
         ratingFaculty: 5,
         ratingInfrastructure: 5,
@@ -2010,8 +2012,8 @@ export default function SchoolProfilePage() {
                 <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Your Name (for display)</label>
                 <input
                   type="text"
-                  value={enquiryForm.parentName}
-                  onChange={(e) => setEnquiryForm({ ...enquiryForm, parentName: e.target.value })}
+                  value={reviewForm.reviewerName}
+                  onChange={(e) => setReviewForm({ ...reviewForm, reviewerName: e.target.value })}
                   placeholder="Verified Parent"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-500"
                 />

@@ -59,13 +59,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 
-// ===================================================================
-// DATA CONSTANTS
-// ===================================================================
-const isPremium = false
-const leadsUsed = 18
-const leadsMax = 25
-
 export default function LeadManagementPage() {
   const router = useRouter()
   const searchTimeout = useRef<NodeJS.Timeout | undefined>(undefined)
@@ -172,6 +165,11 @@ export default function LeadManagementPage() {
       notes: l.notes ?? null,
     }))
   }, [data])
+
+  // Real lead-cap usage from the API; null cap = unlimited (premium)
+  const leadsMax: number | null = data?.leadCap?.cap ?? null
+  const leadsUsed: number = data?.leadCap?.used ?? 0
+  const isPremium = leadsMax === null
 
   // Mutate/refresh function for SWR
   const fetchLeads = useCallback(async () => {
@@ -571,7 +569,7 @@ export default function LeadManagementPage() {
                   <div className="w-32 bg-amber-100 rounded-full h-2 inline-flex items-center shrink-0 ml-1">
                     <div
                       className="bg-amber-500 rounded-full h-2 transition-all duration-300"
-                      style={{ width: `${(leadsUsed / leadsMax) * 100}%` }}
+                      style={{ width: `${leadsMax ? Math.min(100, (leadsUsed / leadsMax) * 100) : 0}%` }}
                     />
                   </div>
                   <span className="text-xs font-bold text-amber-700 ml-1">{leadsUsed}/{leadsMax}</span>

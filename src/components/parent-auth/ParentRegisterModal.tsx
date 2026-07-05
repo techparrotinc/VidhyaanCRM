@@ -36,14 +36,14 @@ export default function ParentRegisterModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-full h-full max-h-screen sm:h-auto sm:max-h-[90vh] overflow-y-auto sm:max-w-[460px] bg-white p-6 sm:p-8 rounded-none sm:rounded-3xl border border-slate-200 shadow-xl flex flex-col justify-center sm:justify-start">
+      <DialogContent className="w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto scrollbar-none sm:max-w-[420px] bg-white p-6 sm:p-7 rounded-3xl border border-slate-100 shadow-2xl flex flex-col justify-start">
         
         {/* Compact Branding Header */}
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center shadow-sm mb-2.5">
-            <Shield className="text-[#1565D8] w-6 h-6" />
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center shadow-sm">
+            <Shield className="text-[#1565D8] w-4 h-4" />
           </div>
-          <h1 className="text-lg font-extrabold tracking-tight text-slate-900 font-sans">
+          <h1 className="text-base font-extrabold tracking-tight text-slate-900 font-sans">
             Vidhyaan
           </h1>
         </div>

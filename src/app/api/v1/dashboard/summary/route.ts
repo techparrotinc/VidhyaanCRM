@@ -27,6 +27,10 @@ export const GET = route({
       now.getTime() +
       7 * 24 * 60 * 60 * 1000
     )
+    const last7Days = new Date(
+      now.getTime() -
+      7 * 24 * 60 * 60 * 1000
+    )
 
     const [
       totalLeads,
@@ -40,7 +44,9 @@ export const GET = route({
       feeUpcoming,
       recentActivities,
       upcomingFollowUps,
-      allStages
+      allStages,
+      school,
+      viewsThisWeek
     ] = await Promise.all([
 
       // Total leads
@@ -196,6 +202,19 @@ export const GET = route({
           name: true,
           color: true
         }
+      }),
+
+      // Marketplace profile views (School/SchoolView are not tenant-scoped
+      // models — filter by orgId explicitly)
+      db.school.findFirst({
+        where: { orgId, deletedAt: null },
+        select: { viewCount: true }
+      }),
+      db.schoolView.count({
+        where: {
+          school: { orgId },
+          createdAt: { gte: last7Days }
+        }
       })
     ])
 
@@ -247,6 +266,10 @@ export const GET = route({
           feeOverdue._sum.totalAmount ?? 0,
         upcoming:
           feeUpcoming._sum.totalAmount ?? 0
+      },
+      profile: {
+        views: school?.viewCount ?? 0,
+        viewsThisWeek
       },
       recentActivity: recentActivities,
       upcomingFollowUps

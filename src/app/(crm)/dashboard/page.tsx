@@ -237,7 +237,7 @@ export default function DashboardPage() {
   // KPI configurations
   const kpis = [
     { title: "TOTAL ENQUIRIES", value: String(dashData?.leads?.total ?? 0), icon: Users, trend: `+${dashData?.leads?.new ?? 0} this month`, isPremium: false, link: "/enquiries" },
-    { title: "PROFILE VIEWS", value: "142", icon: Eye, trend: "+23 this week", isPremium: false, link: "/site-manager/analytics" },
+    { title: "PROFILE VIEWS", value: String(dashData?.profile?.views ?? 0), icon: Eye, trend: (dashData?.profile?.viewsThisWeek ?? 0) > 0 ? `+${dashData.profile.viewsThisWeek} this week` : "No change", isPremium: false, link: "/site-manager/analytics" },
     { title: "LEADS THIS MONTH", value: String(dashData?.leads?.new ?? 0), icon: TrendingUp, trend: "+3 today", isPremium: true, link: "/leads" },
     { title: "FEE COLLECTION", value: formatINR(dashData?.fees?.collectedThisMonth ?? 0), icon: IndianRupee, trend: "+8% vs last month", isPremium: true, link: "/fee-management" },
     { title: "CONVERSION RATE", value: `${dashData?.admissions?.conversionRate ?? 0}%`, icon: BarChart2, trend: "+5% this month", isPremium: true, link: "/reports" },
@@ -266,6 +266,29 @@ export default function DashboardPage() {
       isWorkflow: true
     }
   ]
+
+  // Full-page skeleton while summary loads — stops every sub-card flashing
+  // 0 before real values arrive
+  if (loading) {
+    return (
+      <div className="flex-1 p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full select-none">
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-64" />
+          <Skeleton className="h-3 w-80" />
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-6 xl:gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="min-h-[160px] w-full rounded-xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <Skeleton className="h-96 w-full rounded-xl" />
+          <Skeleton className="h-96 w-full rounded-xl" />
+        </div>
+        <Skeleton className="h-64 w-full rounded-xl" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex-1 p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full select-none">
@@ -446,12 +469,7 @@ export default function DashboardPage() {
 
           {/* KPI CARDS ROW */}
           <section className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-6 xl:gap-4">
-            {loading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-24 w-full rounded-xl" />
-              ))
-            ) : (
-              kpis.map((kpi) => {
+            {kpis.map((kpi) => {
                 const Icon = kpi.icon
                 return (
                   <div
@@ -498,8 +516,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 )
-              })
-            )}
+              })}
           </section>
 
           {/* COMPACT PIPELINE ROW */}

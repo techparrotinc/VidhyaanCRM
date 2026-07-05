@@ -3,12 +3,12 @@
 import React from 'react'
 import { CheckCircle2, X } from 'lucide-react'
 
-type SchoolProfileToastProps = {
+type MarketplaceToastProps = {
   message: string | null
   onClose: () => void
 }
 
-export default function SchoolProfileToast({ message, onClose }: SchoolProfileToastProps) {
+export default function MarketplaceToast({ message, onClose }: MarketplaceToastProps) {
   if (!message) return null
 
   return (

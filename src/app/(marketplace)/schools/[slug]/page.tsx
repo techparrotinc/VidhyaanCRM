@@ -60,8 +60,8 @@ import ParentRegisterModal from '@/components/parent-auth/ParentRegisterModal'
 import SchoolGalleryLightbox from '@/components/marketplace/school-profile/SchoolGalleryLightbox'
 import ReviewModal from '@/components/marketplace/school-profile/ReviewModal'
 import ScheduleVisitModal from '@/components/marketplace/school-profile/ScheduleVisitModal'
-import LoginPromptModal from '@/components/marketplace/school-profile/LoginPromptModal'
-import SchoolProfileToast from '@/components/marketplace/school-profile/SchoolProfileToast'
+import LoginPromptModal from '@/components/marketplace/LoginPromptModal'
+import MarketplaceToast from '@/components/marketplace/MarketplaceToast'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -1796,7 +1796,7 @@ export default function SchoolProfilePage() {
 
       <LoginPromptModal open={loginPromptOpen} onClose={() => setLoginPromptOpen(false)} />
 
-      <SchoolProfileToast message={toastMsg} onClose={() => setToastMsg(null)} />
+      <MarketplaceToast message={toastMsg} onClose={() => setToastMsg(null)} />
 
       <ParentRegisterModal
         open={registerModalOpen}

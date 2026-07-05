@@ -113,9 +113,9 @@ export default function EventDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-slate-900/40" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-md h-full shadow-xl flex flex-col">
+    <>
+      <div className="fixed inset-0 bg-slate-900/40 z-40" onClick={onClose} />
+      <div className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white shadow-2xl border-l border-slate-200 z-50 flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-slate-200">
           <h2 className="text-base font-bold text-slate-800 tracking-tight">
             {form.id ? 'Edit Event' : 'Create Event'}
@@ -247,6 +247,6 @@ export default function EventDrawer({
           </button>
         </div>
       </div>
-    </div>
+    </>
   )
 }

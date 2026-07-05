@@ -104,6 +104,28 @@ Record of a review + hardening + performance session. Production branch is
   (status/type/search).
 - Dashboard upcoming card now shows **published only**.
 
+### Backlog sweep (2026-07-06)
+- **Lead bulk-action bar wired** — `POST /api/v1/leads/bulk` (assign/status/delete,
+  org-verified, soft delete); bar has counsellor/status menus, client CSV export, confirm delete.
+- **Dashboard fakes eliminated** — month-over-month comparisons (enquiries/converted/avg
+  convert days from `decidedAt`), fee % vs last month, leads today, admitted this month.
+  "Converted" uses `updatedAt` as transition proxy (no status-change timestamp stored).
+  "Leads This Month" now true intake (was status=NEW only). Removed "Interview pending: 2".
+- **school-profile page split done** — Basic/Contact/Academics/Gallery extracted
+  (1570→~990 lines); all 8 tabs now components.
+- **Partial soft-delete indexes applied** — hand-written migration
+  `20260706040000_partial_soft_delete_indexes`: `(org_id, created_at) WHERE deleted_at
+  IS NULL` on leads/admissions/students/campaigns, `(org_id, due_date)` invoices,
+  `(org_id, starts_at)` events. Not representable in schema.prisma — drift warnings
+  from `migrate dev` expected.
+- **Read replica / RLS — deliberate defer**: replica needs Neon read-replica endpoint +
+  a second Prisma client for report routes — revisit when report queries measurably
+  degrade primary. RLS is a second isolation net under `forOrg()`; needs session GUC
+  (`SET app.org_id`) per pooled connection — revisit at >500 orgs or first tenant-leak
+  near-miss.
+- **next-auth v5**: still beta (`beta.31`, which is what we run; `latest` remains v4).
+  Nothing to do until GA.
+
 ## ⏳ Pending
 
 1. **Subdomain-per-school** (phase 2) — `schoolname.vidhyaan.com`. Needs Vercel Pro +

@@ -232,15 +232,25 @@ export default function DashboardPage() {
         )
       )
     : 0
-  const collectedTrend = (dashData?.fees?.collectedThisMonth ?? 0) < 45000 ? 'down' : 'up'
+  const collectedThisMonth = Number(dashData?.fees?.collectedThisMonth ?? 0)
+  const collectedLastMonth = Number(dashData?.fees?.collectedLastMonth ?? 0)
+  const collectedTrend = collectedThisMonth >= collectedLastMonth ? 'up' : 'down'
+  const feePct = collectedLastMonth > 0
+    ? Math.round(((collectedThisMonth - collectedLastMonth) / collectedLastMonth) * 100)
+    : null
+
+  const cmp = dashData?.comparisons
+  // % delta vs last month; null when last month had nothing to compare against
+  const pctDelta = (current: number, previous: number) =>
+    previous > 0 ? Math.round(((current - previous) / previous) * 100) : null
 
   // KPI configurations
   const kpis = [
-    { title: "TOTAL ENQUIRIES", value: String(dashData?.leads?.total ?? 0), icon: Users, trend: `+${dashData?.leads?.new ?? 0} this month`, isPremium: false, link: "/lead-management" },
+    { title: "TOTAL ENQUIRIES", value: String(dashData?.leads?.total ?? 0), icon: Users, trend: `+${dashData?.leads?.createdThisMonth ?? 0} this month`, isPremium: false, link: "/lead-management" },
     { title: "PROFILE VIEWS", value: String(dashData?.profile?.views ?? 0), icon: Eye, trend: (dashData?.profile?.viewsThisWeek ?? 0) > 0 ? `+${dashData.profile.viewsThisWeek} this week` : "No change", isPremium: false, link: "/settings/school-profile" },
-    { title: "LEADS THIS MONTH", value: String(dashData?.leads?.new ?? 0), icon: TrendingUp, trend: "+3 today", isPremium: true, link: "/lead-management" },
-    { title: "FEE COLLECTION", value: formatINR(dashData?.fees?.collectedThisMonth ?? 0), icon: IndianRupee, trend: "+8% vs last month", isPremium: true, link: "/fee-management" },
-    { title: "CONVERSION RATE", value: `${dashData?.admissions?.conversionRate ?? 0}%`, icon: BarChart2, trend: "+5% this month", isPremium: true, link: "/reports" },
+    { title: "LEADS THIS MONTH", value: String(dashData?.leads?.createdThisMonth ?? 0), icon: TrendingUp, trend: (dashData?.leads?.createdToday ?? 0) > 0 ? `+${dashData.leads.createdToday} today` : "No change today", isPremium: true, link: "/lead-management" },
+    { title: "FEE COLLECTION", value: formatINR(collectedThisMonth), icon: IndianRupee, trend: feePct === null ? "No prior month data" : `${feePct >= 0 ? '+' : ''}${feePct}% vs last month`, isPremium: true, link: "/fee-management" },
+    { title: "CONVERSION RATE", value: `${dashData?.admissions?.conversionRate ?? 0}%`, icon: BarChart2, trend: (cmp?.admittedThisMonth ?? 0) > 0 ? `+${cmp.admittedThisMonth} admitted this month` : "No change", isPremium: true, link: "/reports" },
     {
       title: institutionConfig.type === 'institute' ? "ACTIVE ENROLLMENTS" : "ACTIVE STUDENTS",
       value: String(dashData?.admissions?.admitted ?? 0),
@@ -610,12 +620,22 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
                       <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Enquiries</span>
                       <div className="ml-auto text-right">
-                        <div className="text-sm font-bold text-slate-800">26</div>
+                        <div className="text-sm font-bold text-slate-800">{cmp?.enquiries?.current ?? 0}</div>
                         <div className="flex items-center justify-end mt-0.5">
-                          <TrendingUp size={10} className="text-green-600 mr-1" />
-                          <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
-                            +44%
-                          </span>
+                          {(() => {
+                            const delta = pctDelta(cmp?.enquiries?.current ?? 0, cmp?.enquiries?.previous ?? 0)
+                            if (delta === null) return (
+                              <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">—</span>
+                            )
+                            return (
+                              <>
+                                {delta >= 0 && <TrendingUp size={10} className="text-green-600 mr-1" />}
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${delta >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {delta >= 0 ? '+' : ''}{delta}%
+                                </span>
+                              </>
+                            )
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -623,12 +643,22 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
                       <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Converted</span>
                       <div className="ml-auto text-right">
-                        <div className="text-sm font-bold text-slate-800">17</div>
+                        <div className="text-sm font-bold text-slate-800">{cmp?.converted?.current ?? 0}</div>
                         <div className="flex items-center justify-end mt-0.5">
-                          <TrendingUp size={10} className="text-green-600 mr-1" />
-                          <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
-                            +54%
-                          </span>
+                          {(() => {
+                            const delta = pctDelta(cmp?.converted?.current ?? 0, cmp?.converted?.previous ?? 0)
+                            if (delta === null) return (
+                              <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">—</span>
+                            )
+                            return (
+                              <>
+                                {delta >= 0 && <TrendingUp size={10} className="text-green-600 mr-1" />}
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${delta >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {delta >= 0 ? '+' : ''}{delta}%
+                                </span>
+                              </>
+                            )
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -636,11 +666,19 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
                       <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Avg. Convert</span>
                       <div className="ml-auto text-right">
-                        <div className="text-sm font-bold text-slate-800">12 days</div>
+                        <div className="text-sm font-bold text-slate-800">
+                          {cmp?.avgConvertDays?.current != null ? `${cmp.avgConvertDays.current} days` : '—'}
+                        </div>
                         <div className="flex items-center justify-end mt-0.5">
-                          <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
-                            ↓ 3 days
-                          </span>
+                          {cmp?.avgConvertDays?.current != null && cmp?.avgConvertDays?.previous != null ? (
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                              cmp.avgConvertDays.current <= cmp.avgConvertDays.previous ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                            }`}>
+                              {cmp.avgConvertDays.current <= cmp.avgConvertDays.previous ? '↓' : '↑'} {Math.abs(cmp.avgConvertDays.current - cmp.avgConvertDays.previous)} days
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">—</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -657,11 +695,6 @@ export default function DashboardPage() {
                     View {moduleTitle} →
                   </Link>
 
-                  {institutionConfig.type === 'school' && (
-                    <span className="text-[10px] md:text-xs text-amber-600 font-medium bg-amber-50 px-2.5 py-1 rounded-full">
-                      Interview pending: 2
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
@@ -830,17 +863,17 @@ export default function DashboardPage() {
                         <>
                           <TrendingDown size={12} className="text-red-400 flex-shrink-0" strokeWidth={1.5} />
                           <span className="text-[10px] text-red-400 font-medium">
-                            vs {formatINR(feeData.collectedLastMonth)} last month
+                            vs {formatINR(collectedLastMonth)} last month
                           </span>
                         </>
                       ) : collectedTrend === 'up' && (dashData?.fees?.collectedThisMonth ?? 0) > 0 ? (
                         <>
                           <TrendingUp size={12} className="text-green-500 flex-shrink-0" strokeWidth={1.5} />
                           <span className="text-[10px] text-green-500 font-medium">
-                            vs {formatINR(feeData.collectedLastMonth)} last month
+                            vs {formatINR(collectedLastMonth)} last month
                           </span>
                         </>
-                      ) : (dashData?.fees?.collectedThisMonth ?? 0) === 0 && feeData.collectedLastMonth === 0 ? (
+                      ) : (dashData?.fees?.collectedThisMonth ?? 0) === 0 && collectedLastMonth === 0 ? (
                         <span className="text-[10px] text-slate-400">
                           No collections yet
                         </span>

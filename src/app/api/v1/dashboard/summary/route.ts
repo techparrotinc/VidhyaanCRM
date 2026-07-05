@@ -31,6 +31,8 @@ export const GET = route({
       now.getTime() -
       7 * 24 * 60 * 60 * 1000
     )
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
     const [
       totalLeads,
@@ -47,7 +49,15 @@ export const GET = route({
       allStages,
       school,
       viewsThisWeek,
-      upcomingEvents
+      upcomingEvents,
+      leadsCreatedThisMonth,
+      leadsCreatedLastMonth,
+      leadsCreatedToday,
+      convertedThisMonth,
+      convertedLastMonth,
+      feeCollectedLastMonth,
+      admittedThisMonth,
+      decidedAdmissions
     ] = await Promise.all([
 
       // Total leads
@@ -234,6 +244,41 @@ export const GET = route({
           location: true,
           _count: { select: { rsvps: true } }
         }
+      }),
+
+      // Month-over-month comparisons (true intake: any status)
+      db.lead.count({
+        where: { deletedAt: null, createdAt: { gte: startOfMonth } }
+      }),
+      db.lead.count({
+        where: { deletedAt: null, createdAt: { gte: startOfLastMonth, lt: startOfMonth } }
+      }),
+      db.lead.count({
+        where: { deletedAt: null, createdAt: { gte: startOfToday } }
+      }),
+      // CONVERTED transition timestamp isn't stored; updatedAt is the best proxy
+      db.lead.count({
+        where: { deletedAt: null, status: LeadStatus.CONVERTED, updatedAt: { gte: startOfMonth } }
+      }),
+      db.lead.count({
+        where: { deletedAt: null, status: LeadStatus.CONVERTED, updatedAt: { gte: startOfLastMonth, lt: startOfMonth } }
+      }),
+      db.payment.aggregate({
+        where: {
+          orgId,
+          status: PaymentStatus.SUCCESS,
+          paidAt: { gte: startOfLastMonth, lt: startOfMonth }
+        },
+        _sum: { amount: true }
+      }),
+      db.admission.count({
+        where: { deletedAt: null, status: 'ADMITTED', updatedAt: { gte: startOfMonth } }
+      }),
+      // decided admissions since last month → avg convert time per month
+      db.admission.findMany({
+        where: { deletedAt: null, decidedAt: { not: null, gte: startOfLastMonth } },
+        select: { createdAt: true, decidedAt: true },
+        take: 1000
       })
     ])
 
@@ -253,6 +298,14 @@ export const GET = route({
         }
       })
 
+    const avgDays = (rows: { createdAt: Date; decidedAt: Date | null }[]) => {
+      if (rows.length === 0) return null
+      const totalMs = rows.reduce((sum, a) => sum + (new Date(a.decidedAt!).getTime() - new Date(a.createdAt).getTime()), 0)
+      return Math.round(totalMs / rows.length / (24 * 60 * 60 * 1000))
+    }
+    const decidedThisMonth = decidedAdmissions.filter(a => new Date(a.decidedAt!) >= startOfMonth)
+    const decidedLastMonth = decidedAdmissions.filter(a => new Date(a.decidedAt!) < startOfMonth)
+
     const conversionRate = totalAdmissions > 0
       ? Math.round(
           (admittedCount / totalAdmissions)
@@ -269,7 +322,18 @@ export const GET = route({
           count: l._count.status
         })),
         cap: org.leadCap,
-        capUsed: totalLeads
+        capUsed: totalLeads,
+        createdThisMonth: leadsCreatedThisMonth,
+        createdToday: leadsCreatedToday
+      },
+      comparisons: {
+        enquiries: { current: leadsCreatedThisMonth, previous: leadsCreatedLastMonth },
+        converted: { current: convertedThisMonth, previous: convertedLastMonth },
+        avgConvertDays: {
+          current: avgDays(decidedThisMonth),
+          previous: avgDays(decidedLastMonth)
+        },
+        admittedThisMonth
       },
       admissions: {
         total: totalAdmissions,
@@ -281,6 +345,8 @@ export const GET = route({
         collectedThisMonth:
           feeCollectedThisMonth._sum.amount
           ?? 0,
+        collectedLastMonth:
+          feeCollectedLastMonth._sum.amount ?? 0,
         overdue:
           feeOverdue._sum.totalAmount ?? 0,
         upcoming:

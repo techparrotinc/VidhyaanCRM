@@ -10,6 +10,7 @@ declare module 'next-auth' {
       phone: string
       email: string
       activeRoleAssignmentId: string | null
+      onboardingComplete: boolean
     } & DefaultSession['user']
   }
 
@@ -20,6 +21,7 @@ declare module 'next-auth' {
     phone: string
     email: string
     activeRoleAssignmentId: string | null
+    onboardingComplete: boolean
   }
 }
 
@@ -31,5 +33,6 @@ declare module 'next-auth/jwt' {
     phone: string
     email: string
     activeRoleAssignmentId: string | null
+    onboardingComplete: boolean
   }
 }

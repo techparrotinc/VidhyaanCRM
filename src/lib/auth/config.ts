@@ -182,7 +182,7 @@ const authConfig: NextAuthConfig = {
   ],
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.userId = user.id
         token.role = (user as any).role
@@ -191,7 +191,30 @@ const authConfig: NextAuthConfig = {
         token.phone = (user as any).phone ?? ''
         token.email = user.email ?? ''
         token.activeRoleAssignmentId = (user as any).activeRoleAssignmentId ?? null
+
+        // Resolve onboarding status once at login so edge middleware can gate
+        // CRM routes without a per-navigation DB query / self-fetch.
+        token.onboardingComplete = false
+        const orgId = (user as any).orgId
+        if (orgId) {
+          try {
+            const org = await prisma.organization.findUnique({
+              where: { id: orgId },
+              select: { settings: true }
+            })
+            token.onboardingComplete = !!((org?.settings as any)?.onboardingIsComplete)
+          } catch (e) {
+            console.error('jwt onboarding flag resolve error:', e)
+          }
+        }
       }
+
+      // Client-triggered session update flips the flag the moment onboarding
+      // finishes, without forcing a re-login.
+      if (trigger === 'update' && (session as any)?.onboardingComplete === true) {
+        token.onboardingComplete = true
+      }
+
       return token
     },
 
@@ -204,6 +227,7 @@ const authConfig: NextAuthConfig = {
         session.user.phone = token.phone as string
         session.user.email = token.email as string
         session.user.activeRoleAssignmentId = token.activeRoleAssignmentId as string | null
+        session.user.onboardingComplete = !!token.onboardingComplete
       }
       return session
     }

@@ -178,11 +178,12 @@ export const PUT = route({
     if (body.gradeSought !== undefined)
       updateData.gradeSought = body.gradeSought || null
 
-    if (body.academicYearId !== undefined)
-      updateData.academicYearId = body.academicYearId || null
+    if (body.academicYearId !== undefined) {
+      updateData.academicYear = body.academicYearId
+        ? { connect: { id: body.academicYearId } }
+        : { disconnect: true }
+    }
 
-    if (body.notes !== undefined)
-      updateData.notes = body.notes || null
 
     if (body.nextFollowUpAt !== undefined)
       updateData.nextFollowUpAt = body.nextFollowUpAt
@@ -207,9 +208,13 @@ export const PUT = route({
           },
           select: { id: true }
         })
-        updateData.assignedToId = validUser?.id || null
+        if (validUser) {
+          updateData.assignedTo = { connect: { id: validUser.id } }
+        } else {
+          updateData.assignedTo = { disconnect: true }
+        }
       } else {
-        updateData.assignedToId = null
+        updateData.assignedTo = { disconnect: true }
       }
     }
 
@@ -224,6 +229,19 @@ export const PUT = route({
         where: { id: params?.id },
         data: {
           firstContactedAt: new Date()
+        }
+      })
+    }
+
+    // Log note if provided
+    if (body.notes) {
+      await db.leadActivity.create({
+        data: {
+          orgId: user.orgId,
+          leadId: existing.id,
+          type: 'NOTE',
+          summary: body.notes,
+          performedById: user.id
         }
       })
     }

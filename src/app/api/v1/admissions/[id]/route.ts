@@ -147,9 +147,25 @@ export const PUT = route({
     // Lead/activity-only fields split off; the rest are whitelisted Admission scalars
     const { notes, expectedJoinDate, currentSchool, priority, ...updateData } = body
 
+    const { stageId, assignedToId, academicYearId, branchId, ...restUpdateData } = updateData
+    const finalUpdateData: any = { ...restUpdateData }
+
+    if (stageId !== undefined) {
+      finalUpdateData.stage = stageId ? { connect: { id: stageId } } : { disconnect: true }
+    }
+    if (assignedToId !== undefined) {
+      finalUpdateData.assignedTo = assignedToId ? { connect: { id: assignedToId } } : { disconnect: true }
+    }
+    if (academicYearId !== undefined) {
+      finalUpdateData.academicYear = academicYearId ? { connect: { id: academicYearId } } : { disconnect: true }
+    }
+    if (branchId !== undefined) {
+      finalUpdateData.branch = branchId ? { connect: { id: branchId } } : { disconnect: true }
+    }
+
     const updated = await db.admission.update({
       where: { id },
-      data: updateData,
+      data: finalUpdateData,
       include: { stage: true }
     })
 
@@ -183,7 +199,9 @@ export const PUT = route({
       // Update the admission record with the new leadId
       await db.admission.update({
         where: { id },
-        data: { leadId }
+        data: {
+          lead: { connect: { id: leadId } }
+        }
       })
     } else {
       // Update the existing Lead record
@@ -197,8 +215,12 @@ export const PUT = route({
           parentName: body.parentName !== undefined ? (body.parentName || '') : undefined,
           phone: body.phone !== undefined ? (body.phone || '') : undefined,
           email: body.email !== undefined ? body.email : undefined,
-          academicYearId: body.academicYearId !== undefined ? body.academicYearId : undefined,
-          gradeSought: body.gradeSought !== undefined ? body.gradeSought : undefined
+          gradeSought: body.gradeSought !== undefined ? body.gradeSought : undefined,
+          ...(body.academicYearId !== undefined ? {
+            academicYear: body.academicYearId
+              ? { connect: { id: body.academicYearId } }
+              : { disconnect: true }
+          } : {})
         }
       })
     }

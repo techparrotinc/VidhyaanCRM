@@ -32,7 +32,7 @@ export const POST = route({
       data: {
         gradeLabel: body.newClass,
         rollNumber: body.newRollNumber ?? student.rollNumber,
-        academicYearId: body.academicYearId
+        academicYear: { connect: { id: body.academicYearId } }
       }
     })
 

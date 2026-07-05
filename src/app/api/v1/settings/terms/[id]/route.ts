@@ -36,13 +36,20 @@ export const PUT = route({
       throw Errors.notFound('Term')
     }
 
+    const { academicYearId, ...rest } = body
+    const updateData: any = {
+      ...rest,
+      startDate: body.startDate ? new Date(body.startDate) : undefined,
+      endDate: body.endDate ? new Date(body.endDate) : undefined
+    }
+
+    if (academicYearId !== undefined) {
+      updateData.academicYear = { connect: { id: academicYearId } }
+    }
+
     const updated = await db.term.update({
       where: { id },
-      data: {
-        ...body,
-        startDate: body.startDate ? new Date(body.startDate) : undefined,
-        endDate: body.endDate ? new Date(body.endDate) : undefined
-      }
+      data: updateData
     })
 
     return ok(updated)

@@ -134,8 +134,16 @@ export const PUT = route({
       updateData.gender = body.gender ? (body.gender.toUpperCase() as Gender) : null
     }
     if (body.status !== undefined) updateData.status = body.status as StudentStatus
-    if (body.academicYearId !== undefined) updateData.academicYearId = body.academicYearId
-    if (body.batchId !== undefined) updateData.batchId = body.batchId
+    if (body.academicYearId !== undefined) {
+      updateData.academicYear = body.academicYearId
+        ? { connect: { id: body.academicYearId } }
+        : { disconnect: true }
+    }
+    if (body.batchId !== undefined) {
+      updateData.batch = body.batchId
+        ? { connect: { id: body.batchId } }
+        : { disconnect: true }
+    }
     if (body.guardianName !== undefined) updateData.guardianName = body.guardianName
 
     const updated = await db.student.update({

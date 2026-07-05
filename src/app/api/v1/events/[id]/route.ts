@@ -111,20 +111,32 @@ export const PUT = route({
       throw Errors.validation({ endsAt: ['Must be after startsAt'] })
     }
 
+    const updateData: any = {
+      title: body.title,
+      description: body.description,
+      type: body.type ?? undefined,
+      capacity: body.capacity,
+      startsAt,
+      endsAt,
+      location: body.location,
+      meetingLink: body.meetingLink
+    }
+
+    if (body.academicYearId !== undefined) {
+      updateData.academicYear = body.academicYearId
+        ? { connect: { id: body.academicYearId } }
+        : { disconnect: true }
+    }
+
+    if (body.branchId !== undefined) {
+      updateData.branch = body.branchId
+        ? { connect: { id: body.branchId } }
+        : { disconnect: true }
+    }
+
     const updated = await db.event.update({
       where: { id },
-      data: {
-        title: body.title,
-        description: body.description,
-        type: body.type ?? undefined,
-        capacity: body.capacity,
-        startsAt,
-        endsAt,
-        location: body.location,
-        meetingLink: body.meetingLink,
-        academicYearId: body.academicYearId,
-        branchId: body.branchId
-      }
+      data: updateData
     })
 
     return ok(updated)

@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { cleanPhoneNumber } from '@/lib/utils'
+
+const visitRequestSchema = z.object({
+  parentName: z.string().max(150).optional().nullable(),
+  phone: z.string().max(20).optional().nullable(),
+  email: z.string().max(200).optional().nullable(),
+  preferredDate: z.string().max(40).optional().nullable(),
+  preferredTime: z.string().max(40).optional().nullable(),
+  numberOfVisitors: z.union([z.string().max(10), z.number()]).optional().nullable(),
+  notes: z.string().max(2000).optional().nullable()
+})
 
 export async function POST(
   req: NextRequest,
@@ -8,17 +19,23 @@ export async function POST(
 ) {
   try {
     const { slug } = await context.params
-    const body = await req.json()
+    const parsed = visitRequestSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      )
+    }
 
-    const { 
-      parentName, 
-      phone: rawPhone, 
-      email, 
-      preferredDate, 
-      preferredTime, 
-      numberOfVisitors, 
-      notes 
-    } = body
+    const {
+      parentName,
+      phone: rawPhone,
+      email,
+      preferredDate,
+      preferredTime,
+      numberOfVisitors,
+      notes
+    } = parsed.data
 
     const phone = typeof rawPhone === 'string' ? cleanPhoneNumber(rawPhone) as string : rawPhone
 

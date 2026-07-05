@@ -7,6 +7,17 @@ import crypto from 'crypto'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 import { welcomeSchoolTemplate } from '@/lib/mail/templates'
 import { findOrCreateUserByPhone } from '@/lib/auth/findOrCreateUserByPhone'
+import { z } from 'zod'
+
+const registerSchema = z.object({
+  name: z.string().trim().min(1).max(150),
+  phone: z.string().min(5).max(20),
+  email: z.string().email().max(200),
+  role: z.string().min(1).max(50),
+  schoolId: z.string().max(50).optional().nullable(),
+  schoolName: z.string().max(200).optional().nullable(),
+  institutionType: z.string().max(50).optional().nullable()
+})
 
 function slugify(text: string): string {
   return text
@@ -20,15 +31,14 @@ function slugify(text: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { name, phone, email, role, schoolId, schoolName, institutionType } = body
-
-    if (!name || !phone || !email || !role) {
+    const parsed = registerSchema.safeParse(await req.json())
+    if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: 'name, phone, email, and role are required' },
         { status: 400 }
       )
     }
+    const { name, phone, email, role, schoolId, schoolName, institutionType } = parsed.data
 
 
 

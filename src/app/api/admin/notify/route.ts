@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db/client'
 import { AuditAction } from '@prisma/client'
@@ -13,12 +14,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await req.json()
-    const { orgId, title, message, type, channel } = body
+    const parsed = z.object({
+      orgId: z.string().min(1).max(50),
+      title: z.string().min(1).max(200),
+      message: z.string().min(1).max(5000),
+      type: z.string().min(1).max(50),
+      channel: z.enum(['IN_APP', 'EMAIL', 'BOTH'])
+    }).safeParse(await req.json())
 
-    if (!orgId || !title || !message || !type || !channel) {
+    if (!parsed.success) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 })
     }
+    const { orgId, title, message, type, channel } = parsed.data
 
     // 1. Fetch recipient orgs
     let targetOrgs: { id: string; email: string }[] = []

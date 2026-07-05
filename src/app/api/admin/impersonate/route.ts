@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
@@ -13,12 +14,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized. SUPER_ADMIN access required.' }, { status: 401 })
     }
 
-    const body = await req.json()
-    const { orgId, userId } = body
-
-    if (!orgId || !userId) {
+    const parsed = z.object({
+      orgId: z.string().min(1).max(50),
+      userId: z.string().min(1).max(50)
+    }).safeParse(await req.json())
+    if (!parsed.success) {
       return NextResponse.json({ error: 'orgId and userId are required' }, { status: 400 })
     }
+    const { orgId, userId } = parsed.data
 
     // Verify target user belongs to target organization
     const targetUser = await prisma.user.findFirst({

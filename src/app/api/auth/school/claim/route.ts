@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { createOTP, generateOTP } from '@/lib/auth/otp'
 import bcrypt from 'bcryptjs'
+
+const claimSchema = z.object({
+  schoolId: z.string().min(1).max(50),
+  verificationType: z.enum(['DOCUMENT', 'EMAIL', 'PHONE']),
+  documentUrl: z.string().max(1000).optional().nullable(),
+  verificationCode: z.string().max(10).optional().nullable(),
+  phone: z.string().max(20).optional().nullable()
+})
 
 function slugify(text: string): string {
   return text
@@ -30,15 +39,14 @@ async function generateUniqueOrgSlug(name: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { schoolId, verificationType, documentUrl, verificationCode, phone } = body
-
-    if (!schoolId || !verificationType) {
+    const parsed = claimSchema.safeParse(await req.json())
+    if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: 'schoolId and verificationType are required' },
         { status: 400 }
       )
     }
+    const { schoolId, verificationType, documentUrl, verificationCode, phone } = parsed.data
 
     // 1. Find school by schoolId
     const school = await prisma.school.findUnique({

@@ -4,6 +4,28 @@ import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { UserRole, UserStatus, OtpChannel, OtpPurpose, InstitutionType } from '@prisma/client'
 import { createDefaultCourses } from '@/lib/utils/createDefaultCourses'
 import { findOrCreateUserByPhone } from '@/lib/auth/findOrCreateUserByPhone'
+import { z } from 'zod'
+
+const numLike = z.union([z.string().max(20), z.number()]).transform((v) => String(v)).optional().nullable()
+
+const newSchoolSchema = z.object({
+  name: z.string().trim().min(1).max(150),
+  phone: z.string().min(5).max(20),
+  email: z.string().email().max(200),
+  role: z.string().min(1).max(50),
+  schoolName: z.string().trim().min(1).max(200),
+  institutionType: z.string().min(1).max(50),
+  city: z.string().min(1).max(100),
+  board: z.string().max(50).optional().nullable(),
+  establishedYear: numLike,
+  centerCategory: z.string().max(50).optional().nullable(),
+  schoolType: z.string().max(50).optional().nullable(),
+  mediumOfInstruction: z.union([z.string().max(200), z.array(z.string().max(50)).max(20)]).optional().nullable(),
+  examFocus: z.array(z.string().max(50)).max(50).optional().nullable(),
+  gradeFrom: z.string().max(30).optional().nullable(),
+  gradeTo: z.string().max(30).optional().nullable(),
+  totalTeachers: numLike
+})
 
 function slugify(text: string): string {
   return text
@@ -58,7 +80,13 @@ function mapInstitutionType(type: string): InstitutionType {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const parsedBody = newSchoolSchema.safeParse(await req.json())
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required registration details' },
+        { status: 400 }
+      )
+    }
     const {
       name, // admin full name
       phone,
@@ -76,9 +104,9 @@ export async function POST(req: NextRequest) {
       gradeFrom,
       gradeTo,
       totalTeachers
-    } = body
+    } = parsedBody.data
 
-    if (!name || !phone || !email || !role || !schoolName || !institutionType || !city || (institutionType !== 'LEARNING_CENTER' && institutionType !== 'COACHING_CENTER' && !board)) {
+    if (institutionType !== 'LEARNING_CENTER' && institutionType !== 'COACHING_CENTER' && !board) {
       return NextResponse.json(
         { success: false, error: 'Missing required registration details' },
         { status: 400 }

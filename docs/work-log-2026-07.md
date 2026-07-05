@@ -34,6 +34,19 @@ Record of a review + hardening + performance session. Production branch is
 - **vitest, 46 tests** (`npm test`) — tenant isolation (integration, seeds 2 throwaway
   orgs), fee-math invariants, rate limiter race-safety, query helpers.
 
+### Tier-2 zod sweep (2026-07-05)
+- Body validation added to all remaining mutating routes that read a body (~30 files):
+  school-profile (profile/media/hours), files/upload (**also added missing auth — was
+  fully unauthenticated — plus 10MB size cap + extension whitelist**), fees/invoices/[id],
+  admissions/[id] (**replaced blocklist destructure with whitelist schema — mass-assignment
+  closed**), enrollments, settings/security (discriminated union on `action`),
+  notifications, onboarding/save (full step-payload schema), billing/subscribe,
+  parent/bookmarks, auth (otp/verify, pin set/verify/reset/generate-reset-token,
+  school claim/register/new/verify-email), admin (settings, notify, impersonate,
+  schools approve/reject, scraping/import, parents/[id]), public (trial, visit).
+- Remaining flagged routes read no body (param-only mutations, signature-verified
+  webhooks) — nothing to validate.
+
 ### Refactors (page splits)
 - admission-management 3272→1405, lead-management 2351→899, schools/[slug] 2250→1812,
   settings/school-profile 1913→1570.
@@ -68,8 +81,7 @@ Record of a review + hardening + performance session. Production branch is
 1. **Subdomain-per-school** (phase 2) — `schoolname.vidhyaan.com`. Needs Vercel Pro +
    wildcard `*.vidhyaan.com` + NS. Safe to start steps 1–2 anytime (`Organization.subdomain`
    column + allocation + backfill); additive, no disruption if apex stays live + host-only cookies.
-2. **Tier-2 zod sweep** — ~40 mutating routes still without body validation (files/upload,
-   admin scraping/import, settings/security, school-profile media). Mechanical.
+2. ~~**Tier-2 zod sweep**~~ — **DONE 2026-07-05** (see above).
 3. **Lead bulk-action bar** — Assign/Change Status/Export/Delete buttons are no-ops; wire or remove.
 4. **Dashboard "Profile Views"** hardcoded `142`; wire to real data. Minor sub-cards flash 0-then-value.
 5. **settings/school-profile** — Basic/Contact/Academics/Gallery tabs still inline (Gallery

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db/client'
 import { AuditAction, VerificationStatus } from '@prisma/client'
@@ -16,12 +17,13 @@ export async function POST(
     }
 
     const { id } = await context.params
-    const body = await req.json().catch(() => ({}))
-    const { reason } = body
+    const parsed = z.object({ reason: z.string().min(1).max(1000) })
+      .safeParse(await req.json().catch(() => ({})))
 
-    if (!reason) {
+    if (!parsed.success) {
       return NextResponse.json({ error: 'rejection reason is required' }, { status: 400 })
     }
+    const { reason } = parsed.data
 
     // Find school
     const school = await prisma.school.findUnique({

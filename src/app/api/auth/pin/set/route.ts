@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
@@ -21,15 +22,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
-    const { pin, confirmPin } = body
-
-    if (!pin || !confirmPin) {
+    const parsed = z.object({
+      pin: z.string().min(1).max(10),
+      confirmPin: z.string().min(1).max(10)
+    }).safeParse(await req.json())
+    if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: 'PIN and confirmation PIN are required' },
         { status: 400 }
       )
     }
+    const { pin, confirmPin } = parsed.data
 
     if (pin !== confirmPin) {
       return NextResponse.json(

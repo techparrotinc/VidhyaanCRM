@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { createOrder } from '@/lib/integrations/razorpay'
@@ -17,12 +18,15 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Parse request
-    const body = await req.json()
-    const { planSlug, billingCycle } = body
+    const parsed = z.object({
+      planSlug: z.string().min(1).max(100),
+      billingCycle: z.enum(['MONTHLY', 'QUARTERLY', 'ANNUAL'])
+    }).safeParse(await req.json())
 
-    if (!planSlug || !['MONTHLY', 'QUARTERLY', 'ANNUAL'].includes(billingCycle)) {
+    if (!parsed.success) {
       return NextResponse.json({ success: false, error: 'Invalid parameters' }, { status: 400 })
     }
+    const { planSlug, billingCycle } = parsed.data
 
     // 3. Find plan
     const plan = await prisma.plan.findUnique({

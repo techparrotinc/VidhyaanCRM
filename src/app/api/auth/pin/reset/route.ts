@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
 import argon2 from 'argon2'
@@ -12,15 +13,19 @@ const OBVIOUS_PATTERNS = [
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { phone, otpToken, newPin, confirmPin } = body
-
-    if (!phone || !otpToken || !newPin || !confirmPin) {
+    const parsed = z.object({
+      phone: z.string().min(1).max(20),
+      otpToken: z.string().min(1).max(100),
+      newPin: z.string().min(1).max(10),
+      confirmPin: z.string().min(1).max(10)
+    }).safeParse(await req.json())
+    if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: 'All fields (phone, otpToken, newPin, confirmPin) are required' },
         { status: 400 }
       )
     }
+    const { phone, otpToken, newPin, confirmPin } = parsed.data
 
     // 1. Validate OTP token from Redis
     const tokenKey = `pin_reset_token:${phone}`

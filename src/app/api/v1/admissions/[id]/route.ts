@@ -1,4 +1,5 @@
 import { route } from '@/lib/api/compose'
+import { z } from 'zod'
 import { NextResponse } from 'next/server'
 import { ok } from '@/lib/api/respond'
 import { redis } from '@/lib/redis'
@@ -6,6 +7,27 @@ import { Errors, AppError } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { createNotification } from '@/lib/services/notifications'
+
+// Whitelist of updatable Admission scalars + body-only fields handled separately below
+// (unknown keys are stripped — previously anything not destructured out hit prisma directly)
+const updateAdmissionSchema = z.object({
+  applicantName: z.string().trim().min(1).max(150).optional(),
+  parentName: z.string().max(150).optional().nullable(),
+  gradeSought: z.string().max(50).optional().nullable(),
+  phone: z.string().max(30).optional().nullable(),
+  email: z.string().max(200).optional().nullable(),
+  stageId: z.string().max(50).optional().nullable(),
+  assignedToId: z.string().max(50).optional().nullable(),
+  academicYearId: z.string().max(50).optional().nullable(),
+  branchId: z.string().max(50).optional().nullable(),
+  status: z.enum(['IN_PROGRESS', 'ADMITTED', 'REJECTED', 'WAITLISTED', 'WITHDRAWN']).optional(),
+  rejectionReason: z.string().max(1000).optional().nullable(),
+  // Lead/activity fields — never written to Admission
+  notes: z.string().max(5000).optional().nullable(),
+  expectedJoinDate: z.string().max(40).optional().nullable(),
+  currentSchool: z.string().max(200).optional().nullable(),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional().nullable()
+})
 
 export const GET = route({
   module: MODULES.ADMISSION_MANAGEMENT,
@@ -99,7 +121,7 @@ export const PUT = route({
   ],
   handler: async ({ req, db, user, params }) => {
     const { id } = (await params) as any
-    const body = await req.json()
+    const body = updateAdmissionSchema.parse(await req.json())
 
     const existing = await db.admission.findFirst({
       where: { id },
@@ -122,28 +144,8 @@ export const PUT = route({
       }
     })
 
-    // Filter out relation and read-only fields to prevent Prisma errors
-    const {
-      id: bodyId,
-      orgId,
-      branchId,
-      createdAt,
-      updatedAt,
-      stage,
-      assignedTo,
-      activities,
-      documents,
-      student,
-      lead,
-      notes,
-      expectedJoinDate,
-      currentSchool,
-      priority,
-      counsellor,
-      counsellorAvatar,
-      counsellorName,
-      ...updateData
-    } = body
+    // Lead/activity-only fields split off; the rest are whitelisted Admission scalars
+    const { notes, expectedJoinDate, currentSchool, priority, ...updateData } = body
 
     const updated = await db.admission.update({
       where: { id },

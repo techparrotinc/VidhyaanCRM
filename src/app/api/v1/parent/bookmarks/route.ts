@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 
@@ -96,15 +97,14 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
-    const { schoolId } = body
-
-    if (!schoolId) {
+    const parsed = z.object({ schoolId: z.string().min(1).max(50) }).safeParse(await req.json())
+    if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: 'schoolId is required' },
         { status: 400 }
       )
     }
+    const { schoolId } = parsed.data
 
     // Check if already bookmarked
     const existing = await prisma.parentBookmark.findUnique({
@@ -175,9 +175,12 @@ export async function DELETE(req: NextRequest) {
 
     if (!bookmarkId && !schoolId) {
       try {
-        const body = await req.json()
-        bookmarkId = body.bookmarkId
-        schoolId = body.schoolId
+        const body = z.object({
+          bookmarkId: z.string().max(50).optional().nullable(),
+          schoolId: z.string().max(50).optional().nullable()
+        }).parse(await req.json())
+        bookmarkId = body.bookmarkId ?? null
+        schoolId = body.schoolId ?? null
       } catch (e) {}
     }
 

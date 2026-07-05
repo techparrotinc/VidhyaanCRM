@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
@@ -141,8 +142,17 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
-    const { ids, all } = body
+    const parsed = z.object({
+      ids: z.array(z.string().max(50)).max(500).optional(),
+      all: z.boolean().optional()
+    }).safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      )
+    }
+    const { ids, all } = parsed.data
 
     const where: any = {
       deletedAt: null

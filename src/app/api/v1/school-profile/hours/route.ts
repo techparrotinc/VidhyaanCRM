@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { recalculateAndSaveSchoolScores } from '@/lib/school-profile-helper'
+
+const hoursSchema = z.object({
+  hours: z.array(
+    z.object({
+      dayOfWeek: z.union([z.string().max(2), z.number()]),
+      openTime: z.string().max(10).optional().nullable(),
+      closeTime: z.string().max(10).optional().nullable(),
+      isClosed: z.boolean().optional().nullable()
+    })
+  ).max(7)
+})
 
 export async function PUT(req: NextRequest) {
   try {
@@ -22,16 +34,18 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'School not found' }, { status: 404 })
     }
 
-    const body = await req.json()
-    const { hours } = body
-
-    if (!Array.isArray(hours)) {
-      return NextResponse.json({ error: 'hours array is required' }, { status: 400 })
+    const parsed = hoursSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      )
     }
+    const { hours } = parsed.data
 
     // Process each hour item sequentially
     for (const item of hours) {
-      const dayOfWeek = parseInt(item.dayOfWeek)
+      const dayOfWeek = parseInt(String(item.dayOfWeek))
       if (isNaN(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
         continue
       }

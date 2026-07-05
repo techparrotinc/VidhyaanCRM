@@ -1,8 +1,15 @@
 import { route } from '@/lib/api/compose'
+import { z } from 'zod'
 import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
+
+const updateInvoiceSchema = z.object({
+  dueDate: z.string().max(40).optional().nullable(),
+  notes: z.string().max(2000).optional().nullable(),
+  status: z.enum(['UNPAID', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'WAIVED', 'SCHEDULED']).optional()
+})
 
 export const GET = route({
   module: MODULES.FEE_MANAGEMENT,
@@ -79,7 +86,7 @@ export const PUT = route({
     if (!id) {
       throw Errors.notFound('Invoice')
     }
-    const body = await req.json()
+    const body = updateInvoiceSchema.parse(await req.json())
 
     const existing = await db.invoice.findFirst({
       where: { id, orgId: user.orgId, deletedAt: null }

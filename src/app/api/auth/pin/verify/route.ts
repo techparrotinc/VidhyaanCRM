@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { verifyPinCredentials, verifyPinToken } from '@/lib/auth/verifyPin'
+
+const verifyPinSchema = z.object({
+  phone: z.string().max(20).optional().nullable(),
+  pin: z.string().max(10).optional().nullable(),
+  token: z.string().max(500).optional().nullable()
+})
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { phone, pin, token } = body
+    const parsed = verifyPinSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid input' },
+        { status: 400 }
+      )
+    }
+    const { phone, pin, token } = parsed.data
 
     if (token) {
       const result = await verifyPinToken(token)

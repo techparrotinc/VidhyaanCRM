@@ -1,4 +1,5 @@
 import { route } from '@/lib/api/compose'
+import { z } from 'zod'
 import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
@@ -16,7 +17,10 @@ export const PUT = route({
     if (!enrollmentId) {
       throw Errors.notFound('Enrollment')
     }
-    const body = await req.json()
+    const body = z.object({
+      status: z.enum(['ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED']).optional(),
+      endDate: z.string().max(40).optional().nullable()
+    }).parse(await req.json())
 
     const existing = await db.courseEnrollment.findFirst({
       where: { id: enrollmentId, orgId: user.orgId }

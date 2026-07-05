@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { cleanPhoneNumber } from '@/lib/utils'
+
+const trialBookingSchema = z.object({
+  parentName: z.string().max(150).optional().nullable(),
+  phone: z.string().max(20).optional().nullable(),
+  email: z.string().max(200).optional().nullable(),
+  childName: z.string().max(150).optional().nullable(),
+  childAge: z.union([z.string().max(10), z.number()]).optional().nullable(),
+  batchScheduleId: z.string().max(50).optional().nullable(),
+  preferredDate: z.string().max(40).optional().nullable(),
+  activityType: z.string().max(100).optional().nullable(),
+  message: z.string().max(2000).optional().nullable()
+})
 
 export async function POST(
   req: NextRequest,
@@ -8,7 +21,13 @@ export async function POST(
 ) {
   try {
     const { slug } = await context.params
-    const body = await req.json()
+    const parsed = trialBookingSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      )
+    }
 
     const {
       parentName,
@@ -20,7 +39,7 @@ export async function POST(
       preferredDate,
       activityType,
       message
-    } = body
+    } = parsed.data
 
     const phone = typeof rawPhone === 'string' ? cleanPhoneNumber(rawPhone) as string : rawPhone
 

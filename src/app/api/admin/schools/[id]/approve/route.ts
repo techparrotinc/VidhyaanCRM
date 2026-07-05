@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db/client'
 import { AuditAction, OrgStatus, VerificationStatus } from '@prisma/client'
@@ -17,8 +18,9 @@ export async function POST(
     }
 
     const { id } = await context.params
-    const body = await req.json().catch(() => ({}))
-    const { notes } = body
+    const parsed = z.object({ notes: z.string().max(1000).optional().nullable() })
+      .safeParse(await req.json().catch(() => ({})))
+    const notes = parsed.success ? parsed.data.notes : undefined
 
     // Find school
     const school = await prisma.school.findUnique({

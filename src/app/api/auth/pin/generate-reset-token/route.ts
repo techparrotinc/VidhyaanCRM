@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
 import bcrypt from 'bcryptjs'
@@ -6,15 +7,17 @@ import crypto from 'crypto'
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { phone, otpCode } = body
-
-    if (!phone || !otpCode) {
+    const parsed = z.object({
+      phone: z.string().min(1).max(20),
+      otpCode: z.string().min(1).max(10)
+    }).safeParse(await req.json())
+    if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: 'Phone and OTP code are required' },
         { status: 400 }
       )
     }
+    const { phone, otpCode } = parsed.data
 
     // Dev bypass
     const isDevBypass = process.env.NODE_ENV === 'development' && otpCode === '123456'

@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
 import argon2 from 'argon2'
 import bcrypt from 'bcryptjs'
 import { AuditAction } from '@prisma/client'
+
+const securityActionSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('set'), pin: z.string().max(10), confirmPin: z.string().max(10) }),
+  z.object({ action: z.literal('change'), currentPin: z.string().max(10), newPin: z.string().max(10), confirmPin: z.string().max(10) }),
+  z.object({ action: z.literal('remove'), otpCode: z.string().max(10) })
+])
 
 const OBVIOUS_PATTERNS = [
   '1111', '2222', '3333', '4444', '5555',
@@ -52,7 +59,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const body = await req.json()
+    const parsedBody = securityActionSchema.safeParse(await req.json())
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: parsedBody.error.flatten().fieldErrors },
+        { status: 400 }
+      )
+    }
+    const body = parsedBody.data
     const { action } = body
 
     if (action === 'set') {

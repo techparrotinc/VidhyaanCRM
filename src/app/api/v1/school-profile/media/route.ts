@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { recalculateAndSaveSchoolScores } from '@/lib/school-profile-helper'
+
+const mediaJsonSchema = z.object({
+  url: z.string().url().max(1000),
+  caption: z.string().max(200).optional(),
+  type: z.string().max(30).optional()
+})
 
 // GET list school media
 export async function GET(req: NextRequest) {
@@ -62,15 +69,21 @@ export async function POST(req: NextRequest) {
     let type = 'image'
 
     if (contentType.includes('application/json')) {
-      const body = await req.json()
-      url = body.url
-      caption = body.caption || 'gallery'
-      type = body.type || 'image'
+      const parsed = mediaJsonSchema.safeParse(await req.json())
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
+          { status: 400 }
+        )
+      }
+      url = parsed.data.url
+      caption = parsed.data.caption || 'gallery'
+      type = parsed.data.type || 'image'
     } else if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData()
       const file = formData.get('file') as File | null
-      caption = (formData.get('caption') as string) || 'gallery'
-      type = (formData.get('type') as string) || 'image'
+      caption = ((formData.get('caption') as string) || 'gallery').slice(0, 200)
+      type = ((formData.get('type') as string) || 'image').slice(0, 30)
 
       if (!file) {
         return NextResponse.json({ error: 'No file provided' }, { status: 400 })
@@ -78,7 +91,7 @@ export async function POST(req: NextRequest) {
 
       // Simulate DO Spaces Upload
       await new Promise((resolve) => setTimeout(resolve, 300))
-      const fileExtension = file.name.split('.').pop() || 'jpg'
+      const fileExtension = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10) || 'jpg'
       const uniqueId = Math.random().toString(36).substring(2, 10)
       url = `https://vidhyaan-documents.sfo3.digitaloceanspaces.com/uploads/${uniqueId}-${Date.now()}.${fileExtension}`
     } else {

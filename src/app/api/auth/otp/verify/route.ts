@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db/client'
 import bcrypt from 'bcryptjs'
 
+const verifyOtpSchema = z.object({
+  contact: z.string().min(1).max(200),
+  code: z.string().min(1).max(10)
+})
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { contact, code } = body
-
-    if (!contact || !code) {
+    const parsed = verifyOtpSchema.safeParse(await req.json())
+    if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: 'Contact and code are required' },
         { status: 400 }
       )
     }
+    const { contact, code } = parsed.data
 
     // Dev bypass
     const isDevBypass = process.env.NODE_ENV === 'development' && code === '1234'

@@ -1,8 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { recalculateAndSaveSchoolScores } from '@/lib/school-profile-helper'
 import { redis } from '@/lib/redis'
+
+const intLike = z.union([z.string().max(20), z.number()]).transform((v) => String(v)).optional().nullable()
+const str = (max: number) => z.string().max(max).optional().nullable()
+
+const updateProfileSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  description: z.string().max(5000).optional().nullable(),
+  schoolType: str(50),
+  establishedYear: intLike,
+  totalStudents: intLike,
+  totalTeachers: intLike,
+  mediumOfInstruction: str(100),
+  gender: str(30),
+  gradesOffered: z.array(z.string().max(50)).max(50).optional().nullable(),
+  trialClassAvailable: z.boolean().optional().nullable(),
+  enrollmentStatus: str(50),
+  ageGroupMin: intLike,
+  ageGroupMax: intLike,
+  monthlyFeeMin: intLike,
+  monthlyFeeMax: intLike,
+  activityTypes: z.array(z.string().max(50)).max(50).optional().nullable(),
+  homeVisitAvailable: z.boolean().optional().nullable(),
+  admissionOpen: z.boolean().optional().nullable(),
+  academicYear: str(20),
+  admissionDeadline: str(40),
+  admissionFormLink: str(500),
+  address1: str(300),
+  address2: str(300),
+  city: str(100),
+  state: str(100),
+  pincode: str(20),
+  phone: str(30),
+  phoneSecondary: str(30),
+  email: str(200),
+  website: str(300),
+  mapsLink: str(1000),
+  boards: z.array(z.string().max(50)).max(20).optional(),
+  affiliationNo: str(100)
+})
 
 // GET own school profile
 export async function GET(req: NextRequest) {
@@ -92,7 +132,14 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'School not found' }, { status: 404 })
     }
 
-    const body = await req.json()
+    const parsed = updateProfileSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      )
+    }
+    const body = parsed.data
 
     // 1. Extract and update school-level fields
     const schoolFields: any = {}

@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
+
+const intLike = z.union([z.string().max(20), z.number()]).transform((v) => String(v))
+const strOpt = (max: number) => z.string().max(max).optional()
+
+const platformSettingsSchema = z.object({
+  freePlanLeadCap: intLike.optional(),
+  trialDurationDays: intLike.optional(),
+  defaultOtpTtlMinutes: intLike.optional(),
+  enableWhatsapp: z.boolean().optional(),
+  enableCampaignModule: z.boolean().optional(),
+  enableAiFeatures: z.boolean().optional(),
+  enablePublicApiAccess: z.boolean().optional(),
+  maintenanceMode: z.boolean().optional(),
+  fromEmailAddress: strOpt(200),
+  supportEmail: strOpt(200),
+  fromName: strOpt(100),
+  opsAlertEmail: strOpt(200),
+  slackWebhookUrl: strOpt(500),
+  razorpayLiveKey: strOpt(200),
+  razorpayWebhookSecret: strOpt(200),
+  doSpacesEndpoint: strOpt(300),
+  doSpacesBucket: strOpt(100),
+  doSpacesCdnUrl: strOpt(300)
+})
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,7 +61,14 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized. SUPER_ADMIN required.' }, { status: 401 })
     }
 
-    const body = await req.json()
+    const parsed = platformSettingsSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      )
+    }
+    const body = parsed.data
 
     // If freePlanLeadCap changes, we update the free plan's lead cap and all its organizations as requested:
     // "Free plan lead cap: Save -> updates all free plan orgs."

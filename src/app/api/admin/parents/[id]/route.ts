@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { AuditAction, UserStatus } from '@prisma/client'
@@ -16,8 +17,9 @@ export async function DELETE(
     }
 
     const { id } = await context.params
-    const body = await req.json().catch(() => ({}))
-    const { reason } = body
+    const parsedDel = z.object({ reason: z.string().max(1000).optional().nullable() })
+      .safeParse(await req.json().catch(() => ({})))
+    const reason = parsedDel.success ? parsedDel.data.reason : undefined
 
     const parent = await prisma.parent.findUnique({
       where: { id }
@@ -97,8 +99,12 @@ export async function PUT(
     }
 
     const { id } = await context.params
-    const body = await req.json()
-    const { action } = body // e.g. 'deactivate' | 'reactivate'
+    const parsedPut = z.object({ action: z.enum(['deactivate', 'reactivate']) })
+      .safeParse(await req.json())
+    if (!parsedPut.success) {
+      return NextResponse.json({ error: 'action must be deactivate or reactivate' }, { status: 400 })
+    }
+    const { action } = parsedPut.data
 
     const parent = await prisma.parent.findUnique({
       where: { id }

@@ -1,6 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db/client'
+
+const numLike = z.union([z.string().max(20), z.number()]).optional().nullable()
+const strOpt = (max: number) => z.string().max(max).optional().nullable()
+
+const onboardingSaveSchema = z.object({
+  step: z.coerce.number().int().min(1).max(5),
+  data: z.object({
+    name: strOpt(200),
+    email: strOpt(200),
+    institutionType: strOpt(50),
+    centerCategory: strOpt(50),
+    schoolType: strOpt(50),
+    examFocus: z.array(z.string().max(50)).max(50).optional(),
+    mediumOfInstruction: z.union([z.string().max(200), z.array(z.string().max(50)).max(20)]).optional().nullable(),
+    establishedYear: numLike,
+    description: strOpt(5000),
+    totalStudents: numLike,
+    totalTeachers: numLike,
+    gender: strOpt(30),
+    gradeFrom: strOpt(30),
+    gradeTo: strOpt(30),
+    address1: strOpt(300),
+    address2: strOpt(300),
+    city: strOpt(100),
+    state: strOpt(100),
+    pincode: strOpt(20),
+    latitude: z.number().optional().nullable(),
+    longitude: z.number().optional().nullable(),
+    phone: strOpt(30),
+    phoneSecondary: strOpt(30),
+    website: strOpt(300),
+    officeHours: strOpt(200),
+    mapsLink: strOpt(1000),
+    boards: z.array(z.string().max(50)).max(20).optional(),
+    affiliationNo: strOpt(100),
+    facilities: z.array(z.string().max(100)).max(100).optional(),
+    feeRanges: z.array(z.object({
+      gradeLabel: z.string().max(50),
+      minAmount: numLike,
+      maxAmount: numLike
+    })).max(50).optional(),
+    monthlyFeeMin: numLike,
+    monthlyFeeMax: numLike,
+    activityTypes: z.array(z.string().max(50)).max(50).optional(),
+    admissionOpen: z.boolean().optional(),
+    logoUrl: strOpt(1000),
+    coverUrl: strOpt(1000),
+    galleryUrls: z.array(z.string().max(1000)).max(100).optional(),
+    isPublished: z.boolean().optional()
+  })
+})
 import { InstitutionType } from '@prisma/client'
 import { redis } from '@/lib/redis'
 import { createDefaultCourses } from '@/lib/utils/createDefaultCourses'
@@ -77,15 +129,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
-    const { step, data } = body
-
-    if (!step || !data) {
+    const parsed = onboardingSaveSchema.safeParse(await req.json())
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'step and data are required' },
+        { success: false, error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
         { status: 400 }
       )
     }
+    const { step } = parsed.data
+    // Validated at runtime above; loose type keeps step-specific field access unchanged
+    const data = parsed.data.data as Record<string, any>
 
     let orgId = user.orgId
     let org: any = null

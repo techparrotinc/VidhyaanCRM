@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db/client'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { OtpPurpose } from '@prisma/client'
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { schoolId } = body
-
-    if (!schoolId) {
+    const parsed = z.object({ schoolId: z.string().min(1).max(50) }).safeParse(await req.json())
+    if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: 'schoolId is required' },
         { status: 400 }
       )
     }
+    const { schoolId } = parsed.data
 
     const school = await prisma.school.findUnique({
       where: { id: schoolId },

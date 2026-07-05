@@ -1,7 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { ScrapingStatus } from '@prisma/client'
+
+const importSchema = z.object({
+  fileName: z.string().max(300).optional().nullable(),
+  rows: z.array(
+    z.object({
+      school_name: z.string().max(200).optional().nullable(),
+      city: z.string().max(100).optional().nullable(),
+      address: z.string().max(500).optional().nullable(),
+      state: z.string().max(100).optional().nullable(),
+      phone: z.string().max(30).optional().nullable(),
+      email: z.string().max(200).optional().nullable(),
+      website: z.string().max(300).optional().nullable(),
+      board: z.string().max(50).optional().nullable()
+    })
+  ).max(5000)
+})
 
 function slugify(text: string): string {
   return text
@@ -24,12 +41,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await req.json()
-    const { fileName, rows } = body
-
-    if (!rows || !Array.isArray(rows)) {
+    const parsed = importSchema.safeParse(await req.json())
+    if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid rows payload' }, { status: 400 })
     }
+    const { fileName, rows } = parsed.data
 
     const totalRows = rows.length
     let validRows = 0
@@ -37,19 +53,21 @@ export async function POST(req: NextRequest) {
     // Perform database operations transactionally or sequentially
     // Sequential loop with try/catch ensures we import as many as possible without failing the whole process
     for (const row of rows) {
-      if (!row.school_name || !row.city) {
+      const schoolName = row.school_name
+      const city = row.city
+      if (!schoolName || !city) {
         continue
       }
 
       try {
-        const baseSlug = slugify(row.school_name || 'school')
+        const baseSlug = slugify(schoolName)
         const uniqueSuffix = Math.random().toString(36).substring(2, 8)
         const slug = `${baseSlug}-${uniqueSuffix}`
 
         await prisma.$transaction(async (tx) => {
           const school = await tx.school.create({
             data: {
-              name: row.school_name,
+              name: schoolName,
               slug,
               institutionType: 'SCHOOL',
               verificationStatus: 'UNCLAIMED',
@@ -62,7 +80,7 @@ export async function POST(req: NextRequest) {
             data: {
               schoolId: school.id,
               addressLine: row.address || null,
-              city: row.city,
+              city,
               state: row.state || null,
               isPrimary: true
             }

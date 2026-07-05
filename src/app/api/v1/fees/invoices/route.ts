@@ -98,17 +98,10 @@ export const GET = route({
               id: true,
               name: true
             }
-          },
-          items: true,
-          payments: {
-            select: {
-              id: true,
-              amount: true,
-              method: true,
-              status: true,
-              paidAt: true
-            }
           }
+          // items + payments intentionally omitted from the list query — the
+          // list renders invoice scalars (paidAmount/status/totalAmount) only;
+          // the detail page fetches line items and payments on demand.
         }
       }),
       db.invoice.count({ where }),

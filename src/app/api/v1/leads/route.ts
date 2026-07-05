@@ -50,7 +50,9 @@ export const GET = route({
       ]
     }
 
-    const [leads, total] = await Promise.all([
+    // Lead-cap usage (totalLeadsInOrg) batched with the list + page count so
+    // the free-plan banner costs no extra sequential round-trip.
+    const [leads, total, totalLeadsInOrg] = await Promise.all([
       db.lead.findMany({
         where,
         skip,
@@ -88,14 +90,12 @@ export const GET = route({
           }
         }
       }),
-      db.lead.count({ where })
+      db.lead.count({ where }),
+      db.lead.count()
     ])
 
     const paginatedRes = paginated(leads, total, page, limit)
     const json = await paginatedRes.json()
-
-    // Lead-cap usage for the free-plan banner (cap null = unlimited)
-    const totalLeadsInOrg = await db.lead.count()
 
     return NextResponse.json({
       ...json,

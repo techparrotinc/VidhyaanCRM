@@ -741,6 +741,17 @@ export default function RegisterPage() {
             )}
           </div>
 
+          {/* Footer switcher links */}
+          <div className="text-center mt-3.5 flex items-center justify-center gap-3 text-xs font-semibold text-slate-500 select-none">
+            <Link href="/login" className="text-[#1565D8] hover:underline">
+              Already registered? Login
+            </Link>
+            <span className="text-slate-300 font-normal">|</span>
+            <Link href="/" className="text-slate-600 hover:underline flex items-center gap-1">
+              ← Back to Home
+            </Link>
+          </div>
+
           {/* Bottom trust strip (mobile) */}
           <div className="flex items-center justify-center gap-2 mt-4 text-[10px] text-slate-400 font-medium lg:hidden">
             <Lock className="w-3 h-3" />

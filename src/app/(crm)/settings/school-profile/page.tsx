@@ -28,6 +28,10 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import BasicTab, { BasicValues } from '@/components/settings/school-profile/BasicTab'
+import ContactTab, { ContactValues } from '@/components/settings/school-profile/ContactTab'
+import AcademicsTab from '@/components/settings/school-profile/AcademicsTab'
+import GalleryTab from '@/components/settings/school-profile/GalleryTab'
 import FacilitiesTab from '@/components/settings/school-profile/FacilitiesTab'
 import HoursTab from '@/components/settings/school-profile/HoursTab'
 import AdmissionsTab from '@/components/settings/school-profile/AdmissionsTab'
@@ -119,7 +123,6 @@ interface SchoolData {
   facilities: SchoolFacility[]
 }
 
-const BOARDS_LIST = ['CBSE', 'ICSE', 'State Board', 'IB', 'IGCSE']
 
 export default function SchoolProfilePage() {
   const router = useRouter()
@@ -349,6 +352,19 @@ export default function SchoolProfilePage() {
   ]
 
   const pctComplete = school.profileCompletion
+
+  // Field → setter maps for extracted tab components
+  const basicSetters: Record<keyof BasicValues, (v: string) => void> = {
+    name: setName, description: setDescription, schoolType: setSchoolType,
+    establishedYear: setEstablishedYear, mediumOfInstruction: setMediumOfInstruction,
+    totalStudents: setTotalStudents, totalTeachers: setTotalTeachers,
+    gradeFrom: setGradeFrom, gradeTo: setGradeTo, gender: setGender
+  }
+  const contactSetters: Record<keyof ContactValues, (v: string) => void> = {
+    address1: setAddress1, address2: setAddress2, city: setCity, state: setState,
+    pincode: setPincode, mapsLink: setMapsLink, phone: setPhone,
+    phoneSecondary: setPhoneSecondary, email: setEmail, website: setWebsite
+  }
 
   // Basic Info Form Submit
   const handleSaveBasic = async (e: React.FormEvent) => {
@@ -850,425 +866,44 @@ export default function SchoolProfilePage() {
         <div className="flex-1 bg-white p-6 rounded-2xl border border-slate-200 min-w-0 shadow-sm">
           {/* TAB 1: BASIC INFO */}
           {activeTab === 'basic' && (
-            <form onSubmit={handleSaveBasic} className="space-y-6">
-              <div className="border-b border-slate-100 pb-4 mb-4">
-                <h3 className="text-base font-bold text-slate-800">Basic Information</h3>
-                <p className="text-xs text-slate-400">Configure core public listing info for your school.</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5 col-span-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">School Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5 col-span-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Description</label>
-                    <span className={`text-[10px] font-bold ${description.length >= 100 ? 'text-emerald-600' : 'text-amber-500'}`}>
-                      {description.length} chars (Min 100 for completeness)
-                    </span>
-                  </div>
-                  <textarea
-                    rows={4}
-                    required
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Enter a compelling description about your institution's history, values, and academic achievements..."
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Institution Type</label>
-                  <div className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-500 font-semibold cursor-not-allowed">
-                    {school.institutionType.replace('_', ' ')}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">School Type</label>
-                  <select
-                    value={schoolType || ''}
-                    onChange={(e) => setSchoolType(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  >
-                    <option value="BOYS">Boys Only</option>
-                    <option value="GIRLS">Girls Only</option>
-                    <option value="CO_ED">Co-Educational</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Established Year</label>
-                  <input
-                    type="number"
-                    value={establishedYear}
-                    onChange={(e) => setEstablishedYear(e.target.value)}
-                    placeholder="e.g. 1995"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Medium of Instruction</label>
-                  <input
-                    type="text"
-                    value={mediumOfInstruction}
-                    onChange={(e) => setMediumOfInstruction(e.target.value)}
-                    placeholder="e.g. English, Hindi"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Students</label>
-                  <input
-                    type="number"
-                    value={totalStudents}
-                    onChange={(e) => setTotalStudents(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Teachers</label>
-                  <input
-                    type="number"
-                    value={totalTeachers}
-                    onChange={(e) => setTotalTeachers(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Grade Offered From</label>
-                  <input
-                    type="text"
-                    value={gradeFrom}
-                    onChange={(e) => setGradeFrom(e.target.value)}
-                    placeholder="e.g. LKG, 1"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Grade Offered To</label>
-                  <input
-                    type="text"
-                    value={gradeTo}
-                    onChange={(e) => setGradeTo(e.target.value)}
-                    placeholder="e.g. Class 10, Class 12"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Gender Type Allowed</label>
-                  <select
-                    value={gender || ''}
-                    onChange={(e) => setGender(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  >
-                    <option value="BOYS">Boys Only</option>
-                    <option value="GIRLS">Girls Only</option>
-                    <option value="CO_ED">Co-Educational</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-4 border-t border-slate-100">
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  className={`bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="animate-spin size-4 mr-2" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>Save Basic Info</span>
-                  )}
-                </Button>
-              </div>
-            </form>
+            <BasicTab
+              values={{ name, description, schoolType, establishedYear, mediumOfInstruction, totalStudents, totalTeachers, gradeFrom, gradeTo, gender }}
+              institutionType={school.institutionType}
+              onChange={(field, value) => basicSetters[field](value)}
+              onSave={handleSaveBasic}
+              saving={saving}
+            />
           )}
 
           {/* TAB 2: LOCATION & CONTACT */}
           {activeTab === 'contact' && (
-            <form onSubmit={handleSaveLocation} className="space-y-6">
-              <div className="border-b border-slate-100 pb-4 mb-4">
-                <h3 className="text-base font-bold text-slate-800">Location & Contact Channels</h3>
-                <p className="text-xs text-slate-400">Provide official address details and primary customer touchpoints.</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5 col-span-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Address Line 1</label>
-                  <input
-                    type="text"
-                    required
-                    value={address1}
-                    onChange={(e) => setAddress1(e.target.value)}
-                    placeholder="Door No, Street Name, Locality"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5 col-span-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Address Line 2 (Optional)</label>
-                  <input
-                    type="text"
-                    value={address2}
-                    onChange={(e) => setAddress2(e.target.value)}
-                    placeholder="Area, Landmark"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">City</label>
-                  <input
-                    type="text"
-                    required
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">State</label>
-                  <input
-                    type="text"
-                    required
-                    value={state}
-                    onChange={(e) => setState(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Pincode</label>
-                  <input
-                    type="text"
-                    required
-                    value={pincode}
-                    onChange={(e) => setPincode(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Google Maps Link</label>
-                  <input
-                    type="url"
-                    value={mapsLink}
-                    onChange={(e) => setMapsLink(e.target.value)}
-                    placeholder="https://maps.google.com/..."
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Primary Phone</label>
-                  <input
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="10-digit number"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Secondary Phone</label>
-                  <input
-                    type="tel"
-                    value={phoneSecondary}
-                    onChange={(e) => setPhoneSecondary(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5 col-span-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Primary Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-
-                <div className="space-y-1.5 col-span-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Website URL</label>
-                  <input
-                    type="url"
-                    value={website}
-                    onChange={(e) => setWebsite(e.target.value)}
-                    placeholder="https://myschool.edu"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-4 border-t border-slate-100">
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  className={`bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="animate-spin size-4 mr-2" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>Save Location & Contacts</span>
-                  )}
-                </Button>
-              </div>
-            </form>
+            <ContactTab
+              values={{ address1, address2, city, state, pincode, mapsLink, phone, phoneSecondary, email, website }}
+              onChange={(field, value) => contactSetters[field](value)}
+              onSave={handleSaveLocation}
+              saving={saving}
+            />
           )}
 
           {/* TAB 3: ACADEMICS & AFFILIATION */}
           {activeTab === 'academics' && (
-            <form onSubmit={handleSaveAcademics} className="space-y-6">
-              <div className="border-b border-slate-100 pb-4 mb-4">
-                <h3 className="text-base font-bold text-slate-800">Academics & Board Affiliations</h3>
-                <p className="text-xs text-slate-400">Configure academic systems, board connections, or activities.</p>
-              </div>
-
-              {!isLc ? (
-                <div className="space-y-6">
-                  {/* Boards/Curriculum checkbox grid */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Boards Offered</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {BOARDS_LIST.map((board) => {
-                        const isChecked = selectedBoards.includes(board)
-                        return (
-                          <label
-                            key={board}
-                            className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border text-sm font-semibold transition cursor-pointer select-none ${
-                              isChecked
-                                ? 'bg-blue-50/55 border-blue-200 text-[#1565D8]'
-                                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedBoards([...selectedBoards, board])
-                                } else {
-                                  setSelectedBoards(selectedBoards.filter((b) => b !== board))
-                                }
-                              }}
-                              className="accent-[#1565D8]"
-                            />
-                            <span>{board}</span>
-                          </label>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Affiliation Number</label>
-                    <input
-                      type="text"
-                      value={affiliationNo}
-                      onChange={(e) => setAffiliationNo(e.target.value)}
-                      placeholder="e.g. CBSE 123456"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Learning Center Setup */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Activity Types</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Robotics, Coding, Ballet, Yoga (comma separated)"
-                      value={lcActivityTypes.join(', ')}
-                      onChange={(e) =>
-                        setLcActivityTypes(e.target.value.split(',').map((item) => item.trim()).filter(Boolean))
-                      }
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Min Age Group</label>
-                      <input
-                        type="number"
-                        value={lcAgeMin}
-                        onChange={(e) => setLcAgeMin(e.target.value)}
-                        placeholder="e.g. 4 years"
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Max Age Group</label>
-                      <input
-                        type="number"
-                        value={lcAgeMax}
-                        onChange={(e) => setLcAgeMax(e.target.value)}
-                        placeholder="e.g. 15 years"
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2.5 p-4 border border-slate-200 rounded-xl bg-slate-50/50">
-                    <input
-                      type="checkbox"
-                      id="lcTrialAvailable"
-                      checked={lcTrialAvailable}
-                      onChange={(e) => setLcTrialAvailable(e.target.checked)}
-                      className="accent-[#1565D8]"
-                    />
-                    <label htmlFor="lcTrialAvailable" className="text-sm font-semibold text-slate-700 cursor-pointer">
-                      Free / Paid trial class available for students
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end pt-4 border-t border-slate-100">
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  className={`bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="animate-spin size-4 mr-2" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>Save Academics Settings</span>
-                  )}
-                </Button>
-              </div>
-            </form>
+            <AcademicsTab
+              isLc={isLc}
+              selectedBoards={selectedBoards}
+              onBoardsChange={setSelectedBoards}
+              affiliationNo={affiliationNo}
+              onAffiliationNoChange={setAffiliationNo}
+              lcActivityTypes={lcActivityTypes}
+              onLcActivityTypesChange={setLcActivityTypes}
+              lcAgeMin={lcAgeMin}
+              onLcAgeMinChange={setLcAgeMin}
+              lcAgeMax={lcAgeMax}
+              onLcAgeMaxChange={setLcAgeMax}
+              lcTrialAvailable={lcTrialAvailable}
+              onLcTrialAvailableChange={setLcTrialAvailable}
+              onSave={handleSaveAcademics}
+              saving={saving}
+            />
           )}
 
           {/* TAB 4: FACILITIES */}
@@ -1283,234 +918,20 @@ export default function SchoolProfilePage() {
 
           {/* TAB 5: GALLERY */}
           {activeTab === 'gallery' && (
-            <div className="space-y-6">
-              <div className="border-b border-slate-100 pb-4 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-base font-bold text-slate-800">Photo Gallery</h3>
-                  <p className="text-xs text-slate-400">Upload school logo, cover banner, and student life images.</p>
-                </div>
-                <div>
-                  {planSlug === 'free' ? (
-                    <Badge variant="secondary" className="bg-amber-50 border border-amber-100 text-amber-800 px-3 py-1 text-xs">
-                      Free Plan: {mediaList.filter((m) => m.caption === 'gallery').length}/3 Gallery Photos
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-emerald-50 border border-emerald-100 text-emerald-800 px-3 py-1 text-xs">
-                      Premium Plan: Unlimited Photos
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              {/* Logo & Cover Specific block */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 border border-slate-100 bg-slate-50/40 rounded-2xl mb-6">
-                {/* Logo section */}
-                <div className="flex flex-col items-center p-4 bg-white border border-slate-200 rounded-xl">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Institution Logo</span>
-                  {mediaList.find((m) => m.caption === 'logo') ? (
-                    <div className="relative w-24 h-24 border border-slate-200 rounded-xl overflow-hidden mb-3">
-                      <img
-                        src={mediaList.find((m) => m.caption === 'logo')?.url}
-                        alt="Logo"
-                        className="w-full h-full object-contain"
-                      />
-                      <button
-                        onClick={() => handleDeleteMedia(mediaList.find((m) => m.caption === 'logo')?.id || '')}
-                        className="absolute bottom-1 right-1 p-1 bg-red-100 hover:bg-red-200 text-red-600 rounded-md cursor-pointer transition"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="w-24 h-24 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center mb-3">
-                      <School className="w-8 h-8 text-slate-300" />
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handlePhotoUpload(e, 'logo')}
-                    className="hidden"
-                    id="logo-upload-input"
-                  />
-                  <Button
-                    onClick={() => document.getElementById('logo-upload-input')?.click()}
-                    disabled={uploading}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-4 py-2 border border-slate-200 shadow-none h-auto rounded-lg"
-                  >
-                    Upload Logo
-                  </Button>
-                </div>
-
-                {/* Cover Section */}
-                <div className="flex flex-col items-center p-4 bg-white border border-slate-200 rounded-xl">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Hero Cover Image</span>
-                  {mediaList.find((m) => m.caption === 'cover') ? (
-                    <div className="relative w-full h-24 border border-slate-200 rounded-xl overflow-hidden mb-3">
-                      <img
-                        src={mediaList.find((m) => m.caption === 'cover')?.url}
-                        alt="Cover"
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        onClick={() => handleDeleteMedia(mediaList.find((m) => m.caption === 'cover')?.id || '')}
-                        className="absolute bottom-1 right-1 p-1 bg-red-100 hover:bg-red-200 text-red-600 rounded-md cursor-pointer transition"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="w-full h-24 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center mb-3">
-                      <ImageIcon className="w-8 h-8 text-slate-300" />
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handlePhotoUpload(e, 'cover')}
-                    className="hidden"
-                    id="cover-upload-input"
-                  />
-                  <Button
-                    onClick={() => document.getElementById('cover-upload-input')?.click()}
-                    disabled={uploading}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-4 py-2 border border-slate-200 shadow-none h-auto rounded-lg"
-                  >
-                    Upload Cover
-                  </Button>
-                </div>
-              </div>
-
-              {/* Gallery Photos block */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Gallery Items</h4>
-                  {planSlug === 'free' && mediaList.filter((m) => m.caption === 'gallery').length >= 3 ? (
-                    <div className="text-xs text-amber-600 flex items-center gap-1 font-semibold">
-                      <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
-                      <span>Limit reached. </span>
-                      <Link href="/settings/billing" className="text-[#1565D8] hover:underline font-bold">Upgrade for unlimited</Link>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className="bg-blue-50 hover:bg-blue-100 text-[#1565D8] text-xs font-semibold px-4 py-2 border border-blue-100 h-auto rounded-lg shadow-none flex items-center gap-1.5"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      Upload Photo
-                    </Button>
-                  )}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={(e) => handlePhotoUpload(e, 'gallery')}
-                    className="hidden"
-                  />
-                </div>
-
-                {/* Upload scan / loading progress banner */}
-                {uploading && (
-                  <div className="p-4 border border-blue-100 bg-blue-50/50 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between text-xs font-bold text-blue-800">
-                      <span className="flex items-center gap-1">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Scanning and Uploading to DO Spaces...
-                      </span>
-                      <span>{uploadProgress}%</span>
-                    </div>
-                    <Progress value={uploadProgress} className="h-1.5 bg-blue-100" />
-                    {scanStatus === 'scanning' && (
-                      <span className="text-[10px] text-slate-500 block font-semibold">
-                        🔬 DigitalOcean ClamAV & AI Vision scanning file for security checks...
-                      </span>
-                    )}
-                    {scanStatus === 'passed' && (
-                      <span className="text-[10px] text-emerald-600 block font-semibold flex items-center gap-1">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-505" /> Scan passed! Clean photo saved.
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Images grid with sorting arrows, stars (primary), delete */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {mediaList
-                    .filter((m) => m.caption === 'gallery' || m.caption === 'cover')
-                    .map((item, index, filteredArray) => {
-                      const isPrimary = item.caption === 'cover'
-                      return (
-                        <div
-                          key={item.id}
-                          className="group relative border border-slate-200 rounded-xl overflow-hidden bg-slate-50 h-36 flex flex-col transition hover:shadow-md"
-                        >
-                          <img src={item.url} alt="Gallery" className="w-full h-24 object-cover" />
-
-                          {/* Control actions */}
-                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition duration-200">
-                            <button
-                              onClick={() => handleSetPrimary(item.id)}
-                              title={isPrimary ? 'Primary Cover Photo' : 'Set as Primary Cover'}
-                              className={`p-1.5 rounded-md cursor-pointer transition ${
-                                isPrimary
-                                  ? 'bg-amber-400 text-white hover:bg-amber-500'
-                                  : 'bg-white/80 hover:bg-white text-slate-600'
-                              }`}
-                            >
-                              <Star className={`w-3.5 h-3.5 ${isPrimary ? 'fill-current' : ''}`} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteMedia(item.id)}
-                              className="p-1.5 bg-white/80 hover:bg-red-500 hover:text-white text-red-600 rounded-md cursor-pointer transition"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-
-                          {/* Reordering indicators at bottom */}
-                          <div className="flex-1 px-2.5 py-1.5 bg-white flex items-center justify-between text-xs text-slate-500 font-semibold">
-                            <span>Index {index + 1}</span>
-                            <div className="flex items-center gap-0.5">
-                              <button
-                                disabled={index === 0}
-                                onClick={() => moveMedia(index, 'up')}
-                                className="p-0.5 rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 cursor-pointer"
-                              >
-                                <ArrowUp className="w-3 h-3" />
-                              </button>
-                              <button
-                                disabled={index === filteredArray.length - 1}
-                                onClick={() => moveMedia(index, 'down')}
-                                className="p-0.5 rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 cursor-pointer"
-                              >
-                                <ArrowDown className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-4 border-t border-slate-100">
-                <Button
-                  onClick={handleSaveMediaOrder}
-                  disabled={saving}
-                  className={`bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="animate-spin size-4 mr-2" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>Save Order</span>
-                  )}
-                </Button>
-              </div>
-            </div>
+            <GalleryTab
+              mediaList={mediaList}
+              planSlug={planSlug}
+              uploading={uploading}
+              uploadProgress={uploadProgress}
+              scanStatus={scanStatus}
+              fileInputRef={fileInputRef}
+              onPhotoUpload={handlePhotoUpload}
+              onDeleteMedia={handleDeleteMedia}
+              onSetPrimary={handleSetPrimary}
+              onMoveMedia={moveMedia}
+              onSaveOrder={handleSaveMediaOrder}
+              saving={saving}
+            />
           )}
 
           {/* TAB 6: FEE STRUCTURE */}

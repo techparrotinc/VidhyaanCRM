@@ -25,6 +25,7 @@ interface SchoolResult {
 export default function ClaimProfilePage() {
   const router = useRouter()
   const [query, setQuery] = useState('')
+  const [city, setCity] = useState('')
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [results, setResults] = useState<SchoolResult[]>([])
@@ -45,6 +46,7 @@ export default function ClaimProfilePage() {
       try {
         const params = new URLSearchParams()
         params.append('search', trimmedQuery)
+        if (city) params.append('city', city)
         params.append('limit', '10')
         // Allow querying unclaimed institutions
         params.append('claim', 'true')
@@ -67,7 +69,7 @@ export default function ClaimProfilePage() {
     }, 300) // 300ms debounce
 
     return () => clearTimeout(delayDebounce)
-  }, [query])
+  }, [query, city])
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -82,6 +84,7 @@ export default function ClaimProfilePage() {
     try {
       const params = new URLSearchParams()
       params.append('search', trimmedQuery)
+      if (city) params.append('city', city)
       params.append('limit', '10')
       params.append('claim', 'true')
 
@@ -210,6 +213,23 @@ export default function ClaimProfilePage() {
                 className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-base"
                 required
               />
+            </div>
+
+            <div className="w-full md:w-[180px]">
+              <select
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-base appearance-none cursor-pointer"
+              >
+                <option value="">All Cities</option>
+                <option value="Chennai">Chennai</option>
+                <option value="Bengaluru">Bengaluru</option>
+                <option value="Mumbai">Mumbai</option>
+                <option value="New Delhi">New Delhi</option>
+                <option value="Hyderabad">Hyderabad</option>
+                <option value="Pune">Pune</option>
+                <option value="Kolkata">Kolkata</option>
+              </select>
             </div>
 
             <button

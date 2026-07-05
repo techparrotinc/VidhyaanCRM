@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { OrgStatus, AuditAction, UserStatus } from '@prisma/client'
+
+const orgUpdateSchema = z.object({
+  status: z.nativeEnum(OrgStatus).optional(),
+  planId: z.string().max(60).nullable().optional(),
+  leadCap: z.coerce.number().int().min(0).max(1_000_000).nullable().optional(),
+  trialEndsAt: z.string().max(40).nullable().optional(),
+  notes: z.string().max(5000).nullable().optional()
+})
 import { redis } from '@/lib/redis'
 import { resolveTargetUserRole } from '@/lib/auth/resolveTargetUserRole'
 
@@ -118,8 +127,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const { id } = await params
-    const body = await req.json()
-    const { status, planId, leadCap, trialEndsAt, notes } = body
+    const parsed = orgUpdateSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      )
+    }
+    const { status, planId, leadCap, trialEndsAt, notes } = parsed.data
 
     // Find existing organization
     const org = await prisma.organization.findUnique({
@@ -178,13 +193,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // 3. Lead cap update
     if (leadCap !== undefined && leadCap !== org.leadCap) {
-      updateData.leadCap = parseInt(leadCap)
+      updateData.leadCap = leadCap
       auditLogsToCreate.push({ field: 'leadCap', before: org.leadCap, after: leadCap })
     }
 
     // 4. Trial ends update
     if (trialEndsAt !== undefined) {
       const parsedDate = trialEndsAt ? new Date(trialEndsAt) : null
+      if (parsedDate && isNaN(parsedDate.getTime())) {
+        return NextResponse.json({ error: 'Invalid trialEndsAt date' }, { status: 400 })
+      }
       const oldDateStr = org.trialEndsAt ? org.trialEndsAt.toISOString() : null
       const newDateStr = parsedDate ? parsedDate.toISOString() : null
 

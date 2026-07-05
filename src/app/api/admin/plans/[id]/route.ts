@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
+
+const price = z.coerce.number().min(0).max(100_000_000)
+const planUpdateSchema = z.object({
+  monthlyPrice: price.optional(),
+  quarterlyPrice: price.nullable().optional(),
+  annualPrice: price.nullable().optional(),
+  leadCap: z.coerce.number().int().min(0).max(1_000_000).nullable().optional(),
+  isActive: z.boolean().optional()
+})
 
 export async function PUT(
   req: NextRequest,
@@ -14,8 +24,14 @@ export async function PUT(
     }
 
     const { id } = await context.params
-    const body = await req.json()
-    const { monthlyPrice, quarterlyPrice, annualPrice, leadCap, isActive } = body
+    const parsed = planUpdateSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      )
+    }
+    const { monthlyPrice, quarterlyPrice, annualPrice, leadCap, isActive } = parsed.data
 
     // Only SUPER_ADMIN can change prices
     const isPriceChanged = 
@@ -40,21 +56,11 @@ export async function PUT(
 
     const updateData: any = {}
 
-    if (monthlyPrice !== undefined) {
-      updateData.monthlyPrice = Number(monthlyPrice)
-    }
-    if (quarterlyPrice !== undefined) {
-      updateData.quarterlyPrice = quarterlyPrice !== null ? Number(quarterlyPrice) : null
-    }
-    if (annualPrice !== undefined) {
-      updateData.annualPrice = annualPrice !== null ? Number(annualPrice) : null
-    }
-    if (leadCap !== undefined) {
-      updateData.leadCap = leadCap !== null ? parseInt(leadCap) : null
-    }
-    if (isActive !== undefined) {
-      updateData.isActive = Boolean(isActive)
-    }
+    if (monthlyPrice !== undefined) updateData.monthlyPrice = monthlyPrice
+    if (quarterlyPrice !== undefined) updateData.quarterlyPrice = quarterlyPrice
+    if (annualPrice !== undefined) updateData.annualPrice = annualPrice
+    if (leadCap !== undefined) updateData.leadCap = leadCap
+    if (isActive !== undefined) updateData.isActive = isActive
 
     const updatedPlan = await prisma.plan.update({
       where: { id },

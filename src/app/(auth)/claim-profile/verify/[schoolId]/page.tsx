@@ -222,8 +222,16 @@ export default function ClaimVerifyPage() {
         throw new Error(data.error || 'Invalid or expired code')
       }
 
-      // Success, route to step 3 account creation
-      router.push(`/claim-profile/account?schoolId=${school.id}`)
+      // Success, route to step 3 account creation with verified contact params
+      const queryParams = new URLSearchParams()
+      queryParams.append('schoolId', school.id)
+      if (selectedMethod === 'PHONE') {
+        queryParams.append('phone', phoneInput)
+      } else if (selectedMethod === 'EMAIL') {
+        const emailContact = school.contacts.find(c => c.type === 'email')?.value || ''
+        if (emailContact) queryParams.append('email', emailContact)
+      }
+      router.push(`/claim-profile/account?${queryParams.toString()}`)
     } catch (err: any) {
       console.error(err)
       setOtpError(err.message || 'Verification failed')

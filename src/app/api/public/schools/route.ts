@@ -50,9 +50,14 @@ export async function GET(req: NextRequest) {
     const userLng = lngStr ? parseFloat(lngStr) : null
     const maxDistance = maxDistanceStr ? parseFloat(maxDistanceStr) : 20 // default 20km
 
+    const claim = searchParams.get('claim') === 'true'
+
     const where: any = {
-      deletedAt: null,
-      isPublished: true
+      deletedAt: null
+    }
+
+    if (!claim) {
+      where.isPublished = true
     }
 
     if (search) {

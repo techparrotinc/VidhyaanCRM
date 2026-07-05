@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Shield, Search, Loader2, ArrowRight, MapPin, Building, Award } from 'lucide-react'
@@ -25,28 +25,71 @@ interface SchoolResult {
 export default function ClaimProfilePage() {
   const router = useRouter()
   const [query, setQuery] = useState('')
-  const [city, setCity] = useState('')
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [results, setResults] = useState<SchoolResult[]>([])
   const [error, setError] = useState<string | null>(null)
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Debounced instant search logic
+  useEffect(() => {
+    const trimmedQuery = query.trim()
+    if (trimmedQuery.length < 2) {
+      setResults([])
+      setSearched(false)
+      return
+    }
+
+    const delayDebounce = setTimeout(async () => {
+      setError(null)
+      setLoading(true)
+      try {
+        const params = new URLSearchParams()
+        params.append('search', trimmedQuery)
+        params.append('limit', '10')
+        // Allow querying unclaimed institutions
+        params.append('claim', 'true')
+
+        const res = await fetch(`/api/public/schools?${params.toString()}`)
+        const data = await res.json()
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Failed to fetch institutions')
+        }
+
+        setResults(data.data || [])
+        setSearched(true)
+      } catch (err: any) {
+        console.error(err)
+        setError(err.message || 'Something went wrong. Please try again.')
+      } finally {
+        setLoading(false)
+      }
+    }, 300) // 300ms debounce
+
+    return () => clearTimeout(delayDebounce)
+  }, [query])
+
+  const handleSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const trimmedQuery = query.trim()
+    if (trimmedQuery.length < 2) {
+      setError('Please enter at least 2 characters to search')
+      return
+    }
     setError(null)
     setLoading(true)
 
     try {
       const params = new URLSearchParams()
-      if (query) params.append('search', query)
-      if (city) params.append('city', city)
+      params.append('search', trimmedQuery)
       params.append('limit', '10')
+      params.append('claim', 'true')
 
       const res = await fetch(`/api/public/schools?${params.toString()}`)
       const data = await res.json()
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to fetch schools')
+        throw new Error(data.error || 'Failed to fetch institutions')
       }
 
       setResults(data.data || [])
@@ -89,7 +132,7 @@ export default function ClaimProfilePage() {
   }
 
   const steps = [
-    { number: 1, label: 'Find School' },
+    { number: 1, label: 'Find Institution' },
     { number: 2, label: 'Verify' },
     { number: 3, label: 'Create Account' },
     { number: 4, label: 'Verify Phone' }
@@ -103,10 +146,10 @@ export default function ClaimProfilePage() {
         <div className="flex flex-col items-center mb-8">
           <div className="w-full flex items-center justify-between mb-8">
             <Link
-              href="/for-schools"
+              href="/"
               className="text-sm font-semibold text-slate-500 hover:text-[#1565D8] transition-colors flex items-center gap-1.5"
             >
-              <span>←</span> Back to For Schools
+              <span>←</span> Back to Home
             </Link>
             
             <div className="flex items-center gap-2 select-none">
@@ -146,7 +189,7 @@ export default function ClaimProfilePage() {
 
           <div className="text-center mt-4">
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              Find Your School
+              Find Your Institution
             </h1>
             <p className="text-slate-500 mt-2 text-base max-w-[500px]">
               Search for your school or learning center on Vidhyaan to claim your profile.
@@ -163,38 +206,21 @@ export default function ClaimProfilePage() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Enter your school name..."
+                placeholder="Enter your school or center name (min. 2 characters)..."
                 className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-base"
                 required
               />
             </div>
-            
-            <div className="w-full md:w-[180px]">
-              <select
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-base appearance-none cursor-pointer"
-              >
-                <option value="">All Cities</option>
-                <option value="Chennai">Chennai</option>
-                <option value="Bengaluru">Bengaluru</option>
-                <option value="Mumbai">Mumbai</option>
-                <option value="New Delhi">New Delhi</option>
-                <option value="Hyderabad">Hyderabad</option>
-                <option value="Pune">Pune</option>
-                <option value="Kolkata">Kolkata</option>
-              </select>
-            </div>
 
             <button
               type="submit"
-              disabled={loading}
-              className="px-6 py-3.5 bg-[#1565D8] hover:bg-[#1150ad] disabled:bg-[#1565D8]/50 text-white font-bold rounded-2xl shadow-md shadow-[#1565D8]/10 hover:shadow-lg hover:shadow-[#1565D8]/25 transition-all cursor-pointer disabled:cursor-not-allowed select-none text-base flex items-center justify-center gap-2"
+              disabled={loading || query.trim().length < 2}
+              className="px-6 py-3.5 bg-[#1565D8] hover:bg-[#1150ad] disabled:bg-[#1565D8]/50 text-white font-bold rounded-2xl shadow-md shadow-[#1565D8]/10 hover:shadow-lg hover:shadow-[#1565D8]/25 transition-all cursor-pointer disabled:cursor-not-allowed select-none text-base flex items-center justify-center gap-2 md:w-[130px]"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Searching...</span>
+                  <span>...</span>
                 </>
               ) : (
                 <>
@@ -220,8 +246,8 @@ export default function ClaimProfilePage() {
               
               {results.length === 0 ? (
                 <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                  <p className="text-slate-500 font-medium">No schools found matching your search</p>
-                  <p className="text-slate-400 text-xs mt-1">Try expanding your search query or choosing another city</p>
+                  <p className="text-slate-500 font-medium">No institutions found matching your search</p>
+                  <p className="text-slate-400 text-xs mt-1">Try expanding your search query or adjusting spellings</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -305,7 +331,7 @@ export default function ClaimProfilePage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => router.push('/register-school')}
+                  onClick={() => router.push('/register')}
                   className="px-5 py-2.5 bg-[#1565D8] hover:bg-[#1150ad] text-white font-bold rounded-xl text-sm shadow-sm transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
                   <span>Register New Institution</span>

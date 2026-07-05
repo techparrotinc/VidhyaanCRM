@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Shield, Loader2, User, Phone, Mail, Award, AlertCircle } from 'lucide-react'
@@ -9,13 +9,45 @@ export default function ClaimAccountPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const schoolId = searchParams.get('schoolId')
+  const verifiedPhone = searchParams.get('phone') || ''
+  const verifiedEmail = searchParams.get('email') || ''
 
   const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState(verifiedPhone)
+  const [email, setEmail] = useState(verifiedEmail)
   const [role, setRole] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Pre-populate using details fetch if query parameters are missing
+  useEffect(() => {
+    if (!schoolId || (verifiedPhone && verifiedEmail)) return
+
+    const fetchSchoolDetails = async () => {
+      try {
+        const res = await fetch(`/api/public/schools/${schoolId}`)
+        const data = await res.json()
+        if (res.ok && data.success && data.data) {
+          const emailContact = data.data.contacts?.find((c: any) => c.type === 'email')?.value || ''
+          const phoneContact = data.data.contacts?.find((c: any) => c.type === 'phone')?.value || ''
+          
+          if (emailContact && !email) setEmail(emailContact)
+          if (phoneContact && !phone) {
+            let cleanedPhone = phoneContact.replace(/\D/g, '')
+            if (cleanedPhone.length > 10 && cleanedPhone.startsWith('91')) {
+              cleanedPhone = cleanedPhone.slice(2)
+            } else if (cleanedPhone.length > 10 && cleanedPhone.startsWith('0')) {
+              cleanedPhone = cleanedPhone.slice(1)
+            }
+            setPhone(cleanedPhone.slice(0, 10))
+          }
+        }
+      } catch (err) {
+        console.error('Failed to pre-populate contacts:', err)
+      }
+    }
+    fetchSchoolDetails()
+  }, [schoolId, verifiedPhone, verifiedEmail])
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '')
@@ -70,7 +102,7 @@ export default function ClaimAccountPage() {
   }
 
   const steps = [
-    { number: 1, label: 'Find School' },
+    { number: 1, label: 'Find Institution' },
     { number: 2, label: 'Verify' },
     { number: 3, label: 'Create Account' },
     { number: 4, label: 'Verify Phone' }

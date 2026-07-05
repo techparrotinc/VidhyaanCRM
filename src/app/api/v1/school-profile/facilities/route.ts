@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { recalculateAndSaveSchoolScores } from '@/lib/school-profile-helper'
@@ -22,12 +23,16 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'School not found' }, { status: 404 })
     }
 
-    const body = await req.json()
-    const { facilities } = body
-
-    if (!Array.isArray(facilities)) {
-      return NextResponse.json({ error: 'facilities array is required' }, { status: 400 })
+    const parsed = z.object({
+      facilities: z.array(z.string().trim().min(1).max(100)).max(200)
+    }).safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'facilities must be an array of strings', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      )
     }
+    const { facilities } = parsed.data
 
     // Recreate SchoolFacility records
     await prisma.schoolFacility.deleteMany({

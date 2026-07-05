@@ -725,8 +725,16 @@ export default function LeadManagementPage() {
 
           {/* SECTION 5 — BULK ACTION BAR */}
           <LeadBulkActionBar
-            selectedCount={selectedLeads.length}
+            selectedIds={selectedLeads}
+            selectedLeads={filteredLeads.filter((l: any) => selectedLeads.includes(l.id))}
+            counsellors={counsellors}
             onClear={() => setSelectedLeads([])}
+            onDone={(message) => {
+              showToast(message, "success")
+              setSelectedLeads([])
+              fetchLeads()
+            }}
+            onError={(message) => showToast(message, "error")}
           />
 
           {/* SECTION 8 — LEAD DETAIL DRAWER */}

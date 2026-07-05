@@ -83,7 +83,11 @@ Record of a review + hardening + performance session. Production branch is
    column + allocation + backfill); additive, no disruption if apex stays live + host-only cookies.
 2. ~~**Tier-2 zod sweep**~~ — **DONE 2026-07-05** (see above).
 3. **Lead bulk-action bar** — Assign/Change Status/Export/Delete buttons are no-ops; wire or remove.
-4. **Dashboard "Profile Views"** hardcoded `142`; wire to real data. Minor sub-cards flash 0-then-value.
+4. ~~**Dashboard "Profile Views"**~~ — **DONE 2026-07-05**: wired to `School.viewCount`
+   + `SchoolView` 7-day count via summary API; full-page loading skeleton kills the
+   0-then-value flash. **Still fake**: "This Month vs Last Month" chips (26/+44%,
+   17/+54%, avg convert) and KPI trend strings ("+3 today", "+8% vs last month",
+   "+5% this month") are hardcoded — wire or drop in a later pass.
 5. **settings/school-profile** — Basic/Contact/Academics/Gallery tabs still inline (Gallery
    has upload logic; heaviest). Other tabs already extracted.
 6. **Scale-time only**: partial soft-delete indexes (`WHERE deleted_at IS NULL`), read

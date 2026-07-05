@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { recalculateAndSaveSchoolScores } from '@/lib/school-profile-helper'
+
+const feeRangeSchema = z.object({
+  gradeLabel: z.string().trim().min(1).max(50),
+  minAmount: z.coerce.number().min(0).max(100_000_000).catch(0),
+  maxAmount: z.coerce.number().min(0).max(100_000_000).catch(0),
+  frequency: z.string().max(30).optional().nullable()
+})
 
 // GET fee ranges
 export async function GET(req: NextRequest) {
@@ -54,20 +62,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'School not found' }, { status: 404 })
     }
 
-    const body = await req.json()
-    const { gradeLabel, minAmount, maxAmount, frequency } = body
-
-    if (!gradeLabel) {
-      return NextResponse.json({ error: 'gradeLabel is required' }, { status: 400 })
+    const parsed = feeRangeSchema.safeParse(await req.json())
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      )
     }
+    const { gradeLabel, minAmount, maxAmount, frequency } = parsed.data
 
     const newFeeRange = await prisma.schoolFeeRange.create({
       data: {
         schoolId: school.id,
         orgId: session.user.orgId,
         gradeLabel,
-        minAmount: parseFloat(minAmount || 0),
-        maxAmount: parseFloat(maxAmount || 0),
+        minAmount,
+        maxAmount,
         frequency: frequency || 'annual'
       }
     })

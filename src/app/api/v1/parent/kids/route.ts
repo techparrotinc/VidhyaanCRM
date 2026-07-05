@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
+import { Gender } from '@prisma/client'
+
+const kidInputSchema = z.object({
+  name: z.string().trim().min(2, 'Child name must be at least 2 characters').max(150),
+  dob: z.string().max(40).optional().nullable(),
+  dateOfBirth: z.string().max(40).optional().nullable(),
+  grade: z.string().max(50).optional().nullable(),
+  gradeSought: z.string().max(50).optional().nullable(),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER', 'male', 'female', 'other']).optional().nullable()
+})
 
 export async function GET(req: NextRequest) {
   try {
@@ -71,27 +82,26 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
-    const { name, dob, dateOfBirth, grade, gradeSought, gender } = body
-
-    if (!name || name.trim().length < 2) {
+    const parsed = kidInputSchema.safeParse(await req.json())
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Child name must be at least 2 characters' },
+        { success: false, error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
         { status: 400 }
       )
     }
+    const { name, dob, dateOfBirth, grade, gradeSought, gender } = parsed.data
 
     // Map fields
-    const birthDate = dateOfBirth || dob ? new Date(dateOfBirth || dob) : null
-    const gradeSoughtValue = grade || gradeSought || null
-
-    let genderValue: any = null
-    if (gender) {
-      const upper = gender.toUpperCase()
-      if (['MALE', 'FEMALE', 'OTHER'].includes(upper)) {
-        genderValue = upper
-      }
+    const rawBirth = dateOfBirth || dob
+    const birthDate = rawBirth ? new Date(rawBirth) : null
+    if (birthDate && isNaN(birthDate.getTime())) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid date of birth' },
+        { status: 400 }
+      )
     }
+    const gradeSoughtValue = grade || gradeSought || null
+    const genderValue = gender ? (gender.toUpperCase() as Gender) : null
 
     const kid = await prisma.kidProfile.create({
       data: {

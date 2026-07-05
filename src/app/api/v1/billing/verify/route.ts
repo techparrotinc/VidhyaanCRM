@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db/client'
 import { verifyPayment } from '@/lib/integrations/razorpay'
@@ -24,12 +25,21 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Parse request
-    const body = await req.json()
-    const { orderId, paymentId, signature, planSlug, billingCycle } = body
+    const parsed = z.object({
+      orderId: z.string().min(1),
+      paymentId: z.string().min(1),
+      signature: z.string().min(1),
+      planSlug: z.string().min(1),
+      billingCycle: z.enum(['MONTHLY', 'QUARTERLY', 'ANNUAL'])
+    }).safeParse(await req.json())
 
-    if (!orderId || !paymentId || !signature || !planSlug || !billingCycle) {
-      return NextResponse.json({ success: false, error: 'Missing parameter values' }, { status: 400 })
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid parameters', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      )
     }
+    const { orderId, paymentId, signature, planSlug, billingCycle } = parsed.data
 
     // 3. Verify signature
     const isValid = verifyPayment(orderId, paymentId, signature)

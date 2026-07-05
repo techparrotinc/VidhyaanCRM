@@ -18,7 +18,7 @@ export const GET = route({
     ROLES.COUNSELLOR,
     ROLES.RECEPTIONIST
   ],
-  handler: async ({ req, db }) => {
+  handler: async ({ req, db, org }) => {
     const q = parseQuery(req.url, {
       ...paginationShape,
       status: enumParam(LeadStatus),
@@ -93,9 +93,17 @@ export const GET = route({
 
     const paginatedRes = paginated(leads, total, page, limit)
     const json = await paginatedRes.json()
+
+    // Lead-cap usage for the free-plan banner (cap null = unlimited)
+    const totalLeadsInOrg = await db.lead.count()
+
     return NextResponse.json({
       ...json,
-      leads: json.data
+      leads: json.data,
+      leadCap: {
+        cap: org.leadCap,
+        used: totalLeadsInOrg
+      }
     })
   }
 })

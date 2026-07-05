@@ -28,6 +28,10 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import FacilitiesTab from '@/components/settings/school-profile/FacilitiesTab'
+import HoursTab from '@/components/settings/school-profile/HoursTab'
+import AdmissionsTab from '@/components/settings/school-profile/AdmissionsTab'
+import FeesTab from '@/components/settings/school-profile/FeesTab'
 import { Progress } from '@/components/ui/progress'
 
 interface SchoolMedia {
@@ -114,34 +118,6 @@ interface SchoolData {
   hours: SchoolHours[]
   facilities: SchoolFacility[]
 }
-
-const DAYS_OF_WEEK = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday'
-]
-
-const AVAILABLE_FACILITIES = [
-  'Smart Classrooms',
-  'Science Lab',
-  'Computer Lab',
-  'Library',
-  'Playground',
-  'Indoor Sports Room',
-  'Swimming Pool',
-  'Auditorium',
-  'Cafeteria',
-  'Medical Room',
-  'CCTV Surveillance',
-  'School Bus Transport',
-  'Arts & Crafts Studio',
-  'Music Room',
-  'STEM Lab'
-]
 
 const BOARDS_LIST = ['CBSE', 'ICSE', 'State Board', 'IB', 'IGCSE']
 
@@ -1297,59 +1273,12 @@ export default function SchoolProfilePage() {
 
           {/* TAB 4: FACILITIES */}
           {activeTab === 'facilities' && (
-            <div className="space-y-6">
-              <div className="border-b border-slate-100 pb-4 mb-4">
-                <h3 className="text-base font-bold text-slate-800">Facilities & Amenities</h3>
-                <p className="text-xs text-slate-400">Toggle public amenities present inside your school campus.</p>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {AVAILABLE_FACILITIES.map((facility) => {
-                  const isChecked = selectedFacilities.includes(facility)
-                  return (
-                    <label
-                      key={facility}
-                      className={`flex items-center gap-2.5 px-4 py-3.5 rounded-xl border text-xs font-bold uppercase tracking-wider transition cursor-pointer select-none ${
-                        isChecked
-                          ? 'bg-blue-50/55 border-blue-200 text-[#1565D8]'
-                          : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedFacilities([...selectedFacilities, facility])
-                          } else {
-                            setSelectedFacilities(selectedFacilities.filter((f) => f !== facility))
-                          }
-                        }}
-                        className="accent-[#1565D8]"
-                      />
-                      <span>{facility}</span>
-                    </label>
-                  )
-                })}
-              </div>
-
-              <div className="flex justify-end pt-4 border-t border-slate-100">
-                <Button
-                  onClick={handleSaveFacilities}
-                  disabled={saving}
-                  className={`bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="animate-spin size-4 mr-2" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>Save Facilities</span>
-                  )}
-                </Button>
-              </div>
-            </div>
+            <FacilitiesTab
+              selectedFacilities={selectedFacilities}
+              onChange={setSelectedFacilities}
+              onSave={handleSaveFacilities}
+              saving={saving}
+            />
           )}
 
           {/* TAB 5: GALLERY */}
@@ -1586,325 +1515,53 @@ export default function SchoolProfilePage() {
 
           {/* TAB 6: FEE STRUCTURE */}
           {activeTab === 'fees' && (
-            <div className="space-y-6">
-              <div className="border-b border-slate-100 pb-4 mb-4">
-                <h3 className="text-base font-bold text-slate-800">Fee Structure Config</h3>
-                <p className="text-xs text-slate-400">
-                  {isLc
-                    ? 'Define duration-specific activity fees and registration costs.'
-                    : 'Manage annual tuition and one-time admissions fee structure bounds.'}
-                </p>
-              </div>
-
-              {/* Existing Fees Table */}
-              <div className="overflow-hidden border border-slate-200 rounded-xl">
-                <table className="w-full border-collapse text-left">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="p-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        {isLc ? 'Activity Name' : 'Grade Level'}
-                      </th>
-                      <th className="p-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        {isLc ? 'Duration' : 'Annual Fee (INR)'}
-                      </th>
-                      <th className="p-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        {isLc ? 'Monthly Fee (INR)' : 'One-time Admission Fee (INR)'}
-                      </th>
-                      <th className="p-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 text-center">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-sm">
-                    {feeRanges.map((fr) => (
-                      <tr key={fr.id} className="hover:bg-slate-50/50">
-                        <td className="p-3 font-semibold text-slate-800">{fr.gradeLabel}</td>
-                        <td className="p-3 font-medium text-slate-600">
-                          {isLc ? fr.frequency : `₹${Number(fr.minAmount).toLocaleString()}`}
-                        </td>
-                        <td className="p-3 font-medium text-slate-600">
-                          ₹{Number(isLc ? fr.minAmount : fr.maxAmount).toLocaleString()}
-                          {isLc && fr.maxAmount && ` (+ ₹${Number(fr.maxAmount).toLocaleString()} Reg)`}
-                        </td>
-                        <td className="p-3 text-center">
-                          <button
-                            onClick={() => handleDeleteFee(fr.id)}
-                            className="p-1 text-red-500 hover:bg-red-50 rounded-md cursor-pointer transition"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {feeRanges.length === 0 && (
-                      <tr>
-                        <td colSpan={4} className="p-6 text-center text-slate-400 font-medium">
-                          No fee structure rows defined yet. Add one below.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Add New Row form */}
-              <div className="p-4 border border-slate-200 bg-slate-50/50 rounded-2xl space-y-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Add New Fee Record</h4>
-
-                {!isLc ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">Grade / Class</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Class 1"
-                        value={newFeeGrade}
-                        onChange={(e) => setNewFeeGrade(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">Annual Fee (₹)</label>
-                      <input
-                        type="number"
-                        placeholder="e.g. 50000"
-                        value={newFeeMin}
-                        onChange={(e) => setNewFeeMin(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">One-time Fee (₹)</label>
-                      <input
-                        type="number"
-                        placeholder="e.g. 15000"
-                        value={newFeeMax}
-                        onChange={(e) => setNewFeeMax(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none"
-                      />
-                    </div>
-                    <Button
-                      onClick={handleAddFeeRow}
-                      disabled={saving}
-                      className="bg-[#1565D8] hover:bg-blue-750 text-white font-semibold py-2 px-4 rounded-lg h-10 w-full"
-                    >
-                      Add Row
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-end">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">Activity Name</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Piano Lesson"
-                        value={newLcActivity}
-                        onChange={(e) => setNewLcActivity(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">Duration</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Monthly, 3 Months"
-                        value={newLcDuration}
-                        onChange={(e) => setNewLcDuration(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">Monthly Fee (₹)</label>
-                      <input
-                        type="number"
-                        placeholder="e.g. 2500"
-                        value={newLcMonthly}
-                        onChange={(e) => setNewLcMonthly(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">Registration Fee (₹)</label>
-                      <input
-                        type="number"
-                        placeholder="e.g. 1000"
-                        value={newLcRegistration}
-                        onChange={(e) => setNewLcRegistration(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none"
-                      />
-                    </div>
-                    <Button
-                      onClick={handleAddFeeRow}
-                      disabled={saving}
-                      className="bg-[#1565D8] hover:bg-blue-750 text-white font-semibold py-2 px-4 rounded-lg h-10 w-full"
-                    >
-                      Add Activity
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
+            <FeesTab
+              isLc={isLc}
+              feeRanges={feeRanges}
+              saving={saving}
+              onAddRow={handleAddFeeRow}
+              onDeleteFee={handleDeleteFee}
+              newFeeGrade={newFeeGrade}
+              onNewFeeGradeChange={setNewFeeGrade}
+              newFeeMin={newFeeMin}
+              onNewFeeMinChange={setNewFeeMin}
+              newFeeMax={newFeeMax}
+              onNewFeeMaxChange={setNewFeeMax}
+              newLcActivity={newLcActivity}
+              onNewLcActivityChange={setNewLcActivity}
+              newLcDuration={newLcDuration}
+              onNewLcDurationChange={setNewLcDuration}
+              newLcMonthly={newLcMonthly}
+              onNewLcMonthlyChange={setNewLcMonthly}
+              newLcRegistration={newLcRegistration}
+              onNewLcRegistrationChange={setNewLcRegistration}
+            />
           )}
 
           {/* TAB 7: OPERATING HOURS */}
           {activeTab === 'hours' && (
-            <div className="space-y-6">
-              <div className="border-b border-slate-100 pb-4 mb-4">
-                <h3 className="text-base font-bold text-slate-800">Weekly Operating Hours</h3>
-                <p className="text-xs text-slate-400">Specify open/close times or closed schedules for your campus.</p>
-              </div>
-
-              <div className="space-y-3.5">
-                {operatingHours.map((item, index) => {
-                  return (
-                    <div
-                      key={item.dayOfWeek}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3 border border-slate-150 rounded-xl bg-slate-50/20"
-                    >
-                      <span className="w-24 font-bold text-slate-705 text-sm">{DAYS_OF_WEEK[item.dayOfWeek]}</span>
-
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="time"
-                          disabled={item.isClosed}
-                          value={item.openTime}
-                          onChange={(e) => {
-                            const newHours = [...operatingHours]
-                            newHours[index].openTime = e.target.value
-                            setOperatingHours(newHours)
-                          }}
-                          className="px-2 py-1 bg-white border border-slate-200 rounded-md text-xs focus:outline-none disabled:opacity-40"
-                        />
-                        <span className="text-slate-400 text-xs font-semibold">to</span>
-                        <input
-                          type="time"
-                          disabled={item.isClosed}
-                          value={item.closeTime}
-                          onChange={(e) => {
-                            const newHours = [...operatingHours]
-                            newHours[index].closeTime = e.target.value
-                            setOperatingHours(newHours)
-                          }}
-                          className="px-2 py-1 bg-white border border-slate-200 rounded-md text-xs focus:outline-none disabled:opacity-40"
-                        />
-                      </div>
-
-                      <label className="flex items-center gap-2 text-xs font-bold text-slate-500 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={item.isClosed}
-                          onChange={(e) => {
-                            const newHours = [...operatingHours]
-                            newHours[index].isClosed = e.target.checked
-                            setOperatingHours(newHours)
-                          }}
-                          className="accent-[#1565D8]"
-                        />
-                        <span>Closed</span>
-                      </label>
-                    </div>
-                  )
-                })}
-              </div>
-
-              <div className="flex justify-end pt-4 border-t border-slate-100">
-                <Button
-                  onClick={handleSaveHours}
-                  disabled={saving}
-                  className={`bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="animate-spin size-4 mr-2" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>Save Operating Hours</span>
-                  )}
-                </Button>
-              </div>
-            </div>
+            <HoursTab
+              hours={operatingHours}
+              onChange={setOperatingHours}
+              onSave={handleSaveHours}
+              saving={saving}
+            />
           )}
 
           {/* TAB 8: ADMISSIONS SETTINGS */}
           {activeTab === 'admissions' && (
-            <form onSubmit={handleSaveAdmissions} className="space-y-6">
-              <div className="border-b border-slate-100 pb-4 mb-4">
-                <h3 className="text-base font-bold text-slate-800">Admission Campaign Settings</h3>
-                <p className="text-xs text-slate-400">Configure online applications status, deadlines, and registration links.</p>
-              </div>
-
-              <div className="space-y-6">
-                {/* Status open/close toggle */}
-                <div className="flex items-center justify-between p-4 border border-slate-200 bg-slate-50/50 rounded-2xl">
-                  <div className="space-y-1">
-                    <span className="text-sm font-bold text-slate-800">Admission Open Status</span>
-                    <p className="text-xs text-slate-400 font-normal">Toggle whether your school is actively accepting enquiries.</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={admissionOpen}
-                      onChange={(e) => setAdmissionOpen(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1565D8]" />
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Academic Intake Year</label>
-                    <input
-                      type="text"
-                      required={admissionOpen}
-                      value={academicYear}
-                      onChange={(e) => setAcademicYear(e.target.value)}
-                      placeholder="e.g. 2026-2027"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Intake Deadline</label>
-                    <input
-                      type="date"
-                      value={admissionDeadline}
-                      onChange={(e) => setAdmissionDeadline(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5 col-span-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">External Admission Form Link (Optional)</label>
-                    <input
-                      type="url"
-                      value={admissionFormLink}
-                      onChange={(e) => setAdmissionFormLink(e.target.value)}
-                      placeholder="https://form.jotform.com/..."
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-4 border-t border-slate-100">
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  className={`bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="animate-spin size-4 mr-2" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>Save Admission Settings</span>
-                  )}
-                </Button>
-              </div>
-            </form>
+            <AdmissionsTab
+              admissionOpen={admissionOpen}
+              onAdmissionOpenChange={setAdmissionOpen}
+              academicYear={academicYear}
+              onAcademicYearChange={setAcademicYear}
+              admissionDeadline={admissionDeadline}
+              onAdmissionDeadlineChange={setAdmissionDeadline}
+              admissionFormLink={admissionFormLink}
+              onAdmissionFormLinkChange={setAdmissionFormLink}
+              onSubmit={handleSaveAdmissions}
+              saving={saving}
+            />
           )}
         </div>
       </div>

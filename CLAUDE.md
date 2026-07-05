@@ -13,6 +13,7 @@ This document serves as the single source of truth for design patterns, technolo
 - **Run Local Dev Server**: `npm run dev` (Runs Next.js 15 with Turbopack on http://localhost:3000)
 - **Verify Production Compile**: `npm run build`
 - **Verify Linter**: `npm run lint`
+- **Run Tests**: `npm test` (vitest — tenant isolation suite needs `DATABASE_URL`)
 - **Automated Verification & Docs Update**: `python3 scripts/verify_project.py` (Compiles, verifies build health, and autogenerates status metadata below)
 
 ---
@@ -59,56 +60,18 @@ Use these Tailwind equivalents throughout the JSX configurations:
 
 ---
 
-## ✅ Completed Features
-*   **Database Schema**: Designed 65 models spread across 4 schemas (`platform`, `crm`, `billing`, `marketplace`) in PostgreSQL via Prisma.
-*   **NextAuth v5 OTP Login**: Implemented secure OTP authentication with custom Credentials provider and login UI.
-*   **Middleware Chain**: Set up custom path validation, route grouping, and tenant isolation using Prisma Client `$extends` middleware.
-*   **Lead Management**:
-    *   Created CRUD endpoints `/api/v1/leads` and `/api/v1/leads/[id]`.
-    *   Connected UI to real endpoints: wired list table, search, filters, counsellors dropdowns, and pagination.
-    *   Wired Lead Detail Drawer and delete modal actions to real API calls.
-    *   Synchronized Add Lead top & bottom Save buttons validation/loading states with inline spinners.
-    *   Fixed partial lead update ZodError on lead quick actions (made updateLeadSchema fields optional, implemented dynamic partial Prisma updates, fixed follow-up date and status/priority updates).
-    *   Fixed add/edit lead pages saving issues (correctly mapping childAge, childName/kidName, assignedToId, combining follow-up date/time, and converting empty strings to null).
-*   **Admission Management**:
-    *   Created endpoints for admissions lists, single record CRUD, activities logging, pipeline stage counts, and student conversion.
-    *   Mapped schema adjustments (`sortOrder` instead of `order`, `gradeLabel` instead of `currentClass`, `guardianPhone` instead of `phone`).
-    *   Added `parentName` string field to Prisma `Admission` schema and mapped database column.
-    *   Unified grade options dropdowns/filters using `@/constants/grades` constants (`GRADE_OPTIONS`).
-    *   Redesigned Convert Lead to Admission modals and APIs (details view and list view rows) to map applicantName (kidName fallback to parentName), preserve parentName, auto-map and dynamically handle mismatched grade values, and explicitly define POST/Prisma data fields without `source`.
-    *   Completed CRUD features: soft delete API/UI, manual creation page with grade select, and edit admission page full form.
-    *   Resolved layout/rendering issues: responsive columns in list view, pipeline stage strip horizontal overflow fix, create page redirection, and fully unified Kanban and Grid views.
-    *   Added documents management (GET, POST, PUT, DELETE APIs) and interactive document upload/status interface on details page.
-    *   Updated stage change logs to display real user names instead of UUIDs.
-*   **Fee Management & Financials**:
-    *   Built the fee management workspace `/fee-management` with support for managing invoices, recording payments, tracking overdue invoices, and configuring installment payment plans.
-    *   Implemented dynamic summary metrics calculating total collected, overdue, and upcoming fees.
-    *   Created invoice PDF export API endpoint utilizing `@react-pdf/renderer` for template rendering.
-    *   Wired email invoicing notification endpoints to dispatch invoice copies directly to parents.
-*   **Dashboard API & UI**:
-    *   Created dashboard summary endpoints `/api/v1/dashboard/summary`.
-    *   Wired KPI cards, active charts, pipeline stages, progress meters, and recent activity logs to live DB records.
-*   **Platform Super Admin Panel**:
-    *   Created administrative endpoints `/api/admin/organizations` and sub-routes for license modules, status updates, and stats.
-    *   Built portal dashboard layout (`/admin`), organizations management list (`/admin/orgs`), and organization approval profile workspace (`/admin/orgs/[id]`).
-*   **Public Marketplace Discovery**:
-    *   Built the public landing page homepage (`/`) featuring hero search sections, featured cities list, popular board categories, learning centers links, how-it-works workflow, counters, and register CTAs.
-    *   Created high-performance search endpoint `/api/public/schools` supporting dynamic sorting (relevance, rating, newest, enquiries) and relation counting.
-    *   Implemented detailed profile endpoint `/api/public/schools/[slug]` returning locations, affiliations, hours, media, and calculated reviews categories metrics.
-    *   Built directory listing client page (`/schools`) and profile client page (`/schools/[slug]`) complete with enquire now dialogs, write-a-review forms, bookmarked storage states, skeleton loading grids, and responsive drawers.
-*   **Location Detection Hook**:
-    *   Created `src/hooks/useLocation.ts` for browser GPS permission checks, reverse geocoding to city, localStorage caching, and selector updates.
-*   **Parent Authentication & Registration**:
-    *   Built POST `/api/auth/parent/register` and `/api/auth/parent/verify-otp` bypassable development-ready registration APIs.
-    *   Created client registration pages, OTP modal verification forms, and session bindings.
-*   **Parent Portal & Dashboard Layout**:
-    *   Designed `/parent/layout` top desktop bar & mobile sticky bottom icons nav.
-    *   Implemented `/parent/dashboard` KPI summary stats cards, recent applications list, and nearest schools recommendation rows.
-    *   Implemented `/parent/profile` fields editing, OTP change-phone modal validation, children database CRUD, and deactivation options.
-*   **Applications, Bookmarks & Notifications**:
-    *   Created applications status resolver APIs and tracking list layouts with progress dot timelines and action links.
-    *   Built school bookmarks list/grid layouts with sortings/filters, toggling endpoints `/api/public/schools/[slug]/bookmark`, and wired bookmark toggle buttons on schools and learning center search & profile cards.
-    *   Created Notifications list views with item-read update and "Mark all read" capabilities.
+## ✅ Implemented Modules
+Feature history lives in git log — this is a capability map only.
+
+*   **Data layer**: 76 Prisma models across 4 PostgreSQL schemas (`platform`, `crm`, `billing`, `marketplace`); tenant isolation + soft delete via fail-closed `$extends` client in [src/lib/db/tenant.ts](file:///Users/vimaldas/Projects/VidhyaanCRM/src/lib/db/tenant.ts).
+*   **Auth**: NextAuth v5 OTP + PIN login, role-gated middleware (platform/org/parent roles), identity headers stripped and re-set per request, Redis-backed revocation.
+*   **API framework**: `route()` composer in [src/lib/api/compose.ts](file:///Users/vimaldas/Projects/VidhyaanCRM/src/lib/api/compose.ts) (auth → role → org cache → module license → read-only guard → tenant DB); zod query helpers in `src/lib/api/query.ts`; central ZodError → 422.
+*   **CRM**: lead management (list/inline-edit/drawer/convert), admission pipeline (list/grid/kanban, documents, convert-to-student), student management, fee management (invoices, payments, PDF export, email), dashboard KPIs. Shared UI in `src/components/leads/` and `src/components/admissions/`.
+*   **Billing**: Razorpay orders/webhooks (signature-verified, fail-closed), subscriptions, plan modules; pure fee math in `src/lib/fees.ts`.
+*   **Platform admin** (`/admin`): org approval, plans, stats, impersonation (SUPER_ADMIN).
+*   **Marketplace** (`/`, `/schools`, `/learning-centers`): public search + profiles, enquiries, reviews, bookmarks, GPS distance filtering.
+*   **Parent portal** (`/parent`): registration, dashboard, applications tracking, kids CRUD, notifications.
+*   **Tests**: vitest (`npm test`) — tenant isolation, fee math, rate limiter, query helpers.
 
 ---
 

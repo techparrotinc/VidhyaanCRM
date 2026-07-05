@@ -27,16 +27,18 @@ export const GET = route({
     const q = parseQuery(req.url, {
       ...paginationShape,
       scope: z.enum(['upcoming', 'past', 'all']).catch('upcoming'),
+      status: z.enum(['DRAFT', 'PUBLISHED', 'CANCELLED']).optional().or(z.literal('').transform(() => undefined)),
       type: z.enum(EVENT_TYPES).optional().or(z.literal('').transform(() => undefined)),
       // month view: YYYY-MM loads that calendar month regardless of scope
       month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional().or(z.literal('').transform(() => undefined)),
       search: textParam
     })
-    const { page, limit, scope, type, month, search } = q
+    const { page, limit, scope, status, type, month, search } = q
     const skip = (page - 1) * limit
     const now = new Date()
 
     const filters: any[] = []
+    if (status) filters.push({ status })
     if (type) filters.push({ type })
     if (search) {
       filters.push({

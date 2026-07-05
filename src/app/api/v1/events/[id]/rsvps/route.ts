@@ -38,6 +38,10 @@ export const POST = route({
     const event = await findEventOr404(db, params)
     const body = addRsvpSchema.parse(await req.json())
 
+    if (event.status !== 'PUBLISHED') {
+      throw new AppError('BUSINESS_RULE', 'Publish the event before inviting attendees.', 409)
+    }
+
     // attendeeId is a soft reference — verify it points at a real record the
     // org can see (Lead is tenant-scoped; User checked against orgId)
     if (body.attendeeId) {

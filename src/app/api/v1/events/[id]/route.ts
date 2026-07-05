@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
-import { Errors } from '@/lib/api/errors'
+import { Errors, AppError } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { EVENT_TYPES } from '@/constants/events'
@@ -88,6 +88,10 @@ export const PUT = route({
     const existing = await db.event.findFirst({ where: { id } })
     if (!existing) throw Errors.notFound('Event')
 
+    if (existing.status !== 'DRAFT') {
+      throw new AppError('BUSINESS_RULE', 'Published events cannot be edited. Cancel the event instead.', 409)
+    }
+
     const startsAt = body.startsAt ? new Date(body.startsAt) : undefined
     if (startsAt && isNaN(startsAt.getTime())) {
       throw Errors.validation({ startsAt: ['Invalid date'] })
@@ -136,6 +140,10 @@ export const DELETE = route({
 
     const existing = await db.event.findFirst({ where: { id } })
     if (!existing) throw Errors.notFound('Event')
+
+    if (existing.status === 'PUBLISHED') {
+      throw new AppError('BUSINESS_RULE', 'Published events cannot be deleted. Cancel the event instead.', 409)
+    }
 
     // tenant client rewrites delete → soft delete for Event
     await db.event.delete({ where: { id } })

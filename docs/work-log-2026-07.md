@@ -92,6 +92,18 @@ Record of a review + hardening + performance session. Production branch is
 - **Phase 2 parked**: publish to marketplace profile + public RSVP→lead, campaign
   invites, reminders, ICS.
 
+### Event Management — UX redesign + lifecycle (2026-07-05, later)
+- **Drawers killed** → full pages: `/event-management/new`, `/[id]` (hero + Overview/
+  Attendees tabs), `/[id]/edit`.
+- **Lifecycle**: `EventStatus` enum DRAFT→PUBLISHED→CANCELLED. Drafts editable/deletable;
+  publish locks (server-side PUT/DELETE 409 + UI banner); cancel = only exit. RSVPs only
+  on published. Migration `20260705144814_event_status_lifecycle` — **applied? user runs
+  `npx prisma migrate deploy`** (additive).
+- **Metrics strip** on list: upcoming, drafts, upcoming RSVPs, 90-day attendance rate
+  (`/api/v1/events/metrics`). List rows: status badge, capacity fill bar, filters
+  (status/type/search).
+- Dashboard upcoming card now shows **published only**.
+
 ## ⏳ Pending
 
 1. **Subdomain-per-school** (phase 2) — `schoolname.vidhyaan.com`. Needs Vercel Pro +

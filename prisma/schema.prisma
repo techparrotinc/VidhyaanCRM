@@ -452,6 +452,14 @@ enum WaitlistStatus {
   @@schema("marketplace")
 }
 
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+
+  @@schema("crm")
+}
+
 enum RsvpStatus {
   GOING
   MAYBE
@@ -2024,7 +2032,8 @@ model Event {
   description    String?
   type           String?       // OPEN_HOUSE, PTM, ANNUAL_DAY... / DEMO_CLASS, WORKSHOP... (institution-specific labels)
   capacity       Int?
-  isPublished    Boolean       @default(false) @map("is_published") // phase 2: marketplace surface
+  status         EventStatus   @default(DRAFT) // DRAFT editable; PUBLISHED locked (cancel only)
+  isPublished    Boolean       @default(false) @map("is_published") // deprecated by status; kept until phase 2 decides marketplace flag
   startsAt       DateTime      @map("starts_at")
   endsAt         DateTime?     @map("ends_at")
   location       String?

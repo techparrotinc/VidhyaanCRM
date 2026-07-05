@@ -218,9 +218,10 @@ export const GET = route({
         }
       }),
 
-      // Next 3 upcoming events
+      // Next 3 upcoming published events
       db.event.findMany({
         where: {
+          status: 'PUBLISHED',
           OR: [{ startsAt: { gte: now } }, { endsAt: { gte: now } }]
         },
         orderBy: { startsAt: 'asc' },

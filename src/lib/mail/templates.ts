@@ -351,3 +351,74 @@ export function contactUserConfirmationTemplate(params: {
     </div>
   `
 }
+
+export function eventInviteTemplate(params: {
+  recipientName: string
+  orgName: string
+  eventTitle: string
+  eventType: string
+  startsAt: string
+  endsAt?: string | null
+  location?: string | null
+  meetingLink?: string | null
+  description?: string | null
+}): string {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+      <div style="background-color: #1565D8; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: bold;">You're Invited! 🎉</h1>
+      </div>
+      <div style="padding: 24px; color: #334155; line-height: 1.6;">
+        <p style="font-size: 16px; margin-top: 0;">Hi ${params.recipientName},</p>
+        <p><strong>${params.orgName}</strong> has invited you to an upcoming event:</p>
+
+        <div style="margin: 20px 0; padding: 16px; background-color: #f8fafc; border-left: 4px solid #1565D8; border-radius: 0 8px 8px 0;">
+          <strong style="color: #0f172a; display: block; font-size: 17px; margin-bottom: 6px;">${params.eventTitle}</strong>
+          <span style="display: block; font-size: 13px; color: #64748b; margin-bottom: 8px;">${params.eventType}</span>
+          <table style="font-size: 14px; color: #334155; border-collapse: collapse;">
+            <tr><td style="padding: 3px 12px 3px 0; color: #64748b;">📅 When</td><td style="padding: 3px 0;">${params.startsAt}${params.endsAt ? ` – ${params.endsAt}` : ''}</td></tr>
+            ${params.location ? `<tr><td style="padding: 3px 12px 3px 0; color: #64748b;">📍 Where</td><td style="padding: 3px 0;">${params.location}</td></tr>` : ''}
+          </table>
+        </div>
+
+        ${params.description ? `<p style="font-size: 14px; color: #475569;">${params.description}</p>` : ''}
+
+        ${params.meetingLink ? `
+        <div style="text-align: center; margin: 26px 0;">
+          <a href="${params.meetingLink}" style="display: inline-block; background-color: #1565D8; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">Join Online</a>
+        </div>` : ''}
+
+        <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
+        <p style="font-size: 12px; color: #64748b; margin: 0;">Please contact ${params.orgName} directly to confirm attendance or for any questions about this event.</p>
+      </div>
+    </div>
+  `
+}
+
+export function eventCancelledTemplate(params: {
+  recipientName: string
+  orgName: string
+  eventTitle: string
+  startsAt: string
+}): string {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+      <div style="background-color: #dc2626; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: bold;">Event Cancelled</h1>
+      </div>
+      <div style="padding: 24px; color: #334155; line-height: 1.6;">
+        <p style="font-size: 16px; margin-top: 0;">Hi ${params.recipientName},</p>
+        <p>We're sorry to inform you that the following event by <strong>${params.orgName}</strong> has been cancelled:</p>
+
+        <div style="margin: 20px 0; padding: 16px; background-color: #fef2f2; border-left: 4px solid #dc2626; border-radius: 0 8px 8px 0;">
+          <strong style="color: #0f172a; display: block; font-size: 16px;">${params.eventTitle}</strong>
+          <span style="font-size: 13px; color: #64748b;">Was scheduled for ${params.startsAt}</span>
+        </div>
+
+        <p style="font-size: 14px; color: #475569;">Please contact ${params.orgName} for more information or to hear about future events.</p>
+        <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
+        <p style="font-size: 12px; color: #64748b; margin: 0;">This is an automated notification. Please do not reply directly to this email.</p>
+      </div>
+    </div>
+  `
+}

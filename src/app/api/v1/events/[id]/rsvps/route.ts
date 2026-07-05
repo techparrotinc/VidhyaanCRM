@@ -4,6 +4,7 @@ import { ok, created } from '@/lib/api/respond'
 import { Errors, AppError } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
+import { sendEventInvite } from '@/lib/services/eventEmails'
 
 const CRM_EVENT_ROLES = [
   ROLES.ORG_ADMIN,
@@ -93,6 +94,11 @@ export const POST = route({
         status: body.status || 'GOING'
       }
     })
+
+    // Fire-and-forget invite email (skips silently if attendee has no email)
+    if (body.attendeeId) {
+      sendEventInvite(event, body.attendeeType, body.attendeeId)
+    }
 
     return created(rsvp)
   }

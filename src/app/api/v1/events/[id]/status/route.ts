@@ -4,6 +4,7 @@ import { ok } from '@/lib/api/respond'
 import { Errors, AppError } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
+import { sendEventCancellationNotices } from '@/lib/services/eventEmails'
 
 // Lifecycle: DRAFT --publish--> PUBLISHED --cancel--> CANCELLED.
 // Published events are locked (no edit, no delete) — cancel is the only exit.
@@ -35,6 +36,10 @@ export const PUT = route({
       throw new AppError('BUSINESS_RULE', 'Only published events can be cancelled.', 409)
     }
     const updated = await db.event.update({ where: { id }, data: { status: 'CANCELLED' } })
+
+    // Fire-and-forget: notify GOING/MAYBE attendees by email
+    sendEventCancellationNotices(event)
+
     return ok(updated)
   }
 })

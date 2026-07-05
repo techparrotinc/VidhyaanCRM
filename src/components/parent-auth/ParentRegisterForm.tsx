@@ -233,7 +233,7 @@ export default function ParentRegisterForm({
             Already have an account?{' '}
           </span>
           <Link
-            href="/login"
+            href="/parent/login"
             className="text-xs font-bold text-[#1565D8] hover:underline"
           >
             Login

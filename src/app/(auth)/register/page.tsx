@@ -602,13 +602,11 @@ export default function RegisterPage() {
                         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                           Medium of Instruction
                         </label>
-                        <div className="max-h-[64px] overflow-y-auto border border-slate-200 rounded-lg p-1">
-                          <LanguageTagInput
-                            value={mediumOfInstruction ?? []}
-                            onChange={(vals) => setMediumOfInstruction(vals)}
-                            options={INDIAN_LANGUAGES}
-                          />
-                        </div>
+                        <LanguageTagInput
+                          value={mediumOfInstruction ?? []}
+                          onChange={(vals) => setMediumOfInstruction(vals)}
+                          options={INDIAN_LANGUAGES}
+                        />
                       </div>
                     )}
 
@@ -617,13 +615,11 @@ export default function RegisterPage() {
                         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                           Exam Focus
                         </label>
-                        <div className="max-h-[64px] overflow-y-auto border border-slate-200 rounded-lg p-1">
-                          <ExamFocusTagInput
-                            value={examFocus ?? []}
-                            onChange={(vals) => setExamFocus(vals)}
-                            options={EXAM_FOCUS_OPTIONS}
-                          />
-                        </div>
+                        <ExamFocusTagInput
+                          value={examFocus ?? []}
+                          onChange={(vals) => setExamFocus(vals)}
+                          options={EXAM_FOCUS_OPTIONS}
+                        />
                       </div>
                     )}
                   </div>

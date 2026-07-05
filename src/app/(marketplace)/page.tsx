@@ -1295,7 +1295,7 @@ export default function MarketplaceHomepage() {
               </p>
               
               <div className="flex gap-4 justify-center flex-wrap mt-8">
-                <Link href="/register">
+                <Link href="/claim-profile">
                   <Button className="bg-white hover:bg-slate-50 text-[#1565D8] font-bold text-xs px-8 py-3.5 rounded-xl h-auto shadow-md">
                     {content.cta.primaryButton}
                   </Button>

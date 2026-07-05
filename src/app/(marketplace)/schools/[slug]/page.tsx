@@ -1581,7 +1581,7 @@ export default function SchoolProfilePage() {
             <h4 className="text-lg font-black tracking-tight leading-tight">Is this your school?</h4>
             <p className="text-xs font-bold text-blue-100">Claim your free profile and start managing admissions with Vidhyaan CRM</p>
           </div>
-          <Link href="/register">
+          <Link href="/claim-profile">
             <Button className="bg-white hover:bg-slate-50 text-[#1565D8] font-bold text-xs px-6 py-3 rounded-full h-auto shadow border border-blue-100 shrink-0">
               Claim Free Profile &rarr;
             </Button>

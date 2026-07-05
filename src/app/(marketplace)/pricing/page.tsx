@@ -161,7 +161,7 @@ export default function PricingPage() {
               </div>
 
               <div className="mt-8">
-                <Link href="/register">
+                <Link href="/claim-profile">
                   <Button variant="outline" className="w-full border-blue-200 text-[#1565D8] hover:bg-blue-50 font-bold text-xs py-3.5 rounded-full h-auto shadow-sm">
                     Claim Free Profile
                   </Button>
@@ -403,7 +403,7 @@ export default function PricingPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 relative z-10">
-              <Link href="/register">
+              <Link href="/claim-profile">
                 <Button className="bg-white hover:bg-blue-50 text-blue-600 font-bold text-xs px-6 py-3 rounded-full h-auto shadow-md">
                   Claim Free Profile
                 </Button>

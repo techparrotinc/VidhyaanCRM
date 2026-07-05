@@ -1,352 +1,198 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, Loader2, ArrowLeft, CheckCircle2, Lock, AlertCircle } from 'lucide-react'
-import { signIn } from 'next-auth/react'
-import PinInput from '@/components/ui/PinInput'
+import { Shield, Loader2, AlertCircle, ArrowRight, MapPin, Award, Lock, ArrowLeft } from 'lucide-react'
+import {
+  INSTITUTION_CONFIG,
+  CENTER_CATEGORIES,
+  EXAM_FOCUS_OPTIONS,
+  INDIAN_LANGUAGES,
+  type InstitutionType,
+} from '@/constants/institutionConfig'
+import { LanguageTagInput } from '@/components/ui/LanguageTagInput'
+import { ExamFocusTagInput } from '@/components/ui/ExamFocusTagInput'
 
-type Step = 1 | 2 | 3 | 4
+const institutionTypeLabels: Record<string, string> = {
+  SCHOOL: 'School',
+  LEARNING_CENTER: 'Learning Center',
+  JUNIOR_COLLEGE: 'Junior College',
+  COACHING_CENTER: 'Coaching Center'
+}
+
+interface SimilarSchool {
+  id: string
+  name: string
+  slug: string
+  institutionType: string
+  locations: Array<{ address: string; city: string }>
+  affiliations: Array<{ board: string }>
+}
+
+const grades = [
+  'Playgroup', 'Nursery', 'LKG', 'UKG',
+  'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
+  'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10',
+  'Class 11', 'Class 12'
+]
 
 export default function RegisterPage() {
   const router = useRouter()
-
-  // General wizard state
-  const [step, setStep] = useState<Step>(1)
-  const [userId, setUserId] = useState<string | null>(null)
-  const [apiError, setApiError] = useState<string | null>(null)
+  const [step, setStep] = useState<1 | 2>(1)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Step 1: Phone
-  const [phone, setPhone] = useState('')
-  const [agreeTerms, setAgreeTerms] = useState(false)
-
-  const [otp, setOtp] = useState<string[]>(['', '', '', ''])
-  const [otpError, setOtpError] = useState(false)
-  const [otpAttemptsLeft, setOtpAttemptsLeft] = useState<number | null>(null)
-  const [otpSecondsLeft, setOtpSecondsLeft] = useState(600) // 10 minutes countdown
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([])
-
-  // Step 3: Account Details
-  const [fullName, setFullName] = useState('')
-  const [email, setEmail] = useState('')
+  // Step 1: School details fields
   const [schoolName, setSchoolName] = useState('')
+  const [institutionType, setInstitutionType] = useState('SCHOOL')
+  const [city, setCity] = useState('Chennai')
+  const [board, setBoard] = useState('CBSE')
+  const [establishedYear, setEstablishedYear] = useState('')
   const [role, setRole] = useState('')
-  const [institutionType, setInstitutionType] = useState<'SCHOOL' | 'LEARNING_CENTER'>('SCHOOL')
+  const [centerCategory, setCenterCategory] = useState('')
 
-  // Step 4: Set PIN
-  const [firstPin, setFirstPin] = useState('')
-  const [confirmPinKey, setConfirmPinKey] = useState(0)
-  const [pinSuccess, setPinSuccess] = useState(false)
-  const [pinError, setPinError] = useState(false)
-  const [pinMsg, setPinMsg] = useState<string | null>(null)
-  const [showSkipMsg, setShowSkipMsg] = useState(false)
+  // New fields from Step 1 Onboarding
+  const [schoolType, setSchoolType] = useState('PRIVATE')
+  const [totalTeachers, setTotalTeachers] = useState('')
+  const [mediumOfInstruction, setMediumOfInstruction] = useState<string[]>(['ENGLISH'])
+  const [examFocus, setExamFocus] = useState<string[]>([])
+  const [gradeFrom, setGradeFrom] = useState('LKG')
+  const [gradeTo, setGradeTo] = useState('Class 10')
 
-  // Timer countdown for Step 2
+  const config = INSTITUTION_CONFIG[
+    institutionType as InstitutionType
+  ] ?? INSTITUTION_CONFIG['SCHOOL']
+
+  // Update school type if institution type changes and makes previous value invalid
   useEffect(() => {
-    if (step !== 2) return
-    const timer = setInterval(() => {
-      setOtpSecondsLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [step])
-
-  // Focus managers
-  useEffect(() => {
-    if (step === 2) {
-      setTimeout(() => otpRefs.current[0]?.focus(), 50)
+    if (config.showSchoolType && config.schoolTypeOptions.length > 0) {
+      const isValid = config.schoolTypeOptions.some(opt => opt.value === schoolType)
+      if (!isValid) {
+        setSchoolType(config.schoolTypeOptions[0].value)
+      }
     }
-  }, [step])
+  }, [institutionType, config, schoolType])
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60)
-    const s = seconds % 60
-    return `${m}:${s.toString().padStart(2, '0')}`
+  // Similar school warning state
+  const [similarSchool, setSimilarSchool] = useState<SimilarSchool | null>(null)
+  const [showWarning, setShowWarning] = useState(false)
+
+  // Step 2: Admin details fields
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\D/g, '')
+    setPhone(val)
   }
 
-  // --- STEP 1 HANDLERS ---
-  const handlePhoneSubmit = async (e: React.FormEvent) => {
+  const handleNext = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (phone.length < 10 || !agreeTerms) return
+    setError(null)
 
-    setApiError(null)
-    setLoading(true)
+    const needsBoard = config.showSchoolType
+    const needsCenterCategory = config.showCenterCategory
 
-    try {
-      const res = await fetch('/api/auth/otp/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contact: phone, purpose: 'SIGNUP' })
-      })
-      const data = await res.json()
-
-      if (!res.ok || !data.success) {
-        setApiError(data.error || 'Failed to send OTP')
-        return
-      }
-
-      setOtpSecondsLeft(data.expiresIn || 600)
-      setStep(2)
-    } catch (err) {
-      console.error(err)
-      setApiError('Network error. Check connection.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // --- STEP 2 HANDLERS ---
-  const handleOtpChange = (index: number, val: string) => {
-    const digit = val.replace(/\D/g, '').slice(-1)
-    const newOtp = [...otp]
-    newOtp[index] = digit
-    setOtp(newOtp)
-
-    if (digit && index < 3) {
-      otpRefs.current[index + 1]?.focus()
-    }
-
-    // Check if fully filled
-    const otpCode = newOtp.join('')
-    if (otpCode.length === 4) {
-      triggerOtpVerify(otpCode)
-    }
-  }
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace') {
-      const newOtp = [...otp]
-      if (otp[index]) {
-        newOtp[index] = ''
-        setOtp(newOtp)
-      } else if (index > 0) {
-        newOtp[index - 1] = ''
-        setOtp(newOtp)
-        otpRefs.current[index - 1]?.focus()
-      }
-    }
-  }
-
-  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault()
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4)
-    if (!pastedData) return
-
-    const newOtp = [...otp]
-    for (let j = 0; j < 4; j++) {
-      if (j < pastedData.length) {
-        newOtp[j] = pastedData[j]
-      }
-    }
-    setOtp(newOtp)
-
-    if (pastedData.length === 4) {
-      triggerOtpVerify(pastedData)
-    } else {
-      const focusIndex = Math.min(pastedData.length, 3)
-      otpRefs.current[focusIndex]?.focus()
-    }
-  }
-
-  const triggerOtpVerify = async (code: string) => {
-    setLoading(true)
-    setApiError(null)
-    setOtpError(false)
-
-    try {
-      const res = await fetch('/api/auth/otp/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contact: phone, code })
-      })
-      const data = await res.json()
-
-      if (!res.ok || !data.success) {
-        setOtpError(true)
-        setOtp(['', '', '', ''])
-        setTimeout(() => otpRefs.current[0]?.focus(), 50)
-        
-        if (data.attemptsLeft !== undefined) {
-          setOtpAttemptsLeft(data.attemptsLeft)
-          setApiError(`Incorrect OTP. ${data.attemptsLeft} attempts remaining.`)
-        } else {
-          setApiError(data.message || 'OTP verification failed.')
-        }
-        return
-      }
-
-      setStep(3)
-    } catch (err) {
-      console.error(err)
-      setApiError('Verification failed. Check connection.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleResendOtp = async () => {
-    if (otpSecondsLeft > 0) return
-    setApiError(null)
-    setLoading(true)
-
-    try {
-      const res = await fetch('/api/auth/otp/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contact: phone, purpose: 'SIGNUP' })
-      })
-      const data = await res.json()
-
-      if (!res.ok || !data.success) {
-        setApiError(data.error || 'Failed to resend OTP')
-        return
-      }
-
-      setOtpSecondsLeft(data.expiresIn || 600)
-      setOtp(['', '', '', ''])
-      setTimeout(() => otpRefs.current[0]?.focus(), 50)
-    } catch (err) {
-      console.error(err)
-      setApiError('Failed to resend OTP.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // --- STEP 3 HANDLERS ---
-  const handleDetailsSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!fullName || !email || !schoolName || !role) return
-
-    setApiError(null)
-    setLoading(true)
-
-    try {
-      const res = await fetch('/api/auth/school/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: fullName,
-          email,
-          phone,
-          schoolName,
-          role,
-          institutionType
-        })
-      })
-      const data = await res.json()
-
-      if (!res.ok || !data.success) {
-        setApiError(data.error || 'Failed to create account')
-        return
-      }
-
-      setUserId(data.userId)
-
-      // Authenticate NextAuth session immediately using token
-      const authRes = await signIn('credentials', {
-        token: data.token,
-        redirect: false
-      })
-
-      if (authRes?.error) {
-        setApiError('Session creation failed. Please retry.')
-        return
-      }
-
-      setStep(4)
-    } catch (err) {
-      console.error(err)
-      setApiError('Failed to register school.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // --- STEP 4 HANDLERS ---
-  const handleConfirmPinComplete = async (confirmPin: string) => {
-    if (confirmPin !== firstPin) {
-      setPinError(true)
-      setPinMsg("PINs don't match. Please try again.")
-      
-      // Wait for shake animation, then reset only confirm pin input
-      setTimeout(() => {
-        setPinError(false)
-        setConfirmPinKey(prev => prev + 1)
-      }, 1000)
+    if (!schoolName || !institutionType || !city || (needsBoard && !board) || (needsCenterCategory && !centerCategory) || !role) {
+      setError('Please fill in all required fields')
       return
     }
 
-    // Success
-    setPinSuccess(true)
-    setPinError(false)
-    setPinMsg(null)
-
+    setLoading(true)
     try {
-      const res = await fetch('/api/auth/pin/set', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: firstPin, confirmPin })
-      })
+      // Check similar schools
+      const res = await fetch(`/api/public/schools?search=${encodeURIComponent(schoolName)}&city=${encodeURIComponent(city)}`)
       const data = await res.json()
 
-      if (!res.ok || !data.success) {
-        setPinSuccess(false)
-        setPinError(true)
-        setPinMsg(data.error || 'Failed to save PIN')
-        return
+      if (res.ok && data.success && data.data && data.data.length > 0) {
+        // Similar school found
+        setSimilarSchool(data.data[0])
+        setShowWarning(true)
+      } else {
+        // No similar school, proceed to Step 2
+        setStep(2)
       }
-
-      // Success redirect
-      setTimeout(() => {
-        router.push('/onboarding')
-      }, 1500)
-
-    } catch (err) {
-      console.error(err)
-      setPinSuccess(false)
-      setPinError(true)
-      setPinMsg('Failed to save PIN. Connection error.')
+    } catch (err: any) {
+      console.error('Similar school check error:', err)
+      // Proceed to Step 2 anyway on error
+      setStep(2)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleSkipPin = () => {
-    setShowSkipMsg(true)
-    setTimeout(() => {
-      router.push('/onboarding')
-    }, 1500)
+  const handleContinueRegistering = () => {
+    setShowWarning(false)
+    setStep(2)
   }
 
-  // Step Indicators
-  const steps = [1, 2, 3, 4]
+  const handleCreateAccount = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    if (!name || !phone || !email) {
+      setError('Please fill in all fields')
+      return
+    }
+
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      setError('Enter a valid 10-digit mobile number starting with 6-9')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const res = await fetch('/api/auth/school/new', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          phone,
+          email,
+          role,
+          schoolName,
+          institutionType,
+          city,
+          board: config.showSchoolType ? board : null,
+          schoolType: config.showSchoolType ? schoolType : null,
+          centerCategory: config.showCenterCategory ? centerCategory : null,
+          establishedYear: establishedYear ? parseInt(establishedYear) : null,
+          mediumOfInstruction,
+          examFocus: config.showExamFocus ? examFocus : [],
+          gradeFrom: config.showGradesOffered ? (config.gradesLocked ? 'Class 11' : gradeFrom) : null,
+          gradeTo: config.showGradesOffered ? (config.gradesLocked ? 'Class 12' : gradeTo) : null,
+          totalTeachers: totalTeachers ? parseInt(totalTeachers) : null
+        })
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to create school account')
+      }
+
+      // Store phone in sessionStorage for verify-phone page
+      sessionStorage.setItem('claim_register_phone', phone)
+      
+      // Redirect to OTP verification page
+      router.push('/claim-profile/verify-phone')
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || 'Failed to complete registration')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const progressSteps = [
+    { number: 1, label: 'Details' },
+    { number: 2, label: 'Account' }
+  ]
 
   return (
     <main className="min-h-screen w-full flex font-sans antialiased">
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          20%, 60% { transform: translateX(-6px); }
-          40%, 80% { transform: translateX(6px); }
-        }
-        .animate-shake {
-          animation: shake 0.3s ease-in-out;
-        }
-        @keyframes bounceIn {
-          0% { transform: scale(0.3); opacity: 0; }
-          50% { transform: scale(1.05); opacity: 0.8; }
-          70% { transform: scale(0.9); opacity: 0.9; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-bounce-in {
-          animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
         @keyframes fadeSlideUp {
           from { opacity: 0; transform: translateY(12px); }
           to { opacity: 1; transform: translateY(0); }
@@ -373,7 +219,7 @@ export default function RegisterPage() {
       `}} />
 
       {/* ========== LEFT BRANDED PANEL (hidden on mobile) ========== */}
-      <div className="hidden lg:flex lg:w-[48%] relative overflow-hidden bg-gradient-to-br from-[#1E3A8A] via-[#3B82F6] to-[#60A5FA] animate-gradient">
+      <div className="hidden lg:flex lg:w-[45%] relative overflow-hidden bg-gradient-to-br from-[#1E3A8A] via-[#3B82F6] to-[#60A5FA] animate-gradient">
         {/* Decorative circles */}
         <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-white/[0.04]" />
         <div className="absolute top-1/3 -right-16 w-56 h-56 rounded-full bg-white/[0.06]" />
@@ -392,7 +238,7 @@ export default function RegisterPage() {
             <div className="w-10 h-10 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
               <Shield className="text-white w-6 h-6" />
             </div>
-            <span className="text-xl font-extrabold text-white tracking-tight animate-pulse">Vidhyaan for Partners</span>
+            <span className="text-xl font-extrabold text-white tracking-tight">Vidhyaan for Partners</span>
           </div>
 
           {/* Hero text */}
@@ -434,8 +280,8 @@ export default function RegisterPage() {
       </div>
 
       {/* ========== RIGHT REGISTER PANEL ========== */}
-      <div className="flex-1 flex items-center justify-center bg-[#F8FAFC] px-5 py-8 lg:px-12">
-        <div className="w-full max-w-[440px] animate-fade-slide-up">
+      <div className="flex-1 flex items-center justify-center bg-[#F8FAFC] px-5 py-8 lg:px-12 overflow-y-auto">
+        <div className="w-full max-w-[520px] animate-fade-slide-up my-auto">
           
           {/* Mobile logo (hidden on desktop) */}
           <div className="flex flex-col items-center mb-6 lg:hidden">
@@ -448,466 +294,441 @@ export default function RegisterPage() {
           </div>
 
           {/* Card Container */}
-          <div className="bg-white rounded-[24px] border border-slate-100/80 shadow-[0_8px_40px_rgb(0,0,0,0.06)] p-8 lg:p-10">
+          <div className="bg-white rounded-[24px] border border-slate-100/80 shadow-[0_8px_40px_rgb(0,0,0,0.06)] p-6 lg:p-8">
             
-            {/* Animated Progress Dots */}
-            <div className="relative flex items-center justify-between w-full max-w-[240px] mx-auto mb-8">
+            {/* Animated Progress Indicators */}
+            <div className="relative flex items-center justify-between w-full max-w-[240px] mx-auto mb-6">
               <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] bg-slate-100 rounded-full z-0" />
               <div 
                 className="absolute left-0 top-1/2 -translate-y-1/2 h-[2px] bg-[#1565D8] rounded-full transition-all duration-500 z-0" 
-                style={{ width: `${((step - 1) / 3) * 100}%` }}
+                style={{ width: `${((step - 1) / 1) * 100}%` }}
               />
-              {steps.map((s) => {
-                const isCompleted = s < step
-                const isActive = s === step
+              {progressSteps.map((s) => {
+                const isCompleted = s.number < step
+                const isActive = s.number === step
                 return (
-                  <div 
-                    key={s} 
-                    className={`relative z-10 flex items-center justify-center rounded-full transition-all duration-300 ${
-                      isActive 
-                        ? 'w-6 h-6 bg-[#1565D8] ring-4 ring-blue-100 text-white font-bold text-xs animate-pulse' 
-                        : isCompleted 
-                          ? 'w-4 h-4 bg-[#1565D8] text-white flex items-center justify-center' 
-                          : 'w-4 h-4 bg-slate-100 border border-slate-200'
-                    }`}
-                  >
-                    {isCompleted ? (
-                      <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : isActive ? (
-                      s
-                    ) : (
-                      <span className="w-1 h-1 rounded-full bg-slate-300" />
-                    )}
+                  <div key={s.number} className="relative z-10 flex flex-col items-center gap-1">
+                    <div 
+                      className={`flex items-center justify-center rounded-full transition-all duration-300 ${
+                        isActive 
+                          ? 'w-7 h-7 bg-[#1565D8] ring-4 ring-blue-100 text-white font-bold text-xs animate-pulse' 
+                          : isCompleted 
+                            ? 'w-6 h-6 bg-emerald-500 text-white text-xs flex items-center justify-center' 
+                            : 'w-6 h-6 bg-slate-100 border border-slate-200 text-slate-400 text-xs'
+                      }`}
+                    >
+                      {isCompleted ? '✓' : s.number}
+                    </div>
+                    <span className={`text-[9px] font-bold uppercase tracking-wider ${
+                      isActive ? 'text-[#1565D8]' : isCompleted ? 'text-emerald-500' : 'text-slate-400'
+                    }`}>
+                      {s.label}
+                    </span>
                   </div>
                 )
               })}
             </div>
 
-            {/* API and Generic Errors */}
-            {apiError && step !== 2 && step !== 4 && (
-              <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-100 text-xs font-semibold text-red-600 flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                <span>{apiError}</span>
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+                Register Your Institution
+              </h1>
+              <p className="text-slate-500 mt-1 text-xs">
+                Create your free school or center profile on Vidhyaan in minutes.
+              </p>
+            </div>
+
+            {error && (
+              <div className="mb-5 p-4 rounded-xl bg-red-50 border border-red-100 text-xs font-semibold text-red-600 flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                <span>{error}</span>
               </div>
             )}
 
-            {/* STEP 1: PHONE */}
-            {step === 1 && (
-              <form onSubmit={handlePhoneSubmit} className="space-y-6">
-                <div className="space-y-1.5">
-                  <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
-                    Get Started
-                  </h2>
-                  <p className="text-sm text-slate-500 font-medium">
-                    Enter your mobile number to create your school account
-                  </p>
+            {/* WARNING CARD FOR SIMILAR SCHOOLS */}
+            {showWarning && similarSchool ? (
+              <div className="space-y-5 animate-fadeIn">
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-100 flex gap-3 text-xs leading-relaxed">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <span className="font-bold text-amber-800 block text-sm">We found a similar institution on file:</span>
+                    <div className="bg-white p-3.5 rounded-xl border border-amber-200/60 space-y-1.5 my-2">
+                      <span className="font-extrabold text-slate-800 text-sm block">{similarSchool.name}</span>
+                      <span className="text-slate-500 text-xs flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        {similarSchool.locations[0]?.address}, {similarSchool.locations[0]?.city}
+                      </span>
+                      {similarSchool.affiliations[0]?.board && (
+                        <span className="text-slate-500 text-xs flex items-center gap-1">
+                          <Award className="w-3.5 h-3.5 text-slate-400" />
+                          {similarSchool.affiliations[0].board}
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-bold text-slate-700 block">Is this your institution?</span>
+                    <p className="text-slate-500">
+                      If this is your institution, claiming it is faster than registering a duplicate listing.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Phone Number
+                <div className="flex flex-col gap-2.5">
+                  <button
+                    onClick={() => router.push(`/claim-profile/verify/${similarSchool.id}`)}
+                    className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold rounded-xl text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-100/50"
+                  >
+                    <span>Yes, Claim This Institution</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleContinueRegistering}
+                    className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-all cursor-pointer text-center"
+                  >
+                    No, Continue Registering New Institution
+                  </button>
+                </div>
+              </div>
+            ) : step === 1 ? (
+              <form onSubmit={handleNext} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    {config.nameFieldLabel.toUpperCase()} <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative flex items-center h-[54px] border-2 border-slate-200 rounded-2xl bg-slate-50/50 focus-within:border-[#1565D8] focus-within:ring-4 focus-within:ring-blue-50/60 focus-within:bg-white transition-all">
-                    <div className="pl-4 pr-3 text-base font-bold text-slate-500 border-r border-slate-200 h-full flex items-center select-none">
-                      +91
-                    </div>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="Enter 10-digit number"
-                      pattern="[0-9]{10}"
-                      maxLength={10}
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                      className="w-full h-full px-3.5 text-base font-sans text-slate-800 font-semibold placeholder-slate-400 bg-transparent outline-none border-none focus:outline-none focus:ring-0"
-                    />
-                  </div>
-                </div>
-
-                <label className="flex items-start gap-3 select-none cursor-pointer">
                   <input
-                    type="checkbox"
-                    checked={agreeTerms}
-                    onChange={(e) => setAgreeTerms(e.target.checked)}
-                    className="mt-1 h-4.5 w-4.5 rounded border-slate-300 text-[#1565D8] focus:ring-[#1565D8]"
+                    type="text"
+                    value={schoolName}
+                    onChange={(e) => setSchoolName(e.target.value)}
+                    placeholder="Enter school or center name"
+                    disabled={loading}
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:border-[#1565D8] transition-all text-sm"
+                    required
                   />
-                  <span className="text-xs text-slate-500 leading-normal">
-                    I agree to the{' '}
-                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#1565D8] font-bold hover:underline">
-                      Terms of Service
-                    </a>{' '}
-                    and{' '}
-                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#1565D8] font-bold hover:underline">
-                      Privacy Policy
-                    </a>
-                  </span>
-                </label>
-
-                <button
-                  type="submit"
-                  disabled={loading || phone.length < 10 || !agreeTerms}
-                  className="w-full flex items-center justify-center h-[52px] bg-gradient-to-r from-[#1565D8] to-[#1E88E5] hover:from-[#1150ad] hover:to-[#1565D8] disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white font-bold rounded-2xl shadow-lg shadow-blue-200/40 hover:shadow-blue-300/50 disabled:shadow-none transition-all select-none cursor-pointer disabled:cursor-not-allowed text-base"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Sending OTP...
-                    </>
-                  ) : (
-                    'Send OTP →'
-                  )}
-                </button>
-
-                <div className="text-center text-xs text-slate-500 mt-2 font-medium">
-                  Already have an account?{' '}
-                  <Link href="/login" className="text-[#1565D8] font-bold hover:underline">
-                    Login
-                  </Link>
                 </div>
-              </form>
-            )}
 
-            {/* STEP 2: VERIFY OTP */}
-            {step === 2 && (
-              <div className="space-y-6">
                 <div className="space-y-1.5">
-                  <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
-                    Verify Your Number
-                  </h2>
-                  <p className="text-sm text-slate-500 font-medium">
-                    We sent a 6-digit code to{' '}
-                    <span className="font-semibold text-slate-700">
-                      +91 {phone.slice(0, 2)}XXXXXX{phone.slice(-2)}
-                    </span>
-                  </p>
-                </div>
-
-                {apiError && (
-                  <div className="p-3.5 rounded-2xl bg-red-50 border border-red-100 text-xs font-semibold text-red-600 flex items-start gap-2.5">
-                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                    <span>{apiError}</span>
-                  </div>
-                )}
-
-                {/* 6 Digit Box Container */}
-                <div className="relative">
-                  {loading && (
-                    <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-20 rounded-xl">
-                      <Loader2 className="w-6 h-6 text-[#1565D8] animate-spin" />
-                    </div>
-                  )}
-                  
-                  <div className={`flex justify-between gap-2 ${otpError ? 'animate-shake' : ''}`}>
-                    {otp.map((digit, i) => (
-                      <input
-                        key={i}
-                        ref={(el) => {
-                          otpRefs.current[i] = el
-                        }}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleOtpChange(i, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                        onPaste={i === 0 ? handleOtpPaste : undefined}
-                        disabled={loading}
-                        className="w-14 h-14 text-center text-xl font-extrabold bg-slate-50 border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-[#1565D8] focus:ring-4 focus:ring-blue-50/60 focus:bg-white transition-all text-slate-800 disabled:opacity-50"
-                      />
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Institution Type <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5 bg-slate-50 border border-slate-100 p-1.5 rounded-2xl">
+                    {['SCHOOL', 'LEARNING_CENTER', 'JUNIOR_COLLEGE', 'COACHING_CENTER'].map((typeVal) => (
+                      <button
+                        key={typeVal}
+                        type="button"
+                        onClick={() => setInstitutionType(typeVal)}
+                        className={`py-2 px-2 text-xs font-extrabold rounded-xl text-center transition-all cursor-pointer ${
+                          institutionType === typeVal
+                            ? 'bg-[#1565D8] text-white shadow-md shadow-blue-100/50'
+                            : 'text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        {institutionTypeLabels[typeVal]}
+                      </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Timer / Resend Links */}
-                <div className="flex justify-between items-center text-xs font-medium text-slate-400">
-                  <span>
-                    Resend OTP in:{' '}
-                    <span className={otpSecondsLeft < 60 ? 'text-red-500 font-semibold' : 'text-slate-600'}>
-                      {formatTime(otpSecondsLeft)}
-                    </span>
-                  </span>
-                  
-                  {otpSecondsLeft === 0 ? (
-                    <button
-                      type="button"
-                      onClick={handleResendOtp}
-                      className="text-[#1565D8] font-bold hover:underline cursor-pointer"
-                    >
-                      Resend OTP
-                    </button>
-                  ) : null}
-                </div>
-
-                <div className="border-t border-slate-100 pt-4 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep(1)
-                      setPhone('')
-                      setOtp(['', '', '', ''])
-                      setApiError(null)
-                    }}
-                    className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <ArrowLeft className="w-4 h-4" /> Change Number
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 3: DETAILS */}
-            {step === 3 && (
-              <form onSubmit={handleDetailsSubmit} className="space-y-5">
-                <div className="space-y-1.5">
-                  <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
-                    Tell us about yourself
-                  </h2>
-                  <p className="text-sm text-slate-500 font-medium">
-                    Help us set up your school account
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      Your Full Name
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      autoFocus
-                      placeholder="Principal or Admin name"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full h-[50px] px-4 border-2 border-slate-200 rounded-2xl font-semibold bg-slate-50/50 focus-within:border-[#1565D8] focus-within:ring-4 focus-within:ring-blue-50/60 focus-within:bg-white transition-all text-slate-800"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="your@school.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full h-[50px] px-4 border-2 border-slate-200 rounded-2xl font-semibold bg-slate-50/50 focus-within:border-[#1565D8] focus-within:ring-4 focus-within:ring-blue-50/60 focus-within:bg-white transition-all text-slate-800"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      School / Center Name
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Enter your school name"
-                      value={schoolName}
-                      onChange={(e) => setSchoolName(e.target.value)}
-                      className="w-full h-[50px] px-4 border-2 border-slate-200 rounded-2xl font-semibold bg-slate-50/50 focus-within:border-[#1565D8] focus-within:ring-4 focus-within:ring-blue-50/60 focus-within:bg-white transition-all text-slate-800"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      Your Role
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      City <span className="text-red-500">*</span>
                     </label>
                     <select
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
                       required
+                    >
+                      <option value="Chennai">Chennai</option>
+                      <option value="Bengaluru">Bengaluru</option>
+                      <option value="Mumbai">Mumbai</option>
+                      <option value="New Delhi">New Delhi</option>
+                      <option value="Hyderabad">Hyderabad</option>
+                      <option value="Pune">Pune</option>
+                      <option value="Kolkata">Kolkata</option>
+                    </select>
+                  </div>
+
+                  {config.showSchoolType && (
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        Board / Curriculum <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={board}
+                        onChange={(e) => setBoard(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
+                        required
+                      >
+                        <option value="CBSE">CBSE</option>
+                        <option value="ICSE">ICSE</option>
+                        <option value="State Board">State Board</option>
+                        <option value="IB">IB</option>
+                        <option value="Cambridge">Cambridge</option>
+                        <option value="IGCSE">IGCSE</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {config.showCenterCategory && (
+                    <div className="space-y-1 animate-fadeIn">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        Center Category <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={centerCategory}
+                        onChange={(e) => setCenterCategory(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:border-[#1565D8] transition-all text-sm cursor-pointer bg-white"
+                        required
+                      >
+                        <option value="">Select category</option>
+                        {CENTER_CATEGORIES.map(cat => (
+                          <option key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {config.showSchoolType && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      School Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={schoolType}
+                      onChange={(e) => setSchoolType(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
+                      required
+                    >
+                      {config.schoolTypeOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    {config.teacherLabel} <span className="text-slate-400 font-medium">(Optional)</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={totalTeachers}
+                    onChange={(e) => setTotalTeachers(e.target.value)}
+                    placeholder="e.g. 25"
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:border-[#1565D8] transition-all text-sm"
+                  />
+                </div>
+
+                {config.showMediumOfInstruction && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      MEDIUM OF INSTRUCTION
+                    </label>
+                    <LanguageTagInput
+                      value={mediumOfInstruction ?? []}
+                      onChange={(vals) => setMediumOfInstruction(vals)}
+                      options={INDIAN_LANGUAGES}
+                    />
+                  </div>
+                )}
+
+                {config.showExamFocus && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      EXAM / COURSE FOCUS <span className="text-slate-400 font-normal ml-1">(optional)</span>
+                    </label>
+                    <ExamFocusTagInput
+                      value={examFocus ?? []}
+                      onChange={(vals) => setExamFocus(vals)}
+                      options={EXAM_FOCUS_OPTIONS}
+                    />
+                  </div>
+                )}
+
+                {config.showGradesOffered && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Grades Offered
+                    </label>
+                    {config.gradesLocked ? (
+                      <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 font-semibold">
+                        {config.lockedGradeLabel}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block mb-1">From</span>
+                          <select
+                            value={gradeFrom}
+                            onChange={(e) => setGradeFrom(e.target.value)}
+                            className="w-full px-4 py-2 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:border-[#1565D8] text-xs cursor-pointer"
+                          >
+                            {grades.map((g) => (
+                              <option key={g} value={g}>{g}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <span className="text-slate-400 font-bold self-end pb-2 text-xs">to</span>
+                        <div className="flex-1">
+                          <span className="text-[9px] text-slate-400 font-bold uppercase block mb-1">To</span>
+                          <select
+                            value={gradeTo}
+                            onChange={(e) => setGradeTo(e.target.value)}
+                            className="w-full px-4 py-2 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:border-[#1565D8] text-xs cursor-pointer"
+                          >
+                            {grades.map((g) => (
+                              <option key={g} value={g}>{g}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Year Established
+                    </label>
+                    <input
+                      type="number"
+                      value={establishedYear}
+                      onChange={(e) => setEstablishedYear(e.target.value)}
+                      placeholder="e.g. 2005"
+                      className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:border-[#1565D8] transition-all text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      {config.roleLabel} <span className="text-red-500">*</span>
+                    </label>
+                    <select
                       value={role}
                       onChange={(e) => setRole(e.target.value)}
-                      className="w-full h-[50px] px-4 border-2 border-slate-200 rounded-2xl font-semibold bg-white focus-within:border-[#1565D8] focus-within:ring-4 focus-within:ring-blue-50/60 transition-all text-slate-800 cursor-pointer"
+                      className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
+                      required
                     >
-                      <option value="" disabled>Select your designation</option>
+                      <option value="" disabled>Select your role</option>
                       <option value="Principal">Principal</option>
                       <option value="Vice Principal">Vice Principal</option>
                       <option value="Administrative Head">Administrative Head</option>
                       <option value="IT Manager">IT Manager</option>
-                      <option value="Owner / Management">Owner / Management</option>
+                      <option value="Owner/Management">Owner / Management</option>
                       <option value="Other">Other</option>
                     </select>
-                  </div>
-
-                  {/* Institution Type cards */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      Institution Type
-                    </label>
-                    <div className="grid grid-cols-2 gap-3.5">
-                      <button
-                        type="button"
-                        onClick={() => setInstitutionType('SCHOOL')}
-                        className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 text-center transition-all cursor-pointer ${
-                          institutionType === 'SCHOOL'
-                            ? 'border-[#1565D8] bg-blue-50/50 text-[#1565D8] shadow-md shadow-blue-100/50'
-                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                        }`}
-                      >
-                        <span className="text-3xl mb-1 select-none">🏫</span>
-                        <span className="font-extrabold text-sm block">School</span>
-                        <span className="text-[10px] text-slate-400 mt-0.5 block leading-normal">
-                          CBSE, ICSE, State Board etc.
-                        </span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setInstitutionType('LEARNING_CENTER')}
-                        className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 text-center transition-all cursor-pointer ${
-                          institutionType === 'LEARNING_CENTER'
-                            ? 'border-[#1565D8] bg-blue-50/50 text-[#1565D8] shadow-md shadow-blue-100/50'
-                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                        }`}
-                      >
-                        <span className="text-3xl mb-1 select-none">🎨</span>
-                        <span className="font-extrabold text-sm block">Center</span>
-                        <span className="text-[10px] text-slate-400 mt-0.5 block leading-normal">
-                          Coaching, Arts, Music etc.
-                        </span>
-                      </button>
-                    </div>
                   </div>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={loading || !fullName || !email || !schoolName || !role}
-                  className="w-full flex items-center justify-center h-[52px] bg-gradient-to-r from-[#1565D8] to-[#1E88E5] hover:from-[#1150ad] hover:to-[#1565D8] disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white font-bold rounded-2xl shadow-lg shadow-blue-200/40 hover:shadow-blue-300/50 disabled:shadow-none transition-all select-none cursor-pointer disabled:cursor-not-allowed text-base mt-2"
+                  disabled={loading}
+                  className="w-full flex items-center justify-center h-[50px] bg-gradient-to-r from-[#1565D8] to-[#1E88E5] hover:from-[#1150ad] hover:to-[#1565D8] disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white font-bold rounded-2xl shadow-lg shadow-blue-200/40 hover:shadow-blue-300/50 disabled:shadow-none transition-all select-none cursor-pointer disabled:cursor-not-allowed text-base mt-2"
                 >
                   {loading ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Setting up account...
+                      Checking records...
                     </>
                   ) : (
-                    'Continue →'
+                    <>
+                      <span>Next Step</span>
+                      <ArrowRight className="w-5 h-5 ml-1.5" />
+                    </>
                   )}
                 </button>
               </form>
+            ) : (
+              /* STEP 2 FORM: Admin Account details */
+              <form onSubmit={handleCreateAccount} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Your Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter full name"
+                    disabled={loading}
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:border-[#1565D8] transition-all text-sm"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-4 text-slate-500 font-semibold select-none text-sm border-r border-slate-200 pr-3">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={handlePhoneChange}
+                      maxLength={10}
+                      placeholder="Enter 10-digit mobile number"
+                      disabled={loading}
+                      className="w-full pl-16 pr-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:border-[#1565D8] transition-all text-sm"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter email address"
+                    disabled={loading}
+                    className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-50/50 focus:border-[#1565D8] transition-all text-sm"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full flex items-center justify-center h-[50px] bg-gradient-to-r from-[#1565D8] to-[#1E88E5] hover:from-[#1150ad] hover:to-[#1565D8] disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white font-bold rounded-2xl shadow-lg shadow-blue-200/40 hover:shadow-blue-300/50 disabled:shadow-none transition-all select-none cursor-pointer disabled:cursor-not-allowed text-base mt-2"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Registering Institution...
+                    </>
+                  ) : (
+                    'Create Account & Verify'
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="w-full text-center text-xs font-bold text-slate-500 hover:text-slate-800 bg-transparent border-none cursor-pointer mt-1"
+                >
+                  ← Back to Institution Details
+                </button>
+              </form>
             )}
-
-            {/* STEP 4: SET PIN */}
-            {step === 4 && (
-              <div className="space-y-6">
-                {pinSuccess ? (
-                  <div className="flex flex-col items-center justify-center py-6 space-y-4 animate-bounce-in">
-                    <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center border border-green-100">
-                      <CheckCircle2 className="w-10 h-10 text-green-600" />
-                    </div>
-                    <h2 className="text-2xl font-extrabold text-[#16A34A] tracking-tight text-center">
-                      PIN Set Successfully!
-                    </h2>
-                    <p className="text-sm text-slate-500 text-center">
-                      Redirecting to onboarding...
-                    </p>
-                  </div>
-                ) : showSkipMsg ? (
-                  <div className="flex flex-col items-center justify-center py-6 space-y-4 animate-bounce-in">
-                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center border border-blue-100 animate-pulse">
-                      <Lock className="w-8 h-8 text-[#1565D8]" />
-                    </div>
-                    <h2 className="text-xl font-extrabold text-slate-800 tracking-tight text-center px-4">
-                      Skipping PIN Setup
-                    </h2>
-                    <p className="text-xs text-slate-500 text-center leading-normal px-2">
-                      You can set your PIN later from your account settings
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-5">
-                    <div className="space-y-1.5">
-                      <h2 className="text-2xl font-bold tracking-tight text-slate-800">
-                        Set Your Login PIN
-                      </h2>
-                      <p className="text-sm text-slate-500">
-                        You will use this 4-digit PIN to login quickly every day
-                      </p>
-                    </div>
-
-                    {/* Secure info card */}
-                    <div className="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-100 text-left">
-                      <span className="text-xs font-bold text-blue-900 block mb-0.5">
-                        🔒 Your PIN is secure
-                      </span>
-                      <span className="text-[11px] text-slate-500 leading-normal block">
-                        We use bank-grade encryption. Never share your PIN with anyone.
-                      </span>
-                    </div>
-
-                    {pinMsg && (
-                      <div className={`p-3 rounded-2xl text-xs font-semibold flex items-start gap-2.5 ${
-                        pinError 
-                          ? 'bg-red-50 border border-red-100 text-red-600' 
-                          : 'bg-green-50 border border-green-100 text-green-600'
-                      }`}>
-                        <AlertCircle className={`w-4 h-4 shrink-0 mt-0.5 ${pinError ? 'text-red-500' : 'text-green-500'}`} />
-                        <span>{pinMsg}</span>
-                      </div>
-                    )}
-
-                    {/* First PIN Input */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
-                        Enter PIN
-                      </label>
-                      <PinInput
-                        length={4}
-                        onComplete={(val) => setFirstPin(val)}
-                        error={pinError}
-                        success={pinSuccess}
-                        disabled={pinSuccess}
-                        autoFocus={true}
-                      />
-                      <p className="text-[10px] text-slate-400 leading-normal">
-                        Avoid easy patterns like 1234, 0000, or repeating digits
-                      </p>
-                    </div>
-
-                    {/* Confirm PIN Input (shows only when first completed) */}
-                    {firstPin.length === 4 && (
-                      <div className="space-y-2 pt-2 border-t border-slate-55 animate-fadeIn">
-                        <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
-                          Confirm PIN
-                        </label>
-                        <PinInput
-                          key={confirmPinKey}
-                          length={4}
-                          onComplete={handleConfirmPinComplete}
-                          error={pinError}
-                          success={pinSuccess}
-                          disabled={pinSuccess}
-                          autoFocus={true}
-                        />
-                      </div>
-                    )}
-
-                    {/* Skip PIN Option */}
-                    <div className="text-center pt-2 select-none">
-                      <button
-                        type="button"
-                        onClick={handleSkipPin}
-                        className="text-xs font-bold text-slate-400 hover:text-slate-600 cursor-pointer"
-                      >
-                        Set up PIN later
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
           </div>
 
           {/* Bottom trust strip (mobile) */}
           <div className="flex items-center justify-center gap-2 mt-6 text-[10px] text-slate-400 font-medium lg:hidden">
             <Lock className="w-3 h-3" />
-            <span>256-bit encrypted · Secure login</span>
+            <span>256-bit encrypted · Verified Partner Profiles</span>
           </div>
         </div>
       </div>

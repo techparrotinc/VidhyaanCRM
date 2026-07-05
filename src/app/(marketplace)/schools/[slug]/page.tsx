@@ -57,6 +57,11 @@ import { Button } from '@/components/ui/button'
 import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
 import ParentRegisterModal from '@/components/parent-auth/ParentRegisterModal'
+import SchoolGalleryLightbox from '@/components/marketplace/school-profile/SchoolGalleryLightbox'
+import ReviewModal from '@/components/marketplace/school-profile/ReviewModal'
+import ScheduleVisitModal from '@/components/marketplace/school-profile/ScheduleVisitModal'
+import LoginPromptModal from '@/components/marketplace/school-profile/LoginPromptModal'
+import SchoolProfileToast from '@/components/marketplace/school-profile/SchoolProfileToast'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -239,30 +244,6 @@ export default function SchoolProfilePage() {
   // Navigation & Interactive States
   // Visit Scheduler Modal States
   const [visitModalOpen, setVisitModalOpen] = useState(false)
-  const [visitSubmitted, setVisitSubmitted] = useState(false)
-  const [visitLoading, setVisitLoading] = useState(false)
-  const [visitError, setVisitError] = useState<string | null>(null)
-  const [visitForm, setVisitForm] = useState({
-    parentName: '',
-    phone: '',
-    email: '',
-    preferredDate: '',
-    preferredTime: '',
-    numberOfVisitors: '1',
-    notes: ''
-  })
-
-  // Prefill visit form with session data when loaded
-  useEffect(() => {
-    if (session?.user) {
-      setVisitForm(prev => ({
-        ...prev,
-        parentName: session.user.name || '',
-        phone: (session.user as any).phone || '',
-        email: session.user.email || ''
-      }))
-    }
-  }, [session])
 
   // Prefill enquiry form with session data when loaded
   useEffect(() => {
@@ -331,45 +312,6 @@ export default function SchoolProfilePage() {
     }
   }
 
-  const handleVisitSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!school) return
-    setVisitLoading(true)
-    setVisitError(null)
-    try {
-      const res = await fetch(`/api/public/schools/${school.slug}/visit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          parentName: visitForm.parentName,
-          phone: visitForm.phone,
-          email: visitForm.email || undefined,
-          preferredDate: visitForm.preferredDate,
-          preferredTime: visitForm.preferredTime || undefined,
-          numberOfVisitors: visitForm.numberOfVisitors ? parseInt(visitForm.numberOfVisitors) : undefined,
-          notes: visitForm.notes || undefined
-        })
-      })
-      const json = await res.json()
-      if (json.success) {
-        setVisitSubmitted(true)
-        setVisitForm(prev => ({
-          ...prev,
-          preferredDate: '',
-          preferredTime: '',
-          numberOfVisitors: '1',
-          notes: ''
-        }))
-      } else {
-        setVisitError(json.error || 'Failed to schedule visit')
-      }
-    } catch (err: any) {
-      setVisitError(err.message || 'An error occurred')
-    } finally {
-      setVisitLoading(false)
-    }
-  }
-
   const [activeTab, setActiveTab] = useState('Overview')
   const [readMore, setReadMore] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -395,19 +337,6 @@ export default function SchoolProfilePage() {
   const [enquiryLoading, setEnquiryLoading] = useState(false)
   const [enquiryError, setEnquiryError] = useState<string | null>(null)
 
-  const [reviewForm, setReviewForm] = useState({
-    rating: 5,
-    title: '',
-    content: '',
-    reviewerName: '',
-    ratingAcademics: 5,
-    ratingFaculty: 5,
-    ratingInfrastructure: 5,
-    ratingSafety: 5,
-    ratingActivities: 5,
-    ratingValue: 5
-  })
-  const [reviewSubmitted, setReviewSubmitted] = useState(false)
   const [localReviews, setLocalReviews] = useState<SchoolReview[]>([])
 
   // Tab List definition
@@ -702,44 +631,6 @@ export default function SchoolProfilePage() {
     } finally {
       setEnquiryLoading(false)
     }
-  }
-
-  const handleReviewSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const newReview: SchoolReview = {
-      id: Math.random().toString(),
-      rating: reviewForm.rating,
-      title: reviewForm.title || 'Parent Review',
-      content: reviewForm.content,
-      createdAt: new Date().toISOString(),
-      parent: {
-        name: reviewForm.reviewerName || 'Verified Parent'
-      },
-      ratingAcademics: reviewForm.ratingAcademics,
-      ratingFaculty: reviewForm.ratingFaculty,
-      ratingInfrastructure: reviewForm.ratingInfrastructure,
-      ratingSafety: reviewForm.ratingSafety,
-      ratingActivities: reviewForm.ratingActivities,
-      ratingValue: reviewForm.ratingValue
-    }
-    setLocalReviews((prev) => [newReview, ...prev])
-    setReviewSubmitted(true)
-    setTimeout(() => {
-      setReviewOpen(false)
-      setReviewSubmitted(false)
-      setReviewForm({
-        rating: 5,
-        title: '',
-        content: '',
-        reviewerName: '',
-        ratingAcademics: 5,
-        ratingFaculty: 5,
-        ratingInfrastructure: 5,
-        ratingSafety: 5,
-        ratingActivities: 5,
-        ratingValue: 5
-      })
-    }, 2000)
   }
 
   const getGradientByInitial = (name: string) => {
@@ -1756,50 +1647,12 @@ export default function SchoolProfilePage() {
         </div>
       </footer>
 
-      {/* Lightbox dialog modal */}
-      {lightboxIndex !== null && school.media && school.media[lightboxIndex] && (
-        <Dialog open={lightboxIndex !== null} onOpenChange={(open) => { if (!open) setLightboxIndex(null) }}>
-          <DialogContent className="max-w-4xl bg-black/95 border-none p-0 select-none text-white overflow-hidden flex flex-col items-center justify-center h-[80vh] relative">
-            <button
-              onClick={() => setLightboxIndex(null)}
-              className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-full p-2 z-50 transition cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="w-full h-full flex items-center justify-center p-8 relative">
-              {school.media.length > 1 && (
-                <>
-                  <button
-                    onClick={() => setLightboxIndex((prev) => (prev! === 0 ? school.media.length - 1 : prev! - 1))}
-                    className="absolute left-4 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 z-45 transition cursor-pointer"
-                  >
-                    <ChevronLeft className="w-6 h-6" />
-                  </button>
-                  <button
-                    onClick={() => setLightboxIndex((prev) => (prev! === school.media.length - 1 ? 0 : prev! + 1))}
-                    className="absolute right-4 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 z-45 transition cursor-pointer"
-                  >
-                    <ChevronRight className="w-6 h-6" />
-                  </button>
-                </>
-              )}
-
-              <img
-                src={school.media[lightboxIndex].url}
-                alt={school.media[lightboxIndex].caption || `Photo ${lightboxIndex + 1}`}
-                className="max-w-full max-h-[70vh] object-contain rounded"
-              />
-            </div>
-
-            {school.media[lightboxIndex].caption && (
-              <div className="absolute bottom-4 left-0 right-0 text-center bg-black/40 py-2 px-4 text-xs font-semibold text-slate-350">
-                {school.media[lightboxIndex].caption}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      )}
+      <SchoolGalleryLightbox
+        media={school.media || []}
+        index={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+        onIndexChange={setLightboxIndex}
+      />
 
       {/* Enquiry Modal */}
       <Dialog open={enquiryOpen} onOpenChange={setEnquiryOpen}>
@@ -1922,322 +1775,29 @@ export default function SchoolProfilePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Review Modal */}
-      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
-        <DialogContent className="max-w-md bg-white p-6 rounded-2xl border border-slate-200 select-none">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-black text-slate-800">Write a Review</DialogTitle>
-            <DialogDescription className="text-xs text-slate-400 font-medium mt-1">
-              Share your child's experience. Your review helps other parents make informed choices.
-            </DialogDescription>
-          </DialogHeader>
+      <ReviewModal
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        makeId={() => Math.random().toString()}
+        onSubmit={(review) => setLocalReviews((prev) => [review, ...prev])}
+      />
 
-          {reviewSubmitted ? (
-            <div className="py-10 flex flex-col items-center justify-center text-center space-y-3">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600 border border-green-200">
-                <CheckCircle2 className="w-6 h-6 animate-pulse" />
-              </div>
-              <h4 className="text-base font-bold text-slate-800">Review Submitted!</h4>
-              <p className="text-xs text-slate-400 font-semibold max-w-xs leading-relaxed">
-                Thank you! Your review has been submitted successfully and is visible below.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleReviewSubmit} className="space-y-4 mt-3">
-              <div className="flex gap-4 items-center bg-slate-50 p-3 rounded-xl border border-slate-100 justify-between">
-                <span className="text-xs font-bold text-slate-500">Overall Rating:</span>
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setReviewForm({ ...reviewForm, rating: star })}
-                      className="p-0.5 hover:scale-110 transition shrink-0 cursor-pointer outline-none"
-                    >
-                      <Star className={`w-6 h-6 ${star <= reviewForm.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-350'}`} />
-                    </button>
-                  ))}
-                </div>
-              </div>
+      <ScheduleVisitModal
+        open={visitModalOpen}
+        onOpenChange={setVisitModalOpen}
+        schoolSlug={school.slug}
+        schoolName={school?.name}
+        defaults={session?.user ? {
+          parentName: session.user.name || '',
+          phone: (session.user as any).phone || '',
+          email: session.user.email || ''
+        } : undefined}
+      />
 
-              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
-                {[
-                  { key: 'ratingAcademics', label: 'Academics' },
-                  { key: 'ratingFaculty', label: 'Faculty' },
-                  { key: 'ratingInfrastructure', label: 'Infra' },
-                  { key: 'ratingSafety', label: 'Safety' },
-                  { key: 'ratingActivities', label: 'Activities' },
-                  { key: 'ratingValue', label: 'Value' }
-                ].map((item) => (
-                  <div key={item.key} className="flex justify-between items-center text-xs">
-                    <span className="font-semibold text-slate-500">{item.label}</span>
-                    <select
-                      value={(reviewForm as any)[item.key]}
-                      onChange={(e) => setReviewForm({ ...reviewForm, [item.key]: Number(e.target.value) })}
-                      className="bg-transparent border-0 font-bold text-slate-700 outline-none cursor-pointer"
-                    >
-                      {[5, 4, 3, 2, 1].map((n) => (
-                        <option key={n} value={n}>{n}★</option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-              </div>
+      <LoginPromptModal open={loginPromptOpen} onClose={() => setLoginPromptOpen(false)} />
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Review Headline</label>
-                <input
-                  type="text"
-                  required
-                  value={reviewForm.title}
-                  onChange={(e) => setReviewForm({ ...reviewForm, title: e.target.value })}
-                  placeholder="e.g. Excellent academics and safe environment"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-500"
-                />
-              </div>
+      <SchoolProfileToast message={toastMsg} onClose={() => setToastMsg(null)} />
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Detailed Review</label>
-                <textarea
-                  rows={4}
-                  required
-                  value={reviewForm.content}
-                  onChange={(e) => setReviewForm({ ...reviewForm, content: e.target.value })}
-                  placeholder="Tell us about the faculty, campus, board quality etc."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none resize-none focus:border-blue-500"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Your Name (for display)</label>
-                <input
-                  type="text"
-                  value={reviewForm.reviewerName}
-                  onChange={(e) => setReviewForm({ ...reviewForm, reviewerName: e.target.value })}
-                  placeholder="Verified Parent"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <DialogFooter className="pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setReviewOpen(false)}
-                  className="font-bold text-xs h-auto px-4 py-2.5 rounded-xl border-slate-200"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs h-auto px-6 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md border border-blue-500"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  Submit Review
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Schedule Visit Modal */}
-      <Dialog open={visitModalOpen} onOpenChange={(open) => {
-        setVisitModalOpen(open)
-        if (!open) setVisitSubmitted(false)
-      }}>
-        <DialogContent className="max-w-md bg-white p-6 rounded-2xl border border-slate-200 select-none">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-black text-slate-805">
-              Schedule Campus Visit
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400 font-medium mt-1">
-              Request a physical campus tour at {school?.name}.
-            </DialogDescription>
-          </DialogHeader>
-
-          {visitSubmitted ? (
-            <div className="py-8 text-center space-y-4">
-              <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 border border-emerald-250 mx-auto">
-                <Check className="w-6 h-6" />
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-sm font-black text-slate-800">Visit Scheduled!</h4>
-                <p className="text-xs text-slate-550 font-medium leading-relaxed max-w-xs mx-auto">
-                  The admissions representative from {school?.name} has been notified and will reach out to confirm your slot.
-                </p>
-              </div>
-              <Button
-                onClick={() => {
-                  setVisitModalOpen(false)
-                  setVisitSubmitted(false)
-                }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl h-auto mx-auto shadow-md"
-              >
-                Done
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={handleVisitSubmit} className="space-y-4">
-              {visitError && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-655 rounded-xl text-xs font-semibold">
-                  {visitError}
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Parent Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={visitForm.parentName}
-                    onChange={(e) => setVisitForm({ ...visitForm, parentName: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
-                    placeholder="Saran Kumar"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Mobile Phone *</label>
-                  <input
-                    type="tel"
-                    required
-                    pattern="[6-9]\d{9}"
-                    value={visitForm.phone}
-                    onChange={(e) => setVisitForm({ ...visitForm, phone: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
-                    placeholder="9845000001"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Preferred Date *</label>
-                  <input
-                    type="date"
-                    required
-                    value={visitForm.preferredDate}
-                    onChange={(e) => setVisitForm({ ...visitForm, preferredDate: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Preferred Time</label>
-                  <input
-                    type="time"
-                    value={visitForm.preferredTime}
-                    onChange={(e) => setVisitForm({ ...visitForm, preferredTime: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Email Address</label>
-                  <input
-                    type="email"
-                    value={visitForm.email}
-                    onChange={(e) => setVisitForm({ ...visitForm, email: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
-                    placeholder="parent@example.com"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Number of Visitors</label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={visitForm.numberOfVisitors}
-                    onChange={(e) => setVisitForm({ ...visitForm, numberOfVisitors: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Message / Notes</label>
-                <textarea
-                  rows={2}
-                  value={visitForm.notes}
-                  onChange={(e) => setVisitForm({ ...visitForm, notes: e.target.value })}
-                  placeholder="Any specific questions, classes to visit, etc."
-                  className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none resize-none focus:border-blue-500"
-                />
-              </div>
-
-              <DialogFooter className="pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setVisitModalOpen(false)}
-                  className="font-bold text-xs h-auto px-4 py-2.5 rounded-xl border-slate-200"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={visitLoading}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-auto px-6 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md border border-emerald-500 disabled:opacity-50 cursor-pointer"
-                >
-                  {visitLoading ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Scheduling...
-                    </>
-                  ) : (
-                    'Confirm Visit'
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Login Prompt Modal */}
-      {loginPromptOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 text-center animate-fade-in">
-            <Bookmark className="w-12 h-12 text-[#1565D8] mx-auto mb-4" strokeWidth={1.5} />
-            <h3 className="text-base font-extrabold text-slate-900 uppercase tracking-wider mb-2">Save this School</h3>
-            <p className="text-xs text-slate-500 leading-relaxed mb-6">
-              Please sign in with a parent account to bookmark schools and track your admission enquiries.
-            </p>
-            <div className="flex gap-3">
-              <Link href="/login" className="flex-1">
-                <Button className="w-full bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-xl h-auto">
-                  Login
-                </Button>
-              </Link>
-              <Link href="/parent/register" className="flex-1">
-                <Button variant="outline" className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs py-2.5 rounded-xl h-auto">
-                  Register
-                </Button>
-              </Link>
-            </div>
-            <button 
-              onClick={() => setLoginPromptOpen(false)}
-              className="text-xs font-semibold text-slate-400 hover:text-slate-600 mt-4 underline cursor-pointer"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Toast Notification */}
-      {toastMsg && (
-        <div className="fixed bottom-6 right-6 bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl flex items-center gap-2.5 shadow-2xl z-50 animate-slide-in">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span>{toastMsg}</span>
-          <button onClick={() => setToastMsg(null)} className="hover:text-slate-300 ml-2">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
       <ParentRegisterModal
         open={registerModalOpen}
         onOpenChange={setRegisterModalOpen}

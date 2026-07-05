@@ -25,6 +25,7 @@ export const configEdge: NextAuthConfig = {
         session.user.phone = token.phone as string
         session.user.email = token.email as string
         session.user.activeRoleAssignmentId = token.activeRoleAssignmentId as string | null
+        session.user.onboardingComplete = !!(token as any).onboardingComplete
       }
       return session
     }

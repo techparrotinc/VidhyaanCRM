@@ -122,8 +122,10 @@ export default async function middleware(request: NextRequest) {
 
   const role = session.user.role
 
-  // 3.5. Onboarding Guard for ORG_ADMIN accessing CRM/Dashboard routes
-  if (role === 'ORG_ADMIN' && isCRMRoute(pathname)) {
+  // 3.5. Onboarding Guard for ORG_ADMIN accessing CRM/Dashboard routes.
+  // Skip entirely once onboarding is complete (flag carried in the session
+  // token) so established orgs pay zero DB/self-fetch cost per navigation.
+  if (role === 'ORG_ADMIN' && !session.user.onboardingComplete && isCRMRoute(pathname)) {
     try {
       const statusRes = await fetch(new URL('/api/v1/onboarding/status', request.url), {
         headers: {

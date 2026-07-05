@@ -72,12 +72,32 @@ export function route(config: RouteConfig) {
         activeRoleAssignmentId = session.user.activeRoleAssignmentId
       }
 
+      // STEP 1b: Fire every independent lookup in parallel. Revocation is
+      // keyed on userId; org/module/academic-year caches are keyed on orgId —
+      // all known from the request headers, none depends on another's result.
+      // On the hot path (all cached) this is one round-trip instead of five
+      // sequential Redis calls.
+      const orgCacheKey = `org:${user.orgId}`
+      const moduleCacheKey = config.module ? `org:${user.orgId}:module:${config.module}` : null
+      const academicYearCacheKey = `org:${user.orgId}:academic-year:active`
+      const safeGet = (key: string) =>
+        redis.get(key).catch((err) => {
+          console.error('Cache read:', key, err)
+          return null
+        })
+
+      const [revoked, assignmentRevoked, orgCached, moduleCached, ayCached] = await Promise.all([
+        isUserRevoked(user.id),
+        isAssignmentRevoked(user.id, activeRoleAssignmentId),
+        safeGet(orgCacheKey),
+        moduleCacheKey ? safeGet(moduleCacheKey) : Promise.resolve(null),
+        safeGet(academicYearCacheKey),
+      ])
+
       // Revocation checks
-      const revoked = await isUserRevoked(user.id)
       if (revoked) {
         throw Errors.unauthenticated()
       }
-      const assignmentRevoked = await isAssignmentRevoked(user.id, activeRoleAssignmentId)
       if (assignmentRevoked) {
         throw Errors.unauthenticated()
       }
@@ -88,16 +108,7 @@ export function route(config: RouteConfig) {
       }
 
       // STEP 3: Get organization
-      let org = null
-      const orgCacheKey = `org:${user.orgId}`
-      try {
-        const cached = await redis.get(orgCacheKey)
-        if (cached) {
-          org = JSON.parse(cached)
-        }
-      } catch (err) {
-        console.error('Org cache read:', err)
-      }
+      let org = orgCached ? JSON.parse(orgCached) : null
 
       if (!org) {
         org = await prisma.organization.findFirst({
@@ -131,17 +142,8 @@ export function route(config: RouteConfig) {
       }
 
       // STEP 4: Check module access
-      if (config.module) {
-        let moduleAccess = null
-        const moduleCacheKey = `org:${user.orgId}:module:${config.module}`
-        try {
-          const cached = await redis.get(moduleCacheKey)
-          if (cached) {
-            moduleAccess = JSON.parse(cached)
-          }
-        } catch (err) {
-          console.error('Module cache read:', err)
-        }
+      if (config.module && moduleCacheKey) {
+        let moduleAccess = moduleCached ? JSON.parse(moduleCached) : null
 
         if (!moduleAccess) {
           moduleAccess = await prisma.organizationModule.findFirst({
@@ -180,17 +182,8 @@ export function route(config: RouteConfig) {
       // STEP 6: Create tenant DB client
       const db = forOrg(user.orgId)
 
-      // STEP 7: Resolve academic year
-      let activeYear = null
-      const academicYearCacheKey = `org:${user.orgId}:academic-year:active`
-      try {
-        const cached = await redis.get(academicYearCacheKey)
-        if (cached) {
-          activeYear = JSON.parse(cached)
-        }
-      } catch (err) {
-        console.error('AY cache read:', err)
-      }
+      // STEP 7: Resolve academic year (cache read already batched above)
+      let activeYear = ayCached ? JSON.parse(ayCached) : null
 
       if (!activeYear) {
         activeYear = await db.academicYear.findFirst({

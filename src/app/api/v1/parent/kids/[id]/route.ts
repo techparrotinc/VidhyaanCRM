@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
+
+const kidUpdateSchema = z.object({
+  name: z.string().trim().min(2, 'Child name must be at least 2 characters').max(150).optional(),
+  dob: z.string().max(40).optional().nullable(),
+  dateOfBirth: z.string().max(40).optional().nullable(),
+  grade: z.string().max(50).optional().nullable(),
+  gradeSought: z.string().max(50).optional().nullable(),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER', 'male', 'female', 'other']).optional().nullable()
+})
 
 interface RouteParams {
   params: Promise<{
@@ -53,35 +63,34 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const body = await req.json()
-    const { name, dob, dateOfBirth, grade, gradeSought, gender } = body
-
-    if (name !== undefined && name.trim().length < 2) {
+    const parsed = kidUpdateSchema.safeParse(await req.json())
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Child name must be at least 2 characters' },
+        { success: false, error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
         { status: 400 }
       )
     }
+    const { name, dob, dateOfBirth, grade, gradeSought, gender } = parsed.data
 
     // Map fields dynamically
     const updateData: any = {}
     if (name !== undefined) updateData.name = name.trim()
     if (dateOfBirth !== undefined || dob !== undefined) {
       const inputDob = dateOfBirth !== undefined ? dateOfBirth : dob
-      updateData.dateOfBirth = inputDob ? new Date(inputDob) : null
+      const parsedDob = inputDob ? new Date(inputDob) : null
+      if (parsedDob && isNaN(parsedDob.getTime())) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid date of birth' },
+          { status: 400 }
+        )
+      }
+      updateData.dateOfBirth = parsedDob
     }
     if (grade !== undefined || gradeSought !== undefined) {
       updateData.gradeSought = grade !== undefined ? grade : gradeSought
     }
     if (gender !== undefined) {
-      if (gender === null) {
-        updateData.gender = null
-      } else {
-        const upper = gender.toUpperCase()
-        if (['MALE', 'FEMALE', 'OTHER'].includes(upper)) {
-          updateData.gender = upper
-        }
-      }
+      updateData.gender = gender === null ? null : gender.toUpperCase()
     }
 
     const updatedKid = await prisma.kidProfile.update({

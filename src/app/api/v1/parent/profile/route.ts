@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db/client'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { OtpPurpose } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { cleanPhoneNumber } from '@/lib/utils'
+
+const profileUpdateSchema = z.object({
+  name: z.string().trim().min(2, 'Name must be at least 2 characters').max(150),
+  email: z.string().email().max(200).optional().nullable().or(z.literal('')),
+  city: z.string().max(100).optional().nullable(),
+  phone: z.string().max(20).optional().nullable(),
+  code: z.string().max(10).optional().nullable()
+})
 
 export async function GET(req: NextRequest) {
   try {
@@ -60,17 +69,16 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
-    const { name, email, city, phone: rawPhone } = body
-    const phone = rawPhone ? (cleanPhoneNumber(rawPhone) as string) : undefined
-
-
-    if (!name || name.trim().length < 2) {
+    const parsedBody = profileUpdateSchema.safeParse(await req.json())
+    if (!parsedBody.success) {
       return NextResponse.json(
-        { success: false, error: 'Name must be at least 2 characters' },
+        { success: false, error: 'Invalid input', details: parsedBody.error.flatten().fieldErrors },
         { status: 400 }
       )
     }
+    const body = parsedBody.data
+    const { name, email, city, phone: rawPhone } = body
+    const phone = rawPhone ? (cleanPhoneNumber(rawPhone) as string) : undefined
 
     // Find Parent record
     const parent = await prisma.parent.findUnique({

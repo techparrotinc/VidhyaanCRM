@@ -252,7 +252,9 @@ export const GET = route({
       upcomingFollowUps
     }
 
-    await redis.set(cacheKey, JSON.stringify(result), 'EX', 60)
+    // 5 min cache: the summary is 13 aggregate queries; a short TTL meant the
+    // KPI row re-ran them (and rendered last) on almost every visit.
+    await redis.set(cacheKey, JSON.stringify(result), 'EX', 300)
     return ok(result)
   }
 })

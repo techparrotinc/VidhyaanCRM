@@ -76,6 +76,22 @@ Record of a review + hardening + performance session. Production branch is
 
 ---
 
+### Event Management module — Phase 1 (2026-07-05)
+- **Schema**: `Event.type/capacity/isPublished` + `(org_id, starts_at)` index —
+  migration `20260705140644_event_type_capacity_published` **created but NOT applied**
+  (`npx prisma migrate deploy` needed before this ships).
+- **Module**: `event_management` slug (core/free) — added to MODULES, seed, all 4 signup
+  core lists; `scripts/backfill-event-module.ts` enables it for existing orgs (run once on prod).
+- **API**: `/api/v1/events` (list w/ scope/month/type/search + create),
+  `/api/v1/events/[id]` (detail w/ resolved attendee names + rsvpCounts, update, soft delete),
+  `/api/v1/events/[id]/rsvps` (add w/ org-checked attendee + capacity guard, status update, remove).
+- **UI**: full page (list + month calendar toggle), create/edit drawer (school + center
+  event types), detail drawer with RSVP tab (lead search → invite, mark attended).
+- **Dashboard**: fake "Recent Notifications" card replaced with real Upcoming Events
+  (next 3 via summary API).
+- **Phase 2 parked**: publish to marketplace profile + public RSVP→lead, campaign
+  invites, reminders, ICS.
+
 ## ⏳ Pending
 
 1. **Subdomain-per-school** (phase 2) — `schoolname.vidhyaan.com`. Needs Vercel Pro +

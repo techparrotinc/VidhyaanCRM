@@ -36,6 +36,7 @@ async function main() {
     'student_management',
     'fee_management',
     'campaign_management',
+    'event_management',
     'advanced_reports',
     'payment_gateway',
     'whatsapp_sms_notifications',

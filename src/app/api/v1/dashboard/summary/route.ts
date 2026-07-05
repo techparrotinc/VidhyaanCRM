@@ -46,7 +46,8 @@ export const GET = route({
       upcomingFollowUps,
       allStages,
       school,
-      viewsThisWeek
+      viewsThisWeek,
+      upcomingEvents
     ] = await Promise.all([
 
       // Total leads
@@ -215,6 +216,23 @@ export const GET = route({
           school: { orgId },
           createdAt: { gte: last7Days }
         }
+      }),
+
+      // Next 3 upcoming events
+      db.event.findMany({
+        where: {
+          OR: [{ startsAt: { gte: now } }, { endsAt: { gte: now } }]
+        },
+        orderBy: { startsAt: 'asc' },
+        take: 3,
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          startsAt: true,
+          location: true,
+          _count: { select: { rsvps: true } }
+        }
       })
     ])
 
@@ -271,6 +289,7 @@ export const GET = route({
         views: school?.viewCount ?? 0,
         viewsThisWeek
       },
+      upcomingEvents,
       recentActivity: recentActivities,
       upcomingFollowUps
     }

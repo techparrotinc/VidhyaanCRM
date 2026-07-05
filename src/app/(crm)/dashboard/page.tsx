@@ -236,9 +236,9 @@ export default function DashboardPage() {
 
   // KPI configurations
   const kpis = [
-    { title: "TOTAL ENQUIRIES", value: String(dashData?.leads?.total ?? 0), icon: Users, trend: `+${dashData?.leads?.new ?? 0} this month`, isPremium: false, link: "/enquiries" },
-    { title: "PROFILE VIEWS", value: String(dashData?.profile?.views ?? 0), icon: Eye, trend: (dashData?.profile?.viewsThisWeek ?? 0) > 0 ? `+${dashData.profile.viewsThisWeek} this week` : "No change", isPremium: false, link: "/site-manager/analytics" },
-    { title: "LEADS THIS MONTH", value: String(dashData?.leads?.new ?? 0), icon: TrendingUp, trend: "+3 today", isPremium: true, link: "/leads" },
+    { title: "TOTAL ENQUIRIES", value: String(dashData?.leads?.total ?? 0), icon: Users, trend: `+${dashData?.leads?.new ?? 0} this month`, isPremium: false, link: "/lead-management" },
+    { title: "PROFILE VIEWS", value: String(dashData?.profile?.views ?? 0), icon: Eye, trend: (dashData?.profile?.viewsThisWeek ?? 0) > 0 ? `+${dashData.profile.viewsThisWeek} this week` : "No change", isPremium: false, link: "/settings/school-profile" },
+    { title: "LEADS THIS MONTH", value: String(dashData?.leads?.new ?? 0), icon: TrendingUp, trend: "+3 today", isPremium: true, link: "/lead-management" },
     { title: "FEE COLLECTION", value: formatINR(dashData?.fees?.collectedThisMonth ?? 0), icon: IndianRupee, trend: "+8% vs last month", isPremium: true, link: "/fee-management" },
     { title: "CONVERSION RATE", value: `${dashData?.admissions?.conversionRate ?? 0}%`, icon: BarChart2, trend: "+5% this month", isPremium: true, link: "/reports" },
     {
@@ -247,7 +247,7 @@ export default function DashboardPage() {
       icon: GraduationCap,
       trend: "No change",
       isPremium: true,
-      link: "/students"
+      link: "/student-management"
     }
   ]
 
@@ -459,10 +459,10 @@ export default function DashboardPage() {
 
               {/* RIGHT: single Manage Listing button */}
               <div className="flex items-center gap-2">
-                <button className="flex items-center gap-1.5 text-xs font-semibold border border-[#1565D8] bg-white text-[#1565D8] px-4 py-1.5 rounded-full hover:bg-blue-50 transition cursor-pointer">
+                <Link href="/settings/school-profile" className="flex items-center gap-1.5 text-xs font-semibold border border-[#1565D8] bg-white text-[#1565D8] px-4 py-1.5 rounded-full hover:bg-blue-50 transition cursor-pointer">
                   <LayoutList size={12} strokeWidth={2} />
                   Manage Listing
-                </button>
+                </Link>
               </div>
             </div>
           )}
@@ -472,8 +472,9 @@ export default function DashboardPage() {
             {kpis.map((kpi) => {
                 const Icon = kpi.icon
                 return (
-                  <div
+                  <Link
                     key={kpi.title}
+                    href={kpi.link}
                     className="min-w-0 w-full min-h-[160px] bg-white rounded-xl border border-slate-200 shadow-sm p-4 lg:p-5 xl:p-6 cursor-pointer hover:border-blue-200 hover:shadow-md transition-all duration-200 relative group flex flex-col justify-between"
                   >
                     {/* Icon top-left */}
@@ -514,7 +515,7 @@ export default function DashboardPage() {
                     <p className={`text-xs md:text-sm font-medium mt-2 ${kpi.trend.includes('No') ? 'text-slate-400' : 'text-green-600'}`}>
                       {kpi.trend}
                     </p>
-                  </div>
+                  </Link>
                 )
               })}
           </section>
@@ -649,9 +650,12 @@ export default function DashboardPage() {
 
               <div>
                 <div className="border-t border-slate-200 mt-4 pt-4 flex justify-between items-center">
-                  <span className="text-xs md:text-sm font-semibold text-[#1565D8] cursor-pointer hover:underline min-h-[44px] sm:min-h-0 flex items-center">
+                  <Link
+                    href="/admission-management"
+                    className="text-xs md:text-sm font-semibold text-[#1565D8] hover:underline min-h-[44px] sm:min-h-0 flex items-center cursor-pointer"
+                  >
                     View {moduleTitle} →
-                  </span>
+                  </Link>
 
                   {institutionConfig.type === 'school' && (
                     <span className="text-[10px] md:text-xs text-amber-600 font-medium bg-amber-50 px-2.5 py-1 rounded-full">
@@ -774,9 +778,12 @@ export default function DashboardPage() {
               </div>
 
               <div className="border-t border-slate-200 mt-4 pt-4">
-                <span className="text-xs md:text-sm font-semibold text-[#1565D8] cursor-pointer hover:underline min-h-[44px] sm:min-h-0 flex items-center">
+                <Link
+                  href="/lead-management"
+                  className="text-xs md:text-sm font-semibold text-[#1565D8] hover:underline min-h-[44px] sm:min-h-0 flex items-center cursor-pointer"
+                >
                   Go to Lead Management →
-                </span>
+                </Link>
               </div>
             </div>
           </section>
@@ -1054,9 +1061,12 @@ export default function DashboardPage() {
 
               {/* FOOTER */}
               <div className="mt-auto pt-4 border-t border-slate-200 flex items-center justify-between">
-                <span className="text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer" onClick={() => {}}>
+                <Link
+                  href="/fee-management"
+                  className="text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer"
+                >
                   Go to Fee Management →
-                </span>
+                </Link>
                 <span className="text-xs text-slate-400 font-medium">
                   {feeData.students.total} students enrolled
                 </span>
@@ -1139,106 +1149,106 @@ export default function DashboardPage() {
             <div className="w-px h-5 bg-slate-200 mx-1 flex-shrink-0" />
 
             {/* Button 1 */}
-            <button className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
+            <Link href="/lead-management/add-lead" className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
               <Plus size={13} className="text-slate-500" />
               <span>Add Lead</span>
-            </button>
+            </Link>
 
             {/* Button 2 */}
-            <button className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
+            <Link href="/admission-management/create" className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
               <UserPlus size={13} className="text-slate-500" />
               <span>
                 {institutionConfig.type === 'school' && "Admission"}
                 {institutionConfig.type === 'institute' && "Enrolment"}
                 {institutionConfig.type === 'learning_center' && "Enquiry"}
               </span>
-            </button>
+            </Link>
 
             {/* Button 3 */}
             {institutionConfig.type !== 'learning_center' && (
-              <button className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
+              <Link href="/student-management/create" className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
                 <UserCheck size={13} className="text-slate-500" />
                 <span>Student</span>
-              </button>
+              </Link>
             )}
 
             {/* Button 4 */}
-            <button className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
+            <Link href="/fee-management/create" className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
               <Receipt size={13} className="text-slate-500" />
               <span>Invoice</span>
-            </button>
+            </Link>
 
             {/* Button 5 */}
-            <button className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 text-xs font-bold text-amber-800 hover:bg-amber-100 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
+            <Link href="/campaign-management/new" className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 text-xs font-bold text-amber-800 hover:bg-amber-100 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
               <Megaphone size={13} className="text-amber-500" />
               <span>Campaign</span>
               <Crown size={11} className="text-amber-500 ml-0.5" />
-            </button>
+            </Link>
 
             {/* Button 6 */}
-            <button className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
+            <Link href="/settings/school-profile" className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
               <Globe size={13} className="text-slate-500" />
               <span>Listing</span>
-            </button>
+            </Link>
 
             <div className="w-px h-5 bg-slate-200 ml-auto mr-3 flex-shrink-0 hidden lg:block" />
 
-            <span className="text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer whitespace-nowrap flex-shrink-0 ml-auto lg:ml-0 min-h-[44px] md:min-h-0 flex items-center">
+            <Link href="/settings" className="text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer whitespace-nowrap flex-shrink-0 ml-auto lg:ml-0 min-h-[44px] md:min-h-0 flex items-center">
               Manage all actions →
-            </span>
+            </Link>
           </div>
 
           {/* MOBILE QUICK ACTIONS GRID */}
           <div className="md:hidden mt-4">
             <div className="grid grid-cols-3 gap-2 px-1">
               {/* Button 1: Add Lead */}
-              <button className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
+              <Link href="/lead-management/add-lead" className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
                 <Plus size={18} className="text-slate-500" />
                 <span className="text-center leading-tight">Add Lead</span>
-              </button>
+              </Link>
 
               {/* Button 2: Admission/Enrolment/Enquiry */}
-              <button className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
+              <Link href="/admission-management/create" className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
                 <UserPlus size={18} className="text-slate-500" />
                 <span className="text-center leading-tight">
                   {institutionConfig.type === 'school' && "Admission"}
                   {institutionConfig.type === 'institute' && "Enrolment"}
                   {institutionConfig.type === 'learning_center' && "Enquiry"}
                 </span>
-              </button>
+              </Link>
 
               {/* Button 3: Student */}
-              <button className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
+              <Link href="/student-management/create" className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
                 <UserCheck size={18} className="text-slate-500" />
                 <span className="text-center leading-tight">Student</span>
-              </button>
+              </Link>
 
               {/* Button 4: Invoice */}
-              <button className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
+              <Link href="/fee-management/create" className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
                 <Receipt size={18} className="text-slate-500" />
                 <span className="text-center leading-tight">Invoice</span>
-              </button>
+              </Link>
 
               {/* Button 5: Campaign */}
-              <button className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-amber-200 bg-amber-50 text-[10px] font-bold text-amber-800 min-h-[80px] active:bg-amber-100 cursor-pointer relative">
+              <Link href="/campaign-management/new" className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-amber-200 bg-amber-50 text-[10px] font-bold text-amber-800 min-h-[80px] active:bg-amber-100 cursor-pointer relative">
                 <Megaphone size={18} className="text-amber-500" />
                 <span className="text-center leading-tight flex items-center justify-center">
                   Campaign
                   <Crown size={10} className="text-amber-500 fill-amber-500 ml-0.5 shrink-0" />
                 </span>
-              </button>
+              </Link>
 
               {/* Button 6: Listing */}
-              <button className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
+              <Link href="/settings/school-profile" className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
                 <Globe size={18} className="text-slate-500" />
                 <span className="text-center leading-tight">Listing</span>
-              </button>
+              </Link>
             </div>
             
             <div className="text-center mt-3">
-              <span className="text-xs font-semibold text-[#1565D8] hover:underline cursor-pointer min-h-[44px] inline-flex items-center justify-center px-4">
+              <Link href="/settings" className="text-xs font-semibold text-[#1565D8] hover:underline cursor-pointer min-h-[44px] inline-flex items-center justify-center px-4">
                 Manage all actions →
-              </span>
+              </Link>
             </div>
           </div>
 
@@ -1308,48 +1318,51 @@ export default function DashboardPage() {
 
           {/* NOTIFICATIONS + ACTIVITY ROW */}
           <section className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {/* LEFT: Recent Notifications */}
+            {/* LEFT: Upcoming Events */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6 flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                    RECENT NOTIFICATIONS
+                    UPCOMING EVENTS
                   </h3>
-                  <span className="text-xs md:text-sm font-semibold text-[#1565D8] cursor-pointer hover:underline min-h-[44px] sm:min-h-0 flex items-center">
+                  <Link href="/event-management" className="text-xs md:text-sm font-semibold text-[#1565D8] cursor-pointer hover:underline min-h-[44px] sm:min-h-0 flex items-center">
                     View All →
-                  </span>
+                  </Link>
                 </div>
 
-                <div className="divide-y divide-slate-50">
-                  {[
-                    { title: "Parent-Teacher Meeting", desc: "PTM scheduled for Class 10A on May 25", time: "2 hours ago", icon: Calendar, unread: true },
-                    { title: "Fee Pay Reminder", desc: "Reminder for pending fee payment", time: "1 day ago", icon: CreditCard, unread: false },
-                    { title: "School Holiday", desc: "School will remain closed on May 20", time: "2 days ago", icon: CalendarOff, unread: false }
-                  ].map((notif, idx) => {
-                    const NotifIcon = notif.icon
-                    return (
-                      <div key={idx} className="flex items-start gap-4 py-3 relative">
+                {(dashData?.upcomingEvents ?? []).length === 0 ? (
+                  <div className="py-8 text-center">
+                    <Calendar className="w-8 h-8 text-slate-200 mx-auto mb-2" strokeWidth={1.5} />
+                    <p className="text-xs md:text-sm text-slate-400">No upcoming events.</p>
+                    <Link href="/event-management" className="text-xs md:text-sm font-semibold text-[#1565D8] hover:underline mt-1 inline-block">
+                      Schedule one →
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-50">
+                    {(dashData?.upcomingEvents ?? []).map((ev: any) => (
+                      <Link key={ev.id} href="/event-management" className="flex items-start gap-4 py-3">
                         <div className="bg-blue-50 rounded-lg w-8 h-8 flex items-center justify-center flex-shrink-0">
-                          <NotifIcon className="w-4 h-4 text-blue-500" strokeWidth={1.5} />
+                          <Calendar className="w-4 h-4 text-blue-500" strokeWidth={1.5} />
                         </div>
                         <div className="flex-1 min-w-0 pr-4">
                           <h4 className="text-xs md:text-sm font-semibold text-slate-800 truncate leading-tight">
-                            {notif.title}
+                            {ev.title}
                           </h4>
                           <p className="text-[11px] md:text-xs text-slate-500 mt-0.5 leading-relaxed">
-                            {notif.desc}
+                            {new Date(ev.startsAt).toLocaleString('en-IN', {
+                              day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'
+                            })}
+                            {ev.location ? ` · ${ev.location}` : ''}
                           </p>
                           <span className="text-[10px] md:text-xs text-slate-400 mt-1 inline-block font-normal">
-                            {notif.time}
+                            {ev._count?.rsvps ?? 0} RSVPs
                           </span>
                         </div>
-                        {notif.unread && (
-                          <span className="ml-auto w-2 h-2 bg-[#1565D8] rounded-full shrink-0 mt-1.5" />
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1420,13 +1433,17 @@ export default function DashboardPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-4">
-                <Button className="w-full sm:w-auto bg-white hover:bg-blue-50 text-[#1565D8] text-sm font-bold px-7 py-3 h-12 rounded-xl shadow-md border-0 flex items-center justify-center gap-2">
-                  <span>Upgrade to Premium</span>
-                  <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={2.0} />
-                </Button>
-                <button className="w-full sm:w-auto bg-transparent hover:bg-white/10 text-white border-2 border-white/40 text-sm font-semibold px-7 py-3 h-12 rounded-xl transition flex items-center justify-center">
-                  See Pricing Plans
-                </button>
+                <Link href="/settings/billing" className="w-full sm:w-auto">
+                  <Button className="w-full bg-white hover:bg-blue-50 text-[#1565D8] text-sm font-bold px-7 py-3 h-12 rounded-xl shadow-md border-0 flex items-center justify-center gap-2">
+                    <span>Upgrade to Premium</span>
+                    <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={2.0} />
+                  </Button>
+                </Link>
+                <Link href="/settings/billing" className="w-full sm:w-auto">
+                  <button className="w-full bg-transparent hover:bg-white/10 text-white border-2 border-white/40 text-sm font-semibold px-7 py-3 h-12 rounded-xl transition flex items-center justify-center cursor-pointer">
+                    See Pricing Plans
+                  </button>
+                </Link>
               </div>
             </div>
           </section>

@@ -2022,6 +2022,9 @@ model Event {
   academicYearId String?       @map("academic_year_id")
   title          String
   description    String?
+  type           String?       // OPEN_HOUSE, PTM, ANNUAL_DAY... / DEMO_CLASS, WORKSHOP... (institution-specific labels)
+  capacity       Int?
+  isPublished    Boolean       @default(false) @map("is_published") // phase 2: marketplace surface
   startsAt       DateTime      @map("starts_at")
   endsAt         DateTime?     @map("ends_at")
   location       String?
@@ -2038,6 +2041,7 @@ model Event {
 
   @@index([orgId])
   @@index([startsAt])
+  @@index([orgId, startsAt])
   @@map("events")
   @@schema("crm")
 }

@@ -4,6 +4,7 @@ export const MODULES = {
   STUDENT_MANAGEMENT: 'student_management',
   FEE_MANAGEMENT: 'fee_management',
   CAMPAIGN_MANAGEMENT: 'campaign_management',
+  EVENT_MANAGEMENT: 'event_management',
   ADVANCED_REPORTS: 'advanced_reports',
   PAYMENT_GATEWAY: 'payment_gateway',
   WHATSAPP_SMS: 'whatsapp_sms_notifications',

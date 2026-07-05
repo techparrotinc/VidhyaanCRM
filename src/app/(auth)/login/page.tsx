@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Shield, Loader2, ArrowLeft, CheckCircle2, Lock, AlertCircle } from 'lucide-react'
 import { signIn } from 'next-auth/react'
@@ -11,6 +11,8 @@ type LoginState = 'phone' | 'pin' | 'otp'
 
 export default function LoginPage() {
   const router = useRouter()
+  const pathname = usePathname() || ''
+  const isParent = pathname.includes('/parent')
 
   // General state
   const [state, setState] = useState<LoginState>('phone')
@@ -444,42 +446,81 @@ export default function LoginPage() {
             <div className="w-10 h-10 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
               <Shield className="text-white w-6 h-6" />
             </div>
-            <span className="text-xl font-extrabold text-white tracking-tight">Vidhyaan</span>
+            <span className="text-xl font-extrabold text-white tracking-tight">
+              {isParent ? 'Vidhyaan for Parents' : 'Vidhyaan for Partners'}
+            </span>
           </div>
 
           {/* Hero text */}
           <div className="space-y-6 animate-fade-slide-up">
             <div className="space-y-3">
-              <h2 className="text-4xl font-extrabold text-white leading-tight tracking-tight drop-shadow-sm">
-                Smart School<br />Management,<br />
-                <span className="text-blue-100">Simplified.</span>
-              </h2>
-              <p className="text-white/90 text-base leading-relaxed max-w-[340px]">
-                Admissions, fees, attendance, and academics — all in one powerful platform trusted by schools across India.
-              </p>
+              {isParent ? (
+                <>
+                  <h2 className="text-4xl font-extrabold text-white leading-tight tracking-tight drop-shadow-sm">
+                    Find the Best School<br />For Your Child,<br />
+                    <span className="text-blue-100">Stress-Free.</span>
+                  </h2>
+                  <p className="text-white/90 text-base leading-relaxed max-w-[360px]">
+                    Explore top-rated schools, compare fees & facilities, and apply online directly from your phone.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-4xl font-extrabold text-white leading-tight tracking-tight drop-shadow-sm">
+                    Smart School<br />Management,<br />
+                    <span className="text-blue-100">Simplified.</span>
+                  </h2>
+                  <p className="text-white/90 text-base leading-relaxed max-w-[340px]">
+                    Admissions, fees, attendance, and academics — all in one powerful platform trusted by schools across India.
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Floating stat cards */}
             <div className="flex gap-3 pt-2">
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '0s' }}>
-                <div className="text-2xl font-extrabold text-white">500+</div>
-                <div className="text-xs font-medium text-white/70 mt-0.5">Schools</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '1s' }}>
-                <div className="text-2xl font-extrabold text-white">50K+</div>
-                <div className="text-xs font-medium text-white/70 mt-0.5">Students</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '2s' }}>
-                <div className="text-2xl font-extrabold text-white">99.9%</div>
-                <div className="text-xs font-medium text-white/70 mt-0.5">Uptime</div>
-              </div>
+              {isParent ? (
+                <>
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '0s' }}>
+                    <div className="text-2xl font-extrabold text-white">1,000+</div>
+                    <div className="text-xs font-medium text-white/70 mt-0.5">Top Schools</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '1s' }}>
+                    <div className="text-2xl font-extrabold text-white">Direct</div>
+                    <div className="text-xs font-medium text-white/70 mt-0.5">Admissions</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '2s' }}>
+                    <div className="text-2xl font-extrabold text-white">100%</div>
+                    <div className="text-xs font-medium text-white/70 mt-0.5">Verified Info</div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '0s' }}>
+                    <div className="text-2xl font-extrabold text-white">500+</div>
+                    <div className="text-xs font-medium text-white/70 mt-0.5">Schools</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '1s' }}>
+                    <div className="text-2xl font-extrabold text-white">50K+</div>
+                    <div className="text-xs font-medium text-white/70 mt-0.5">Students</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '2s' }}>
+                    <div className="text-2xl font-extrabold text-white">99.9%</div>
+                    <div className="text-xs font-medium text-white/70 mt-0.5">Uptime</div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
           {/* Bottom trust strip */}
           <div className="flex items-center gap-2 text-xs text-blue-200/60 font-medium">
             <Lock className="w-3.5 h-3.5 text-white/50" />
-            <span className="text-white/50">256-bit encrypted · SOC 2 compliant · GDPR ready</span>
+            <span className="text-white/50">
+              {isParent 
+                ? '256-bit encrypted · Direct parent support · Zero charges' 
+                : '256-bit encrypted · SOC 2 compliant · GDPR ready'}
+            </span>
           </div>
         </div>
       </div>
@@ -553,9 +594,11 @@ export default function LoginPage() {
 
                 {!accountExists ? (
                   <div className="space-y-3 text-center">
-                    <p className="text-xs text-slate-500 font-medium">No account found. New to Vidhyaan?</p>
+                    <p className="text-xs text-slate-500 font-medium">
+                      {isParent ? 'No parent account found. New to Vidhyaan?' : 'No account found. New to Vidhyaan?'}
+                    </p>
                     <Link
-                      href="/register"
+                      href={isParent ? "/parent/register" : "/register"}
                       className="w-full flex items-center justify-center h-[48px] bg-blue-50 hover:bg-blue-100 text-[#1565D8] font-bold rounded-2xl transition-all text-sm"
                     >
                       Create Account →
@@ -588,13 +631,27 @@ export default function LoginPage() {
                 {/* Footer links */}
                 <div className="flex flex-col items-center gap-2.5 text-xs font-medium">
                   <div className="flex items-center gap-3 text-slate-500">
-                    <Link href="/parent/login" className="hover:text-[#1565D8] transition-colors">
-                      Parent Login
-                    </Link>
-                    <span className="text-slate-200">|</span>
-                    <Link href="/register" className="hover:text-[#1565D8] transition-colors">
-                      Register School
-                    </Link>
+                    {isParent ? (
+                      <>
+                        <Link href="/login" className="hover:text-[#1565D8] transition-colors">
+                          School Partner Login
+                        </Link>
+                        <span className="text-slate-200">|</span>
+                        <Link href="/parent/register" className="hover:text-[#1565D8] transition-colors">
+                          Register as Parent
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <Link href="/parent/login" className="hover:text-[#1565D8] transition-colors">
+                          Parent Login
+                        </Link>
+                        <span className="text-slate-200">|</span>
+                        <Link href="/register" className="hover:text-[#1565D8] transition-colors">
+                          Register School
+                        </Link>
+                      </>
+                    )}
                   </div>
                   <Link
                     href="/"

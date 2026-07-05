@@ -31,6 +31,7 @@ function isPublicRoute(pathname: string): boolean {
     '/api/location',
     '/parent/register',
     '/parent/verify-otp',
+    '/parent/login',
     '/register',
     '/claim-profile',
     '/forgot-pin',

@@ -18,6 +18,16 @@ This document serves as the single source of truth for design patterns, technolo
 
 ---
 
+## 🚀 Deployment & Infrastructure
+- **Production branch**: **`vidhyaan-crm`** (NOT `main` — Vercel production deploys track it; `main` is kept in sync).
+- **Host**: Vercel, functions pinned to **`sin1` (Singapore)** via `vercel.json` `regions`.
+- **Database**: Neon Postgres in **`ap-southeast-1` (Singapore)** — co-located with Vercel (this is critical; a mismatched region added ~450ms per query). **Scale-to-zero disabled** on the prod branch to avoid cold starts.
+- **Cache/rate-limit/revocation**: Upstash Redis (REST) — configured in Vercel env (`UPSTASH_REDIS_REST_URL/_TOKEN`); local dev falls back to an in-memory mock.
+- **Migrations**: `npx prisma migrate deploy` (uses `DIRECT_URL`). Composite tenant indexes are applied to prod.
+- **Recent work + pending backlog**: see [docs/work-log-2026-07.md](file:///Users/vimaldas/Projects/VidhyaanCRM/docs/work-log-2026-07.md).
+
+---
+
 ## 📂 Project Architecture & Codebase Pointers
 - **Main View Viewport**: [page.tsx](file:///Users/vimaldas/Projects/VidhyaanCRM/src/app/dashboard/page.tsx)
   Contains all layout structures, card divisions, Quick Actions, and custom Tailwind styling.

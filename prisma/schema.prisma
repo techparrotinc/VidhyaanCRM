@@ -1520,12 +1520,12 @@ model Lead {
   admissions    Admission[]
 
   @@unique([orgId, leadCode])
-  @@index([orgId])
+  @@index([orgId, createdAt])
+  @@index([orgId, status])
+  @@index([orgId, assignedToId])
+  @@index([orgId, phone])
   @@index([branchId])
   @@index([academicYearId])
-  @@index([status])
-  @@index([assignedToId])
-  @@index([phone])
   @@map("leads")
   @@schema("crm")
 }
@@ -1545,8 +1545,7 @@ model LeadActivity {
 
   lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
-  @@index([orgId])
-  @@index([leadId])
+  @@index([orgId, leadId, createdAt])
   @@index([type])
   @@map("lead_activities")
   @@schema("crm")
@@ -1605,12 +1604,12 @@ model Admission {
   student      Student?
 
   @@unique([orgId, admissionCode])
-  @@index([orgId])
+  @@index([orgId, createdAt])
+  @@index([orgId, status])
+  @@index([orgId, stageId])
+  @@index([orgId, assignedToId])
   @@index([branchId])
   @@index([academicYearId])
-  @@index([status])
-  @@index([stageId])
-  @@index([assignedToId])
   @@map("admissions")
   @@schema("crm")
 }
@@ -1654,8 +1653,7 @@ model AdmissionActivity {
 
   admission Admission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
 
-  @@index([orgId])
-  @@index([admissionId])
+  @@index([orgId, admissionId, createdAt])
   @@map("admission_activities")
   @@schema("crm")
 }
@@ -1747,10 +1745,11 @@ model Student {
   courseEnrollments CourseEnrollment[]
 
   @@unique([orgId, studentCode])
-  @@index([orgId])
+  @@index([orgId, createdAt])
+  @@index([orgId, status])
+  @@index([orgId, gradeLabel])
   @@index([branchId])
   @@index([academicYearId])
-  @@index([status])
   @@index([batchId])
   @@map("students")
   @@schema("crm")
@@ -1920,10 +1919,11 @@ model Invoice {
   concessions  Concession[]
 
   @@unique([orgId, invoiceNumber])
-  @@index([orgId])
-  @@index([studentId])
-  @@index([status])
-  @@index([dueDate])
+  @@index([orgId, createdAt])
+  @@index([orgId, status])
+  @@index([orgId, studentId])
+  @@index([orgId, dueDate])
+  @@index([orgId, invoiceType])
   @@index([termId])
   @@index([courseId])
   @@index([batchId])
@@ -1981,10 +1981,10 @@ model Payment {
   student      Student?      @relation(fields: [studentId], references: [id])
 
   @@unique([orgId, receiptNumber])
-  @@index([orgId])
-  @@index([invoiceId])
-  @@index([studentId])
-  @@index([status])
+  @@index([orgId, paidAt])
+  @@index([orgId, status])
+  @@index([orgId, invoiceId])
+  @@index([orgId, studentId])
   @@map("payments")
   @@schema("crm")
 }
@@ -2148,9 +2148,8 @@ model Notification {
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  @@index([orgId])
-  @@index([recipientType, recipientId])
-  @@index([readAt])
+  @@index([orgId, recipientType, recipientId, createdAt])
+  @@index([orgId, recipientType, recipientId, readAt])
   @@map("notifications")
   @@schema("crm")
 }

@@ -1581,7 +1581,7 @@ export default function SchoolProfilePage() {
             <h4 className="text-lg font-black tracking-tight leading-tight">Is this your school?</h4>
             <p className="text-xs font-bold text-blue-100">Claim your free profile and start managing admissions with Vidhyaan CRM</p>
           </div>
-          <Link href="/signup">
+          <Link href="/register">
             <Button className="bg-white hover:bg-slate-50 text-[#1565D8] font-bold text-xs px-6 py-3 rounded-full h-auto shadow border border-blue-100 shrink-0">
               Claim Free Profile &rarr;
             </Button>
@@ -1623,7 +1623,7 @@ export default function SchoolProfilePage() {
           <div className="space-y-3">
             <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-405">For Schools</h4>
             <div className="flex flex-col space-y-2 text-xs font-semibold text-slate-355">
-              <Link href="/signup" className="hover:text-white transition">List Your School</Link>
+              <Link href="/register" className="hover:text-white transition">List Your School</Link>
               <Link href="/dashboard" className="hover:text-white transition">CRM Features</Link>
               <Link href="/pricing" className="hover:text-white transition">Pricing</Link>
               <Link href="/login" className="hover:text-white transition">School Login</Link>

@@ -1295,7 +1295,7 @@ export default function MarketplaceHomepage() {
               </p>
               
               <div className="flex gap-4 justify-center flex-wrap mt-8">
-                <Link href={displayTab === 'schools' ? '/signup?type=school' : '/signup?type=learning-center'}>
+                <Link href="/register">
                   <Button className="bg-white hover:bg-slate-50 text-[#1565D8] font-bold text-xs px-8 py-3.5 rounded-xl h-auto shadow-md">
                     {content.cta.primaryButton}
                   </Button>
@@ -1424,7 +1424,7 @@ export default function MarketplaceHomepage() {
           <div className="space-y-3">
             <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400">For Schools</h4>
             <div className="flex flex-col space-y-2 text-xs font-semibold text-slate-355">
-              <Link href="/signup" className="hover:text-white transition">List Your School</Link>
+              <Link href="/register" className="hover:text-white transition">List Your School</Link>
               <Link href="/dashboard" className="hover:text-white transition">CRM Features</Link>
               <Link href="/pricing" className="hover:text-white transition">Pricing</Link>
               <Link href="/login" className="hover:text-white transition">School Login</Link>

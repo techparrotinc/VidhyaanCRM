@@ -8,7 +8,7 @@ function isPublicRoute(pathname: string): boolean {
   if (
     pathname === '/' ||
     pathname === '/login' ||
-    pathname === '/signup' ||
+    pathname === '/register' ||
     pathname === '/pricing' ||
     pathname === '/about' ||
     pathname === '/contact' ||

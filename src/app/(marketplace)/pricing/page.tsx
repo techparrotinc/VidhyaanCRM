@@ -161,7 +161,7 @@ export default function PricingPage() {
               </div>
 
               <div className="mt-8">
-                <Link href="/register-school">
+                <Link href="/register">
                   <Button variant="outline" className="w-full border-blue-200 text-[#1565D8] hover:bg-blue-50 font-bold text-xs py-3.5 rounded-full h-auto shadow-sm">
                     Claim Free Profile
                   </Button>
@@ -403,7 +403,7 @@ export default function PricingPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 relative z-10">
-              <Link href="/register-school">
+              <Link href="/register">
                 <Button className="bg-white hover:bg-blue-50 text-blue-600 font-bold text-xs px-6 py-3 rounded-full h-auto shadow-md">
                   Claim Free Profile
                 </Button>
@@ -457,7 +457,7 @@ export default function PricingPage() {
           <div className="space-y-3 text-left">
             <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400">For Schools</h4>
             <div className="flex flex-col space-y-2 text-xs font-semibold text-slate-355">
-              <Link href="/signup" className="hover:text-white transition">List Your School</Link>
+              <Link href="/register" className="hover:text-white transition">List Your School</Link>
               <Link href="/dashboard" className="hover:text-white transition">CRM Features</Link>
               <Link href="/pricing" className="hover:text-white transition">Pricing</Link>
               <Link href="/login" className="hover:text-white transition">School Login</Link>

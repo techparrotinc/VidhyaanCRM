@@ -14,7 +14,7 @@ export default function FeeManagementCreatePage() {
 
   // Modes: 'class' (Class Mode) or 'student' (Student Mode)
   const [mode, setMode] = useState<'class' | 'student'>('class')
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [step, setStep] = useState<1 | 2>(1)
   const [isStepValid, setIsStepValid] = useState(false)
 
   // Preview step configuration payload
@@ -32,7 +32,7 @@ export default function FeeManagementCreatePage() {
       selectedPlanId: data.selectedPlanId,
       initialItems: data.items
     })
-    setStep(3)
+    setStep(2)
   }
 
   const handleStudentSubmit = (data: any) => {
@@ -44,7 +44,7 @@ export default function FeeManagementCreatePage() {
       selectedPlanId: data.selectedPlanId,
       initialItems: data.items
     })
-    setStep(3)
+    setStep(2)
   }
 
   const handleModeChange = (newMode: 'class' | 'student') => {
@@ -62,24 +62,18 @@ export default function FeeManagementCreatePage() {
   const handleBack = () => {
     if (step === 1) {
       router.push('/fee-management')
-    } else if (step === 3) {
-      // Leaving the preview discards per-term edits (matches the old
-      // unmount-on-back semantics of the full-screen preview).
-      setPreviewPayload(null)
-      setStep(2)
     } else {
+      // Leaving the preview discards per-term edits; the form itself stays
+      // mounted so its entries survive.
+      setPreviewPayload(null)
       setStep(1)
     }
   }
 
   const handleNext = () => {
     if (!isStepValid) return
-    if (step === 1) {
-      setStep(2)
-    } else if (step === 2) {
-      // Builds the preview payload via the form's onSubmit handler
-      formRef.current?.submit()
-    }
+    // Builds the preview payload via the form's onSubmit handler
+    formRef.current?.submit()
   }
 
   return (
@@ -109,7 +103,7 @@ export default function FeeManagementCreatePage() {
       </div>
 
       {/* ── CONTENT BODY ── */}
-      {step === 3 && previewPayload && (
+      {step === 2 && previewPayload && (
         <div className="flex-1 flex flex-col pt-4">
           <PreviewStep
             mode={previewPayload.mode}
@@ -125,40 +119,36 @@ export default function FeeManagementCreatePage() {
         </div>
       )}
 
-      {/* Steps 1–2 stay mounted (hidden during preview) so Back keeps form state */}
-      <div className={step === 3 ? 'hidden' : 'contents'}>
+      {/* Step 1 stays mounted (hidden during preview) so Back keeps form state */}
+      <div className={step === 2 ? 'hidden' : 'contents'}>
           <div className="px-4 sm:px-6 py-6 flex-1">
             <div className="max-w-4xl mx-auto flex flex-col gap-6">
-              {/* Mode Toggle (step 1 only) */}
-              {step === 1 && (
-                <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col gap-3">
-                  <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide select-none">
-                    Create Invoice For:
-                  </h2>
-                  <SegmentedControl
-                    options={[
-                      { value: 'class', label: 'A Class' },
-                      { value: 'student', label: 'A Student' }
-                    ]}
-                    value={mode}
-                    onChange={handleModeChange}
-                  />
-                </div>
-              )}
+              {/* Mode Toggle */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col gap-3">
+                <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide select-none">
+                  Create Invoice For:
+                </h2>
+                <SegmentedControl
+                  options={[
+                    { value: 'class', label: 'A Class' },
+                    { value: 'student', label: 'A Student' }
+                  ]}
+                  value={mode}
+                  onChange={handleModeChange}
+                />
+              </div>
 
-              {/* Form Area — stays mounted across steps 1–2 so state survives */}
+              {/* Form Area — details + fee items in one flow */}
               <div className="transition-all duration-200">
                 {mode === 'class' ? (
                   <ClassModeForm
                     ref={formRef}
-                    step={step === 2 ? 2 : 1}
                     onValidityChange={handleValidityChange}
                     onSubmit={handleClassSubmit}
                   />
                 ) : (
                   <StudentModeForm
                     ref={formRef}
-                    step={step === 2 ? 2 : 1}
                     onValidityChange={handleValidityChange}
                     onSubmit={handleStudentSubmit}
                   />
@@ -167,7 +157,7 @@ export default function FeeManagementCreatePage() {
             </div>
           </div>
 
-          {/* ── WIZARD FOOTER (steps 1–2) ── */}
+          {/* ── WIZARD FOOTER (step 1) ── */}
           <div className="sticky bottom-0 bg-white border-t border-slate-200 px-4 sm:px-6 py-4 shadow-lg z-10">
             <div className="max-w-4xl mx-auto w-full flex items-center justify-between gap-3 select-none">
               <button
@@ -176,7 +166,7 @@ export default function FeeManagementCreatePage() {
                 className="px-5 py-2.5 text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition duration-150 cursor-pointer flex items-center gap-1.5"
               >
                 <ArrowLeft className="w-4 h-4" />
-                {step === 1 ? 'Cancel' : 'Back'}
+                Cancel
               </button>
               <button
                 type="button"
@@ -184,7 +174,7 @@ export default function FeeManagementCreatePage() {
                 disabled={!isStepValid}
                 className="px-6 py-2.5 text-sm font-bold text-white bg-[#1565D8] hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 rounded-xl shadow transition duration-150 cursor-pointer disabled:cursor-not-allowed"
               >
-                {step === 1 ? 'Next: Fee Items' : 'Next: Preview & Schedule'}
+                Next: Preview & Schedule
               </button>
             </div>
           </div>

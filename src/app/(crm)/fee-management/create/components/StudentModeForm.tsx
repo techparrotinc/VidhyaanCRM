@@ -43,7 +43,6 @@ interface FeePlan {
 }
 
 interface StudentModeFormProps {
-  step: 1 | 2
   onValidityChange: (valid: boolean) => void
   onSubmit: (data: {
     student: Student
@@ -55,7 +54,7 @@ interface StudentModeFormProps {
 }
 
 const StudentModeForm = forwardRef<WizardFormHandle, StudentModeFormProps>(
-  function StudentModeForm({ step, onValidityChange, onSubmit }, ref) {
+  function StudentModeForm({ onValidityChange, onSubmit }, ref) {
   const { currentYear } = useAcademicYears()
 
   // Form State
@@ -185,21 +184,16 @@ const StudentModeForm = forwardRef<WizardFormHandle, StudentModeFormProps>(
     setShowDropdown(false)
   }
 
-  // Per-step validation: step 1 = who/when, step 2 = what's billed
-  const isStep1Valid =
+  const isFormValid =
     selectedStudent !== null &&
-    (invoiceType === 'ADHOC' || selectedTermIds.length > 0)
-
-  const isStep2Valid =
-    invoiceType === 'ADHOC'
+    (invoiceType === 'ADHOC' || selectedTermIds.length > 0) &&
+    (invoiceType === 'ADHOC'
       ? manualItems.length > 0
-      : selectedPlanId !== '' || manualItems.length > 0
-
-  const isFormValid = isStep1Valid && isStep2Valid
+      : selectedPlanId !== '' || manualItems.length > 0)
 
   useEffect(() => {
-    onValidityChange(step === 1 ? isStep1Valid : isFormValid)
-  }, [step, isStep1Valid, isFormValid, onValidityChange])
+    onValidityChange(isFormValid)
+  }, [isFormValid, onValidityChange])
 
   const handlePreviewSubmit = () => {
     if (!isFormValid || !selectedStudent) return
@@ -235,8 +229,8 @@ const StudentModeForm = forwardRef<WizardFormHandle, StudentModeFormProps>(
 
   return (
     <div className="flex flex-col gap-6 bg-white rounded-xl border border-slate-200 p-6">
-      {/* ── STEP 1: DETAILS ── */}
-      <div className={step === 1 ? 'flex flex-col gap-6' : 'hidden'}>
+      {/* ── DETAILS ── */}
+      <div className="flex flex-col gap-6">
         {/* Student Search */}
         <div className="flex flex-col gap-1.5 relative">
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
@@ -457,7 +451,7 @@ const StudentModeForm = forwardRef<WizardFormHandle, StudentModeFormProps>(
                     No fee plan found for {getGradeDisplayLabel(selectedStudent.gradeLabel)}
                   </p>
                   <p className="text-xs text-amber-700 mt-0.5 select-none font-medium">
-                    You can add items manually in the next step
+                    You can add items manually below
                   </p>
                 </div>
               </div>
@@ -466,8 +460,8 @@ const StudentModeForm = forwardRef<WizardFormHandle, StudentModeFormProps>(
         )}
       </div>
 
-      {/* ── STEP 2: FEE ITEMS ── */}
-      <div className={step === 2 ? 'flex flex-col gap-6' : 'hidden'}>
+      {/* ── FEE ITEMS ── */}
+      <div className="flex flex-col gap-6 border-t border-slate-100 pt-6">
         {invoiceType === 'TERM' && selectedPlan?.structure?.heads ? (
           /* Read-only plan items — amounts editable per term in the preview step */
           <div className="flex flex-col gap-3">

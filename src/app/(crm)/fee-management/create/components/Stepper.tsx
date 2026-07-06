@@ -2,9 +2,9 @@
 
 import { Check } from 'lucide-react'
 
-const STEPS = ['Details', 'Fee Items', 'Preview & Schedule']
+const STEPS = ['Details & Items', 'Preview & Schedule']
 
-export default function Stepper({ currentStep }: { currentStep: 1 | 2 | 3 }) {
+export default function Stepper({ currentStep }: { currentStep: 1 | 2 }) {
   return (
     <div className="flex items-center gap-2 select-none">
       {STEPS.map((label, i) => {

@@ -2,11 +2,12 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
-import { ArrowLeft, Plus, Calendar, CheckCircle2, AlertCircle, XCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, AlertCircle, XCircle } from 'lucide-react'
 import DateSelector from '@/components/ui/DateSelector'
 import FeeHeadRow, { FeeHead } from './FeeHeadRow'
 import { mapGradeValue } from '@/lib/utils/gradeMapping'
 import { getGradeLabel } from '@/constants/grades'
+import { buildBatchInvoices } from '../lib/buildBatch'
 
 interface Student {
   id: string
@@ -32,7 +33,7 @@ interface TermSection {
   error?: string | null
 }
 
-interface PreviewPageProps {
+interface PreviewStepProps {
   mode: 'class' | 'student'
   grade?: string
   selectedGradeLabel?: string
@@ -44,7 +45,7 @@ interface PreviewPageProps {
   onBack: () => void
 }
 
-export default function PreviewPage({
+export default function PreviewStep({
   mode,
   grade,
   selectedGradeLabel,
@@ -54,7 +55,7 @@ export default function PreviewPage({
   selectedPlanId,
   initialItems,
   onBack
-}: PreviewPageProps) {
+}: PreviewStepProps) {
   const resolvedGradeLabel = selectedGradeLabel || (grade ? getGradeLabel(mapGradeValue(grade)) : '')
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -266,26 +267,8 @@ export default function PreviewPage({
 
       setSubmittingProgressText(`Creating ${totalInvoices} invoices for ${finalStudentIds.length} students...`)
 
-      // Generate batch payload
-      const invoices: any[] = []
-      
-      for (const stdId of finalStudentIds) {
-        for (const sec of sections) {
-          invoices.push({
-            studentId: stdId,
-            invoiceType: 'TERM',
-            termId: sec.term.id,
-            items: sec.feeHeads.map(h => ({
-              name: h.name,
-              quantity: 1,
-              unitPrice: h.amount
-            })),
-            dueDate: new Date(sec.dueDate).toISOString(),
-            scheduledDate: sec.scheduleType === 'date' ? new Date(sec.scheduledDate).toISOString() : null,
-            notes: ''
-          })
-        }
-      }
+      // Generate batch payload (pure builder — see tests/build-batch.test.ts)
+      const invoices = buildBatchInvoices(sections, finalStudentIds)
 
       const generatedBatchId = crypto.randomUUID()
 
@@ -320,24 +303,14 @@ export default function PreviewPage({
   }
 
   return (
-    <div className="fixed inset-0 bg-[#F8FAFC] z-50 flex flex-col font-sans">
-      {/* HEADER */}
-      <div className="flex items-center gap-3 px-4 sm:px-6 pt-6 pb-4 border-b border-slate-200 bg-white shrink-0">
-        <button
-          onClick={onBack}
-          disabled={isSubmitting}
-          className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition flex-shrink-0 disabled:opacity-50"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="min-w-0">
-          <h1 className="text-lg font-bold text-slate-900 leading-tight">Preview & Schedule</h1>
-          <p className="text-xs text-slate-500 mt-0.5 font-medium truncate">
-            {mode === 'class'
-              ? `Grade ${grade} · ${studentCount} students · ${sections.length} terms · ${totalInvoices} invoices total`
-              : `${student?.name} · ${sections.length} terms · ${totalInvoices} invoices total`}
-          </p>
-        </div>
+    <div className="flex flex-col font-sans">
+      {/* SUMMARY LINE */}
+      <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 pt-2 pb-4">
+        <p className="text-xs text-slate-500 font-medium truncate select-none">
+          {mode === 'class'
+            ? `Grade ${grade} · ${studentCount} students · ${sections.length} terms · ${totalInvoices} invoices total`
+            : `${student?.name} · ${sections.length} terms · ${totalInvoices} invoices total`}
+        </p>
       </div>
 
       {/* TOAST POPUP */}
@@ -352,8 +325,8 @@ export default function PreviewPage({
         </div>
       )}
 
-      {/* BODY - SCROLLABLE SECTIONS */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 flex flex-col gap-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      {/* BODY - TERM SECTIONS */}
+      <div className="flex-1 px-4 sm:px-6 pb-6 flex flex-col gap-6">
         <div className="max-w-4xl mx-auto w-full flex flex-col gap-6 pb-24">
           {sections.map((section, index) => {
             const termTotal = section.feeHeads.reduce((sum, h) => sum + h.amount, 0)
@@ -494,7 +467,7 @@ export default function PreviewPage({
       </div>
 
       {/* FOOTER (sticky) */}
-      <div className="sticky bottom-0 bg-white border-t border-slate-200 px-4 sm:px-6 py-4 flex flex-col gap-1 shadow-lg shrink-0">
+      <div className="sticky bottom-0 bg-white border-t border-slate-200 px-4 sm:px-6 py-4 flex flex-col gap-1 shadow-lg shrink-0 z-10">
         <div className="max-w-4xl mx-auto w-full flex flex-col gap-2">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 select-none">
             <div>
@@ -515,9 +488,10 @@ export default function PreviewPage({
                 type="button"
                 onClick={onBack}
                 disabled={isSubmitting}
-                className="px-5 py-2.5 text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition duration-150 cursor-pointer disabled:opacity-50 select-none"
+                className="px-5 py-2.5 text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition duration-150 cursor-pointer disabled:opacity-50 select-none flex items-center gap-1.5"
               >
-                Cancel
+                <ArrowLeft className="w-4 h-4" />
+                Back
               </button>
               <button
                 type="button"

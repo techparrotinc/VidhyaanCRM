@@ -40,6 +40,7 @@ export async function GET() {
         payments: payments.map(p => ({
           id: p.id,
           receiptNumber: p.receiptNumber,
+          invoiceId: p.invoiceId,
           invoiceNumber: p.invoice.invoiceNumber,
           studentName: p.studentId ? studentNameById.get(p.studentId) ?? null : null,
           amount: Number(p.amount),

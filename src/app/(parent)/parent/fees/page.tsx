@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
-import { Receipt, FileText } from 'lucide-react'
+import { Receipt, FileText, Download } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import PayDialog, { type PayableInvoice } from '@/components/parent/fees/PayDialog'
 
@@ -19,6 +19,7 @@ type InvoiceRow = PayableInvoice & {
 type PaymentRow = {
   id: string
   receiptNumber: string
+  invoiceId: string
   invoiceNumber: string
   studentName: string | null
   amount: number
@@ -113,16 +114,22 @@ export default function ParentFeesPage() {
                   />
                 </div>
               )}
-              {invoice.payable && (
-                <div className="flex justify-end">
+              <div className="flex justify-end items-center gap-4">
+                <a
+                  href={`/api/v1/parent/fees/invoices/${invoice.id}/pdf`}
+                  className="inline-flex items-center gap-1 text-sm font-semibold text-[#1565D8]"
+                >
+                  <Download className="w-4 h-4" /> Invoice PDF
+                </a>
+                {invoice.payable && (
                   <button
                     onClick={() => setPaying(invoice)}
                     className="px-4 py-2 rounded-lg bg-[#1565D8] text-white text-sm font-semibold hover:bg-[#1258be] transition-colors"
                   >
                     Pay ₹{invoice.balance.toLocaleString('en-IN')}
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -150,7 +157,16 @@ export default function ParentFeesPage() {
                     </p>
                   </div>
                 </div>
-                <span className="text-xs font-normal text-slate-400">{formatDate(payment.paidAt)}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-normal text-slate-400">{formatDate(payment.paidAt)}</span>
+                  <a
+                    href={`/api/v1/parent/fees/invoices/${payment.invoiceId}/pdf`}
+                    className="text-slate-400 hover:text-[#1565D8]"
+                    title="Download invoice PDF"
+                  >
+                    <Download className="w-4 h-4" />
+                  </a>
+                </div>
               </div>
             ))}
           </div>

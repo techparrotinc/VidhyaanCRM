@@ -55,11 +55,18 @@ export function decryptCredentials(config: PaymentGatewayConfig): DecryptedCrede
   }
 }
 
+export function generateWebhookSecret(): string {
+  return 'whsec_' + crypto.randomBytes(24).toString('hex')
+}
+
 /**
- * Save (or replace) credentials for one environment. Always resets the config
- * to DRAFT and rotates the webhook secret — new keys mean prior verification
- * no longer proves anything. Returns the plaintext webhook secret exactly
- * once, for the admin to paste into the provider dashboard.
+ * Save (or replace) credentials for one environment. Resets the config to
+ * DRAFT (new keys need re-verification) but PRESERVES the webhook secret —
+ * credential rotation and webhook-secret rotation are separate concerns, and
+ * silently rotating the secret here strands whatever is registered in the
+ * provider dashboard. Rotation is explicit via rotateWebhookSecret().
+ * Returns the (existing or newly generated) plaintext secret so the setup
+ * wizard can display it.
  */
 export async function saveCredentials(
   db: OrgScopedClient,
@@ -72,27 +79,28 @@ export async function saveCredentials(
     createdById: string
   }
 ): Promise<{ config: PaymentGatewayConfig; webhookSecret: string }> {
-  const webhookSecret = 'whsec_' + crypto.randomBytes(24).toString('hex')
-
-  const data = {
-    keyIdEncrypted: encryptSecret(input.keyId),
-    keySecretEncrypted: encryptSecret(input.keySecret),
-    webhookSecretEnc: encryptSecret(webhookSecret),
-    encryptionKeyVer: currentKeyVersion(),
-    keyIdLast4: input.keyId.slice(-4),
-    status: GatewayConfigStatus.DRAFT,
-    isCurrent: false,
-    verifiedAt: null,
-    webhookVerifiedAt: null,
-    deletedAt: null
-  }
-
   // deletedAt: {} opts out of the tenant client's soft-delete filter — a
   // previously disabled config must be found and revived, or create would
   // hit the (orgId, provider, environment) unique constraint.
   const existing = await db.paymentGatewayConfig.findFirst({
     where: { provider: input.provider, environment: input.environment, deletedAt: {} }
   })
+
+  const webhookSecret = existing ? decryptSecret(existing.webhookSecretEnc) : generateWebhookSecret()
+
+  const data = {
+    keyIdEncrypted: encryptSecret(input.keyId),
+    keySecretEncrypted: encryptSecret(input.keySecret),
+    webhookSecretEnc: existing ? existing.webhookSecretEnc : encryptSecret(webhookSecret),
+    encryptionKeyVer: currentKeyVersion(),
+    keyIdLast4: input.keyId.slice(-4),
+    status: GatewayConfigStatus.DRAFT,
+    isCurrent: false,
+    verifiedAt: null,
+    // webhookVerifiedAt survives: the secret didn't change, so an already
+    // registered webhook keeps verifying.
+    deletedAt: null
+  }
 
   const config = existing
     ? await db.paymentGatewayConfig.update({ where: { id: existing.id }, data })
@@ -103,6 +111,27 @@ export async function saveCredentials(
       })
 
   return { config, webhookSecret }
+}
+
+/** Current plaintext webhook secret — ORG_ADMIN reveal, must be audit-logged by the caller. */
+export function revealWebhookSecret(config: PaymentGatewayConfig): string {
+  return decryptSecret(config.webhookSecretEnc)
+}
+
+/** Explicit rotation: mint a new secret and clear webhook verification. */
+export async function rotateWebhookSecret(
+  db: OrgScopedClient,
+  config: PaymentGatewayConfig
+): Promise<{ config: PaymentGatewayConfig; webhookSecret: string }> {
+  const webhookSecret = generateWebhookSecret()
+  const updated = await db.paymentGatewayConfig.update({
+    where: { id: config.id },
+    data: {
+      webhookSecretEnc: encryptSecret(webhookSecret),
+      webhookVerifiedAt: null
+    }
+  })
+  return { config: updated, webhookSecret }
 }
 
 /** Credential check against the live provider API. DRAFT → VERIFIED on success. */

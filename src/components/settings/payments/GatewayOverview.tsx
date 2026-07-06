@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { CheckCircle2, AlertTriangle, Loader2, KeyRound, Power, Copy } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, Loader2, KeyRound, Power, Copy, Eye, RefreshCw } from 'lucide-react'
 import type { MaskedGatewayConfig } from '@/lib/payments/config'
 
 type Props = {
@@ -34,9 +34,33 @@ export default function GatewayOverview({ configs, webhookUrl, onMutate, onRotat
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copiedUrl, setCopiedUrl] = useState(false)
+  const [revealedSecret, setRevealedSecret] = useState<string | null>(null)
+  const [copiedSecret, setCopiedSecret] = useState(false)
 
   const current = configs.find(c => c.isCurrent)
   const policySource = current ?? configs[0]
+  const secretEnv = policySource?.environment
+
+  const secretAction = async (method: 'GET' | 'POST') => {
+    if (!secretEnv) return
+    if (method === 'GET' && revealedSecret) {
+      setRevealedSecret(null)
+      return
+    }
+    setBusy('secret')
+    setError(null)
+    try {
+      const res = await fetch(`/api/v1/payment-gateway/config/${secretEnv}/webhook-secret`, { method })
+      const body = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(body?.error ?? 'Request failed')
+      setRevealedSecret(body.data.webhookSecret)
+      if (method === 'POST') onMutate()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong')
+    } finally {
+      setBusy(null)
+    }
+  }
 
   const call = async (key: string, fn: () => Promise<Response>) => {
     setBusy(key)
@@ -186,9 +210,48 @@ export default function GatewayOverview({ configs, webhookUrl, onMutate, onRotat
             {copiedUrl ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
           </button>
         </div>
+        {revealedSecret && (
+          <div className="flex items-center gap-2">
+            <code className="flex-1 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs font-mono text-slate-700 overflow-x-auto select-text">
+              {revealedSecret}
+            </code>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(revealedSecret)
+                setCopiedSecret(true)
+                setTimeout(() => setCopiedSecret(false), 2000)
+              }}
+              className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-[#1565D8] shrink-0"
+              title="Copy webhook secret"
+            >
+              {copiedSecret ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+            </button>
+          </div>
+        )}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => secretAction('GET')}
+            disabled={busy !== null || !secretEnv}
+            className="text-xs font-semibold text-[#1565D8] inline-flex items-center gap-1 disabled:opacity-50"
+          >
+            {busy === 'secret' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+            {revealedSecret ? 'Hide secret' : 'Reveal secret'}
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm('Rotate the webhook secret? You must update it in the Razorpay dashboard, or webhooks will stop verifying.')) {
+                secretAction('POST')
+              }
+            }}
+            disabled={busy !== null || !secretEnv}
+            className="text-xs font-semibold text-slate-500 inline-flex items-center gap-1 disabled:opacity-50"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Rotate secret
+          </button>
+        </div>
         <p className="text-xs font-normal text-slate-400">
-          Registered in your Razorpay dashboard. The signing secret was shown once during setup —
-          rotate keys to generate a new one.
+          The signing secret stays stable when you rotate API keys. Rotating it here requires
+          updating the webhook in your Razorpay dashboard.
         </p>
       </div>
 

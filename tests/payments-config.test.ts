@@ -27,6 +27,37 @@ function stubDb() {
 }
 
 describe('saveCredentials', () => {
+  it('preserves the webhook secret and verification across credential re-saves', async () => {
+    const db = stubDb()
+    const first = await saveCredentials(db, {
+      orgId: 'org_test',
+      provider: 'RAZORPAY',
+      environment: 'TEST',
+      keyId: 'rzp_test_first',
+      keySecret: 'secret_one',
+      createdById: 'user_1'
+    })
+
+    // Second save finds the existing row
+    const existingRow = { ...first.config, webhookVerifiedAt: new Date() }
+    db.paymentGatewayConfig.findFirst = async () => existingRow
+
+    const second = await saveCredentials(db, {
+      orgId: 'org_test',
+      provider: 'RAZORPAY',
+      environment: 'TEST',
+      keyId: 'rzp_test_second',
+      keySecret: 'secret_two',
+      createdById: 'user_1'
+    })
+
+    expect(second.webhookSecret).toBe(first.webhookSecret)
+    expect(db.calls.update.data.webhookSecretEnc).toBe(first.config.webhookSecretEnc)
+    // Credentials reset to DRAFT, but webhook verification is not cleared
+    expect(db.calls.update.data.status).toBe('DRAFT')
+    expect(db.calls.update.data).not.toHaveProperty('webhookVerifiedAt')
+  })
+
   it('encrypts everything, resets to DRAFT, returns webhook secret once', async () => {
     const db = stubDb()
     const { config, webhookSecret } = await saveCredentials(db, {

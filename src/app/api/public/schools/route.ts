@@ -162,33 +162,36 @@ export async function GET(req: NextRequest) {
         }
       })
 
-      // Filter out schools beyond maxDistance or missing coordinates
+      // Keep schools within maxDistance. Schools with no stored coordinates
+      // already passed the text filters (city/area/search) in `where` — don't
+      // make them invisible just because onboarding never captured lat/lng;
+      // they sort after true GPS matches instead.
       const filteredSchools = schoolsWithDistance.filter((s: any) => {
-        return s.distance !== null && s.distance <= maxDistance
+        return s.distance === null || s.distance <= maxDistance
       })
 
       // Sort matching schools
       if (sort === 'rating') {
         filteredSchools.sort((a: any, b: any) => {
           if (b.avgRating !== a.avgRating) return b.avgRating - a.avgRating
-          return (a.distance ?? 0) - (b.distance ?? 0)
+          return (a.distance ?? Number.MAX_SAFE_INTEGER) - (b.distance ?? Number.MAX_SAFE_INTEGER)
         })
       } else if (sort === 'newest') {
         filteredSchools.sort((a: any, b: any) => {
           const dateB = new Date(b.createdAt).getTime()
           const dateA = new Date(a.createdAt).getTime()
           if (dateB !== dateA) return dateB - dateA
-          return (a.distance ?? 0) - (b.distance ?? 0)
+          return (a.distance ?? Number.MAX_SAFE_INTEGER) - (b.distance ?? Number.MAX_SAFE_INTEGER)
         })
       } else if (sort === 'enquiries') {
         filteredSchools.sort((a: any, b: any) => {
           if (b.enquiryCount !== a.enquiryCount) return b.enquiryCount - a.enquiryCount
-          return (a.distance ?? 0) - (b.distance ?? 0)
+          return (a.distance ?? Number.MAX_SAFE_INTEGER) - (b.distance ?? Number.MAX_SAFE_INTEGER)
         })
       } else {
-        // Default sort: distance ascending
+        // Default sort: distance ascending, coord-less schools last
         filteredSchools.sort((a: any, b: any) => {
-          return (a.distance ?? 0) - (b.distance ?? 0)
+          return (a.distance ?? Number.MAX_SAFE_INTEGER) - (b.distance ?? Number.MAX_SAFE_INTEGER)
         })
       }
 

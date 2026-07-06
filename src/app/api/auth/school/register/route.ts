@@ -124,6 +124,18 @@ export async function POST(req: NextRequest) {
         }
       })
 
+      // Create default active academic year (AY 2026-27)
+      await prisma.academicYear.create({
+        data: {
+          orgId: org.id,
+          name: 'AY 2026-27',
+          type: 'ACADEMIC',
+          startDate: new Date('2026-06-01T00:00:00Z'),
+          endDate: new Date('2027-04-30T23:59:59Z'),
+          status: 'ACTIVE'
+        }
+      })
+
       const schoolSlug = slugify(schoolName) || 'school'
       let uniqueSchoolSlug = schoolSlug
       count = 1

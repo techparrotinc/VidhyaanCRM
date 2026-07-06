@@ -125,6 +125,18 @@ export default function DashboardPage() {
   const [dashData, setDashData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [schoolName, setSchoolName] = useState('Prince Matriculation School')
+
+  useEffect(() => {
+    fetch('/api/v1/school-profile')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.school?.name) {
+          setSchoolName(data.school.name)
+        }
+      })
+      .catch((err) => console.error('Error fetching school profile in dashboard:', err))
+  }, [])
 
   useEffect(() => {
     const bannerDismissed = localStorage.getItem('vidhyaan_welcome_banner_dismissed')
@@ -304,7 +316,7 @@ export default function DashboardPage() {
     <div className="flex-1 p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full select-none">
       <div className="flex flex-col min-w-0 mb-6">
         <h1 className="text-xl font-bold text-slate-800 tracking-tight leading-tight">
-          Welcome to {institutionConfig.name}!
+          Welcome to {schoolName}!
         </h1>
         <p className="text-xs text-slate-400 mt-1">
           {institutionConfig.type === 'school' && "Here's what's happening at your school today."}
@@ -418,7 +430,7 @@ export default function DashboardPage() {
                 {/* LEFT: Heading + Subtext */}
                 <div className="flex-1">
                   <h3 className="text-lg md:text-xl font-bold text-slate-800 tracking-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                    Welcome to Vidhyaan, {institutionConfig.name}!
+                    Welcome to Vidhyaan, {schoolName}!
                   </h3>
                   <p className="mt-1.5 text-sm text-slate-500 leading-relaxed max-w-lg">
                     {"Here's your Premium dashboard. Everything is live during your 7-day trial. Complete your profile to get discovered by parents."}
@@ -459,7 +471,7 @@ export default function DashboardPage() {
                   strokeWidth={2}
                 />
                 <span className="text-sm font-semibold text-slate-700">
-                  {institutionConfig.name}
+                  {schoolName}
                 </span>
                 <span className="text-slate-300 mx-1 hidden sm:inline">·</span>
                 <span className="bg-green-100 text-green-700 text-[11px] font-bold px-2.5 py-0.5 rounded-full">

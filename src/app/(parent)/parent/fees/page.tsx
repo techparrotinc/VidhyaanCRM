@@ -9,11 +9,39 @@ import PayDialog, { type PayableInvoice } from '@/components/parent/fees/PayDial
 
 type InvoiceRow = PayableInvoice & {
   gradeLabel: string | null
+  institutionType: 'SCHOOL' | 'LEARNING_CENTER'
+  invoiceType: string
+  termName: string | null
+  courseName: string | null
+  createdAt: string
   totalAmount: number
   paidAmount: number
   dueDate: string | null
   status: string
   payable: boolean
+}
+
+type PeriodMode = 'month' | 'quarter' | 'year'
+
+const PERIOD_MODES: { value: PeriodMode; label: string }[] = [
+  { value: 'month', label: 'Month' },
+  { value: 'quarter', label: 'Quarter' },
+  { value: 'year', label: 'Year' }
+]
+
+function periodLabel(dateStr: string | null, mode: PeriodMode): string {
+  if (!dateStr) return 'No date'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return 'No date'
+  const y = d.getFullYear()
+  if (mode === 'year') return String(y)
+  if (mode === 'quarter') return `Q${Math.floor(d.getMonth() / 3) + 1} ${y}`
+  return d.toLocaleString('en-IN', { month: 'long', year: 'numeric' })
+}
+
+function periodTime(dateStr: string | null): number {
+  const t = dateStr ? new Date(dateStr).getTime() : 0
+  return isNaN(t) ? 0 : t
 }
 
 type PaymentRow = {
@@ -66,6 +94,7 @@ export default function ParentFeesPage() {
     return [...map.entries()].map(([schoolName, rows]) => ({
       schoolName,
       rows,
+      institutionType: rows[0]?.institutionType ?? 'SCHOOL',
       children: [...new Set(rows.map(r => r.studentName).filter(Boolean))] as string[]
     }))
   }, [invoices])
@@ -73,6 +102,8 @@ export default function ParentFeesPage() {
 
   // Per-institution child filter (only rendered when >1 child in section)
   const [childFilter, setChildFilter] = useState<Record<string, string>>({})
+  // Per-institution period grouping for learning centers (schools group by term)
+  const [periodMode, setPeriodMode] = useState<Record<string, PeriodMode>>({})
 
   const refresh = () => {
     invoicesRes.mutate()
@@ -114,30 +145,94 @@ export default function ParentFeesPage() {
           ? group.rows
           : group.rows.filter(r => r.studentName === selectedChild)
 
+        const isLC = group.institutionType === 'LEARNING_CENTER'
+        const mode = periodMode[group.schoolName] ?? 'month'
+
+        // Schools group by term; learning centers by billing period
+        const subgroupMap = new Map<string, { rows: InvoiceRow[]; sort: number }>()
+        for (const inv of visibleRows) {
+          const key = isLC
+            ? periodLabel(inv.dueDate ?? inv.createdAt, mode)
+            : (inv.termName ?? (inv.courseName ?? 'Adhoc / Other'))
+          const sort = isLC ? periodTime(inv.dueDate ?? inv.createdAt) : 0
+          const existing = subgroupMap.get(key)
+          if (existing) {
+            existing.rows.push(inv)
+            existing.sort = Math.max(existing.sort, sort)
+          } else {
+            subgroupMap.set(key, { rows: [inv], sort })
+          }
+        }
+        const subgroups = [...subgroupMap.entries()].map(([label, v]) => ({
+          label,
+          rows: v.rows,
+          due: v.rows.reduce((s, r) => s + r.balance, 0),
+          sort: v.sort
+        }))
+        if (isLC) subgroups.sort((a, b) => b.sort - a.sort)
+
+        const groupDue = visibleRows.reduce((s, r) => s + r.balance, 0)
+
         return (
-        <div key={group.schoolName} className="space-y-3">
-          {multiInstitution && (
+        <div key={group.schoolName} className="space-y-4">
+          {/* Institution header + outstanding subtotal */}
+          <div className="flex items-center justify-between gap-3">
             <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-              {group.schoolName}
+              {multiInstitution ? group.schoolName : 'Invoices'}
             </h2>
-          )}
-          {group.children.length > 1 && (
-            <div className="flex items-center flex-wrap gap-1.5">
-              {['all', ...group.children].map(child => (
-                <button
-                  key={child}
-                  onClick={() => setChildFilter(prev => ({ ...prev, [group.schoolName]: child }))}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors ${
-                    selectedChild === child
-                      ? 'bg-[#1565D8] text-white'
-                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}>
-                  {child === 'all' ? 'All children' : child}
-                </button>
-              ))}
+            <span className={`text-xs font-semibold ${groupDue > 0 ? 'text-red-600' : 'text-slate-400'}`}>
+              {groupDue > 0 ? `₹${groupDue.toLocaleString('en-IN')} due` : 'All settled'}
+            </span>
+          </div>
+
+          {/* Filters row: child pills + LC period toggle */}
+          {(group.children.length > 1 || isLC) && (
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center flex-wrap gap-1.5">
+                {group.children.length > 1 && ['all', ...group.children].map(child => (
+                  <button
+                    key={child}
+                    onClick={() => setChildFilter(prev => ({ ...prev, [group.schoolName]: child }))}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors ${
+                      selectedChild === child
+                        ? 'bg-[#1565D8] text-white'
+                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}>
+                    {child === 'all' ? 'All children' : child}
+                  </button>
+                ))}
+              </div>
+              {isLC && (
+                <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 select-none">
+                  {PERIOD_MODES.map(pm => (
+                    <button
+                      key={pm.value}
+                      onClick={() => setPeriodMode(prev => ({ ...prev, [group.schoolName]: pm.value }))}
+                      className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+                        mode === pm.value
+                          ? 'bg-white text-[#1565D8] shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}>
+                      {pm.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
-          {visibleRows.map(invoice => (
+
+          {subgroups.map(sub => (
+          <div key={sub.label} className="space-y-3">
+            {/* Term / period subheader + subtotal */}
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <h3 className="text-xs font-bold text-slate-700">
+                {sub.label}
+              </h3>
+              <span className="text-[11px] font-semibold text-slate-400">
+                {sub.due > 0 ? `₹${sub.due.toLocaleString('en-IN')} due` : 'Paid'}
+              </span>
+            </div>
+          {sub.rows.map(invoice => (
             <div key={invoice.id} className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -149,6 +244,7 @@ export default function ParentFeesPage() {
                   </p>
                   <p className="text-xs font-normal text-slate-400">
                     {invoice.studentName}{invoice.gradeLabel ? ` · ${invoice.gradeLabel}` : ''}
+                    {invoice.courseName ? ` · ${invoice.courseName}` : ''}
                     {!multiInstitution && ` · ${invoice.schoolName}`}
                   </p>
                 </div>
@@ -182,6 +278,8 @@ export default function ParentFeesPage() {
                 )}
               </div>
             </div>
+          ))}
+          </div>
           ))}
         </div>
         )

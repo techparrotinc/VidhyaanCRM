@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { MapPin, ChevronDown, Search, X, Building, Loader2 } from 'lucide-react'
-import { useLocation, SUPPORTED_CITIES } from '@/hooks/useLocation'
+import { useLocation } from '@/hooks/useLocation'
 import { CITY_AREAS } from '@/constants/locationAreas'
 
 interface LocationSelectorProps {
@@ -21,6 +21,7 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
     gpsCity,
     detectedArea,
     isSupportedCity,
+    supportedCities,
     loading: locationLoading,
     requestLocation,
     setManualCity,
@@ -37,9 +38,9 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
 
     const normalizedQuery = locSearch.toLowerCase().trim()
     const results: any[] = []
-    
-    // Match cities first
-    for (const cityName of Object.keys(CITY_AREAS)) {
+
+    // Match cities first — dynamic list (cities with published schools)
+    for (const cityName of supportedCities) {
       if (cityName.toLowerCase().includes(normalizedQuery)) {
         results.push({
           type: 'city',
@@ -65,7 +66,7 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
     }
 
     setLocSuggestions(results.slice(0, 10))
-  }, [locSearch])
+  }, [locSearch, supportedCities])
 
   const handleSelectLocSuggestion = (suggestion: any) => {
     setManualCity(suggestion.cityName)
@@ -259,12 +260,12 @@ export default function LocationSelector({ className }: LocationSelectorProps) {
                     onClick={() => setShowAllCities(!showAllCities)}
                     className="text-[10px] text-[#1565D8] font-black uppercase hover:underline cursor-pointer focus:outline-none"
                   >
-                    {showAllCities ? "Show Less" : `Show all ${SUPPORTED_CITIES.length} cities`}
+                    {showAllCities ? "Show Less" : `Show all ${supportedCities.length} cities`}
                   </button>
                 </div>
 
                 <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
-                  {(showAllCities ? SUPPORTED_CITIES : SUPPORTED_CITIES.slice(0, 4)).map((cityName) => {
+                  {(showAllCities ? supportedCities : supportedCities.slice(0, 4)).map((cityName) => {
                     const isSelected = city === cityName
                     return (
                       <button

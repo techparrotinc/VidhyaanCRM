@@ -4,6 +4,8 @@ export type PermissionStatusType = 'idle' | 'requesting' | 'granted' | 'denied' 
 export type DetectionMethodType = 'gps' | 'manual' | 'cached' | null
 
 export const CACHE_VERSION = 2
+// Popular fallback list — the live list is hydrated from /api/public/locations
+// (cities with published schools) and merged into store.supportedCities.
 export const SUPPORTED_CITIES = [
   'Chennai',
   'Bengaluru',
@@ -16,6 +18,9 @@ export const SUPPORTED_CITIES = [
   'Kochi',
   'Jaipur'
 ]
+
+const cityInList = (list: string[], cityName: string) =>
+  list.some((c) => c.toLowerCase() === cityName.toLowerCase())
 
 interface LocationState {
   manualCity: string | null
@@ -31,7 +36,9 @@ interface LocationState {
   detectionMethod: DetectionMethodType
   initialized: boolean
   isSupportedCity: boolean
+  supportedCities: string[]
 
+  setSupportedCities: (cities: string[]) => void
   setManualCity: (cityName: string) => void
   setManualArea: (areaName: string | null) => void
   setDetectedCity: (cityName: string | null, areaName: string | null, lat: number | null, lng: number | null, method: DetectionMethodType) => void
@@ -58,6 +65,25 @@ export const useLocationStore = create<LocationState>((set) => ({
   detectionMethod: null,
   initialized: false,
   isSupportedCity: true,
+  supportedCities: SUPPORTED_CITIES,
+
+  setSupportedCities: (cities: string[]) => {
+    set((state) => {
+      // merge, dedupe case-insensitively, keep popular ordering first
+      const merged = [...state.supportedCities]
+      for (const c of cities) {
+        if (!cityInList(merged, c)) merged.push(c)
+      }
+      // re-evaluate support of the currently detected city against new list
+      const detected = state.detectedCity
+      const isSupported = detected ? cityInList(merged, detected) : state.isSupportedCity
+      return {
+        supportedCities: merged,
+        isSupportedCity: isSupported,
+        activeCity: state.activeCity || (detected && isSupported ? detected : state.activeCity)
+      }
+    })
+  },
 
   setManualCity: (cityName: string) => {
     set({
@@ -110,7 +136,7 @@ export const useLocationStore = create<LocationState>((set) => ({
 
   setDetectedCity: (cityName: string | null, areaName: string | null, lat: number | null, lng: number | null, method: DetectionMethodType) => {
     set((state) => {
-      const isSupported = cityName ? SUPPORTED_CITIES.includes(cityName) : false
+      const isSupported = cityName ? cityInList(state.supportedCities, cityName) : false
       const active = state.manualCity || (isSupported ? cityName : null)
       return {
         detectedCity: cityName,
@@ -146,8 +172,9 @@ export const useLocationStore = create<LocationState>((set) => ({
   setInitialized: (initialized: boolean) => set({ initialized }),
   
   restoreCachedLocation: (saved: any) => {
-    const isSupported = saved.city ? SUPPORTED_CITIES.includes(saved.city) : false
-    set({
+    set((state) => {
+      const isSupported = saved.city ? cityInList(state.supportedCities, saved.city) : false
+      return {
       manualCity: saved.method === 'manual' ? saved.city : null,
       manualArea: saved.method === 'manual' ? (saved.area || null) : null,
       detectedCity: saved.method === 'gps' || saved.method === 'cached' ? saved.city : null,
@@ -160,6 +187,7 @@ export const useLocationStore = create<LocationState>((set) => ({
       loading: false,
       initialized: true,
       isSupportedCity: isSupported
+      }
     })
   },
 

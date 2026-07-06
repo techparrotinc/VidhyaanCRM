@@ -11,6 +11,22 @@ import {
 
 export { SUPPORTED_CITIES } from '@/stores/location.store'
 
+// Hydrate the live city list (cities with published schools) once per page load
+let citiesFetched = false
+async function hydrateSupportedCities() {
+  if (citiesFetched) return
+  citiesFetched = true
+  try {
+    const res = await fetch('/api/public/locations')
+    const json = await res.json()
+    if (json.success && Array.isArray(json.data?.cities)) {
+      useLocationStore.getState().setSupportedCities(json.data.cities)
+    }
+  } catch (e) {
+    console.error('Failed to hydrate supported cities:', e)
+  }
+}
+
 export function useLocation() {
   const store = useLocationStore()
   const initialized = useLocationStore((state) => state.initialized)
@@ -94,6 +110,7 @@ export function useLocation() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+    hydrateSupportedCities()
     if (initialized) return
 
     // Check localStorage
@@ -103,7 +120,12 @@ export function useLocation() {
         const saved = JSON.parse(savedStr)
         const isExpired = Date.now() - saved.detectedAt > 24 * 60 * 60 * 1000
         const isVersionValid = saved.version === CACHE_VERSION
-        const isCityValid = saved.city === null || SUPPORTED_CITIES.includes(saved.city)
+        // manual picks are always valid (chosen from the picker); detected
+        // cities re-validate against the dynamic list once it hydrates
+        const isCityValid = saved.city === null || saved.method === 'manual' ||
+          useLocationStore.getState().supportedCities.some(
+            (c) => c.toLowerCase() === String(saved.city).toLowerCase()
+          )
 
         if (!isExpired && isVersionValid && isCityValid) {
           useLocationStore.getState().restoreCachedLocation(saved)
@@ -124,6 +146,7 @@ export function useLocation() {
     gpsCity: store.detectedCity,
     detectedArea: store.detectedArea,
     isSupportedCity: store.isSupportedCity,
+    supportedCities: store.supportedCities,
     lat: store.lat,
     lng: store.lng,
     loading: store.loading,

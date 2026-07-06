@@ -3,7 +3,8 @@
 // is unit-testable.
 
 export interface BatchTermSection {
-  term: { id: string }
+  termId: string | null
+  invoiceType: 'TERM' | 'ADHOC'
   dueDate: string
   scheduleType: 'now' | 'date'
   scheduledDate: string
@@ -12,15 +13,15 @@ export interface BatchTermSection {
 
 export interface BatchInvoiceInput {
   studentId: string
-  invoiceType: 'TERM'
-  termId: string
+  invoiceType: 'TERM' | 'ADHOC'
+  termId: string | null
   items: { name: string; quantity: number; unitPrice: number }[]
   dueDate: string
   scheduledDate: string | null
   notes: string
 }
 
-/** One invoice per (student × term section), matching the batch API schema. */
+/** One invoice per (student × section), matching the batch API schema. */
 export function buildBatchInvoices(
   sections: BatchTermSection[],
   studentIds: string[]
@@ -31,8 +32,8 @@ export function buildBatchInvoices(
     for (const sec of sections) {
       invoices.push({
         studentId: stdId,
-        invoiceType: 'TERM',
-        termId: sec.term.id,
+        invoiceType: sec.invoiceType,
+        termId: sec.termId,
         items: sec.feeHeads.map(h => ({
           name: h.name,
           quantity: 1,

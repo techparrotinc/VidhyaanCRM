@@ -26,6 +26,7 @@ interface Term {
 
 interface TermSection {
   term: Term
+  invoiceType: 'TERM' | 'ADHOC'
   dueDate: string
   scheduleType: 'now' | 'date'
   scheduledDate: string
@@ -84,8 +85,24 @@ export default function PreviewStep({
 
   // Distribute Fee Heads to each selected term section based on layout logic
   const [sections, setSections] = useState<TermSection[]>(() => {
-    // Adhoc or manual list term mode uses empty or manual items directly
     const items = initialItems || []
+
+    // Default due date: 30 days from today in YYYY-MM-DD
+    const defaultDue = new Date()
+    defaultDue.setDate(defaultDue.getDate() + 30)
+    const defaultDueStr = defaultDue.toISOString().split('T')[0]
+
+    // Adhoc has no terms — one pseudo-section carrying all items
+    if (invoiceType === 'ADHOC' || selectedTerms.length === 0) {
+      return [{
+        term: { id: 'adhoc', name: 'Adhoc Invoice', startDate: '', endDate: '', order: 0 },
+        invoiceType: 'ADHOC' as const,
+        dueDate: defaultDueStr,
+        scheduleType: 'now' as const,
+        scheduledDate: '',
+        feeHeads: items.map(head => ({ ...head, id: `${head.id}-adhoc` }))
+      }]
+    }
 
     return selectedTerms.map((term, index, arr) => {
       const isFirst = index === 0
@@ -129,8 +146,9 @@ export default function PreviewStep({
 
       return {
         term,
+        invoiceType: 'TERM' as const,
         dueDate: defaultDueDateStr,
-        scheduleType: 'now',
+        scheduleType: 'now' as const,
         scheduledDate: '',
         feeHeads: termHeads
       }
@@ -268,7 +286,17 @@ export default function PreviewStep({
       setSubmittingProgressText(`Creating ${totalInvoices} invoices for ${finalStudentIds.length} students...`)
 
       // Generate batch payload (pure builder — see tests/build-batch.test.ts)
-      const invoices = buildBatchInvoices(sections, finalStudentIds)
+      const invoices = buildBatchInvoices(
+        sections.map(s => ({
+          termId: s.invoiceType === 'ADHOC' ? null : s.term.id,
+          invoiceType: s.invoiceType,
+          dueDate: s.dueDate,
+          scheduleType: s.scheduleType,
+          scheduledDate: s.scheduledDate,
+          feeHeads: s.feeHeads
+        })),
+        finalStudentIds
+      )
 
       const generatedBatchId = crypto.randomUUID()
 
@@ -308,8 +336,8 @@ export default function PreviewStep({
       <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 pt-2 pb-4">
         <p className="text-xs text-slate-500 font-medium truncate select-none">
           {mode === 'class'
-            ? `Grade ${grade} · ${studentCount} students · ${sections.length} terms · ${totalInvoices} invoices total`
-            : `${student?.name} · ${sections.length} terms · ${totalInvoices} invoices total`}
+            ? `Grade ${grade} · ${studentCount} students · ${invoiceType === 'ADHOC' ? 'Adhoc' : `${sections.length} terms`} · ${totalInvoices} invoices total`
+            : `${student?.name} · ${invoiceType === 'ADHOC' ? 'Adhoc' : `${sections.length} terms`} · ${totalInvoices} invoices total`}
         </p>
       </div>
 
@@ -339,9 +367,11 @@ export default function PreviewStep({
                     <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
                       {section.term.name}
                     </h2>
-                    <p className="text-xs text-slate-400 font-semibold mt-0.5">
-                      {formatDate(section.term.startDate)} – {formatDate(section.term.endDate)}
-                    </p>
+                    {section.invoiceType === 'TERM' && (
+                      <p className="text-xs text-slate-400 font-semibold mt-0.5">
+                        {formatDate(section.term.startDate)} – {formatDate(section.term.endDate)}
+                      </p>
+                    )}
                   </div>
                   {section.error && (
                     <div className="flex items-center gap-1 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-1 font-semibold">

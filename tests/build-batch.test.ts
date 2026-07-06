@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { buildBatchInvoices } from '@/app/(crm)/fee-management/create/lib/buildBatch'
 
-const sections = [
+const termSections = [
   {
-    term: { id: 'term-1' },
+    termId: 'term-1',
+    invoiceType: 'TERM' as const,
     dueDate: '2026-08-01',
     scheduleType: 'now' as const,
     scheduledDate: '',
@@ -13,7 +14,8 @@ const sections = [
     ]
   },
   {
-    term: { id: 'term-2' },
+    termId: 'term-2',
+    invoiceType: 'TERM' as const,
     dueDate: '2026-11-01',
     scheduleType: 'date' as const,
     scheduledDate: '2026-10-15',
@@ -21,9 +23,18 @@ const sections = [
   }
 ]
 
+const adhocSection = {
+  termId: null,
+  invoiceType: 'ADHOC' as const,
+  dueDate: '2026-07-20',
+  scheduleType: 'now' as const,
+  scheduledDate: '',
+  feeHeads: [{ name: 'Book Set', amount: 500 }]
+}
+
 describe('buildBatchInvoices', () => {
   it('creates one invoice per student × term with the exact batch API shape', () => {
-    const result = buildBatchInvoices(sections, ['std-a', 'std-b'])
+    const result = buildBatchInvoices(termSections, ['std-a', 'std-b'])
     expect(result).toHaveLength(4)
 
     expect(result[0]).toEqual({
@@ -48,14 +59,28 @@ describe('buildBatchInvoices', () => {
     ])
   })
 
+  it('adhoc section → invoiceType ADHOC with null termId', () => {
+    const result = buildBatchInvoices([adhocSection], ['std-a', 'std-b'])
+    expect(result).toHaveLength(2)
+    expect(result[0]).toEqual({
+      studentId: 'std-a',
+      invoiceType: 'ADHOC',
+      termId: null,
+      items: [{ name: 'Book Set', quantity: 1, unitPrice: 500 }],
+      dueDate: new Date('2026-07-20').toISOString(),
+      scheduledDate: null,
+      notes: ''
+    })
+  })
+
   it('sets scheduledDate ISO string only for schedule-for-date sections', () => {
-    const result = buildBatchInvoices(sections, ['std-a'])
+    const result = buildBatchInvoices(termSections, ['std-a'])
     expect(result[0].scheduledDate).toBeNull()
     expect(result[1].scheduledDate).toBe(new Date('2026-10-15').toISOString())
   })
 
   it('empty inputs → empty payload', () => {
     expect(buildBatchInvoices([], ['std-a'])).toEqual([])
-    expect(buildBatchInvoices(sections, [])).toEqual([])
+    expect(buildBatchInvoices(termSections, [])).toEqual([])
   })
 })

@@ -621,7 +621,7 @@ export default function AddLeadPage() {
               </Card>
 
               {/* FORM SECTION 2 — ENQUIRY DETAILS */}
-              <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+              <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 overflow-visible">
                 <div className="flex items-center gap-2 mb-5">
                   <div className="w-6 h-6 rounded-full bg-[#1565D8] text-white text-xs font-bold flex items-center justify-center">
                     2
@@ -863,7 +863,7 @@ export default function AddLeadPage() {
               </Card>
 
               {/* FORM SECTION 3 — ASSIGNMENT & FOLLOW-UP */}
-              <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+              <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 overflow-visible">
                 <div className="flex items-center gap-2 mb-5">
                   <div className="w-6 h-6 rounded-full bg-[#1565D8] text-white text-xs font-bold flex items-center justify-center">
                     3

@@ -96,14 +96,40 @@ export async function POST(
       where: { phone }
     })
 
-    if (!parent) {
-      parent = await prisma.parent.create({
-        data: {
-          phone,
-          name: parentName,
-          email: email || null
-        }
+    if (!parent && email) {
+      const existingEmail = await prisma.parent.findUnique({
+        where: { email }
       })
+      if (existingEmail) {
+        if (existingEmail.phone !== phone) {
+          return NextResponse.json(
+            { success: false, error: 'This email address is already registered under another mobile number. Please check your details or use your registered phone number.' },
+            { status: 400 }
+          )
+        }
+        parent = existingEmail
+      }
+    }
+
+    if (!parent) {
+      try {
+        parent = await prisma.parent.create({
+          data: {
+            phone,
+            name: parentName,
+            email: email || null
+          }
+        })
+      } catch (createErr: any) {
+        console.error('Error creating parent record:', createErr)
+        if (createErr.code === 'P2002') {
+          return NextResponse.json(
+            { success: false, error: 'This phone number or email address is already registered. Please check your details.' },
+            { status: 400 }
+          )
+        }
+        throw createErr
+      }
     }
 
     // 5. Create ParentEnquiry record

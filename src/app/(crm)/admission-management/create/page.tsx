@@ -329,7 +329,7 @@ export default function CreateAdmissionPage() {
           </Card>
 
           {/* CARD 2 — ENROLLMENT DETAILS */}
-          <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 space-y-3 sm:space-y-4">
+          <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 space-y-3 sm:space-y-4 overflow-visible">
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 mb-3">
               Enrollment Details
             </h3>

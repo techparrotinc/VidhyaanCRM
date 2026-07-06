@@ -3,9 +3,25 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { mutate } from 'swr'
-import { ArrowLeft, Save, Loader2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, AlertCircle, CalendarDays } from 'lucide-react'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { GRADE_OPTIONS } from '@/constants/grades'
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Calendar as UiCalendar } from "@/components/ui/calendar"
+
+const format = (date: Date, formatStr: string): string => {
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  if (formatStr === 'yyyy-MM-dd') {
+    return `${yyyy}-${mm}-${dd}`
+  }
+  if (formatStr === 'd MMM yyyy') {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return `${parseInt(dd)} ${months[date.getMonth()]} ${yyyy}`
+  }
+  return date.toLocaleDateString()
+}
 
 export default function CreateStudentPage() {
   const router = useRouter()
@@ -18,13 +34,14 @@ export default function CreateStudentPage() {
     name: '',
     gradeLabel: '',
     rollNumber: '',
-    dateOfBirth: '',
     gender: '',
     academicYearId: '',
     guardianName: '',
     guardianPhone: '',
     guardianEmail: ''
   })
+  
+  const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(undefined)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -51,7 +68,7 @@ export default function CreateStudentPage() {
         body: JSON.stringify({
           name: formData.name.trim(),
           gender: formData.gender || undefined,
-          dateOfBirth: formData.dateOfBirth || undefined,
+          dateOfBirth: dateOfBirth ? format(dateOfBirth, 'yyyy-MM-dd') : undefined,
           gradeLabel: formData.gradeLabel || undefined,
           rollNumber: formData.rollNumber.trim() || undefined,
           academicYearId: formData.academicYearId || undefined,
@@ -152,7 +169,7 @@ export default function CreateStudentPage() {
       )}
 
       {/* FORM CARD */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-6 overflow-visible">
         {/* Student Information Section */}
         <div>
           <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 mb-4">
@@ -195,13 +212,35 @@ export default function CreateStudentPage() {
               <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                 Date of Birth
               </label>
-              <input
-                type="date"
-                name="dateOfBirth"
-                value={formData.dateOfBirth}
-                onChange={handleInputChange}
-                className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition"
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-full h-10 px-3.5 text-sm border border-slate-200 rounded-lg bg-white hover:bg-slate-50 flex items-center gap-2 text-slate-700 text-left focus:outline-none focus:border-[#1565D8] transition"
+                  >
+                    <CalendarDays size={14} className="text-slate-400 flex-shrink-0" />
+                    <span className="flex-1 truncate font-medium">
+                      {dateOfBirth
+                        ? format(dateOfBirth, 'd MMM yyyy')
+                        : 'Select date'}
+                    </span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="start"
+                  avoidCollisions={true}
+                  collisionPadding={16}
+                  sideOffset={4}
+                  className="z-[9999] w-auto p-0 shadow-xl rounded-xl border border-slate-200"
+                >
+                  <UiCalendar
+                    mode="single"
+                    selected={dateOfBirth}
+                    onSelect={setDateOfBirth}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div>

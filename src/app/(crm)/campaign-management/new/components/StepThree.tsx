@@ -3,8 +3,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { AlertCircle, Loader2, CalendarDays } from 'lucide-react'
 import { useWhatsappTemplates } from '@/hooks/useWhatsappTemplates'
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Calendar as UiCalendar } from "@/components/ui/calendar"
 
 // Dynamic Mail Icon (from lucide)
 function MailIcon({ className }: { className?: string }) {
@@ -120,6 +122,36 @@ export function StepThree({
   // WhatsApp templates fetching
   const { templates, isLoading: isTemplatesLoading } = useWhatsappTemplates()
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
+
+  const [scheduleDate, setScheduleDate] = useState<Date | undefined>(() => 
+    scheduledAt ? new Date(scheduledAt) : undefined
+  )
+  const [scheduleTime, setScheduleTime] = useState<string>(() => 
+    scheduledAt ? format(new Date(scheduledAt), 'HH:mm') : '09:00'
+  )
+
+  const updateSchedule = (date: Date | undefined, time: string) => {
+    if (!date) {
+      onScheduleChange(null)
+      return
+    }
+    const yyyy = date.getFullYear()
+    const mm = String(date.getMonth() + 1).padStart(2, '0')
+    const dd = String(date.getDate()).padStart(2, '0')
+    const timeStr = time || '09:00'
+    const combinedStr = `${yyyy}-${mm}-${dd}T${timeStr}:00`
+    onScheduleChange(new Date(combinedStr).toISOString())
+  }
+
+  const handleDateChange = (date: Date | undefined) => {
+    setScheduleDate(date)
+    updateSchedule(date, scheduleTime)
+  }
+
+  const handleTimeChange = (time: string) => {
+    setScheduleTime(time)
+    updateSchedule(scheduleDate, time)
+  }
 
   // Local state inside StepThree for subject and body separately
   const [subject, setSubject] = useState('')
@@ -342,7 +374,7 @@ export function StepThree({
       </div>
 
       {/* SCHEDULE SECTION */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4">
+      <div className="bg-white border border-slate-200 rounded-xl p-4 overflow-visible">
         <p className="text-sm font-semibold text-slate-700 mb-3">
           When to send?
         </p>
@@ -375,7 +407,13 @@ export function StepThree({
           </label>
 
           {/* Schedule for later */}
-          <label
+          <div
+            onClick={() => {
+              if (sendNow) {
+                onSendNowChange(false)
+                updateSchedule(scheduleDate, scheduleTime)
+              }
+            }}
             className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
               !sendNow ? 'border-[#1565D8] bg-[#1565D8]/5' : 'border-slate-200 bg-white'
             }`}
@@ -384,10 +422,10 @@ export function StepThree({
               type="radio"
               name="schedule"
               checked={!sendNow}
-              onChange={() => onSendNowChange(false)}
-              className="accent-[#1565D8] mt-0.5"
+              onChange={() => {}}
+              className="accent-[#1565D8] mt-0.5 pointer-events-none"
             />
-            <div className="flex-1">
+            <div className="flex-1" onClick={(e) => e.stopPropagation()}>
               <p className="text-sm font-semibold text-slate-800">
                 Schedule for later
               </p>
@@ -395,16 +433,79 @@ export function StepThree({
                 Choose a date and time to send
               </p>
               {!sendNow && (
-                <input
-                  type="datetime-local"
-                  value={scheduledAt ?? ''}
-                  min={new Date().toISOString().slice(0, 16)}
-                  onChange={(e) => onScheduleChange(e.target.value || null)}
-                  className="mt-2 h-9 px-3 text-sm border border-slate-200 rounded-lg w-full focus:outline-none focus:border-[#1565D8]"
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                  {/* Date Picker */}
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
+                      Date
+                    </label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-full h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white hover:bg-slate-50 flex items-center gap-2 text-slate-700 text-left focus:outline-none focus:border-[#1565D8] transition"
+                        >
+                          <CalendarDays size={13} className="text-slate-400 flex-shrink-0" />
+                          <span className="flex-1 truncate">
+                            {scheduleDate
+                              ? format(scheduleDate, 'd MMM yyyy')
+                              : 'Select date'}
+                          </span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        align="start"
+                        avoidCollisions={true}
+                        collisionPadding={16}
+                        sideOffset={4}
+                        className="z-[9999] w-auto p-0 shadow-xl rounded-xl border border-slate-200"
+                      >
+                        <UiCalendar
+                          mode="single"
+                          selected={scheduleDate}
+                          onSelect={handleDateChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Time Picker */}
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
+                      Time
+                    </label>
+                    <select
+                      value={scheduleTime}
+                      onChange={(e) => handleTimeChange(e.target.value)}
+                      className="w-full h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition"
+                    >
+                      <option value="09:00">9:00 AM</option>
+                      <option value="09:30">9:30 AM</option>
+                      <option value="10:00">10:00 AM</option>
+                      <option value="10:30">10:30 AM</option>
+                      <option value="11:00">11:00 AM</option>
+                      <option value="11:30">11:30 AM</option>
+                      <option value="12:00">12:00 PM</option>
+                      <option value="12:30">12:30 PM</option>
+                      <option value="13:00">1:00 PM</option>
+                      <option value="13:30">1:30 PM</option>
+                      <option value="14:00">2:00 PM</option>
+                      <option value="14:30">2:30 PM</option>
+                      <option value="15:00">3:00 PM</option>
+                      <option value="15:30">3:30 PM</option>
+                      <option value="16:00">4:00 PM</option>
+                      <option value="16:30">4:30 PM</option>
+                      <option value="17:00">5:00 PM</option>
+                      <option value="17:30">5:30 PM</option>
+                      <option value="18:00">6:00 PM</option>
+                      <option value="18:30">6:30 PM</option>
+                    </select>
+                  </div>
+                </div>
               )}
             </div>
-          </label>
+          </div>
         </div>
       </div>
 

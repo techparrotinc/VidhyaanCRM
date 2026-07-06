@@ -13,8 +13,17 @@ export interface RateLimitResult {
  * - 3 sends per 15 minutes.
  */
 export async function otpSendLimiter(key: string): Promise<RateLimitResult> {
-  const limit = 3
-  const windowSeconds = 15 * 60 // 15 minutes
+  return windowLimiter(key, 3, 15 * 60)
+}
+
+/**
+ * Generic fixed-window limiter: `limit` hits per `windowSeconds` per key.
+ */
+export async function windowLimiter(
+  key: string,
+  limit: number,
+  windowSeconds: number
+): Promise<RateLimitResult> {
   const redisKey = `ratelimit:${key}`
 
   // INCR first — atomic, so concurrent requests each get a distinct count

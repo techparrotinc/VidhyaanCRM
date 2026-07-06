@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   Bell,
   Building2,
+  CreditCard,
   GitMerge,
   CalendarDays,
   Key,
@@ -63,6 +64,7 @@ export default function SettingsLayout({
       { name: 'Terms', path: '/settings/terms', icon: CalendarDays }
     ] : []),
 
+    { name: 'Payments', path: '/settings/payments', icon: CreditCard },
     { name: 'Notification Preferences', path: '/settings/notifications', icon: Bell },
     { name: 'WhatsApp Templates', path: '/settings/whatsapp-templates', icon: MessageCircle },
     { name: 'API Keys', path: '/settings/api-keys', icon: Key },

@@ -16,6 +16,9 @@ import { getGradeLabel } from '@/constants/grades'
 import { useSession } from 'next-auth/react'
 import CourseEnrollmentCard from './components/CourseEnrollmentCard'
 import ParentAccessCard from './components/ParentAccessCard'
+import StudentInvoicesTab from './components/StudentInvoicesTab'
+import StudentPaymentsTab from './components/StudentPaymentsTab'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 const STATUS_CONFIG = {
   ACTIVE: {
@@ -340,7 +343,18 @@ export default function StudentDetailPage() {
 
       {/* ── BODY ── */}
       <div className="px-4 sm:px-6 py-6 flex-1">
-        <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="max-w-5xl mx-auto">
+          <Tabs defaultValue="overview">
+            <TabsList className="mb-6">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="invoices">Invoices</TabsTrigger>
+              <TabsTrigger value="payments">Payments</TabsTrigger>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
+            </TabsList>
+
+            {/* ── OVERVIEW TAB ── */}
+            <TabsContent value="overview">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
           {/* ── CARD 1: Student Info ── */}
           <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col gap-0 shadow-sm">
@@ -410,108 +424,8 @@ export default function StudentDetailPage() {
             ))}
           </div>
 
-          {/* ── CARD 2: Guardian + Invoices ── */}
+          {/* ── CARD 2: Guardian + enrollment ── */}
           <div className="flex flex-col gap-6">
-
-            {/* ── LOG ACTIVITY CARD ── */}
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
-                Log Activity
-              </h2>
-
-              {/* Activity type tabs */}
-              <div className="flex items-center gap-1 mb-3 overflow-x-auto scrollbar-none pb-1">
-                {ACTIVITY_TABS.map(tab => {
-                  const Icon = tab.icon
-                  const isActive = activeTab === tab.key
-                  return (
-                    <button
-                      key={tab.key}
-                      onClick={() => setActiveTab(tab.key)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ${
-                        isActive
-                          ? `${tab.activeBg} ${tab.activeColor}`
-                          : 'hover:bg-slate-100 text-slate-500'
-                      }`}>
-                      <Icon className="w-3.5 h-3.5" />
-                      {tab.label}
-                    </button>
-                  )
-                })}
-              </div>
-
-              {/* Note textarea */}
-              <textarea
-                value={activityNote}
-                onChange={e => setActivityNote(e.target.value)}
-                placeholder={
-                  activeTab === 'NOTE'
-                    ? 'Add a note...'
-                    : activeTab === 'CALL'
-                    ? 'Log call summary...'
-                    : activeTab === 'WHATSAPP'
-                    ? 'Log WhatsApp message...'
-                    : 'Log email summary...'
-                }
-                rows={3}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none mb-3" />
-
-              {/* Save button */}
-              <button
-                onClick={handleSaveActivity}
-                disabled={isSaving || !activityNote.trim()}
-                className="w-full py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                {isSaving ? 'Saving...' : 'Save Activity'}
-              </button>
-            </div>
-
-            {/* ── ACTIVITY TIMELINE CARD ── */}
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-                Activity Timeline
-              </h2>
-
-              {activities.length === 0 ? (
-                <p className="text-sm text-slate-400">No activity logged yet.</p>
-              ) : (
-                <div className="flex flex-col gap-0 relative">
-                  {/* Timeline line */}
-                  <div className="absolute left-4 top-4 bottom-0 w-px bg-slate-100" />
-
-                  {activities.map((activity, i) => {
-                    const typeKey = activity.type as keyof typeof ACTIVITY_TYPE_CONFIG
-                    const typeConfig = ACTIVITY_TYPE_CONFIG[typeKey] ?? ACTIVITY_TYPE_CONFIG.NOTE
-                    const Icon = typeConfig.icon
-
-                    return (
-                      <div key={activity.id ?? i} className="flex gap-3 pb-4 relative">
-                        {/* Icon dot */}
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 z-10 ${typeConfig.bg}`}>
-                          <Icon className={`w-4 h-4 ${typeConfig.color}`} />
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0 pt-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-medium text-slate-700 flex-1 break-words">
-                              {activity.summary}
-                            </p>
-                            <span className="text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0">
-                              {format(new Date(activity.createdAt), 'd MMM, h:mm a')}
-                            </span>
-                          </div>
-                          {activity.performedBy && (
-                            <p className="text-xs text-slate-400 mt-0.5">
-                              by {activity.performedBy.name}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
 
             {/* Courses / CourseEnrollmentCard */}
             {institutionType === 'LEARNING_CENTER' && student && (
@@ -522,6 +436,7 @@ export default function StudentDetailPage() {
                 toast={toastHelper}
               />
             )}
+
 
             {/* Guardian Card */}
             <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
@@ -573,47 +488,127 @@ export default function StudentDetailPage() {
               </div>
             )}
 
-            {/* Recent Invoices Card */}
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-                Recent Invoices
-              </h2>
-
-              {!student.invoices || student.invoices.length === 0 ? (
-                <p className="text-sm text-slate-400">No invoices yet.</p>
-              ) : (
-                <div className="flex flex-col gap-0">
-                  {student.invoices.map(inv => (
-                    <div key={inv.id} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800 font-mono">
-                          {inv.invoiceNumber}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          {inv.dueDate ? format(new Date(inv.dueDate), 'd MMM yyyy') : '—'}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-slate-900">
-                          ₹{inv.totalAmount.toLocaleString('en-IN')}
-                        </p>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          inv.status === 'PAID'
-                            ? 'bg-green-50 text-green-700 border border-green-150'
-                            : inv.status === 'OVERDUE'
-                            ? 'bg-red-50 text-red-700 border border-red-150'
-                            : 'bg-amber-50 text-amber-700 border border-amber-150'
-                        }`}>
-                          {inv.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
           </div>
+              </div>
+            </TabsContent>
+
+            {/* ── INVOICES TAB ── */}
+            <TabsContent value="invoices">
+              <StudentInvoicesTab studentId={id} />
+            </TabsContent>
+
+            {/* ── PAYMENTS TAB ── */}
+            <TabsContent value="payments">
+              <StudentPaymentsTab studentId={id} />
+            </TabsContent>
+
+            {/* ── ACTIVITY TAB ── */}
+            <TabsContent value="activity">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+
+                {/* Log Activity */}
+                <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                  <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
+                    Log Activity
+                  </h2>
+
+                  {/* Activity type tabs */}
+                  <div className="flex items-center gap-1 mb-3 overflow-x-auto scrollbar-none pb-1">
+                    {ACTIVITY_TABS.map(tab => {
+                      const Icon = tab.icon
+                      const isActive = activeTab === tab.key
+                      return (
+                        <button
+                          key={tab.key}
+                          onClick={() => setActiveTab(tab.key)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ${
+                            isActive
+                              ? `${tab.activeBg} ${tab.activeColor}`
+                              : 'hover:bg-slate-100 text-slate-500'
+                          }`}>
+                          <Icon className="w-3.5 h-3.5" />
+                          {tab.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Note textarea */}
+                  <textarea
+                    value={activityNote}
+                    onChange={e => setActivityNote(e.target.value)}
+                    placeholder={
+                      activeTab === 'NOTE'
+                        ? 'Add a note...'
+                        : activeTab === 'CALL'
+                        ? 'Log call summary...'
+                        : activeTab === 'WHATSAPP'
+                        ? 'Log WhatsApp message...'
+                        : 'Log email summary...'
+                    }
+                    rows={3}
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none mb-3" />
+
+                  {/* Save button */}
+                  <button
+                    onClick={handleSaveActivity}
+                    disabled={isSaving || !activityNote.trim()}
+                    className="w-full py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                    {isSaving ? 'Saving...' : 'Save Activity'}
+                  </button>
+                </div>
+
+                {/* Activity Timeline */}
+                <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                  <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                    Activity Timeline
+                  </h2>
+
+                  {activities.length === 0 ? (
+                    <p className="text-sm text-slate-400">No activity logged yet.</p>
+                  ) : (
+                    <div className="flex flex-col gap-0 relative">
+                      {/* Timeline line */}
+                      <div className="absolute left-4 top-4 bottom-0 w-px bg-slate-100" />
+
+                      {activities.map((activity, i) => {
+                        const typeKey = activity.type as keyof typeof ACTIVITY_TYPE_CONFIG
+                        const typeConfig = ACTIVITY_TYPE_CONFIG[typeKey] ?? ACTIVITY_TYPE_CONFIG.NOTE
+                        const Icon = typeConfig.icon
+
+                        return (
+                          <div key={activity.id ?? i} className="flex gap-3 pb-4 relative">
+                            {/* Icon dot */}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 z-10 ${typeConfig.bg}`}>
+                              <Icon className={`w-4 h-4 ${typeConfig.color}`} />
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 min-w-0 pt-1">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-sm font-medium text-slate-700 flex-1 break-words">
+                                  {activity.summary}
+                                </p>
+                                <span className="text-[10px] text-slate-400 whitespace-nowrap flex-shrink-0">
+                                  {format(new Date(activity.createdAt), 'd MMM, h:mm a')}
+                                </span>
+                              </div>
+                              {activity.performedBy && (
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                  by {activity.performedBy.name}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 

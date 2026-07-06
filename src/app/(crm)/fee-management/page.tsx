@@ -6,49 +6,16 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { format, subMonths, addMonths } from 'date-fns'
 import {
   Download, Plus, Search,
-  Mail, MessageCircle, Phone,
   MoreVertical, AlertCircle, CheckCircle, X
 } from 'lucide-react'
 import { KpiTile } from '@/components/fees/KpiTile'
+import { InvoiceTable, type InvoiceRow } from '@/components/fees/InvoiceTable'
 import { computeCollectionRate } from '@/lib/fees'
 import { createPortal } from 'react-dom'
 import { useAcademicYears }
   from '@/hooks/useAcademicYears'
 import { GRADE_OPTIONS, getGradeLabel }
   from '@/constants/grades'
-
-const STATUS_CONFIG = {
-  SCHEDULED: {
-    label: 'Scheduled',
-    badge: 'bg-blue-50 text-blue-700',
-    border: 'border-l-blue-500'
-  },
-  UNPAID: {
-    label: 'Unpaid',
-    badge: 'bg-red-50 text-red-700',
-    border: 'border-l-red-500'
-  },
-  PARTIALLY_PAID: {
-    label: 'Partial',
-    badge: 'bg-amber-50 text-amber-700',
-    border: 'border-l-amber-500'
-  },
-  PAID: {
-    label: 'Paid',
-    badge: 'bg-green-50 text-green-700',
-    border: 'border-l-green-500'
-  },
-  OVERDUE: {
-    label: 'Overdue',
-    badge: 'bg-red-100 text-red-800',
-    border: 'border-l-red-700'
-  },
-  WAIVED: {
-    label: 'Waived',
-    badge: 'bg-slate-100 text-slate-500',
-    border: 'border-l-slate-300'
-  }
-} as const
 
 const STATUS_TABS = [
   { key: '', label: 'All' },
@@ -61,37 +28,7 @@ const STATUS_TABS = [
   { key: 'WAIVED', label: 'Waived' }
 ]
 
-type Invoice = {
-  id: string
-  invoiceNumber: string
-  invoiceType: string
-  status: string
-  totalAmount: number
-  paidAmount: number
-  dueDate: string | null
-  createdAt: string
-  student: {
-    id: string
-    name: string
-    studentCode: string
-    gradeLabel: string | null
-    guardianPhone: string | null
-  } | null
-  term: {
-    id: string
-    name: string
-  } | null
-  course: {
-    id: string
-    name: string
-  } | null
-  items: {
-    id: string
-    head: string
-    amount: number
-    quantity: number
-  }[]
-}
+type Invoice = InvoiceRow
 
 type Summary = {
   totalInvoices: number
@@ -474,21 +411,6 @@ export default function FeeManagementPage() {
     )
   }, [activeStatus, gradeLabel, institutionType, termFilter, courseFilter, monthFilter])
 
-  const MIN_ROWS = 8
-  const emptyRowCount = Math.max(
-    0, MIN_ROWS - invoices.length
-  )
-
-  const getBalance = (inv: Invoice) =>
-    Number(inv.totalAmount) -
-    Number(inv.paidAmount)
-
-  const isOverdue = (inv: Invoice) =>
-    inv.dueDate &&
-    new Date(inv.dueDate) < new Date() &&
-    inv.status !== 'PAID' &&
-    inv.status !== 'WAIVED'
-
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
 
@@ -856,222 +778,19 @@ export default function FeeManagementPage() {
           <div className="px-4 sm:px-6 pt-4 pb-8 flex-1">
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
 
-              <div className="w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                <table className="w-full min-w-[820px]">
-
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        Invoice
-                      </th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        Student
-                      </th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        Connect
-                      </th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        Type / Term
-                      </th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        Amount
-                      </th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        Status
-                      </th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        Due Date
-                      </th>
-                      <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {isLoading ? (
-                      Array.from({ length: 8 }).map((_, i) => (
-                        <tr key={i} className="border-b border-slate-100 animate-pulse">
-                          <td colSpan={8} className="px-3 py-2.5">
-                            <div className="h-8 bg-slate-100 rounded" />
-                          </td>
-                        </tr>
-                      ))
-                    ) : invoices.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="px-3 py-16 text-center text-sm text-slate-400">
-                          No invoices found
-                        </td>
-                      </tr>
-                    ) : (
-                      <>
-                        {invoices.map(inv => {
-                          const config =
-                            STATUS_CONFIG[inv.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.UNPAID
-
-                          const balance = getBalance(inv)
-                          const overdue = isOverdue(inv)
-
-                          const initials = (inv.student?.name ?? 'NA')
-                            .split(' ')
-                            .map(n => n[0])
-                            .join('')
-                            .substring(0, 2)
-                            .toUpperCase()
-
-                          const colors = [
-                            'bg-blue-500',
-                            'bg-green-500',
-                            'bg-purple-500',
-                            'bg-amber-500',
-                            'bg-red-500',
-                            'bg-indigo-500'
-                          ]
-                          const avatarColor =
-                            colors[(inv.student?.name?.charCodeAt(0) ?? 0) % colors.length]
-
-                          return (
-                            <tr
-                              key={inv.id}
-                              onClick={() => router.push(`/fee-management/${inv.id}`)}
-                              className={`border-b border-slate-100 border-l-2 ${config.border} hover:bg-slate-50/80 transition-colors cursor-pointer`}>
-
-                              {/* Invoice */}
-                              <td className="px-3 py-2.5">
-                                <p className="text-sm font-semibold text-slate-800 font-mono">
-                                  {inv.invoiceNumber}
-                                </p>
-                                <p className="text-xs text-slate-400">
-                                  {format(new Date(inv.createdAt), 'd MMM')}
-                                </p>
-                              </td>
-
-                              {/* Student */}
-                              <td className="px-3 py-2.5">
-                                <div className="flex items-center gap-2">
-                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${avatarColor}`}>
-                                    {initials}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="text-sm font-semibold text-slate-800 truncate">
-                                      {inv.student?.name ?? '—'}
-                                    </p>
-                                    <p className="text-xs text-slate-400 truncate">
-                                      {inv.student?.studentCode}
-                                      {inv.student?.gradeLabel && ` · ${inv.student.gradeLabel}`}
-                                    </p>
-                                  </div>
-                                </div>
-                              </td>
-
-                              {/* Connect */}
-                              <td className="px-3 py-2.5">
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={e => {
-                                      e.stopPropagation()
-                                      if (inv.student?.guardianPhone)
-                                        window.open(`mailto:${inv.student.guardianPhone}`)
-                                    }}
-                                    className="text-slate-400 hover:text-blue-500 transition-colors">
-                                    <Mail className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={e => {
-                                      e.stopPropagation()
-                                      if (inv.student?.guardianPhone)
-                                        window.open(`https://wa.me/91${inv.student.guardianPhone}`)
-                                    }}
-                                    className="text-slate-400 hover:text-green-500 transition-colors">
-                                    <MessageCircle className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={e => {
-                                      e.stopPropagation()
-                                      if (inv.student?.guardianPhone)
-                                        window.open(`tel:${inv.student.guardianPhone}`)
-                                    }}
-                                    className="text-slate-400 hover:text-blue-500 transition-colors">
-                                    <Phone className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </td>
-
-                              {/* Type / Term */}
-                              <td className="px-3 py-2.5 font-sans">
-                                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                                  {inv.invoiceType}
-                                </span>
-                                {(inv.term || inv.invoiceType === 'TERM') && (
-                                  <p className="text-xs text-slate-400 mt-0.5">
-                                    {inv.term?.name || '—'}
-                                  </p>
-                                )}
-                                {inv.course && (
-                                  <p className="text-xs text-slate-400 mt-0.5">
-                                    {inv.course.name}
-                                  </p>
-                                )}
-                              </td>
-
-                              {/* Amount */}
-                              <td className="px-3 py-2.5">
-                                <p className="text-sm font-bold text-slate-900">
-                                  ₹{Number(inv.totalAmount).toLocaleString('en-IN')}
-                                </p>
-                                {balance > 0 && inv.status !== 'UNPAID' && (
-                                  <p className="text-xs text-slate-400">
-                                    Bal: ₹{balance.toLocaleString('en-IN')}
-                                  </p>
-                                )}
-                              </td>
-
-                              {/* Status */}
-                              <td className="px-3 py-2.5">
-                                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${config.badge}`}>
-                                  {config.label}
-                                </span>
-                                {overdue && (
-                                  <p className="text-[11px] text-red-500 font-medium mt-0.5 flex items-center gap-0.5">
-                                    <AlertCircle className="w-3 h-3" />
-                                    Overdue
-                                  </p>
-                                )}
-                              </td>
-
-                              {/* Due Date */}
-                              <td className="px-3 py-2.5">
-                                <span className={`text-xs whitespace-nowrap ${overdue ? 'text-red-600 font-semibold' : 'text-slate-500'}`}>
-                                  {inv.dueDate
-                                    ? format(new Date(inv.dueDate), 'd MMM')
-                                    : '—'
-                                  }
-                                </span>
-                              </td>
-
-                              {/* Action */}
-                              <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
-                                <button
-                                  onClick={e => handleActionClick(e, inv.id)}
-                                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
-                                  <MoreVertical className="w-4 h-4" />
-                                </button>
-                              </td>
-                            </tr>
-                          )
-                        })}
-
-                        {/* Empty placeholder rows */}
-                        {Array.from({ length: emptyRowCount }).map((_, i) => (
-                          <tr key={`empty-${i}`} className="border-b border-slate-100 border-l-2 border-l-transparent">
-                            <td colSpan={8} className="px-3 py-2.5 h-[52px]" />
-                          </tr>
-                        ))}
-                      </>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <InvoiceTable
+                invoices={invoices}
+                isLoading={isLoading}
+                minRows={8}
+                onRowClick={inv => router.push(`/fee-management/${inv.id}`)}
+                renderActions={inv => (
+                  <button
+                    onClick={e => handleActionClick(e, inv.id)}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                )}
+              />
 
               {/* Pagination */}
               <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between gap-4">

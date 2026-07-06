@@ -327,6 +327,7 @@ enum InvoiceStatus {
   OVERDUE
   WAIVED
   SCHEDULED
+  REFUNDED
 
   @@schema("crm")
 }
@@ -350,6 +351,7 @@ enum PaymentStatus {
   SUCCESS
   FAILED
   REFUNDED
+  PARTIALLY_REFUNDED
 
   @@schema("crm")
 }
@@ -375,6 +377,7 @@ enum CampaignStatus {
   SENDING
   COMPLETED
   FAILED
+
   @@schema("crm")
 }
 
@@ -383,6 +386,7 @@ enum CampaignSendStatus {
   SENT
   DELIVERED
   FAILED
+
   @@schema("crm")
 }
 
@@ -540,67 +544,71 @@ enum ReferralStatus {
 
 /// Tenant root. One row per customer organization (school / learning center).
 model Organization {
-  id               String          @id @default(cuid())
-  name             String
-  slug             String          @unique
-  institutionType  InstitutionType @map("institution_type")
-  email            String
-  phone            String
-  gstNumber        String?         @map("gst_number")
-  status           OrgStatus       @default(PENDING_VERIFICATION)
-  trialEndsAt      DateTime?       @map("trial_ends_at")
-  trialReminderSent DateTime?      @map("trial_reminder_sent")
-  leadCap          Int             @default(10) @map("lead_cap") // free-plan cap, configurable by super admin
-  planId           String?         @map("plan_id")
-  settings         Json? // institution-type adaptive config, prefixes, thresholds
-  onboardedAt      DateTime?       @map("onboarded_at")
-  createdAt        DateTime        @default(now()) @map("created_at")
-  updatedAt        DateTime        @updatedAt @map("updated_at")
-  deletedAt        DateTime?       @map("deleted_at")
-  centerCategory   String?         @map("center_category")
-  isDummy          Boolean         @default(false) @map("is_dummy")
+  id                String          @id @default(cuid())
+  name              String
+  slug              String          @unique
+  institutionType   InstitutionType @map("institution_type")
+  email             String
+  phone             String
+  gstNumber         String?         @map("gst_number")
+  status            OrgStatus       @default(PENDING_VERIFICATION)
+  trialEndsAt       DateTime?       @map("trial_ends_at")
+  trialReminderSent DateTime?       @map("trial_reminder_sent")
+  leadCap           Int             @default(10) @map("lead_cap") // free-plan cap, configurable by super admin
+  planId            String?         @map("plan_id")
+  settings          Json? // institution-type adaptive config, prefixes, thresholds
+  onboardedAt       DateTime?       @map("onboarded_at")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  deletedAt         DateTime?       @map("deleted_at")
+  centerCategory    String?         @map("center_category")
+  isDummy           Boolean         @default(false) @map("is_dummy")
 
-  plan                 Plan?                    @relation(fields: [planId], references: [id])
-  branches             Branch[]
-  users                User[]
-  roleAssignments      UserRoleAssignment[]
-  organizationModules  OrganizationModule[]
-  auditLogs            AuditLog[]
-  apiKeys              ApiKey[]
-  domains              OrgDomain[]
-  notificationQueue    NotificationQueue[]
-  subscriptions        Subscription[]
-  transactions         Transaction[]
-  schools              School[]
-  parentEnquiries      ParentEnquiry[]
-  parentApplications   ParentApplication[]
-  waitlistEntries      WaitlistEntry[]
-  openDayEvents        OpenDayEvent[]
-  schoolReviews        SchoolReview[]
-  reviewResponses      ReviewResponse[]
-  academicYears        AcademicYear[]
-  leads                Lead[]
-  admissions           Admission[]
-  admissionStages      AdmissionStage[]
-  admissionCapacities  AdmissionCapacity[]
-  students             Student[]
-  studentBatches       StudentBatch[]
-  siblingLinks         SiblingLink[]
-  feePlans             FeePlan[]
-  feePlanTemplates     FeePlanTemplate[]
-  invoices             Invoice[]
-  payments             Payment[]
-  concessions          Concession[]
-  events               Event[]
-  campaigns            Campaign[]
-  notifications        Notification[]
-  notificationPrefs    NotificationPreference[]
-  counsellorTargets    CounsellorTarget[]
-  communicationLogs    CommunicationLog[]
-  terms                Term[]
-  courses              Course[]
-  courseEnrollments    CourseEnrollment[]
-  whatsappTemplates    WhatsappTemplate[]
+  plan                  Plan?                    @relation(fields: [planId], references: [id])
+  branches              Branch[]
+  users                 User[]
+  roleAssignments       UserRoleAssignment[]
+  organizationModules   OrganizationModule[]
+  auditLogs             AuditLog[]
+  apiKeys               ApiKey[]
+  domains               OrgDomain[]
+  notificationQueue     NotificationQueue[]
+  subscriptions         Subscription[]
+  transactions          Transaction[]
+  schools               School[]
+  parentEnquiries       ParentEnquiry[]
+  parentApplications    ParentApplication[]
+  waitlistEntries       WaitlistEntry[]
+  openDayEvents         OpenDayEvent[]
+  schoolReviews         SchoolReview[]
+  reviewResponses       ReviewResponse[]
+  academicYears         AcademicYear[]
+  leads                 Lead[]
+  admissions            Admission[]
+  admissionStages       AdmissionStage[]
+  admissionCapacities   AdmissionCapacity[]
+  students              Student[]
+  studentBatches        StudentBatch[]
+  siblingLinks          SiblingLink[]
+  feePlans              FeePlan[]
+  feePlanTemplates      FeePlanTemplate[]
+  invoices              Invoice[]
+  payments              Payment[]
+  concessions           Concession[]
+  events                Event[]
+  campaigns             Campaign[]
+  notifications         Notification[]
+  notificationPrefs     NotificationPreference[]
+  counsellorTargets     CounsellorTarget[]
+  communicationLogs     CommunicationLog[]
+  terms                 Term[]
+  courses               Course[]
+  courseEnrollments     CourseEnrollment[]
+  whatsappTemplates     WhatsappTemplate[]
+  paymentGatewayConfigs PaymentGatewayConfig[]
+  gatewayOrders         GatewayOrder[]
+  refunds               Refund[]
+  ledgerEntries         LedgerEntry[]
 
   @@index([status])
   @@index([institutionType])
@@ -611,20 +619,20 @@ model Organization {
 
 /// Physical/operational branch. Every org auto-gets one default branch.
 model Branch {
-  id        String    @id @default(cuid())
-  orgId     String    @map("org_id")
-  name      String
-  isDefault Boolean   @default(false) @map("is_default")
-  code      String?
-  addressLine String? @map("address_line")
-  city      String?
-  state     String?
-  pincode   String?
-  phone     String?
-  email     String?
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id          String    @id @default(cuid())
+  orgId       String    @map("org_id")
+  name        String
+  isDefault   Boolean   @default(false) @map("is_default")
+  code        String?
+  addressLine String?   @map("address_line")
+  city        String?
+  state       String?
+  pincode     String?
+  phone       String?
+  email       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   organization        Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
   userBranchAccess    UserBranchAccess[]
@@ -647,29 +655,29 @@ model Branch {
 
 /// All authenticated actors (platform staff + org staff + parents-as-users).
 model User {
-  id        String     @id @default(cuid())
-  orgId     String?    @map("org_id") // null for platform-level users (SUPER_ADMIN etc.)
-  email     String?    @unique
-  phone     String?    @unique
-  name      String
-  status    UserStatus @default(ACTIVE)
-  pinHash   String?    @map("pin_hash") // optional PIN for trusted devices
-  pinSetAt  DateTime?  @map("pin_set_at")
-  lastLoginAt DateTime? @map("last_login_at")
-  createdAt DateTime   @default(now()) @map("created_at")
-  updatedAt DateTime   @updatedAt @map("updated_at")
-  deletedAt DateTime?  @map("deleted_at")
+  id          String     @id @default(cuid())
+  orgId       String?    @map("org_id") // null for platform-level users (SUPER_ADMIN etc.)
+  email       String?    @unique
+  phone       String?    @unique
+  name        String
+  status      UserStatus @default(ACTIVE)
+  pinHash     String?    @map("pin_hash") // optional PIN for trusted devices
+  pinSetAt    DateTime?  @map("pin_set_at")
+  lastLoginAt DateTime?  @map("last_login_at")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  deletedAt   DateTime?  @map("deleted_at")
 
-  organization      Organization?            @relation(fields: [orgId], references: [id])
-  branchAccess      UserBranchAccess[]
-  roleAssignments   UserRoleAssignment[]
-  assignedLeads     Lead[]                   @relation("LeadCounsellor")
-  assignedAdmissions Admission[]             @relation("AdmissionCounsellor")
-  counsellorTargets CounsellorTarget[]
-  communicationLogs CommunicationLog[]
-  notificationPrefs NotificationPreference[]
-  parent            Parent?
-  studentActivities  StudentActivity[]            @relation("StudentActivityPerformedBy")
+  organization       Organization?            @relation(fields: [orgId], references: [id])
+  branchAccess       UserBranchAccess[]
+  roleAssignments    UserRoleAssignment[]
+  assignedLeads      Lead[]                   @relation("LeadCounsellor")
+  assignedAdmissions Admission[]              @relation("AdmissionCounsellor")
+  counsellorTargets  CounsellorTarget[]
+  communicationLogs  CommunicationLog[]
+  notificationPrefs  NotificationPreference[]
+  parent             Parent?
+  studentActivities  StudentActivity[]        @relation("StudentActivityPerformedBy")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -834,15 +842,15 @@ model OrgDomain {
 }
 
 model LocationCache {
-  id          String    @id @default(cuid())
-  latRounded  String    @map("lat_rounded")
-  lngRounded  String    @map("lng_rounded")
+  id          String   @id @default(cuid())
+  latRounded  String   @map("lat_rounded")
+  lngRounded  String   @map("lng_rounded")
   city        String
   state       String?
-  country     String    @default("India")
+  country     String   @default("India")
   pincode     String?
-  fullAddress String?   @map("full_address")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  fullAddress String?  @map("full_address")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   @@unique([latRounded, lngRounded])
   @@index([city])
@@ -856,65 +864,65 @@ model LocationCache {
 
 /// Public school/learning-center listing. May be claimed (org_id set) or scraped (org_id null).
 model School {
-  id                 String             @id @default(cuid())
-  orgId              String?            @map("org_id") // set when claimed by an organization
-  name               String
-  slug               String             @unique
-  institutionType    InstitutionType    @map("institution_type")
-  description        String?
-  verificationStatus VerificationStatus @default(UNCLAIMED) @map("verification_status")
-  isVerified         Boolean            @default(false) @map("is_verified")
-  profileCompletion  Int                @default(0) @map("profile_completion") // 0-100
-  rankingScore       Int                @default(0) @map("ranking_score") // 0-100 search score
-  avgRating          Float              @default(0) @map("avg_rating")
-  reviewCount        Int                @default(0) @map("review_count")
-  responseRatePct    Int?               @map("response_rate_pct")
-  avgResponseHours   Int?               @map("avg_response_hours")
-  admissionOpen      Boolean            @default(false) @map("admission_open")
-  googlePlaceId      String?            @map("google_place_id")
-  dataSource         DataSource         @default(SCRAPED) @map("data_source")
-  qualityScore       Int                @default(0) @map("quality_score") // data-completeness/quality 0-100
-  claimedAt          DateTime?          @map("claimed_at")
-  verifiedAt         DateTime?          @map("verified_at")
-  rejectionReason    String?            @map("rejection_reason")
-  createdAt          DateTime           @default(now()) @map("created_at")
-  updatedAt          DateTime           @updatedAt @map("updated_at")
-  deletedAt          DateTime?          @map("deleted_at")
-  centerCategory     String?            @map("center_category")
-  isDummy            Boolean            @default(false) @map("is_dummy")
-  examFocus          String[]           @map("exam_focus")
-  mediumOfInstructionList String[]      @map("medium_of_instruction_list")
+  id                      String             @id @default(cuid())
+  orgId                   String?            @map("org_id") // set when claimed by an organization
+  name                    String
+  slug                    String             @unique
+  institutionType         InstitutionType    @map("institution_type")
+  description             String?
+  verificationStatus      VerificationStatus @default(UNCLAIMED) @map("verification_status")
+  isVerified              Boolean            @default(false) @map("is_verified")
+  profileCompletion       Int                @default(0) @map("profile_completion") // 0-100
+  rankingScore            Int                @default(0) @map("ranking_score") // 0-100 search score
+  avgRating               Float              @default(0) @map("avg_rating")
+  reviewCount             Int                @default(0) @map("review_count")
+  responseRatePct         Int?               @map("response_rate_pct")
+  avgResponseHours        Int?               @map("avg_response_hours")
+  admissionOpen           Boolean            @default(false) @map("admission_open")
+  googlePlaceId           String?            @map("google_place_id")
+  dataSource              DataSource         @default(SCRAPED) @map("data_source")
+  qualityScore            Int                @default(0) @map("quality_score") // data-completeness/quality 0-100
+  claimedAt               DateTime?          @map("claimed_at")
+  verifiedAt              DateTime?          @map("verified_at")
+  rejectionReason         String?            @map("rejection_reason")
+  createdAt               DateTime           @default(now()) @map("created_at")
+  updatedAt               DateTime           @updatedAt @map("updated_at")
+  deletedAt               DateTime?          @map("deleted_at")
+  centerCategory          String?            @map("center_category")
+  isDummy                 Boolean            @default(false) @map("is_dummy")
+  examFocus               String[]           @map("exam_focus")
+  mediumOfInstructionList String[]           @map("medium_of_instruction_list")
 
   // For Learning Centers
-  trialClassAvailable   Boolean   @default(false) @map("trial_class_available")
-  enrollmentStatus      String    @default("OPEN") @map("enrollment_status")
-  ageGroupMin           Int?      @map("age_group_min")
-  ageGroupMax           Int?      @map("age_group_max")
-  monthlyFeeMin         Int?      @map("monthly_fee_min")
-  monthlyFeeMax         Int?      @map("monthly_fee_max")
-  activityTypes         String[]  @map("activity_types")
-  homeVisitAvailable    Boolean   @default(false) @map("home_visit_available")
-  batchCount            Int       @default(0) @map("batch_count")
-  enrolledStudentCount  Int       @default(0) @map("enrolled_student_count")
+  trialClassAvailable  Boolean  @default(false) @map("trial_class_available")
+  enrollmentStatus     String   @default("OPEN") @map("enrollment_status")
+  ageGroupMin          Int?     @map("age_group_min")
+  ageGroupMax          Int?     @map("age_group_max")
+  monthlyFeeMin        Int?     @map("monthly_fee_min")
+  monthlyFeeMax        Int?     @map("monthly_fee_max")
+  activityTypes        String[] @map("activity_types")
+  homeVisitAvailable   Boolean  @default(false) @map("home_visit_available")
+  batchCount           Int      @default(0) @map("batch_count")
+  enrolledStudentCount Int      @default(0) @map("enrolled_student_count")
 
   // Profile data fields
-  establishedYear      Int?               @map("established_year")
-  totalStudents        Int?               @map("total_students")
-  totalTeachers        Int?               @map("total_teachers")
-  mediumOfInstruction  String?            @map("medium_of_instruction")
-  schoolType           String?            @map("school_type")
-  gender               String?            @map("gender")
-  gradesOffered        String?            @map("grades_offered")
-  academicYear         String?            @map("academic_year")
-  admissionDeadline    DateTime?          @map("admission_deadline")
-  admissionFormLink    String?            @map("admission_form_link")
-  isManagedBySchool    Boolean            @default(false) @map("is_managed_by_school")
-  isPublished          Boolean            @default(false) @map("is_published")
-  isClaimed            Boolean            @default(false) @map("is_claimed")
-  viewCount            Int                @default(0) @map("view_count")
-  enquiryCount         Int                @default(0) @map("enquiry_count")
+  establishedYear     Int?      @map("established_year")
+  totalStudents       Int?      @map("total_students")
+  totalTeachers       Int?      @map("total_teachers")
+  mediumOfInstruction String?   @map("medium_of_instruction")
+  schoolType          String?   @map("school_type")
+  gender              String?   @map("gender")
+  gradesOffered       String?   @map("grades_offered")
+  academicYear        String?   @map("academic_year")
+  admissionDeadline   DateTime? @map("admission_deadline")
+  admissionFormLink   String?   @map("admission_form_link")
+  isManagedBySchool   Boolean   @default(false) @map("is_managed_by_school")
+  isPublished         Boolean   @default(false) @map("is_published")
+  isClaimed           Boolean   @default(false) @map("is_claimed")
+  viewCount           Int       @default(0) @map("view_count")
+  enquiryCount        Int       @default(0) @map("enquiry_count")
 
-  organization    Organization?       @relation(fields: [orgId], references: [id])
+  organization    Organization?         @relation(fields: [orgId], references: [id])
   locations       SchoolLocation[]
   contacts        SchoolContact[]
   media           SchoolMedia[]
@@ -944,20 +952,20 @@ model School {
 
 /// Geo + address record for a school (supports multiple campuses).
 model SchoolLocation {
-  id        String    @id @default(cuid())
-  schoolId  String    @map("school_id")
-  orgId     String?   @map("org_id")
-  label     String?
-  addressLine String? @map("address_line")
-  city      String?
-  state     String?
-  pincode   String?
-  latitude  Float?
-  longitude Float?
-  isPrimary Boolean   @default(false) @map("is_primary")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id          String    @id @default(cuid())
+  schoolId    String    @map("school_id")
+  orgId       String?   @map("org_id")
+  label       String?
+  addressLine String?   @map("address_line")
+  city        String?
+  state       String?
+  pincode     String?
+  latitude    Float?
+  longitude   Float?
+  isPrimary   Boolean   @default(false) @map("is_primary")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
@@ -1027,15 +1035,15 @@ model SchoolFacility {
 
 /// Published fee ranges shown in discovery (not the CRM fee engine).
 model SchoolFeeRange {
-  id          String   @id @default(cuid())
-  schoolId    String   @map("school_id")
-  orgId       String?  @map("org_id")
-  gradeLabel  String   @map("grade_label")
-  minAmount   Decimal  @map("min_amount") @db.Decimal(12, 2)
-  maxAmount   Decimal  @map("max_amount") @db.Decimal(12, 2)
-  frequency   String? // annual, monthly
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(cuid())
+  schoolId   String   @map("school_id")
+  orgId      String?  @map("org_id")
+  gradeLabel String   @map("grade_label")
+  minAmount  Decimal  @map("min_amount") @db.Decimal(12, 2)
+  maxAmount  Decimal  @map("max_amount") @db.Decimal(12, 2)
+  frequency  String? // annual, monthly
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
@@ -1046,14 +1054,14 @@ model SchoolFeeRange {
 
 /// Board/affiliation details for a school (e.g., CBSE, ICSE, State).
 model SchoolAffiliation {
-  id              String   @id @default(cuid())
-  schoolId        String   @map("school_id")
-  orgId           String?  @map("org_id")
-  board           String
-  affiliationNo   String?  @map("affiliation_no")
-  validTill       DateTime? @map("valid_till")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id            String    @id @default(cuid())
+  schoolId      String    @map("school_id")
+  orgId         String?   @map("org_id")
+  board         String
+  affiliationNo String?   @map("affiliation_no")
+  validTill     DateTime? @map("valid_till")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
@@ -1064,15 +1072,15 @@ model SchoolAffiliation {
 
 /// Accreditations/awards/recognitions for a school.
 model SchoolAccreditation {
-  id          String    @id @default(cuid())
-  schoolId    String    @map("school_id")
-  orgId       String?   @map("org_id")
-  name        String
-  issuedBy    String?   @map("issued_by")
-  issuedAt    DateTime? @map("issued_at")
-  validTill   DateTime? @map("valid_till")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id        String    @id @default(cuid())
+  schoolId  String    @map("school_id")
+  orgId     String?   @map("org_id")
+  name      String
+  issuedBy  String?   @map("issued_by")
+  issuedAt  DateTime? @map("issued_at")
+  validTill DateTime? @map("valid_till")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
@@ -1102,21 +1110,21 @@ model SchoolHours {
 }
 
 model Instructor {
-  id                String    @id @default(cuid())
-  orgId             String    @map("org_id")
-  schoolId          String    @map("school_id")
-  name              String
-  qualification     String?
-  specialization    String?
-  experienceYears   Int?      @map("experience_years")
-  photoUrl          String?   @map("photo_url")
-  bio               String?
-  isActive          Boolean   @default(true) @map("is_active")
-  sortOrder         Int       @default(0) @map("sort_order")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  id              String   @id @default(cuid())
+  orgId           String   @map("org_id")
+  schoolId        String   @map("school_id")
+  name            String
+  qualification   String?
+  specialization  String?
+  experienceYears Int?     @map("experience_years")
+  photoUrl        String?  @map("photo_url")
+  bio             String?
+  isActive        Boolean  @default(true) @map("is_active")
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
-  school            School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId])
   @@index([orgId])
@@ -1148,8 +1156,8 @@ model BatchSchedule {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  trialBookings   TrialClassBooking[]
+  school        School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  trialBookings TrialClassBooking[]
 
   @@index([schoolId])
   @@index([orgId])
@@ -1158,28 +1166,28 @@ model BatchSchedule {
 }
 
 model TrialClassBooking {
-  id                String    @id @default(cuid())
-  orgId             String    @map("org_id")
-  schoolId          String    @map("school_id")
-  batchScheduleId   String?   @map("batch_schedule_id")
-  parentName        String    @map("parent_name")
-  phone             String
-  email             String?
-  childName         String    @map("child_name")
-  childAge          Int?      @map("child_age")
-  preferredDate     DateTime? @map("preferred_date")
-  activityType      String?   @map("activity_type")
-  message           String?
-  status            String    @default("PENDING")
-  confirmedAt       DateTime? @map("confirmed_at")
-  cancelledAt       DateTime? @map("cancelled_at")
-  notes             String?
-  ipAddress         String?   @map("ip_address")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  id              String    @id @default(cuid())
+  orgId           String    @map("org_id")
+  schoolId        String    @map("school_id")
+  batchScheduleId String?   @map("batch_schedule_id")
+  parentName      String    @map("parent_name")
+  phone           String
+  email           String?
+  childName       String    @map("child_name")
+  childAge        Int?      @map("child_age")
+  preferredDate   DateTime? @map("preferred_date")
+  activityType    String?   @map("activity_type")
+  message         String?
+  status          String    @default("PENDING")
+  confirmedAt     DateTime? @map("confirmed_at")
+  cancelledAt     DateTime? @map("cancelled_at")
+  notes           String?
+  ipAddress       String?   @map("ip_address")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  school            School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  batchSchedule     BatchSchedule? @relation(fields: [batchScheduleId], references: [id])
+  school        School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  batchSchedule BatchSchedule? @relation(fields: [batchScheduleId], references: [id])
 
   @@index([schoolId])
   @@index([orgId])
@@ -1208,8 +1216,8 @@ model Parent {
   reviews         SchoolReview[]
   waitlistEntries WaitlistEntry[]
   openDayRsvps    OpenDayRsvp[]
-  userId          String?       @unique @map("user_id")
-  user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String?             @unique @map("user_id")
+  user            User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([phone])
   @@map("parents")
@@ -1329,24 +1337,24 @@ model SchoolView {
 
 /// Parent review of a school (verified parents only; auto-publish).
 model SchoolReview {
-  id         String       @id @default(cuid())
-  schoolId   String       @map("school_id")
-  orgId      String?      @map("org_id")
-  parentId   String       @map("parent_id")
-  rating     Int // 1-5 overall
-  ratingAcademics      Int? @map("rating_academics")      // 1-5
-  ratingFaculty        Int? @map("rating_faculty")        // 1-5
-  ratingInfrastructure Int? @map("rating_infrastructure") // 1-5
-  ratingSafety         Int? @map("rating_safety")         // 1-5
-  ratingActivities     Int? @map("rating_activities")     // 1-5
-  ratingValue          Int? @map("rating_value")          // 1-5 value for money
-  title      String?
-  body       String?
-  status     ReviewStatus @default(PUBLISHED)
-  flagReason String?      @map("flag_reason")
-  createdAt  DateTime     @default(now()) @map("created_at")
-  updatedAt  DateTime     @updatedAt @map("updated_at")
-  deletedAt  DateTime?    @map("deleted_at")
+  id                   String       @id @default(cuid())
+  schoolId             String       @map("school_id")
+  orgId                String?      @map("org_id")
+  parentId             String       @map("parent_id")
+  rating               Int // 1-5 overall
+  ratingAcademics      Int?         @map("rating_academics") // 1-5
+  ratingFaculty        Int?         @map("rating_faculty") // 1-5
+  ratingInfrastructure Int?         @map("rating_infrastructure") // 1-5
+  ratingSafety         Int?         @map("rating_safety") // 1-5
+  ratingActivities     Int?         @map("rating_activities") // 1-5
+  ratingValue          Int?         @map("rating_value") // 1-5 value for money
+  title                String?
+  body                 String?
+  status               ReviewStatus @default(PUBLISHED)
+  flagReason           String?      @map("flag_reason")
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+  deletedAt            DateTime?    @map("deleted_at")
 
   school       School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   organization Organization?    @relation(fields: [orgId], references: [id])
@@ -1382,16 +1390,16 @@ model ReviewResponse {
 
 /// Parent waitlist entry when a grade/seat is full.
 model WaitlistEntry {
-  id          String         @id @default(cuid())
-  orgId       String         @map("org_id")
-  schoolId    String         @map("school_id")
-  parentId    String         @map("parent_id")
-  gradeLabel  String         @map("grade_label")
-  position    Int?
-  status      WaitlistStatus @default(WAITING)
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-  deletedAt   DateTime?      @map("deleted_at")
+  id         String         @id @default(cuid())
+  orgId      String         @map("org_id")
+  schoolId   String         @map("school_id")
+  parentId   String         @map("parent_id")
+  gradeLabel String         @map("grade_label")
+  position   Int?
+  status     WaitlistStatus @default(WAITING)
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+  deletedAt  DateTime?      @map("deleted_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -1488,44 +1496,44 @@ model AcademicYear {
 
 /// Admission lead. Auto-created from Vidhyaan enquiries or manual entry.
 model Lead {
-  id             String     @id @default(cuid())
-  orgId          String     @map("org_id")
-  branchId       String?    @map("branch_id")
-  academicYearId String?    @map("academic_year_id")
-  leadCode       String     @map("lead_code") // LD-YYYY-XXXXX
-  parentName     String     @map("parent_name")
-  phone          String
-  email          String?
-  kidName        String?    @map("kid_name")
-  gradeSought    String?    @map("grade_sought")
-  source         LeadSource @default(OTHER)
-  status         LeadStatus @default(NEW)
-  priority       LeadPriority @default(MEDIUM)
-  assignedToId   String?    @map("assigned_to_id")
-  enquiryId      String?    @map("enquiry_id") // soft link to marketplace.parent_enquiries
-  lostReason     String?    @map("lost_reason")
-  firstContactedAt DateTime? @map("first_contacted_at") // drives response-rate metric
-  nextFollowUpAt DateTime?  @map("next_follow_up_at")
-  createdById    String?    @map("created_by_id") // soft reference
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
-  deletedAt      DateTime?  @map("deleted_at")
+  id               String       @id @default(cuid())
+  orgId            String       @map("org_id")
+  branchId         String?      @map("branch_id")
+  academicYearId   String?      @map("academic_year_id")
+  leadCode         String       @map("lead_code") // LD-YYYY-XXXXX
+  parentName       String       @map("parent_name")
+  phone            String
+  email            String?
+  kidName          String?      @map("kid_name")
+  gradeSought      String?      @map("grade_sought")
+  source           LeadSource   @default(OTHER)
+  status           LeadStatus   @default(NEW)
+  priority         LeadPriority @default(MEDIUM)
+  assignedToId     String?      @map("assigned_to_id")
+  enquiryId        String?      @map("enquiry_id") // soft link to marketplace.parent_enquiries
+  lostReason       String?      @map("lost_reason")
+  firstContactedAt DateTime?    @map("first_contacted_at") // drives response-rate metric
+  nextFollowUpAt   DateTime?    @map("next_follow_up_at")
+  createdById      String?      @map("created_by_id") // soft reference
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  deletedAt        DateTime?    @map("deleted_at")
 
-  childAge       Int?       @map("child_age")
-  currentSchool  String?    @map("current_school")
+  childAge         Int?      @map("child_age")
+  currentSchool    String?   @map("current_school")
   expectedJoinDate DateTime? @map("expected_join_date")
-  siblingInSchool Boolean?  @default(false) @map("sibling_in_school")
-  course         String?
-  batch          String?
-  studentAge     String?    @map("student_age")
-  startDate      DateTime?  @map("start_date")
+  siblingInSchool  Boolean?  @default(false) @map("sibling_in_school")
+  course           String?
+  batch            String?
+  studentAge       String?   @map("student_age")
+  startDate        DateTime? @map("start_date")
 
-  organization  Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  branch        Branch?        @relation(fields: [branchId], references: [id])
-  academicYear  AcademicYear?  @relation(fields: [academicYearId], references: [id])
-  assignedTo    User?          @relation("LeadCounsellor", fields: [assignedToId], references: [id])
-  activities    LeadActivity[]
-  admissions    Admission[]
+  organization Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch       Branch?        @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear?  @relation(fields: [academicYearId], references: [id])
+  assignedTo   User?          @relation("LeadCounsellor", fields: [assignedToId], references: [id])
+  activities   LeadActivity[]
+  admissions   Admission[]
 
   @@unique([orgId, leadCode])
   @@index([orgId, createdAt])
@@ -1580,26 +1588,26 @@ model LeadCustomField {
 
 /// Admission record progressing through org-configurable pipeline stages.
 model Admission {
-  id             String          @id @default(cuid())
-  orgId          String          @map("org_id")
-  branchId       String?         @map("branch_id")
-  academicYearId String?         @map("academic_year_id")
-  admissionCode  String          @map("admission_code") // ADM-YYYY-XXXXX
-  leadId         String?         @map("lead_id")
-  stageId        String?         @map("stage_id")
-  status         AdmissionStatus @default(IN_PROGRESS)
-  applicantName  String          @map("applicant_name")
-  parentName     String?         @map("parent_name")
-  gradeSought    String?         @map("grade_sought")
-  phone          String?
-  email          String?
-  assignedToId   String?         @map("assigned_to_id")
-  rejectionReason String?        @map("rejection_reason")
-  decidedAt      DateTime?       @map("decided_at")
-  createdById    String?         @map("created_by_id") // soft reference
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
-  deletedAt      DateTime?       @map("deleted_at")
+  id              String          @id @default(cuid())
+  orgId           String          @map("org_id")
+  branchId        String?         @map("branch_id")
+  academicYearId  String?         @map("academic_year_id")
+  admissionCode   String          @map("admission_code") // ADM-YYYY-XXXXX
+  leadId          String?         @map("lead_id")
+  stageId         String?         @map("stage_id")
+  status          AdmissionStatus @default(IN_PROGRESS)
+  applicantName   String          @map("applicant_name")
+  parentName      String?         @map("parent_name")
+  gradeSought     String?         @map("grade_sought")
+  phone           String?
+  email           String?
+  assignedToId    String?         @map("assigned_to_id")
+  rejectionReason String?         @map("rejection_reason")
+  decidedAt       DateTime?       @map("decided_at")
+  createdById     String?         @map("created_by_id") // soft reference
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  deletedAt       DateTime?       @map("deleted_at")
 
   organization Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch       Branch?             @relation(fields: [branchId], references: [id])
@@ -1624,18 +1632,18 @@ model Admission {
 
 /// Org-configurable pipeline stage (School default 8, LC default 4).
 model AdmissionStage {
-  id        String    @id @default(cuid())
-  orgId     String    @map("org_id")
-  name      String
-  sortOrder Int       @map("sort_order")
-  isWon     Boolean   @default(false) @map("is_won")
-  isLost    Boolean   @default(false) @map("is_lost")
-  requiresDocs    Boolean @default(false) @map("requires_docs")
-  requiresPayment Boolean @default(false) @map("requires_payment")
-  color     String?
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id              String    @id @default(cuid())
+  orgId           String    @map("org_id")
+  name            String
+  sortOrder       Int       @map("sort_order")
+  isWon           Boolean   @default(false) @map("is_won")
+  isLost          Boolean   @default(false) @map("is_lost")
+  requiresDocs    Boolean   @default(false) @map("requires_docs")
+  requiresPayment Boolean   @default(false) @map("requires_payment")
+  color           String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   admissions   Admission[]
@@ -1648,16 +1656,16 @@ model AdmissionStage {
 
 /// Timeline entry on an admission. Dependent child.
 model AdmissionActivity {
-  id            String       @id @default(cuid())
-  orgId         String       @map("org_id")
-  branchId      String?      @map("branch_id")
-  academicYearId String?     @map("academic_year_id")
-  admissionId   String       @map("admission_id")
-  type          ActivityType
-  summary       String
-  metadata      Json?
-  performedById String?      @map("performed_by_id") // soft reference
-  createdAt     DateTime     @default(now()) @map("created_at")
+  id             String       @id @default(cuid())
+  orgId          String       @map("org_id")
+  branchId       String?      @map("branch_id")
+  academicYearId String?      @map("academic_year_id")
+  admissionId    String       @map("admission_id")
+  type           ActivityType
+  summary        String
+  metadata       Json?
+  performedById  String?      @map("performed_by_id") // soft reference
+  createdAt      DateTime     @default(now()) @map("created_at")
 
   admission Admission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
 
@@ -1668,19 +1676,19 @@ model AdmissionActivity {
 
 /// Document uploaded against an admission (ClamAV + Vision scanned). Dependent child.
 model AdmissionDocument {
-  id            String               @id @default(cuid())
-  orgId         String               @map("org_id")
-  admissionId   String               @map("admission_id")
-  name          String
-  type          String // PDF, JPG, PNG
-  url           String // Org/Student/filename in DO Spaces
-  sizeBytes     Int?                 @map("size_bytes")
-  scanStatus    DocumentReviewStatus @default(PENDING) @map("scan_status")
-  isAadhaar     Boolean              @default(false) @map("is_aadhaar") // max 1yr retention
-  expiresAt     DateTime?            @map("expires_at")
-  uploadedById  String?              @map("uploaded_by_id") // soft reference
-  createdAt     DateTime             @default(now()) @map("created_at")
-  deletedAt     DateTime?            @map("deleted_at")
+  id           String               @id @default(cuid())
+  orgId        String               @map("org_id")
+  admissionId  String               @map("admission_id")
+  name         String
+  type         String // PDF, JPG, PNG
+  url          String // Org/Student/filename in DO Spaces
+  sizeBytes    Int?                 @map("size_bytes")
+  scanStatus   DocumentReviewStatus @default(PENDING) @map("scan_status")
+  isAadhaar    Boolean              @default(false) @map("is_aadhaar") // max 1yr retention
+  expiresAt    DateTime?            @map("expires_at")
+  uploadedById String?              @map("uploaded_by_id") // soft reference
+  createdAt    DateTime             @default(now()) @map("created_at")
+  deletedAt    DateTime?            @map("deleted_at")
 
   admission Admission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
 
@@ -1693,20 +1701,20 @@ model AdmissionDocument {
 
 /// Seat capacity per grade per year; drives auto-close + waitlist trigger.
 model AdmissionCapacity {
-  id             String    @id @default(cuid())
-  orgId          String    @map("org_id")
-  branchId       String?   @map("branch_id")
-  academicYearId String    @map("academic_year_id")
-  gradeLabel     String    @map("grade_label")
-  totalSeats     Int       @map("total_seats")
-  filledSeats    Int       @default(0) @map("filled_seats")
-  autoClose      Boolean   @default(true) @map("auto_close")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id             String   @id @default(cuid())
+  orgId          String   @map("org_id")
+  branchId       String?  @map("branch_id")
+  academicYearId String   @map("academic_year_id")
+  gradeLabel     String   @map("grade_label")
+  totalSeats     Int      @map("total_seats")
+  filledSeats    Int      @default(0) @map("filled_seats")
+  autoClose      Boolean  @default(true) @map("auto_close")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  branch       Branch?       @relation(fields: [branchId], references: [id])
-  academicYear AcademicYear  @relation(fields: [academicYearId], references: [id])
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch       Branch?      @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
 
   @@unique([orgId, academicYearId, branchId, gradeLabel])
   @@index([orgId])
@@ -1717,40 +1725,41 @@ model AdmissionCapacity {
 
 /// Enrolled student. Auto-created on admission/lead convert.
 model Student {
-  id             String        @id @default(cuid())
-  orgId          String        @map("org_id")
-  branchId       String?       @map("branch_id")
-  academicYearId String?       @map("academic_year_id")
-  studentCode    String        @map("student_code") // STU-YYYY-XXXXX
-  rollNumber     String?       @map("roll_number")
-  admissionId    String?       @unique @map("admission_id")
-  batchId        String?       @map("batch_id")
-  name           String
-  gender         Gender?
-  dateOfBirth    DateTime?     @map("date_of_birth")
-  gradeLabel     String?       @map("grade_label")
-  guardianName   String?       @map("guardian_name")
-  guardianPhone  String?       @map("guardian_phone")
-  guardianEmail  String?       @map("guardian_email")
-  status         StudentStatus @default(ACTIVE)
-  alumniSince    DateTime?     @map("alumni_since")
-  portalAccessRevokedAt DateTime? @map("portal_access_revoked_at") // alumni: removed 60 days after
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-  deletedAt      DateTime?     @map("deleted_at")
+  id                    String        @id @default(cuid())
+  orgId                 String        @map("org_id")
+  branchId              String?       @map("branch_id")
+  academicYearId        String?       @map("academic_year_id")
+  studentCode           String        @map("student_code") // STU-YYYY-XXXXX
+  rollNumber            String?       @map("roll_number")
+  admissionId           String?       @unique @map("admission_id")
+  batchId               String?       @map("batch_id")
+  name                  String
+  gender                Gender?
+  dateOfBirth           DateTime?     @map("date_of_birth")
+  gradeLabel            String?       @map("grade_label")
+  guardianName          String?       @map("guardian_name")
+  guardianPhone         String?       @map("guardian_phone")
+  guardianEmail         String?       @map("guardian_email")
+  status                StudentStatus @default(ACTIVE)
+  alumniSince           DateTime?     @map("alumni_since")
+  portalAccessRevokedAt DateTime?     @map("portal_access_revoked_at") // alumni: removed 60 days after
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+  deletedAt             DateTime?     @map("deleted_at")
 
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  branch       Branch?       @relation(fields: [branchId], references: [id])
-  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
-  admission    Admission?    @relation(fields: [admissionId], references: [id])
-  batch        StudentBatch? @relation(fields: [batchId], references: [id])
-  invoices     Invoice[]
-  payments     Payment[]
-  concessions  Concession[]
-  siblingLinksA SiblingLink[] @relation("SiblingPrimary")
-  siblingLinksB SiblingLink[] @relation("SiblingRelated")
-  activities    StudentActivity[]
+  organization      Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch            Branch?            @relation(fields: [branchId], references: [id])
+  academicYear      AcademicYear?      @relation(fields: [academicYearId], references: [id])
+  admission         Admission?         @relation(fields: [admissionId], references: [id])
+  batch             StudentBatch?      @relation(fields: [batchId], references: [id])
+  invoices          Invoice[]
+  payments          Payment[]
+  concessions       Concession[]
+  siblingLinksA     SiblingLink[]      @relation("SiblingPrimary")
+  siblingLinksB     SiblingLink[]      @relation("SiblingRelated")
+  activities        StudentActivity[]
   courseEnrollments CourseEnrollment[]
+  ledgerEntries     LedgerEntry[]
 
   @@unique([orgId, studentCode])
   @@index([orgId, createdAt])
@@ -1764,16 +1773,16 @@ model Student {
 }
 
 model StudentActivity {
-  id            String   @id @default(cuid())
-  studentId     String   @map("student_id")
+  id            String       @id @default(cuid())
+  studentId     String       @map("student_id")
   type          ActivityType
   summary       String
   note          String?
-  performedById String?  @map("performed_by_id")
-  createdAt     DateTime @default(now()) @map("created_at")
+  performedById String?      @map("performed_by_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
 
-  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  performedBy   User?    @relation(name: "StudentActivityPerformedBy", fields: [performedById], references: [id])
+  student     Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  performedBy User?   @relation(name: "StudentActivityPerformedBy", fields: [performedById], references: [id])
 
   @@index([studentId])
   @@index([performedById])
@@ -1802,18 +1811,18 @@ model StudentCustomField {
 
 /// Batch/cohort grouping (primarily Learning Centers).
 model StudentBatch {
-  id             String        @id @default(cuid())
-  orgId          String        @map("org_id")
-  branchId       String?       @map("branch_id")
-  academicYearId String?       @map("academic_year_id")
+  id             String    @id @default(cuid())
+  orgId          String    @map("org_id")
+  branchId       String?   @map("branch_id")
+  academicYearId String?   @map("academic_year_id")
   name           String
   programme      String?
-  startDate      DateTime?     @map("start_date")
-  endDate        DateTime?     @map("end_date")
+  startDate      DateTime? @map("start_date")
+  endDate        DateTime? @map("end_date")
   capacity       Int?
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-  deletedAt      DateTime?     @map("deleted_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
 
   organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch       Branch?       @relation(fields: [branchId], references: [id])
@@ -1828,12 +1837,12 @@ model StudentBatch {
 
 /// Links two students as siblings (drives sibling concessions/insights).
 model SiblingLink {
-  id             String   @id @default(cuid())
-  orgId          String   @map("org_id")
-  studentId      String   @map("student_id")
-  siblingId      String   @map("sibling_id")
-  relation       String? // brother, sister
-  createdAt      DateTime @default(now()) @map("created_at")
+  id        String   @id @default(cuid())
+  orgId     String   @map("org_id")
+  studentId String   @map("student_id")
+  siblingId String   @map("sibling_id")
+  relation  String? // brother, sister
+  createdAt DateTime @default(now()) @map("created_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   student      Student      @relation("SiblingPrimary", fields: [studentId], references: [id], onDelete: Cascade)
@@ -1868,19 +1877,19 @@ model FeePlanTemplate {
 
 /// Applied fee plan instance (per grade/batch/year), basis for invoices.
 model FeePlan {
-  id             String        @id @default(cuid())
-  orgId          String        @map("org_id")
-  branchId       String?       @map("branch_id")
-  academicYearId String?       @map("academic_year_id")
-  templateId     String?       @map("template_id")
+  id             String       @id @default(cuid())
+  orgId          String       @map("org_id")
+  branchId       String?      @map("branch_id")
+  academicYearId String?      @map("academic_year_id")
+  templateId     String?      @map("template_id")
   name           String
-  gradeLabel     String?       @map("grade_label")
-  totalAmount    Decimal       @map("total_amount") @db.Decimal(12, 2)
-  frequency      FeeFrequency  @default(ANNUAL)
+  gradeLabel     String?      @map("grade_label")
+  totalAmount    Decimal      @map("total_amount") @db.Decimal(12, 2)
+  frequency      FeeFrequency @default(ANNUAL)
   structure      Json // line items
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-  deletedAt      DateTime?     @map("deleted_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  deletedAt      DateTime?    @map("deleted_at")
 
   organization Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch       Branch?          @relation(fields: [branchId], references: [id])
@@ -1916,15 +1925,16 @@ model Invoice {
   updatedAt      DateTime      @updatedAt @map("updated_at")
   deletedAt      DateTime?     @map("deleted_at")
 
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  branch       Branch?       @relation(fields: [branchId], references: [id])
-  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
-  student      Student       @relation(fields: [studentId], references: [id])
-  term         Term?         @relation(fields: [termId], references: [id])
-  course       Course?       @relation(fields: [courseId], references: [id])
-  items        InvoiceItem[]
-  payments     Payment[]
-  concessions  Concession[]
+  organization  Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch        Branch?        @relation(fields: [branchId], references: [id])
+  academicYear  AcademicYear?  @relation(fields: [academicYearId], references: [id])
+  student       Student        @relation(fields: [studentId], references: [id])
+  term          Term?          @relation(fields: [termId], references: [id])
+  course        Course?        @relation(fields: [courseId], references: [id])
+  items         InvoiceItem[]
+  payments      Payment[]
+  concessions   Concession[]
+  gatewayOrders GatewayOrder[]
 
   @@unique([orgId, invoiceNumber])
   @@index([orgId, createdAt])
@@ -1941,13 +1951,13 @@ model Invoice {
 
 /// Line item on an invoice. Dependent child.
 model InvoiceItem {
-  id         String   @id @default(cuid())
-  orgId      String   @map("org_id")
-  invoiceId  String   @map("invoice_id")
-  head       String // fee head name
-  amount     Decimal  @db.Decimal(12, 2)
-  quantity   Int      @default(1)
-  createdAt  DateTime @default(now()) @map("created_at")
+  id        String   @id @default(cuid())
+  orgId     String   @map("org_id")
+  invoiceId String   @map("invoice_id")
+  head      String // fee head name
+  amount    Decimal  @db.Decimal(12, 2)
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
 
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
@@ -1970,12 +1980,14 @@ model Payment {
   method         PaymentMethod @default(RAZORPAY)
   status         PaymentStatus @default(PENDING)
   gatewayRef     String?       @map("gateway_ref") // Razorpay payment id
-  instrumentNo   String?       @map("instrument_no")   // cheque / DD number
+  gatewayOrderId String?       @map("gateway_order_id") // soft reference → billing.gateway_orders
+  refundedAmount Decimal       @default(0) @map("refunded_amount") @db.Decimal(12, 2)
+  instrumentNo   String?       @map("instrument_no") // cheque / DD number
   instrumentDate DateTime?     @map("instrument_date")
   bankName       String?       @map("bank_name")
   bankBranch     String?       @map("bank_branch")
-  utrNumber      String?       @map("utr_number")      // NEFT/RTGS/IMPS UTR
-  clearedAt      DateTime?     @map("cleared_at")      // cheque/DD/NEFT realization
+  utrNumber      String?       @map("utr_number") // NEFT/RTGS/IMPS UTR
+  clearedAt      DateTime?     @map("cleared_at") // cheque/DD/NEFT realization
   paidAt         DateTime?     @map("paid_at")
   createdById    String?       @map("created_by_id") // soft reference
   createdAt      DateTime      @default(now()) @map("created_at")
@@ -1987,8 +1999,10 @@ model Payment {
   academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
   invoice      Invoice       @relation(fields: [invoiceId], references: [id])
   student      Student?      @relation(fields: [studentId], references: [id])
+  refunds      Refund[]
 
   @@unique([orgId, receiptNumber])
+  @@index([orgId, gatewayOrderId])
   @@index([orgId, paidAt])
   @@index([orgId, status])
   @@index([orgId, invoiceId])
@@ -1999,17 +2013,17 @@ model Payment {
 
 /// Manual fee concession/discount applied by school admin.
 model Concession {
-  id          String         @id @default(cuid())
-  orgId       String         @map("org_id")
-  studentId   String?        @map("student_id")
-  invoiceId   String?        @map("invoice_id")
-  type        ConcessionType
-  value       Decimal        @db.Decimal(12, 2)
-  reason      String?
-  approvedById String?       @map("approved_by_id") // soft reference
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-  deletedAt   DateTime?      @map("deleted_at")
+  id           String         @id @default(cuid())
+  orgId        String         @map("org_id")
+  studentId    String?        @map("student_id")
+  invoiceId    String?        @map("invoice_id")
+  type         ConcessionType
+  value        Decimal        @db.Decimal(12, 2)
+  reason       String?
+  approvedById String?        @map("approved_by_id") // soft reference
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  deletedAt    DateTime?      @map("deleted_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   student      Student?     @relation(fields: [studentId], references: [id])
@@ -2024,24 +2038,24 @@ model Concession {
 
 /// Internal CRM event (calendar/meeting); distinct from public open days.
 model Event {
-  id             String        @id @default(cuid())
-  orgId          String        @map("org_id")
-  branchId       String?       @map("branch_id")
-  academicYearId String?       @map("academic_year_id")
+  id             String      @id @default(cuid())
+  orgId          String      @map("org_id")
+  branchId       String?     @map("branch_id")
+  academicYearId String?     @map("academic_year_id")
   title          String
   description    String?
-  type           String?       // OPEN_HOUSE, PTM, ANNUAL_DAY... / DEMO_CLASS, WORKSHOP... (institution-specific labels)
+  type           String? // OPEN_HOUSE, PTM, ANNUAL_DAY... / DEMO_CLASS, WORKSHOP... (institution-specific labels)
   capacity       Int?
-  status         EventStatus   @default(DRAFT) // DRAFT editable; PUBLISHED locked (cancel only)
-  isPublished    Boolean       @default(false) @map("is_published") // deprecated by status; kept until phase 2 decides marketplace flag
-  startsAt       DateTime      @map("starts_at")
-  endsAt         DateTime?     @map("ends_at")
+  status         EventStatus @default(DRAFT) // DRAFT editable; PUBLISHED locked (cancel only)
+  isPublished    Boolean     @default(false) @map("is_published") // deprecated by status; kept until phase 2 decides marketplace flag
+  startsAt       DateTime    @map("starts_at")
+  endsAt         DateTime?   @map("ends_at")
   location       String?
-  meetingLink    String?       @map("meeting_link") // manual Zoom link Phase 1
-  createdById    String?       @map("created_by_id") // soft reference
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-  deletedAt      DateTime?     @map("deleted_at")
+  meetingLink    String?     @map("meeting_link") // manual Zoom link Phase 1
+  createdById    String?     @map("created_by_id") // soft reference
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  deletedAt      DateTime?   @map("deleted_at")
 
   organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch       Branch?       @relation(fields: [branchId], references: [id])
@@ -2057,13 +2071,13 @@ model Event {
 
 /// RSVP to an internal CRM event. Dependent child.
 model EventRsvp {
-  id          String     @id @default(cuid())
-  orgId       String     @map("org_id")
-  eventId     String     @map("event_id")
-  attendeeType String    @map("attendee_type") // USER, PARENT, LEAD
-  attendeeId  String?    @map("attendee_id") // soft reference
-  status      RsvpStatus @default(GOING)
-  createdAt   DateTime   @default(now()) @map("created_at")
+  id           String     @id @default(cuid())
+  orgId        String     @map("org_id")
+  eventId      String     @map("event_id")
+  attendeeType String     @map("attendee_type") // USER, PARENT, LEAD
+  attendeeId   String?    @map("attendee_id") // soft reference
+  status       RsvpStatus @default(GOING)
+  createdAt    DateTime   @default(now()) @map("created_at")
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
@@ -2104,19 +2118,19 @@ model Campaign {
 }
 
 model CampaignRecipient {
-  id            String               @id @default(cuid())
-  orgId         String               @map("org_id")
-  campaignId    String               @map("campaign_id")
-  recipientType String               @map("recipient_type")
-  recipientId   String?              @map("recipient_id")
+  id            String             @id @default(cuid())
+  orgId         String             @map("org_id")
+  campaignId    String             @map("campaign_id")
+  recipientType String             @map("recipient_type")
+  recipientId   String?            @map("recipient_id")
   name          String?
   phone         String?
   email         String?
-  status        CampaignSendStatus   @default(PENDING)
-  sentAt        DateTime?            @map("sent_at")
-  deliveredAt   DateTime?            @map("delivered_at")
-  failureReason String?              @map("failure_reason")
-  createdAt     DateTime             @default(now()) @map("created_at")
+  status        CampaignSendStatus @default(PENDING)
+  sentAt        DateTime?          @map("sent_at")
+  deliveredAt   DateTime?          @map("delivered_at")
+  failureReason String?            @map("failure_reason")
+  createdAt     DateTime           @default(now()) @map("created_at")
 
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
@@ -2128,15 +2142,15 @@ model CampaignRecipient {
 
 /// DLT-approved WhatsApp templates saved by org admin.
 model WhatsappTemplate {
-  id               String    @id @default(cuid())
-  orgId            String    @map("org_id")
-  name             String
-  msg91TemplateId  String    @map("msg91_template_id")
-  body             String
-  createdById      String?   @map("created_by_id")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  deletedAt        DateTime? @map("deleted_at")
+  id              String    @id @default(cuid())
+  orgId           String    @map("org_id")
+  name            String
+  msg91TemplateId String    @map("msg91_template_id")
+  body            String
+  createdById     String?   @map("created_by_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
@@ -2147,17 +2161,17 @@ model WhatsappTemplate {
 
 /// In-app/outbound notification record.
 model Notification {
-  id           String              @id @default(cuid())
-  orgId        String              @map("org_id")
-  recipientType String             @map("recipient_type") // USER, PARENT
-  recipientId  String?             @map("recipient_id") // soft reference
-  channel      NotificationChannel @default(IN_APP)
-  title        String
-  body         String?
-  data         Json?
-  readAt       DateTime?           @map("read_at")
-  deletedAt    DateTime?           @map("deleted_at")
-  createdAt    DateTime            @default(now()) @map("created_at")
+  id            String              @id @default(cuid())
+  orgId         String              @map("org_id")
+  recipientType String              @map("recipient_type") // USER, PARENT
+  recipientId   String?             @map("recipient_id") // soft reference
+  channel       NotificationChannel @default(IN_APP)
+  title         String
+  body          String?
+  data          Json?
+  readAt        DateTime?           @map("read_at")
+  deletedAt     DateTime?           @map("deleted_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
@@ -2192,17 +2206,17 @@ model NotificationPreference {
 
 /// Counsellor performance target per period.
 model CounsellorTarget {
-  id             String        @id @default(cuid())
-  orgId          String        @map("org_id")
-  branchId       String?       @map("branch_id")
-  academicYearId String?       @map("academic_year_id")
-  userId         String        @map("user_id")
-  periodStart    DateTime      @map("period_start")
-  periodEnd      DateTime      @map("period_end")
-  leadTarget     Int           @default(0) @map("lead_target")
-  conversionTarget Int         @default(0) @map("conversion_target")
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
+  id               String   @id @default(cuid())
+  orgId            String   @map("org_id")
+  branchId         String?  @map("branch_id")
+  academicYearId   String?  @map("academic_year_id")
+  userId           String   @map("user_id")
+  periodStart      DateTime @map("period_start")
+  periodEnd        DateTime @map("period_end")
+  leadTarget       Int      @default(0) @map("lead_target")
+  conversionTarget Int      @default(0) @map("conversion_target")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch       Branch?       @relation(fields: [branchId], references: [id])
@@ -2217,18 +2231,18 @@ model CounsellorTarget {
 
 /// Immutable log of every outbound/inbound communication (1 year retention).
 model CommunicationLog {
-  id           String                 @id @default(cuid())
-  orgId        String                 @map("org_id")
-  userId       String?                @map("user_id")
-  channel      NotificationChannel
-  direction    CommunicationDirection
-  entityType   String?                @map("entity_type") // LEAD, ADMISSION, INVOICE
-  entityId     String?                @map("entity_id")
-  contact      String // phone/email
-  content      String?
-  providerRef  String?                @map("provider_ref")
-  status       String?
-  createdAt    DateTime               @default(now()) @map("created_at")
+  id          String                 @id @default(cuid())
+  orgId       String                 @map("org_id")
+  userId      String?                @map("user_id")
+  channel     NotificationChannel
+  direction   CommunicationDirection
+  entityType  String?                @map("entity_type") // LEAD, ADMISSION, INVOICE
+  entityId    String?                @map("entity_id")
+  contact     String // phone/email
+  content     String?
+  providerRef String?                @map("provider_ref")
+  status      String?
+  createdAt   DateTime               @default(now()) @map("created_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user         User?        @relation(fields: [userId], references: [id])
@@ -2297,10 +2311,10 @@ model Plan {
 
 /// Mapping of which modules a plan unlocks.
 model PlanModule {
-  id        String   @id @default(cuid())
-  planId    String   @map("plan_id")
-  moduleSlug String  @map("module_slug") // references platform.modules.slug (soft)
-  createdAt DateTime @default(now()) @map("created_at")
+  id         String   @id @default(cuid())
+  planId     String   @map("plan_id")
+  moduleSlug String   @map("module_slug") // references platform.modules.slug (soft)
+  createdAt  DateTime @default(now()) @map("created_at")
 
   plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
@@ -2312,25 +2326,25 @@ model PlanModule {
 
 /// Active subscription for an organization.
 model Subscription {
-  id           String             @id @default(cuid())
-  orgId        String             @map("org_id")
-  planId       String             @map("plan_id")
-  status       SubscriptionStatus @default(TRIALING)
-  billingCycle BillingCycle       @default(ANNUAL) @map("billing_cycle")
-  amount       Decimal            @db.Decimal(12, 2)
-  discountPct  Int                @default(0) @map("discount_pct")
-  trialEndsAt  DateTime?          @map("trial_ends_at")
-  startedAt    DateTime?          @map("started_at")
-  currentPeriodEnd DateTime?      @map("current_period_end")
-  graceEndsAt  DateTime?          @map("grace_ends_at")
-  cancelAtPeriodEnd Boolean       @default(false) @map("cancel_at_period_end")
-  gatewaySubId String?            @map("gateway_sub_id") // Razorpay subscription id
-  createdAt    DateTime           @default(now()) @map("created_at")
-  updatedAt    DateTime           @updatedAt @map("updated_at")
-  deletedAt    DateTime?          @map("deleted_at")
+  id                String             @id @default(cuid())
+  orgId             String             @map("org_id")
+  planId            String             @map("plan_id")
+  status            SubscriptionStatus @default(TRIALING)
+  billingCycle      BillingCycle       @default(ANNUAL) @map("billing_cycle")
+  amount            Decimal            @db.Decimal(12, 2)
+  discountPct       Int                @default(0) @map("discount_pct")
+  trialEndsAt       DateTime?          @map("trial_ends_at")
+  startedAt         DateTime?          @map("started_at")
+  currentPeriodEnd  DateTime?          @map("current_period_end")
+  graceEndsAt       DateTime?          @map("grace_ends_at")
+  cancelAtPeriodEnd Boolean            @default(false) @map("cancel_at_period_end")
+  gatewaySubId      String?            @map("gateway_sub_id") // Razorpay subscription id
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  deletedAt         DateTime?          @map("deleted_at")
 
-  organization Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  plan         Plan                @relation(fields: [planId], references: [id])
+  organization Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  plan         Plan               @relation(fields: [planId], references: [id])
   items        SubscriptionItem[]
   transactions Transaction[]
 
@@ -2384,15 +2398,15 @@ model Transaction {
 
 /// Referral program (Phase 2; fields scaffolded now per spec).
 model Referral {
-  id             String         @id @default(cuid())
-  referrerOrgId  String         @map("referrer_org_id") // soft reference to organizations
-  refereeOrgId   String?        @map("referee_org_id") // soft reference
-  code           String         @unique
-  status         ReferralStatus @default(PENDING)
-  rewardAmount   Decimal?       @map("reward_amount") @db.Decimal(12, 2)
-  rewardedAt     DateTime?      @map("rewarded_at")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  id            String         @id @default(cuid())
+  referrerOrgId String         @map("referrer_org_id") // soft reference to organizations
+  refereeOrgId  String?        @map("referee_org_id") // soft reference
+  code          String         @unique
+  status        ReferralStatus @default(PENDING)
+  rewardAmount  Decimal?       @map("reward_amount") @db.Decimal(12, 2)
+  rewardedAt    DateTime?      @map("rewarded_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
 
   @@index([referrerOrgId])
   @@index([status])
@@ -2401,46 +2415,46 @@ model Referral {
 }
 
 model PlatformSettings {
-  id                      String   @id @default("default")
-  freePlanLeadCap         Int      @default(10) @map("free_plan_lead_cap")
-  trialDurationDays       Int      @default(7) @map("trial_duration_days")
-  defaultOtpTtlMinutes    Int      @default(10) @map("default_otp_ttl_minutes")
-  enableWhatsapp          Boolean  @default(false) @map("enable_whatsapp")
-  enableCampaignModule    Boolean  @default(false) @map("enable_campaign_module")
-  enableAiFeatures        Boolean  @default(false) @map("enable_ai_features")
-  enablePublicApiAccess   Boolean  @default(false) @map("enable_public_api_access")
-  maintenanceMode         Boolean  @default(false) @map("maintenance_mode")
-  fromEmailAddress        String?  @map("from_email_address")
-  supportEmail            String?  @map("support_email")
-  fromName                String?  @map("from_name")
-  opsAlertEmail           String?  @map("ops_alert_email")
-  slackWebhookUrl         String?  @map("slack_webhook_url")
-  razorpayLiveKey         String?  @map("razorpay_live_key")
-  razorpayWebhookSecret   String?  @map("razorpay_webhook_secret")
-  doSpacesEndpoint        String?  @map("do_spaces_endpoint")
-  doSpacesBucket          String?  @map("do_spaces_bucket")
-  doSpacesCdnUrl          String?  @map("do_spaces_cdn_url")
-  updatedAt               DateTime @updatedAt @map("updated_at")
+  id                    String   @id @default("default")
+  freePlanLeadCap       Int      @default(10) @map("free_plan_lead_cap")
+  trialDurationDays     Int      @default(7) @map("trial_duration_days")
+  defaultOtpTtlMinutes  Int      @default(10) @map("default_otp_ttl_minutes")
+  enableWhatsapp        Boolean  @default(false) @map("enable_whatsapp")
+  enableCampaignModule  Boolean  @default(false) @map("enable_campaign_module")
+  enableAiFeatures      Boolean  @default(false) @map("enable_ai_features")
+  enablePublicApiAccess Boolean  @default(false) @map("enable_public_api_access")
+  maintenanceMode       Boolean  @default(false) @map("maintenance_mode")
+  fromEmailAddress      String?  @map("from_email_address")
+  supportEmail          String?  @map("support_email")
+  fromName              String?  @map("from_name")
+  opsAlertEmail         String?  @map("ops_alert_email")
+  slackWebhookUrl       String?  @map("slack_webhook_url")
+  razorpayLiveKey       String?  @map("razorpay_live_key")
+  razorpayWebhookSecret String?  @map("razorpay_webhook_secret")
+  doSpacesEndpoint      String?  @map("do_spaces_endpoint")
+  doSpacesBucket        String?  @map("do_spaces_bucket")
+  doSpacesCdnUrl        String?  @map("do_spaces_cdn_url")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   @@map("platform_settings")
   @@schema("platform")
 }
 
 model Term {
-  id             String    @id @default(cuid())
-  orgId          String    @map("org_id")
-  academicYearId String    @map("academic_year_id")
+  id             String   @id @default(cuid())
+  orgId          String   @map("org_id")
+  academicYearId String   @map("academic_year_id")
   name           String
-  startDate      DateTime  @map("start_date")
-  endDate        DateTime  @map("end_date")
-  order          Int       @default(0)
-  isActive       Boolean   @default(true) @map("is_active")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  startDate      DateTime @map("start_date")
+  endDate        DateTime @map("end_date")
+  order          Int      @default(0)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  invoices       Invoice[]
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  invoices     Invoice[]
 
   @@index([orgId])
   @@index([academicYearId])
@@ -2449,23 +2463,23 @@ model Term {
 }
 
 model Course {
-  id            String        @id @default(cuid())
-  orgId         String        @map("org_id")
-  name          String
-  description   String?
-  category      CenterCategory?
-  amount        Decimal       @db.Decimal(10, 2)
-  frequency     FeeFrequency  @default(MONTHLY)
-  billingDay    Int           @default(1) @map("billing_day")
-  durationMonths Int?         @map("duration_months")
-  isActive      Boolean       @default(true) @map("is_active")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
-  deletedAt     DateTime?     @map("deleted_at")
+  id             String          @id @default(cuid())
+  orgId          String          @map("org_id")
+  name           String
+  description    String?
+  category       CenterCategory?
+  amount         Decimal         @db.Decimal(10, 2)
+  frequency      FeeFrequency    @default(MONTHLY)
+  billingDay     Int             @default(1) @map("billing_day")
+  durationMonths Int?            @map("duration_months")
+  isActive       Boolean         @default(true) @map("is_active")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  deletedAt      DateTime?       @map("deleted_at")
 
-  organization  Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  enrollments   CourseEnrollment[]
-  invoices      Invoice[]
+  organization Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  enrollments  CourseEnrollment[]
+  invoices     Invoice[]
 
   @@index([orgId])
   @@map("courses")
@@ -2473,20 +2487,20 @@ model Course {
 }
 
 model CourseEnrollment {
-  id          String           @id @default(cuid())
-  orgId       String           @map("org_id")
-  studentId   String           @map("student_id")
-  courseId    String           @map("course_id")
-  startDate   DateTime         @map("start_date")
-  endDate     DateTime?        @map("end_date")
-  status      EnrollmentStatus @default(ACTIVE)
-  nextBillingDate DateTime?    @map("next_billing_date")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
+  id              String           @id @default(cuid())
+  orgId           String           @map("org_id")
+  studentId       String           @map("student_id")
+  courseId        String           @map("course_id")
+  startDate       DateTime         @map("start_date")
+  endDate         DateTime?        @map("end_date")
+  status          EnrollmentStatus @default(ACTIVE)
+  nextBillingDate DateTime?        @map("next_billing_date")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
 
-  organization Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  student      Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  course       Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course       Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, courseId])
   @@index([orgId])
@@ -2505,21 +2519,226 @@ enum AssignmentStatus {
 }
 
 model UserRoleAssignment {
-  id         String            @id @default(cuid())
-  userId     String            @map("user_id")
+  id         String           @id @default(cuid())
+  userId     String           @map("user_id")
   role       UserRole
-  orgId      String?           @map("org_id")
-  status     AssignmentStatus  @default(ACTIVE)
-  isDefault  Boolean           @default(false)
-  lastUsedAt DateTime?         @map("last_used_at")
-  createdAt  DateTime          @default(now()) @map("created_at")
+  orgId      String?          @map("org_id")
+  status     AssignmentStatus @default(ACTIVE)
+  isDefault  Boolean          @default(false)
+  lastUsedAt DateTime?        @map("last_used_at")
+  createdAt  DateTime         @default(now()) @map("created_at")
 
-  user       User          @relation(fields: [userId], references: [id])
-  org        Organization? @relation(fields: [orgId], references: [id])
+  user User          @relation(fields: [userId], references: [id])
+  org  Organization? @relation(fields: [orgId], references: [id])
 
   @@unique([userId, role, orgId])
   @@index([userId])
   @@index([orgId])
   @@map("user_role_assignments")
   @@schema("platform")
+}
+
+// ============================================================
+// PAYMENT GATEWAY (per-org fee collection — see
+// docs/design/payment-gateway-integration.md)
+// ============================================================
+
+enum GatewayProvider {
+  RAZORPAY
+  STRIPE
+  CASHFREE
+  PAYU
+
+  @@schema("billing")
+}
+
+enum GatewayEnvironment {
+  TEST
+  LIVE
+
+  @@schema("billing")
+}
+
+enum GatewayConfigStatus {
+  DRAFT
+  VERIFIED
+  ACTIVE
+  DISABLED
+  SUSPENDED
+
+  @@schema("billing")
+}
+
+enum GatewayOrderStatus {
+  CREATED
+  ATTEMPTED
+  PAID
+  FAILED
+  EXPIRED
+
+  @@schema("billing")
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSED
+  FAILED
+
+  @@schema("billing")
+}
+
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  SKIPPED
+  FAILED
+
+  @@schema("billing")
+}
+
+enum LedgerEntryType {
+  CHARGE
+  PAYMENT
+  REFUND
+  CONCESSION
+  ADJUSTMENT
+
+  @@schema("crm")
+}
+
+/// Per-org, per-provider, per-environment gateway credentials + policy.
+/// Secrets encrypted with AES-256-GCM (src/lib/payments/vault.ts).
+model PaymentGatewayConfig {
+  id                 String              @id @default(cuid())
+  orgId              String              @map("org_id")
+  provider           GatewayProvider     @default(RAZORPAY)
+  environment        GatewayEnvironment  @default(TEST)
+  status             GatewayConfigStatus @default(DRAFT)
+  isCurrent          Boolean             @default(false) @map("is_current")
+  keyIdEncrypted     String              @map("key_id_encrypted")
+  keySecretEncrypted String              @map("key_secret_encrypted")
+  webhookSecretEnc   String              @map("webhook_secret_encrypted")
+  encryptionKeyVer   Int                 @default(1) @map("encryption_key_version")
+  keyIdLast4         String?             @map("key_id_last4")
+  allowPartial       Boolean             @default(true) @map("allow_partial")
+  minPartialAmount   Decimal?            @map("min_partial_amount") @db.Decimal(12, 2)
+  verifiedAt         DateTime?           @map("verified_at")
+  webhookVerifiedAt  DateTime?           @map("webhook_verified_at")
+  lastWebhookAt      DateTime?           @map("last_webhook_at")
+  createdById        String?             @map("created_by_id") // soft reference
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  deletedAt          DateTime?           @map("deleted_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, provider, environment])
+  @@index([orgId, status])
+  @@map("payment_gateway_configs")
+  @@schema("billing")
+}
+
+/// One provider order per checkout intent; amount fixed at creation.
+model GatewayOrder {
+  id                String             @id @default(cuid())
+  orgId             String             @map("org_id")
+  provider          GatewayProvider
+  environment       GatewayEnvironment
+  invoiceId         String             @map("invoice_id")
+  studentId         String?            @map("student_id") // soft reference
+  parentId          String?            @map("parent_id") // soft reference; who initiated
+  amount            Decimal            @db.Decimal(12, 2) // rupees; paise only at provider edge
+  currency          String             @default("INR")
+  status            GatewayOrderStatus @default(CREATED)
+  providerOrderId   String             @map("provider_order_id")
+  providerPaymentId String?            @map("provider_payment_id")
+  failureCode       String?            @map("failure_code")
+  failureReason     String?            @map("failure_reason")
+  paymentId         String?            @unique @map("payment_id") // soft reference → crm.payments
+  expiresAt         DateTime           @map("expires_at")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  invoice      Invoice      @relation(fields: [invoiceId], references: [id])
+
+  @@unique([provider, providerOrderId])
+  @@index([orgId, status])
+  @@index([orgId, invoiceId])
+  @@index([status, expiresAt])
+  @@map("gateway_orders")
+  @@schema("billing")
+}
+
+/// Every inbound gateway webhook, verified or not — idempotency, audit, replay.
+model WebhookEvent {
+  id              String             @id @default(cuid())
+  orgId           String?            @map("org_id") // soft reference; null if unresolvable
+  provider        GatewayProvider
+  providerEventId String             @map("provider_event_id")
+  eventType       String             @map("event_type")
+  status          WebhookEventStatus @default(RECEIVED)
+  signatureValid  Boolean            @map("signature_valid")
+  payload         Json
+  error           String?
+  processedAt     DateTime?          @map("processed_at")
+  attempts        Int                @default(0)
+  createdAt       DateTime           @default(now()) @map("created_at")
+
+  @@unique([provider, providerEventId])
+  @@index([orgId, createdAt])
+  @@index([status, createdAt])
+  @@map("webhook_events")
+  @@schema("billing")
+}
+
+/// Gateway refund against a fee payment.
+model Refund {
+  id               String       @id @default(cuid())
+  orgId            String       @map("org_id")
+  paymentId        String       @map("payment_id")
+  gatewayOrderId   String?      @map("gateway_order_id") // soft reference
+  amount           Decimal      @db.Decimal(12, 2)
+  status           RefundStatus @default(PENDING)
+  providerRefundId String?      @map("provider_refund_id")
+  reason           String?
+  initiatedById    String       @map("initiated_by_id") // soft reference
+  processedAt      DateTime?    @map("processed_at")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  payment      Payment      @relation(fields: [paymentId], references: [id])
+
+  @@unique([orgId, providerRefundId])
+  @@index([orgId, status])
+  @@index([paymentId])
+  @@map("refunds")
+  @@schema("billing")
+}
+
+/// Append-only student money ledger. Debits = charges, credits = payments;
+/// refund reversals are debits. Corrections are compensating ADJUSTMENT
+/// entries — rows are never edited.
+model LedgerEntry {
+  id          String          @id @default(cuid())
+  orgId       String          @map("org_id")
+  studentId   String          @map("student_id")
+  invoiceId   String?         @map("invoice_id") // soft reference
+  paymentId   String?         @map("payment_id") // soft reference
+  refundId    String?         @map("refund_id") // soft reference
+  type        LedgerEntryType
+  debit       Decimal         @default(0) @db.Decimal(12, 2)
+  credit      Decimal         @default(0) @db.Decimal(12, 2)
+  balance     Decimal         @db.Decimal(12, 2) // running balance snapshot
+  description String
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  student      Student      @relation(fields: [studentId], references: [id])
+
+  @@index([orgId, studentId, createdAt])
+  @@index([invoiceId])
+  @@map("ledger_entries")
+  @@schema("crm")
 }

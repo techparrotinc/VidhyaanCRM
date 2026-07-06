@@ -7,11 +7,15 @@ const TENANT_MODELS = [
   'Notification', 'NotificationPreference', 'CommunicationLog', 'NotificationQueue',
   'AcademicYear', 'CounsellorTarget', 'LeadActivity', 'AdmissionActivity',
   'LeadCustomField', 'StudentCustomField', 'ApiKey', 'OrgDomain',
-  'BatchSchedule', 'Instructor', 'TrialClassBooking'
+  'BatchSchedule', 'Instructor', 'TrialClassBooking',
+  // Payment gateway. WebhookEvent is deliberately absent: it is written by
+  // the public webhook route (no tenant session) via the base client.
+  'PaymentGatewayConfig', 'GatewayOrder', 'Refund', 'LedgerEntry'
 ]
 
 const SOFT_DELETE_MODELS = [
-  'Lead', 'Admission', 'Student', 'Invoice', 'Campaign', 'Event'
+  'Lead', 'Admission', 'Student', 'Invoice', 'Campaign', 'Event',
+  'PaymentGatewayConfig'
 ]
 
 const tenantModelSet = new Set(TENANT_MODELS.map(m => m.toLowerCase()))

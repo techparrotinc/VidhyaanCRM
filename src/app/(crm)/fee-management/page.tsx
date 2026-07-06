@@ -7,8 +7,10 @@ import { format, subMonths, addMonths } from 'date-fns'
 import {
   Download, Plus, Search,
   Mail, MessageCircle, Phone,
-  MoreVertical, AlertCircle, CheckCircle
+  MoreVertical, AlertCircle, CheckCircle, X
 } from 'lucide-react'
+import { KpiTile } from '@/components/fees/KpiTile'
+import { computeCollectionRate } from '@/lib/fees'
 import { createPortal } from 'react-dom'
 import { useAcademicYears }
   from '@/hooks/useAcademicYears'
@@ -95,6 +97,9 @@ type Summary = {
   totalInvoices: number
   collected: number
   outstanding: number
+  totalBilled: number
+  overdueAmount: number
+  scheduledAmount: number
   statusCounts: Record<string, number>
 }
 
@@ -125,8 +130,8 @@ export default function FeeManagementPage() {
 
   // New Filters State
   const [institutionType, setInstitutionType] = useState<'SCHOOL' | 'LEARNING_CENTER'>('SCHOOL')
-  const [termFilter, setTermFilter] = useState('')
-  const [monthFilter, setMonthFilter] = useState(() => format(new Date(), 'yyyy-MM'))
+  const [termFilter, setTermFilter] = useState('all')
+  const [monthFilter, setMonthFilter] = useState('all')
   const [courseFilter, setCourseFilter] = useState('all')
   const [isInitialized, setIsInitialized] = useState(false)
   const searchParams = useSearchParams()
@@ -211,7 +216,7 @@ export default function FeeManagementPage() {
             params.set('courseId', courseFilter)
           }
         }
-        if (monthFilter) {
+        if (monthFilter && monthFilter !== 'all') {
           params.set('month', monthFilter)
         }
 
@@ -251,7 +256,7 @@ export default function FeeManagementPage() {
             params.set('courseId', courseFilter)
           }
         }
-        if (monthFilter) {
+        if (monthFilter && monthFilter !== 'all') {
           params.set('month', monthFilter)
         }
 
@@ -287,17 +292,9 @@ export default function FeeManagementPage() {
           const terms = termsJson.data || []
           setTermsList(terms)
 
-          const today = new Date()
-          const activeTerm = terms.find((t: any) => {
-            const start = new Date(t.startDate)
-            const end = new Date(t.endDate)
-            return today >= start && today <= end
-          })
-          if (activeTerm) {
-            setTermFilter(activeTerm.id)
-          } else {
-            setTermFilter('all')
-          }
+          // Default to all terms — auto-selecting the active term hid
+          // invoices from other terms behind an invisible filter.
+          setTermFilter('all')
         } else {
           const coursesRes = await fetch('/api/v1/settings/courses')
           const coursesJson = await coursesRes.json()
@@ -363,20 +360,62 @@ export default function FeeManagementPage() {
   }, [])
 
   const getSummaryHeaderLabel = () => {
+    const parts: string[] = []
     if (institutionType === 'SCHOOL') {
       if (termFilter && termFilter !== 'all') {
         const term = termsList.find(t => t.id === termFilter)
-        return term ? `${term.name} Overview` : 'Overview'
+        if (term) parts.push(term.name)
       }
-      return 'Overview'
     } else {
-      if (monthFilter) {
-        const option = monthsOptions.find(o => o.value === monthFilter)
-        return option ? `${option.label} Overview` : 'Overview'
+      if (courseFilter && courseFilter !== 'all') {
+        const course = coursesList.find(c => c.id === courseFilter)
+        if (course) parts.push(course.name)
       }
-      return 'Overview'
     }
+    if (monthFilter && monthFilter !== 'all') {
+      const option = monthsOptions.find(o => o.value === monthFilter)
+      if (option) parts.push(option.label)
+    }
+    return parts.length ? `${parts.join(' · ')} Overview` : 'Overview'
   }
+
+  // Active filters shown as removable chips so hidden filters can't
+  // silently hide invoices again.
+  const activeFilterChips = useMemo(() => {
+    const chips: { key: string; label: string; clear: () => void }[] = []
+    if (search) {
+      chips.push({ key: 'search', label: `Search: "${search}"`, clear: () => setSearch('') })
+    }
+    if (gradeLabel && gradeLabel !== 'all') {
+      chips.push({ key: 'grade', label: getGradeLabel(gradeLabel), clear: () => setGradeLabel('all') })
+    }
+    if (institutionType === 'SCHOOL' && termFilter && termFilter !== 'all') {
+      const term = termsList.find(t => t.id === termFilter)
+      chips.push({ key: 'term', label: term?.name ?? 'Term', clear: () => setTermFilter('all') })
+    }
+    if (institutionType === 'LEARNING_CENTER' && courseFilter && courseFilter !== 'all') {
+      const course = coursesList.find(c => c.id === courseFilter)
+      chips.push({ key: 'course', label: course?.name ?? 'Course', clear: () => setCourseFilter('all') })
+    }
+    if (monthFilter && monthFilter !== 'all') {
+      const option = monthsOptions.find(o => o.value === monthFilter)
+      chips.push({ key: 'month', label: option?.label ?? monthFilter, clear: () => setMonthFilter('all') })
+    }
+    if (studentIdFilter) {
+      chips.push({ key: 'student', label: 'Student filter', clear: () => setStudentIdFilter(null) })
+    }
+    return chips
+  }, [search, gradeLabel, institutionType, termFilter, termsList, courseFilter, coursesList, monthFilter, monthsOptions, studentIdFilter])
+
+  const clearAllFilters = useCallback(() => {
+    setSearch('')
+    setGradeLabel('all')
+    setTermFilter('all')
+    setCourseFilter('all')
+    setMonthFilter('all')
+    setStudentIdFilter(null)
+    setPage(1)
+  }, [])
 
   const handleActionClick = useCallback((
     e: React.MouseEvent,
@@ -426,7 +465,7 @@ export default function FeeManagementPage() {
         params.set('courseId', courseFilter)
       }
     }
-    if (monthFilter) {
+    if (monthFilter && monthFilter !== 'all') {
       params.set('month', monthFilter)
     }
     window.open(
@@ -589,65 +628,51 @@ export default function FeeManagementPage() {
       ) : (
         /* NORMAL VIEW BODY */
         <>
-          {/* ── SUMMARY BAR ── */}
+          {/* ── SUMMARY KPI GRID ── */}
           {summary && (
             <div className="px-4 sm:px-6 pb-4">
               <h2 className="text-sm font-bold text-slate-800 mb-2 font-sans select-none">
                 {getSummaryHeaderLabel()}
               </h2>
-              <div className="bg-white rounded-xl border border-slate-200 p-4">
-                <div
-                  className="flex items-center gap-6 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-                  style={{
-                    WebkitOverflowScrolling: 'touch'
-                  }}>
-
-                  <div className="flex-shrink-0">
-                    <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold whitespace-nowrap">
-                      Total Invoices
-                    </p>
-                    <p className="text-2xl font-bold text-slate-900 mt-0.5">
-                      {summary.totalInvoices}
-                    </p>
-                  </div>
-
-                  <div className="w-px h-10 bg-slate-200 flex-shrink-0" />
-
-                  <div className="flex-shrink-0">
-                    <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold whitespace-nowrap">
-                      Collected
-                    </p>
-                    <p className="text-2xl font-bold text-green-600 mt-0.5">
-                      ₹{summary.collected.toLocaleString('en-IN')}
-                    </p>
-                  </div>
-
-                  <div className="w-px h-10 bg-slate-200 flex-shrink-0" />
-
-                  <div className="flex-shrink-0">
-                    <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold whitespace-nowrap">
-                      Outstanding
-                    </p>
-                    <p className="text-2xl font-bold text-red-600 mt-0.5">
-                      ₹{summary.outstanding.toLocaleString('en-IN')}
-                    </p>
-                  </div>
-
-                  <div className="w-px h-10 bg-slate-200 flex-shrink-0" />
-
-                  <div className="flex-shrink-0">
-                    <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold whitespace-nowrap">
-                      Overdue
-                    </p>
-                    <p className="text-2xl font-bold text-amber-600 mt-0.5 flex items-center gap-1.5">
-                      {summary.statusCounts?.OVERDUE ?? 0}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <KpiTile
+                  label="Total Billed"
+                  size="compact"
+                  value={`₹${(summary.totalBilled ?? 0).toLocaleString('en-IN')}`}
+                  subLabel={`${summary.totalInvoices} invoices`}
+                />
+                <KpiTile
+                  label="Collected"
+                  size="compact"
+                  value={`₹${summary.collected.toLocaleString('en-IN')}`}
+                  valueClassName="text-green-600"
+                  subLabel={`${computeCollectionRate(summary.collected, summary.totalBilled)}% collection rate`}
+                />
+                <KpiTile
+                  label="Outstanding"
+                  size="compact"
+                  value={`₹${summary.outstanding.toLocaleString('en-IN')}`}
+                  valueClassName="text-red-600"
+                  subLabel={
+                    (summary.scheduledAmount ?? 0) > 0
+                      ? `incl. ₹${summary.scheduledAmount.toLocaleString('en-IN')} scheduled`
+                      : undefined
+                  }
+                />
+                <KpiTile
+                  label="Overdue"
+                  size="compact"
+                  value={`₹${(summary.overdueAmount ?? 0).toLocaleString('en-IN')}`}
+                  valueClassName="text-amber-600"
+                  subLabel={
+                    <span className="flex items-center gap-1">
                       {(summary.statusCounts?.OVERDUE ?? 0) > 0 && (
-                        <AlertCircle className="w-5 h-5 text-amber-500" />
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
                       )}
-                    </p>
-                  </div>
-
-                </div>
+                      {summary.statusCounts?.OVERDUE ?? 0} overdue invoices
+                    </span>
+                  }
+                />
               </div>
             </div>
           )}
@@ -781,6 +806,7 @@ export default function FeeManagementPage() {
                 }}
                 className="flex-shrink-0 h-9 whitespace-nowrap text-sm border border-slate-200 rounded-lg px-3 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[110px] w-auto font-sans"
               >
+                <option value="all">All Months</option>
                 {monthsOptions.map(m => (
                   <option key={m.value} value={m.value}>
                     {m.label}
@@ -797,6 +823,33 @@ export default function FeeManagementPage() {
                 <Download className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Active filter chips */}
+            {activeFilterChips.length > 0 && (
+              <div className="flex items-center flex-wrap gap-1.5 pt-2 select-none">
+                {activeFilterChips.map(chip => (
+                  <span
+                    key={chip.key}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                    {chip.label}
+                    <button
+                      onClick={() => {
+                        chip.clear()
+                        setPage(1)
+                      }}
+                      className="hover:text-blue-900 transition-colors"
+                      aria-label={`Clear ${chip.label} filter`}>
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+                <button
+                  onClick={clearAllFilters}
+                  className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 px-1.5 transition-colors">
+                  Clear all
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ── TABLE ── */}

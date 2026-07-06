@@ -39,6 +39,13 @@ export function sumLineItems(
   return round2(items.reduce((sum, item) => sum + item.price * item.quantity, 0))
 }
 
+/** Collected as a percentage of billed; 0 when nothing billed. Clamped to [0, 100]. */
+export function computeCollectionRate(collected: unknown, billed: unknown): number {
+  const billedNum = Number(billed)
+  if (!billedNum || billedNum <= 0) return 0
+  return Math.min(100, Math.max(0, Math.round((Number(collected) / billedNum) * 100)))
+}
+
 /**
  * Initial status for a new invoice: SCHEDULED only when a valid
  * scheduled date lies in the future, otherwise UNPAID.

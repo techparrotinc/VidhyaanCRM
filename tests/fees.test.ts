@@ -5,6 +5,7 @@ import {
   nextInvoiceStatus,
   sumLineItems,
   resolveScheduleStatus,
+  computeCollectionRate,
 } from '@/lib/fees'
 
 describe('sumSuccessfulPayments', () => {
@@ -131,5 +132,27 @@ describe('resolveScheduleStatus', () => {
   it('absent → UNPAID, no date', () => {
     expect(resolveScheduleStatus(null, now)).toEqual({ status: 'UNPAID', scheduledDate: null })
     expect(resolveScheduleStatus(undefined, now)).toEqual({ status: 'UNPAID', scheduledDate: null })
+  })
+})
+
+describe('computeCollectionRate', () => {
+  it('rounds to whole percent', () => {
+    expect(computeCollectionRate(3333, 10000)).toBe(33)
+    expect(computeCollectionRate(6666, 10000)).toBe(67)
+  })
+
+  it('zero or invalid billed → 0', () => {
+    expect(computeCollectionRate(500, 0)).toBe(0)
+    expect(computeCollectionRate(500, null)).toBe(0)
+    expect(computeCollectionRate(500, 'nope')).toBe(0)
+  })
+
+  it('clamps to [0, 100]', () => {
+    expect(computeCollectionRate(15000, 10000)).toBe(100)
+    expect(computeCollectionRate(-100, 10000)).toBe(0)
+  })
+
+  it('accepts decimal-ish strings', () => {
+    expect(computeCollectionRate('2500.50', '10000')).toBe(25)
   })
 })

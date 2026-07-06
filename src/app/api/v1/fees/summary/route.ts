@@ -11,7 +11,7 @@ export const GET = route({
     ROLES.BRANCH_ADMIN,
     ROLES.ACCOUNTANT
   ],
-  handler: async ({ req, db, user, academicYearId }) => {
+  handler: async ({ req, db, user }) => {
     const { searchParams } = new URL(req.url)
     const termId = searchParams.get('termId') ?? undefined
     const month = searchParams.get('month') ?? undefined
@@ -27,9 +27,8 @@ export const GET = route({
     if (studentId) {
       baseWhere.studentId = studentId
     }
-    if (academicYearId) {
-      baseWhere.academicYearId = academicYearId
-    }
+    // NOTE: no academicYearId scoping here — the invoices list route does not
+    // apply it either, and the summary must agree with the visible list.
     if (termId && termId !== 'all') {
       baseWhere.termId = termId
     }
@@ -57,7 +56,10 @@ export const GET = route({
       totalInvoices,
       statusCounts,
       totalCollected,
-      totalOutstanding
+      totalOutstanding,
+      totalBilledAgg,
+      overdueAgg,
+      scheduledAgg
     ] = await Promise.all([
       db.invoice.count({ where }),
       db.invoice.groupBy({
@@ -85,6 +87,18 @@ export const GET = route({
           totalAmount: true,
           paidAmount: true
         }
+      }),
+      db.invoice.aggregate({
+        where: baseWhere,
+        _sum: { totalAmount: true }
+      }),
+      db.invoice.aggregate({
+        where: { ...baseWhere, status: 'OVERDUE' },
+        _sum: { totalAmount: true, paidAmount: true }
+      }),
+      db.invoice.aggregate({
+        where: { ...baseWhere, status: 'SCHEDULED' },
+        _sum: { totalAmount: true }
       })
     ])
 
@@ -92,10 +106,17 @@ export const GET = route({
       Number(totalOutstanding._sum.totalAmount ?? 0) -
       Number(totalOutstanding._sum.paidAmount ?? 0)
 
+    const overdueAmount =
+      Number(overdueAgg._sum.totalAmount ?? 0) -
+      Number(overdueAgg._sum.paidAmount ?? 0)
+
     return ok({
       totalInvoices,
       collected: Number(totalCollected._sum.amount ?? 0),
       outstanding,
+      totalBilled: Number(totalBilledAgg._sum.totalAmount ?? 0),
+      overdueAmount,
+      scheduledAmount: Number(scheduledAgg._sum.totalAmount ?? 0),
       statusCounts: statusCounts.reduce(
         (acc, s) => ({
           ...acc,

@@ -403,10 +403,10 @@ export default function InvoiceDetailPage() {
 
       {/* ── BODY ── */}
       <div className="px-4 sm:px-6 py-6 flex-1">
-        <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* ── LEFT: Invoice Items ── */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 lg:col-span-2">
 
             {/* Items card */}
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">

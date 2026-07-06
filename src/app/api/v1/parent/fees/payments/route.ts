@@ -16,12 +16,12 @@ export async function GET() {
 
     const students = await prisma.student.findMany({
       where: linkedStudentsWhere(parent),
-      select: { id: true, name: true }
+      select: { id: true, name: true, organization: { select: { name: true } } }
     })
     if (students.length === 0) {
       return NextResponse.json({ success: true, data: { payments: [] } })
     }
-    const studentNameById = new Map(students.map(s => [s.id, s.name]))
+    const studentById = new Map(students.map(s => [s.id, s]))
 
     const payments = await prisma.payment.findMany({
       where: {
@@ -42,7 +42,8 @@ export async function GET() {
           receiptNumber: p.receiptNumber,
           invoiceId: p.invoiceId,
           invoiceNumber: p.invoice.invoiceNumber,
-          studentName: p.studentId ? studentNameById.get(p.studentId) ?? null : null,
+          studentName: p.studentId ? studentById.get(p.studentId)?.name ?? null : null,
+          schoolName: p.studentId ? studentById.get(p.studentId)?.organization.name ?? null : null,
           amount: Number(p.amount),
           refundedAmount: Number(p.refundedAmount),
           method: p.method,

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
 import { Receipt, FileText, Download } from 'lucide-react'
@@ -22,6 +22,7 @@ type PaymentRow = {
   invoiceId: string
   invoiceNumber: string
   studentName: string | null
+  schoolName: string | null
   amount: number
   refundedAmount: number
   method: string
@@ -50,6 +51,28 @@ export default function ParentFeesPage() {
   const invoices = invoicesRes.data?.data.invoices ?? []
   const payments = paymentsRes.data?.data.payments ?? []
   const loading = invoicesRes.isLoading
+
+  // Section per institution — a parent's kids may span a school AND a
+  // learning center under the same login. Single-institution parents see
+  // one unlabelled section (page unchanged for them).
+  const institutionGroups = useMemo(() => {
+    const map = new Map<string, InvoiceRow[]>()
+    for (const invoice of invoices) {
+      const key = invoice.schoolName ?? 'Your school'
+      const list = map.get(key)
+      if (list) list.push(invoice)
+      else map.set(key, [invoice])
+    }
+    return [...map.entries()].map(([schoolName, rows]) => ({
+      schoolName,
+      rows,
+      children: [...new Set(rows.map(r => r.studentName).filter(Boolean))] as string[]
+    }))
+  }, [invoices])
+  const multiInstitution = institutionGroups.length > 1
+
+  // Per-institution child filter (only rendered when >1 child in section)
+  const [childFilter, setChildFilter] = useState<Record<string, string>>({})
 
   const refresh = () => {
     invoicesRes.mutate()
@@ -85,9 +108,36 @@ export default function ParentFeesPage() {
         </div>
       )}
 
-      {invoices.length > 0 && (
-        <div className="space-y-3">
-          {invoices.map(invoice => (
+      {invoices.length > 0 && institutionGroups.map(group => {
+        const selectedChild = childFilter[group.schoolName] ?? 'all'
+        const visibleRows = selectedChild === 'all'
+          ? group.rows
+          : group.rows.filter(r => r.studentName === selectedChild)
+
+        return (
+        <div key={group.schoolName} className="space-y-3">
+          {multiInstitution && (
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
+              {group.schoolName}
+            </h2>
+          )}
+          {group.children.length > 1 && (
+            <div className="flex items-center flex-wrap gap-1.5">
+              {['all', ...group.children].map(child => (
+                <button
+                  key={child}
+                  onClick={() => setChildFilter(prev => ({ ...prev, [group.schoolName]: child }))}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors ${
+                    selectedChild === child
+                      ? 'bg-[#1565D8] text-white'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}>
+                  {child === 'all' ? 'All children' : child}
+                </button>
+              ))}
+            </div>
+          )}
+          {visibleRows.map(invoice => (
             <div key={invoice.id} className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -98,7 +148,8 @@ export default function ParentFeesPage() {
                     </span>
                   </p>
                   <p className="text-xs font-normal text-slate-400">
-                    {invoice.studentName}{invoice.gradeLabel ? ` · ${invoice.gradeLabel}` : ''} · {invoice.schoolName}
+                    {invoice.studentName}{invoice.gradeLabel ? ` · ${invoice.gradeLabel}` : ''}
+                    {!multiInstitution && ` · ${invoice.schoolName}`}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
@@ -133,7 +184,8 @@ export default function ParentFeesPage() {
             </div>
           ))}
         </div>
-      )}
+        )
+      })}
 
       {payments.length > 0 && (
         <div className="space-y-3">
@@ -154,6 +206,7 @@ export default function ParentFeesPage() {
                     </p>
                     <p className="text-xs font-normal text-slate-400">
                       {payment.receiptNumber} · {payment.invoiceNumber}{payment.studentName ? ` · ${payment.studentName}` : ''}
+                      {multiInstitution && payment.schoolName ? ` · ${payment.schoolName}` : ''}
                     </p>
                   </div>
                 </div>

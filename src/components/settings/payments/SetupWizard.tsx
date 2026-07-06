@@ -226,7 +226,7 @@ export default function SetupWizard({ environment, onComplete, onCancel }: Props
             <div key={label}>
               <label className="text-xs font-semibold text-slate-600 block mb-1">{label}</label>
               <div className="flex items-center gap-2">
-                <code className="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-700 truncate">
+                <code className="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-700 truncate select-text">
                   {value}
                 </code>
                 <button

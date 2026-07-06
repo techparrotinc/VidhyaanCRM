@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { CheckCircle2, AlertTriangle, Loader2, KeyRound, Power } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, Loader2, KeyRound, Power, Copy } from 'lucide-react'
 import type { MaskedGatewayConfig } from '@/lib/payments/config'
 
 type Props = {
@@ -33,6 +33,7 @@ const STATUS_BADGE: Record<string, string> = {
 export default function GatewayOverview({ configs, webhookUrl, onMutate, onRotate }: Props) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [copiedUrl, setCopiedUrl] = useState(false)
 
   const current = configs.find(c => c.isCurrent)
   const policySource = current ?? configs[0]
@@ -169,9 +170,22 @@ export default function GatewayOverview({ configs, webhookUrl, onMutate, onRotat
       {/* Webhook URL */}
       <div className="border border-slate-200 rounded-xl p-5 space-y-2">
         <h4 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Webhook endpoint</h4>
-        <code className="block px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-700 overflow-x-auto">
-          {webhookUrl}
-        </code>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-700 overflow-x-auto select-text">
+            {webhookUrl}
+          </code>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(webhookUrl)
+              setCopiedUrl(true)
+              setTimeout(() => setCopiedUrl(false), 2000)
+            }}
+            className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-[#1565D8] shrink-0"
+            title="Copy webhook URL"
+          >
+            {copiedUrl ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+          </button>
+        </div>
         <p className="text-xs font-normal text-slate-400">
           Registered in your Razorpay dashboard. The signing secret was shown once during setup —
           rotate keys to generate a new one.

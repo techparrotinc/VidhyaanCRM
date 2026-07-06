@@ -10,7 +10,8 @@ const TENANT_MODELS = [
   'BatchSchedule', 'Instructor', 'TrialClassBooking',
   // Payment gateway. WebhookEvent is deliberately absent: it is written by
   // the public webhook route (no tenant session) via the base client.
-  'PaymentGatewayConfig', 'GatewayOrder', 'Refund', 'LedgerEntry'
+  'PaymentGatewayConfig', 'GatewayOrder', 'Refund', 'LedgerEntry',
+  'StudentGuardianLink'
 ]
 
 const SOFT_DELETE_MODELS = [

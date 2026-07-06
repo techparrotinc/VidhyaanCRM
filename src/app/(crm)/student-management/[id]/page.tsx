@@ -15,6 +15,7 @@ import { useStudent } from '@/hooks/useStudent'
 import { getGradeLabel } from '@/constants/grades'
 import { useSession } from 'next-auth/react'
 import CourseEnrollmentCard from './components/CourseEnrollmentCard'
+import ParentAccessCard from './components/ParentAccessCard'
 
 const STATUS_CONFIG = {
   ACTIVE: {
@@ -554,6 +555,9 @@ export default function StudentDetailPage() {
                 </div>
               ))}
             </div>
+
+            {/* Parent Portal Access */}
+            <ParentAccessCard studentId={student.id} guardianPhone={student.guardianPhone ?? null} />
 
             {/* Linked Admission Card */}
             {student.admission && (

@@ -608,6 +608,7 @@ model Organization {
   paymentGatewayConfigs PaymentGatewayConfig[]
   gatewayOrders         GatewayOrder[]
   refunds               Refund[]
+  guardianLinks         StudentGuardianLink[]
   ledgerEntries         LedgerEntry[]
 
   @@index([status])
@@ -1216,8 +1217,9 @@ model Parent {
   reviews         SchoolReview[]
   waitlistEntries WaitlistEntry[]
   openDayRsvps    OpenDayRsvp[]
-  userId          String?             @unique @map("user_id")
-  user            User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guardianLinks   StudentGuardianLink[]
+  userId          String?               @unique @map("user_id")
+  user            User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([phone])
   @@map("parents")
@@ -1747,19 +1749,20 @@ model Student {
   updatedAt             DateTime      @updatedAt @map("updated_at")
   deletedAt             DateTime?     @map("deleted_at")
 
-  organization      Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  branch            Branch?            @relation(fields: [branchId], references: [id])
-  academicYear      AcademicYear?      @relation(fields: [academicYearId], references: [id])
-  admission         Admission?         @relation(fields: [admissionId], references: [id])
-  batch             StudentBatch?      @relation(fields: [batchId], references: [id])
+  organization      Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch            Branch?               @relation(fields: [branchId], references: [id])
+  academicYear      AcademicYear?         @relation(fields: [academicYearId], references: [id])
+  admission         Admission?            @relation(fields: [admissionId], references: [id])
+  batch             StudentBatch?         @relation(fields: [batchId], references: [id])
   invoices          Invoice[]
   payments          Payment[]
   concessions       Concession[]
-  siblingLinksA     SiblingLink[]      @relation("SiblingPrimary")
-  siblingLinksB     SiblingLink[]      @relation("SiblingRelated")
+  siblingLinksA     SiblingLink[]         @relation("SiblingPrimary")
+  siblingLinksB     SiblingLink[]         @relation("SiblingRelated")
   activities        StudentActivity[]
   courseEnrollments CourseEnrollment[]
   ledgerEntries     LedgerEntry[]
+  guardianLinks     StudentGuardianLink[]
 
   @@unique([orgId, studentCode])
   @@index([orgId, createdAt])
@@ -2740,5 +2743,41 @@ model LedgerEntry {
   @@index([orgId, studentId, createdAt])
   @@index([invoiceId])
   @@map("ledger_entries")
+  @@schema("crm")
+}
+
+enum GuardianLinkStatus {
+  INVITED
+  ACTIVE
+  REVOKED
+
+  @@schema("crm")
+}
+
+/// Explicit, auditable link between a CRM student and a marketplace parent
+/// account. Created when a school enables parent-portal access; supersedes
+/// the implicit guardian-phone match (kept as bootstrap fallback).
+model StudentGuardianLink {
+  id          String             @id @default(cuid())
+  orgId       String             @map("org_id")
+  studentId   String             @map("student_id")
+  parentId    String             @map("parent_id")
+  relation    String? // FATHER / MOTHER / GUARDIAN — free text for now
+  status      GuardianLinkStatus @default(INVITED)
+  invitedById String?            @map("invited_by_id") // soft reference
+  invitedAt   DateTime           @default(now()) @map("invited_at")
+  activatedAt DateTime?          @map("activated_at") // first OTP login after invite
+  revokedAt   DateTime?          @map("revoked_at")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent       Parent       @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, parentId])
+  @@index([orgId, studentId])
+  @@index([parentId, status])
+  @@map("student_guardian_links")
   @@schema("crm")
 }

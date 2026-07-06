@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
         deletedAt: null,
         isPublished: true,
         isVerified: true,
+        isDummy: false,
         institutionType: 'SCHOOL'
       }
     })
@@ -18,7 +19,8 @@ export async function GET(req: NextRequest) {
         deletedAt: null,
         school: {
           deletedAt: null,
-          isPublished: true
+          isPublished: true,
+          isDummy: false
         }
       }
     })

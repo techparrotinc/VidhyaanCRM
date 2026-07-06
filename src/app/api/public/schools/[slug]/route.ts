@@ -16,6 +16,7 @@ export async function GET(
           { slug },
           { id: slug }
         ],
+        isDummy: false,
         ...(isClaim ? {} : { isPublished: true })
       },
       include: {

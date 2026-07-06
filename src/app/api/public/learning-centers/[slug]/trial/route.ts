@@ -88,7 +88,9 @@ export async function POST(
     const lc = await prisma.school.findFirst({
       where: {
         slug,
-        institutionType: 'LEARNING_CENTER'
+        institutionType: 'LEARNING_CENTER',
+        isDummy: false,
+        deletedAt: null
       }
     })
 

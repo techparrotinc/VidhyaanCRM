@@ -65,7 +65,7 @@ export async function POST(
 
     // 2. Find school by slug
     const school = await prisma.school.findFirst({
-      where: { slug }
+      where: { slug, isDummy: false, deletedAt: null }
     })
 
     if (!school) {

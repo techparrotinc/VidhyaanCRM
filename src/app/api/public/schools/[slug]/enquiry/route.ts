@@ -59,6 +59,7 @@ export async function POST(
           { slug },
           { id: slug }
         ],
+        isDummy: false,
         ...(isClaim ? {} : { isPublished: true })
       }
     })

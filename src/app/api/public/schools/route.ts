@@ -53,7 +53,8 @@ export async function GET(req: NextRequest) {
     const claim = searchParams.get('claim') === 'true'
 
     const where: any = {
-      deletedAt: null
+      deletedAt: null,
+      isDummy: false
     }
 
     if (!claim) {

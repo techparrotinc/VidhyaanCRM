@@ -34,8 +34,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     // Find School by slug
-    const school = await prisma.school.findUnique({
-      where: { slug }
+    const school = await prisma.school.findFirst({
+      where: { slug, isDummy: false, deletedAt: null }
     })
 
     if (!school) {

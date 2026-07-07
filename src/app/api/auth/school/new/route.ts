@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/client'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { UserRole, UserStatus, OtpChannel, OtpPurpose, InstitutionType } from '@prisma/client'
 import { createDefaultCourses } from '@/lib/utils/createDefaultCourses'
+import { createDefaultAdmissionStages } from '@/lib/utils/createDefaultAdmissionStages'
 import { findOrCreateUserByPhone } from '@/lib/auth/findOrCreateUserByPhone'
 import { z } from 'zod'
 
@@ -170,6 +171,9 @@ export async function POST(req: NextRequest) {
         status: 'ACTIVE'
       }
     })
+
+    // Seed default admission pipeline stages
+    await createDefaultAdmissionStages(org.id)
 
     // 4. Create School in marketplace
     const schoolSlug = await generateUniqueSchoolSlug(schoolName)

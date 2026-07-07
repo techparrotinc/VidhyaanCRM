@@ -56,6 +56,7 @@ const onboardingSaveSchema = z.object({
 import { InstitutionType } from '@prisma/client'
 import { redis } from '@/lib/redis'
 import { createDefaultCourses } from '@/lib/utils/createDefaultCourses'
+import { createDefaultAdmissionStages } from '@/lib/utils/createDefaultAdmissionStages'
 
 function slugify(text: string): string {
   return text
@@ -176,6 +177,9 @@ export async function POST(req: NextRequest) {
       })
 
       orgId = org.id
+
+      // Seed default admission pipeline stages
+      await createDefaultAdmissionStages(org.id)
 
       // Auto-create core modules
       try {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { createOTP, generateOTP } from '@/lib/auth/otp'
+import { createDefaultAdmissionStages } from '@/lib/utils/createDefaultAdmissionStages'
 import bcrypt from 'bcryptjs'
 
 const claimSchema = z.object({
@@ -104,6 +105,9 @@ export async function POST(req: NextRequest) {
           status: 'ACTIVE'
         }
       })
+
+      // Seed default admission pipeline stages
+      await createDefaultAdmissionStages(org.id)
 
       // Auto-create core modules
       try {
@@ -259,6 +263,9 @@ export async function POST(req: NextRequest) {
           status: 'ACTIVE'
         }
       })
+
+      // Seed default admission pipeline stages
+      await createDefaultAdmissionStages(org.id)
 
       // Auto-create core modules
       try {

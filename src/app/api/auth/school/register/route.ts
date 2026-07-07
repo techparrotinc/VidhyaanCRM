@@ -7,6 +7,7 @@ import crypto from 'crypto'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 import { welcomeSchoolTemplate } from '@/lib/mail/templates'
 import { findOrCreateUserByPhone } from '@/lib/auth/findOrCreateUserByPhone'
+import { createDefaultAdmissionStages } from '@/lib/utils/createDefaultAdmissionStages'
 import { z } from 'zod'
 
 const registerSchema = z.object({
@@ -135,6 +136,9 @@ export async function POST(req: NextRequest) {
           status: 'ACTIVE'
         }
       })
+
+      // Seed default admission pipeline stages
+      await createDefaultAdmissionStages(org.id)
 
       const schoolSlug = slugify(schoolName) || 'school'
       let uniqueSchoolSlug = schoolSlug

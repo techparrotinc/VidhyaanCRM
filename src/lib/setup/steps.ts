@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db/client'
-import { calculateProfileCompletePct } from './profile-completeness'
+import { calculateProfileCompletePct } from '@/lib/school-profile-helper'
 
 export type SetupStepStatus = 'done' | 'pending' | 'skipped'
 

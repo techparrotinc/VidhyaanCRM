@@ -76,10 +76,6 @@ const institutionConfig = {
   },
 }
 
-const profileCompletion: number = 100
-// Change to 100 to see completed state
-// Change to 80 to see almost-complete state
-
 const leadsUsed: number = 18
 const leadsMax: number = 25
 const unassignedLeads: number = 2
@@ -127,6 +123,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [schoolName, setSchoolName] = useState('Prince Matriculation School')
+  // Same field the School Profile Manager shows — never hardcode this
+  const [profileCompletion, setProfileCompletion] = useState<number>(100)
 
   useEffect(() => {
     fetch('/api/v1/school-profile')
@@ -134,6 +132,9 @@ export default function DashboardPage() {
       .then((data) => {
         if (data.success && data.school?.name) {
           setSchoolName(data.school.name)
+        }
+        if (data.success && typeof data.school?.profileCompletion === 'number') {
+          setProfileCompletion(data.school.profileCompletion)
         }
       })
       .catch((err) => console.error('Error fetching school profile in dashboard:', err))
@@ -394,12 +395,17 @@ export default function DashboardPage() {
 
           {/* Mobile Row 2 / Desktop Right */}
           <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto md:ml-auto shrink-0">
-            <span className="text-xs md:text-sm font-semibold text-[#1565D8] underline cursor-pointer hover:text-blue-700 whitespace-nowrap">
+            <Link
+              href="/settings/billing"
+              className="text-xs md:text-sm font-semibold text-[#1565D8] underline cursor-pointer hover:text-blue-700 whitespace-nowrap"
+            >
               See features
-            </span>
-            <Button className="bg-[#1565D8] text-white text-xs md:text-sm font-semibold px-4 md:px-5 py-2 h-8 md:h-9 flex-1 md:flex-initial rounded-lg hover:bg-blue-700 transition duration-200 whitespace-nowrap">
-              Activate Premium
-            </Button>
+            </Link>
+            <Link href="/settings/billing" className="flex-1 md:flex-initial">
+              <Button className="bg-[#1565D8] text-white text-xs md:text-sm font-semibold px-4 md:px-5 py-2 h-8 md:h-9 w-full rounded-lg hover:bg-blue-700 transition duration-200 whitespace-nowrap">
+                Activate Premium
+              </Button>
+            </Link>
             <button
               onClick={() => setTrialBannerVisible(false)}
               className="p-1 rounded text-amber-500 hover:text-amber-700 hidden md:block transition"
@@ -456,9 +462,12 @@ export default function DashboardPage() {
                   <p className="text-xs text-slate-400 mt-1.5">
                     Listing is {profileCompletion}% complete.
                   </p>
-                  <span className="text-sm font-semibold text-[#1565D8] mt-2 block hover:underline cursor-pointer">
+                  <Link
+                    href="/settings/school-profile"
+                    className="text-sm font-semibold text-[#1565D8] mt-2 block hover:underline cursor-pointer"
+                  >
                     Complete profile →
-                  </span>
+                  </Link>
                 </div>
               </div>
             </Card>

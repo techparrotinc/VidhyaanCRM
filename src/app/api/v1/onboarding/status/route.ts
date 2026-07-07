@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db/client'
-import { calculateProfileCompletePct } from '@/lib/setup/profile-completeness'
+import { calculateProfileCompletePct } from '@/lib/school-profile-helper'
 
 export async function GET(req: NextRequest) {
   try {
@@ -60,7 +60,9 @@ export async function GET(req: NextRequest) {
     const completedSteps = settings.onboardingCompletedSteps || []
     const isComplete = settings.onboardingIsComplete || false
 
-    // Calculate dynamic profile completion percentage (100-point formula)
+    // Single source of truth: same checklist formula as the School Profile
+    // Manager page (school-profile-helper), so the dashboard and Manage
+    // Listing never disagree.
     const profileCompletePct = calculateProfileCompletePct(school)
 
     // Save calculated percentage back to settings and to School model

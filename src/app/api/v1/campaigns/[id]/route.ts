@@ -19,6 +19,7 @@ const campaignSchema = z.object({
     ).optional()
   }).optional().nullable(),
   templateBody: z.string().max(2000).optional().nullable(),
+  whatsappTemplateId: z.string().max(50).optional().nullable(),
   scheduledAt: z.string().optional().nullable()
 })
 
@@ -93,6 +94,24 @@ export const PUT = route({
 
     const data = campaignSchema.partial().parse(await req.json())
 
+    // Validate the WhatsApp template FK when provided (org-owned + usable)
+    if (data.whatsappTemplateId) {
+      const tpl = await db.whatsappTemplate.findFirst({
+        where: {
+          id: data.whatsappTemplateId,
+          orgId: user.orgId,
+          deletedAt: null,
+          status: { in: ['VERIFIED', 'SYNCED'] }
+        },
+        select: { id: true }
+      })
+      if (!tpl) {
+        throw Errors.validation({
+          whatsappTemplateId: ['Template not found or not verified yet']
+        })
+      }
+    }
+
     const updated = await db.campaign.update({
       where: { id },
       data: {
@@ -100,6 +119,7 @@ export const PUT = route({
         channel: data.channel as CampaignChannel | undefined,
         audienceFilter: data.audienceFilter !== undefined ? (data.audienceFilter as Prisma.InputJsonValue) : undefined,
         templateBody: data.templateBody,
+        whatsappTemplateId: data.whatsappTemplateId !== undefined ? data.whatsappTemplateId : undefined,
         scheduledAt: data.scheduledAt !== undefined ? (data.scheduledAt ? new Date(data.scheduledAt) : null) : undefined
       }
     })

@@ -93,10 +93,12 @@ interface StepThreeProps {
   channel: 'EMAIL' | 'SMS' | 'WHATSAPP'
   campaignName: string
   templateBody: string
+  whatsappTemplateId: string
   scheduledAt: string | null
   sendNow: boolean
   recipientCount: number
   onBodyChange: (body: string) => void
+  onTemplateChange: (templateId: string) => void
   onScheduleChange: (scheduledAt: string | null) => void
   onSendNowChange: (sendNow: boolean) => void
   onSubmit: (action: 'draft' | 'send' | 'schedule') => void
@@ -107,10 +109,12 @@ export function StepThree({
   channel,
   campaignName,
   templateBody,
+  whatsappTemplateId,
   scheduledAt,
   sendNow,
   recipientCount,
   onBodyChange,
+  onTemplateChange,
   onScheduleChange,
   onSendNowChange,
   onSubmit,
@@ -119,9 +123,10 @@ export function StepThree({
   const router = useRouter()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // WhatsApp templates fetching
+  // WhatsApp templates fetching — lifted selection so the FK persists on
+  // the campaign (the send path resolves the approved template from it)
   const { templates, isLoading: isTemplatesLoading } = useWhatsappTemplates()
-  const [selectedTemplateId, setSelectedTemplateId] = useState('')
+  const selectedTemplateId = whatsappTemplateId
 
   const [scheduleDate, setScheduleDate] = useState<Date | undefined>(() => 
     scheduledAt ? new Date(scheduledAt) : undefined
@@ -312,7 +317,7 @@ export function StepThree({
                   onChange={(e) => {
                     const t = templates.find((t: any) => t.id === e.target.value)
                     if (t) onBodyChange(t.body)
-                    setSelectedTemplateId(e.target.value)
+                    onTemplateChange(e.target.value)
                   }}
                   className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8]"
                 >
@@ -545,6 +550,7 @@ export function StepThree({
           disabled={
             isSubmitting ||
             !templateBody.trim() ||
+            (channel === 'WHATSAPP' && !whatsappTemplateId) ||
             (!sendNow && !scheduledAt) ||
             recipientCount === 0
           }

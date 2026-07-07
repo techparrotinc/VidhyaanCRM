@@ -83,12 +83,34 @@ export async function sendCampaignSMS(params: {
 export async function sendCampaignWhatsApp(params: {
   to: string
   templateId: string
+  /**
+   * Rendered body used as a single {{1}} parameter — legacy mode for
+   * templates without a structured variable mapping.
+   */
   body: string
+  /** Meta language code of the approved template (default en). */
+  language?: string
+  /**
+   * Ordered positional parameters {{1}}..{{n}}. When provided, these are
+   * sent instead of the single-body legacy parameter.
+   */
+  parameters?: string[]
   /** Org's own MSG91 WhatsApp account (BYO); falls back to Vidhyaan env keys. */
   credentials?: WhatsAppCredentials
 }): Promise<void> {
   const phone = params.to.replace(/\D/g, '')
   const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`
+
+  const parameterTexts = params.parameters ?? [params.body]
+  const components =
+    parameterTexts.length > 0
+      ? [
+          {
+            type: 'body',
+            parameters: parameterTexts.map(text => ({ type: 'text', text }))
+          }
+        ]
+      : []
 
   const response = await fetch(
     'https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/',
@@ -106,13 +128,8 @@ export async function sendCampaignWhatsApp(params: {
           type: 'template',
           template: {
             name: params.templateId,
-            language: { code: 'en' },
-            components: [
-              {
-                type: 'body',
-                parameters: [{ type: 'text', text: params.body }]
-              }
-            ]
+            language: { code: params.language ?? 'en' },
+            components
           }
         }
       })

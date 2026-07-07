@@ -2,6 +2,7 @@ import { CampaignChannel } from '@prisma/client'
 import { format } from 'date-fns'
 import { sendCampaignEmail, sendCampaignSMS, sendCampaignWhatsApp } from './channels'
 import { prisma } from '@/lib/db/client'
+import { buildTemplateParameters } from './templateParams'
 
 function replaceVariables(
   template: string,
@@ -21,6 +22,7 @@ export async function sendCampaignMessage(
     name: string
     channel: CampaignChannel
     templateBody: string | null
+    whatsappTemplateId?: string | null
     organization: {
       name: string
     }
@@ -50,35 +52,73 @@ export async function sendCampaignMessage(
 
     let bodyText = template
     let templateId = ''
+    let templateLanguage: string | undefined
+    let templateParameters: string[] | undefined
 
     if (campaign.channel === CampaignChannel.WHATSAPP) {
-      const lines = template.split('\n')
-      const firstLine = lines[0].trim()
-      if (firstLine.startsWith('TemplateId:')) {
-        templateId = firstLine.replace('TemplateId:', '').trim()
-        bodyText = lines.slice(1).join('\n').trim()
-      } else if (firstLine.startsWith('Template:')) {
-        templateId = firstLine.replace('Template:', '').trim()
-        bodyText = lines.slice(1).join('\n').trim()
-      } else {
-        // Find DLT template name from org's templates
+      // Primary path: campaign carries a template FK — use the approved
+      // template's name/language and build positional {{1}}..{{n}} params
+      // from its ordered variable mapping.
+      if (campaign.whatsappTemplateId) {
         const dbCampaign = await prisma.campaign.findUnique({
           where: { id: campaign.id },
           select: { orgId: true }
         })
-        if (dbCampaign) {
-          const match = await prisma.whatsappTemplate.findFirst({
-            where: {
-              orgId: dbCampaign.orgId,
-              deletedAt: null
-            }
-          })
-          if (match) {
-            templateId = match.msg91TemplateId
+        const chosen = dbCampaign
+          ? await prisma.whatsappTemplate.findFirst({
+              where: {
+                id: campaign.whatsappTemplateId,
+                orgId: dbCampaign.orgId,
+                deletedAt: null
+              }
+            })
+          : null
+        if (chosen) {
+          templateId = chosen.msg91TemplateId
+          templateLanguage = chosen.language
+          const params = buildTemplateParameters(chosen.variables, variables)
+          if (params) {
+            templateParameters = params
+          } else {
+            // Template without a variable mapping — legacy single-blob
+            bodyText = chosen.body
           }
         }
-        if (!templateId) {
-          templateId = campaign.name.toLowerCase().replace(/\s+/g, '_')
+      }
+
+      // Legacy fallback for campaigns created before the template FK
+      if (!templateId) {
+        console.warn(
+          `[campaign ${campaign.id}] WhatsApp send without template FK — using legacy resolution`
+        )
+        const lines = template.split('\n')
+        const firstLine = lines[0].trim()
+        if (firstLine.startsWith('TemplateId:')) {
+          templateId = firstLine.replace('TemplateId:', '').trim()
+          bodyText = lines.slice(1).join('\n').trim()
+        } else if (firstLine.startsWith('Template:')) {
+          templateId = firstLine.replace('Template:', '').trim()
+          bodyText = lines.slice(1).join('\n').trim()
+        } else {
+          // Find DLT template name from org's templates
+          const dbCampaign = await prisma.campaign.findUnique({
+            where: { id: campaign.id },
+            select: { orgId: true }
+          })
+          if (dbCampaign) {
+            const match = await prisma.whatsappTemplate.findFirst({
+              where: {
+                orgId: dbCampaign.orgId,
+                deletedAt: null
+              }
+            })
+            if (match) {
+              templateId = match.msg91TemplateId
+            }
+          }
+          if (!templateId) {
+            templateId = campaign.name.toLowerCase().replace(/\s+/g, '_')
+          }
         }
       }
     }
@@ -119,6 +159,8 @@ export async function sendCampaignMessage(
         to: recipient.phone,
         templateId,
         body,
+        language: templateLanguage,
+        parameters: templateParameters,
         credentials: providerCreds
           ? {
               authKey: providerCreds.authKey,

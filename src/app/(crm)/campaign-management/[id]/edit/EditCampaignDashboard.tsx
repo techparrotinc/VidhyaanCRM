@@ -25,6 +25,7 @@ export default function EditCampaignDashboard({ id }: { id: string }) {
   const [audienceFilters, setAudienceFilters] = useState<Array<{ field: string; value: string }>>([])
   const [recipientCount, setRecipientCount] = useState(0)
   const [templateBody, setTemplateBody] = useState('')
+  const [whatsappTemplateId, setWhatsappTemplateId] = useState('')
   const [scheduledAt, setScheduledAt] = useState<string | null>(null)
   const [sendNow, setSendNow] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -43,6 +44,7 @@ export default function EditCampaignDashboard({ id }: { id: string }) {
         setAudienceFilters(campaign.audienceFilter.filters ?? [])
       }
       setTemplateBody(campaign.templateBody ?? '')
+      setWhatsappTemplateId(campaign.whatsappTemplateId ?? '')
       if (campaign.scheduledAt) {
         // Convert to datetime-local format: YYYY-MM-DDTHH:MM
         const dateStr = new Date(campaign.scheduledAt).toISOString().slice(0, 16)
@@ -108,6 +110,7 @@ export default function EditCampaignDashboard({ id }: { id: string }) {
             filters: audienceFilters
           },
           templateBody,
+          whatsappTemplateId: channel === 'WHATSAPP' ? whatsappTemplateId || null : null,
           scheduledAt: action === 'schedule' ? scheduledAt : null
         })
       })
@@ -264,10 +267,12 @@ export default function EditCampaignDashboard({ id }: { id: string }) {
             channel={channel || 'EMAIL'}
             campaignName={campaignName}
             templateBody={templateBody}
+            whatsappTemplateId={whatsappTemplateId}
             scheduledAt={scheduledAt}
             sendNow={sendNow}
             recipientCount={recipientCount}
             onBodyChange={setTemplateBody}
+            onTemplateChange={setWhatsappTemplateId}
             onScheduleChange={setScheduledAt}
             onSendNowChange={setSendNow}
             onSubmit={handleSubmit}

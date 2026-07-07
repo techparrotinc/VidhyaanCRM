@@ -22,6 +22,7 @@ export default function NewCampaignPage() {
   const [audienceFilters, setAudienceFilters] = useState<Array<{ field: string; value: string }>>([])
   const [recipientCount, setRecipientCount] = useState(0)
   const [templateBody, setTemplateBody] = useState('')
+  const [whatsappTemplateId, setWhatsappTemplateId] = useState('')
   const [scheduledAt, setScheduledAt] = useState<string | null>(null)
   const [sendNow, setSendNow] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -82,6 +83,7 @@ export default function NewCampaignPage() {
             filters: audienceFilters
           },
           templateBody,
+          whatsappTemplateId: channel === 'WHATSAPP' ? whatsappTemplateId || null : null,
           scheduledAt: action === 'schedule' ? scheduledAt : null
         })
       })
@@ -215,10 +217,12 @@ export default function NewCampaignPage() {
             channel={channel || 'EMAIL'}
             campaignName={campaignName}
             templateBody={templateBody}
+            whatsappTemplateId={whatsappTemplateId}
             scheduledAt={scheduledAt}
             sendNow={sendNow}
             recipientCount={recipientCount}
             onBodyChange={setTemplateBody}
+            onTemplateChange={setWhatsappTemplateId}
             onScheduleChange={setScheduledAt}
             onSendNowChange={setSendNow}
             onSubmit={handleSubmit}

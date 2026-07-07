@@ -242,6 +242,35 @@ async function handleSendCampaign({
 
   if (isCreditChannel && recipients.length > 0) {
     providerCreds = await getActiveProviderConfig(orgId, creditChannel)
+
+    // WhatsApp template ↔ account scope guard: a template only exists on
+    // one WABA, so sending a Vidhyaan-catalog template through the org's
+    // own account (or vice versa) would always fail at MSG91.
+    if (campaign.channel === CampaignChannel.WHATSAPP && campaign.whatsappTemplateId) {
+      const tpl = await db.whatsappTemplate.findFirst({
+        where: { id: campaign.whatsappTemplateId, orgId, deletedAt: null },
+        select: { accountScope: true, name: true }
+      })
+      if (!tpl) {
+        return NextResponse.json(
+          { success: false, error: 'The WhatsApp template selected for this campaign no longer exists.' },
+          { status: 422 }
+        )
+      }
+      if (providerCreds && tpl.accountScope !== 'OWN') {
+        return NextResponse.json(
+          { success: false, error: `Template "${tpl.name}" belongs to the Vidhyaan account, but this campaign would send through your own WhatsApp account. Pick one of your own templates.` },
+          { status: 422 }
+        )
+      }
+      if (!providerCreds && tpl.accountScope === 'OWN') {
+        return NextResponse.json(
+          { success: false, error: `Template "${tpl.name}" belongs to your own WhatsApp account, which is not verified/active. Re-verify it in Settings → Add-ons or pick a Vidhyaan template.` },
+          { status: 422 }
+        )
+      }
+    }
+
     if (!providerCreds) {
       try {
         debitSplit = await spendCredits(orgId, creditChannel, recipients.length, campaign.id)
@@ -301,6 +330,7 @@ async function handleSendCampaign({
               name: campaign.name,
               channel: campaign.channel,
               templateBody: campaign.templateBody,
+              whatsappTemplateId: campaign.whatsappTemplateId ?? null,
               organization: {
                 name: campaign.organization.name
               }

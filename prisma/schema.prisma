@@ -2128,6 +2128,9 @@ model Campaign {
   channel        CampaignChannel
   status         CampaignStatus  @default(DRAFT)
   templateBody   String?         @map("template_body")
+  /// Soft ref to crm.whatsapp_templates — chosen approved template for
+  /// WHATSAPP campaigns (send builds positional params from it)
+  whatsappTemplateId String?     @map("whatsapp_template_id")
   scheduledAt    DateTime?       @map("scheduled_at")
   sentAt         DateTime?       @map("sent_at")
   audienceFilter Json?           @map("audience_filter")
@@ -2173,21 +2176,72 @@ model CampaignRecipient {
 
 /// DLT-approved WhatsApp templates saved by org admin.
 model WhatsappTemplate {
-  id              String    @id @default(cuid())
-  orgId           String    @map("org_id")
-  name            String
-  msg91TemplateId String    @map("msg91_template_id")
-  body            String
-  createdById     String?   @map("created_by_id")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  deletedAt       DateTime? @map("deleted_at")
+  id               String           @id @default(cuid())
+  orgId            String           @map("org_id")
+  name             String
+  msg91TemplateId  String           @map("msg91_template_id")
+  body             String
+  /// Meta language code of the approved template
+  language         String           @default("en")
+  /// Ordered variable tokens mapping to {{1}}..{{n}} in the approved
+  /// template, e.g. ["parentName","amount"]. null = legacy
+  /// single-blob-parameter mode.
+  variables        Json?
+  /// Which WhatsApp account this template lives on
+  accountScope     WaAccountScope   @default(VIDHYAAN) @map("account_scope")
+  /// Soft ref to billing.messaging_provider_configs when accountScope=OWN
+  providerConfigId String?          @map("provider_config_id")
+  status           WaTemplateStatus @default(DRAFT)
+  /// Soft ref to platform.shared_whatsapp_templates when copied from catalog
+  sharedTemplateId String?          @map("shared_template_id")
+  createdById      String?          @map("created_by_id")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  deletedAt        DateTime?        @map("deleted_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
+  @@index([sharedTemplateId])
   @@map("whatsapp_templates")
   @@schema("crm")
+}
+
+enum WaAccountScope {
+  VIDHYAAN
+  OWN
+
+  @@schema("crm")
+}
+
+enum WaTemplateStatus {
+  DRAFT
+  VERIFIED
+  SYNCED
+
+  @@schema("crm")
+}
+
+/// Platform-managed catalog of templates approved on Vidhyaan's shared
+/// WhatsApp Business account. Orgs on the Vidhyaan account copy entries
+/// from here instead of hand-typing MSG91 template names.
+model SharedWhatsappTemplate {
+  id              String    @id @default(cuid())
+  name            String
+  msg91TemplateId String    @map("msg91_template_id")
+  language        String    @default("en")
+  body            String
+  /// Ordered variable tokens mapping to {{1}}..{{n}}
+  variables       Json?
+  isActive        Boolean   @default(true) @map("is_active")
+  sortOrder       Int       @default(0) @map("sort_order")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@index([isActive])
+  @@map("shared_whatsapp_templates")
+  @@schema("platform")
 }
 
 /// In-app/outbound notification record.

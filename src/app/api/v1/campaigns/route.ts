@@ -5,6 +5,7 @@ import { ok, created, paginated } from '@/lib/api/respond'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db/client'
 import { parseQuery, paginationShape, enumParam, textParam } from '@/lib/api/query'
+import { Errors } from '@/lib/api/errors'
 
 const campaignSchema = z.object({
   name: z.string().min(1).max(150),
@@ -19,6 +20,7 @@ const campaignSchema = z.object({
     ).optional()
   }).optional().nullable(),
   templateBody: z.string().max(2000).optional().nullable(),
+  whatsappTemplateId: z.string().max(50).optional().nullable(),
   scheduledAt: z.string().optional().nullable()
 })
 
@@ -105,6 +107,32 @@ export const POST = route({
   handler: async ({ req, db, user }) => {
     const data = campaignSchema.parse(await req.json())
 
+    // WhatsApp campaigns must reference a real, usable org template —
+    // the send path builds positional params from it.
+    let whatsappTemplateId: string | null = null
+    if (data.channel === 'WHATSAPP') {
+      if (!data.whatsappTemplateId) {
+        throw Errors.validation({
+          whatsappTemplateId: ['Pick an approved WhatsApp template for this campaign']
+        })
+      }
+      const tpl = await db.whatsappTemplate.findFirst({
+        where: {
+          id: data.whatsappTemplateId,
+          orgId: user.orgId,
+          deletedAt: null,
+          status: { in: ['VERIFIED', 'SYNCED'] }
+        },
+        select: { id: true }
+      })
+      if (!tpl) {
+        throw Errors.validation({
+          whatsappTemplateId: ['Template not found or not verified yet']
+        })
+      }
+      whatsappTemplateId = tpl.id
+    }
+
     const campaign = await db.campaign.create({
       data: {
         orgId: user.orgId,
@@ -113,6 +141,7 @@ export const POST = route({
         status: CampaignStatus.DRAFT,
         audienceFilter: data.audienceFilter as Prisma.InputJsonValue,
         templateBody: data.templateBody,
+        whatsappTemplateId,
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
         createdById: user.id
       }

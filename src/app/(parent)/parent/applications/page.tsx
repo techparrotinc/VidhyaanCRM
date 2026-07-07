@@ -19,6 +19,7 @@ import {
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { getGradeLabel } from '@/constants/grades'
 
 interface Enquiry {
   id: string
@@ -307,7 +308,7 @@ export default function ParentApplicationsPage() {
 
                       <div className="mt-3 space-y-1">
                         <p className="text-xs text-slate-500 font-bold">
-                          Applied for: <span className="text-slate-800">Class {latestEnquiry.gradeSought}</span>
+                          Applied for: <span className="text-slate-800">{getGradeLabel(latestEnquiry.gradeSought)}</span>
                         </p>
                         <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
                           <Calendar className="w-3 h-3 text-slate-400" /> Applied on {appliedDate}

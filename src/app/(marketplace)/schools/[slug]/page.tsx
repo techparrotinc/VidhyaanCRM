@@ -55,6 +55,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import MarketplaceHeader from '@/components/MarketplaceHeader'
+import { GRADE_OPTIONS } from '@/constants/grades'
 import CompareBar from '@/components/CompareBar'
 import ParentRegisterModal from '@/components/parent-auth/ParentRegisterModal'
 import SchoolGalleryLightbox from '@/components/marketplace/school-profile/SchoolGalleryLightbox'
@@ -245,6 +246,10 @@ export default function SchoolProfilePage() {
   // Visit Scheduler Modal States
   const [visitModalOpen, setVisitModalOpen] = useState(false)
 
+  const isParentLoggedIn = session?.user?.role === 'PARENT'
+  const lockedPhone = isParentLoggedIn && !!(session?.user as any)?.phone
+  const lockedEmail = isParentLoggedIn && !!session?.user?.email
+
   // Prefill enquiry form with session data when loaded
   useEffect(() => {
     if (session?.user) {
@@ -330,7 +335,7 @@ export default function SchoolProfilePage() {
     parentEmail: '',
     parentPhone: '',
     childName: '',
-    gradeSought: 'Grade 1',
+    gradeSought: 'class_1',
     notes: ''
   })
   const [enquirySubmitted, setEnquirySubmitted] = useState(false)
@@ -622,7 +627,7 @@ export default function SchoolProfilePage() {
           parentEmail: '',
           parentPhone: '',
           childName: '',
-          gradeSought: 'Grade 1',
+          gradeSought: 'class_1',
           notes: ''
         })
       }, 3000)
@@ -1110,18 +1115,21 @@ export default function SchoolProfilePage() {
                     onChange={(e) => setEnquiryForm({ ...enquiryForm, gradeSought: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-semibold outline-none cursor-pointer focus:border-blue-500"
                   >
-                    {['Kindergarten', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'].map((g) => (
-                      <option key={g} value={g}>{g}</option>
+                    {GRADE_OPTIONS.map((g) => (
+                      <option key={g.value} value={g.value}>{g.label}</option>
                     ))}
                   </select>
                   <input
                     type="tel"
                     placeholder="Parent Phone Number"
                     required
+                    inputMode="numeric"
+                    maxLength={10}
                     pattern="[6-9]\d{9}"
                     value={enquiryForm.parentPhone}
-                    onChange={(e) => setEnquiryForm({ ...enquiryForm, parentPhone: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
+                    onChange={(e) => setEnquiryForm({ ...enquiryForm, parentPhone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                    readOnly={lockedPhone}
+                    className={`w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-semibold outline-none focus:border-blue-500 ${lockedPhone ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`}
                   />
                 </div>
 
@@ -1391,11 +1399,14 @@ export default function SchoolProfilePage() {
                     <input
                       type="tel"
                       required
+                      inputMode="numeric"
+                      maxLength={10}
                       pattern="[6-9]\d{9}"
                       placeholder="e.g. 9845000001"
                       value={enquiryForm.parentPhone}
-                      onChange={(e) => setEnquiryForm({ ...enquiryForm, parentPhone: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
+                      onChange={(e) => setEnquiryForm({ ...enquiryForm, parentPhone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                      readOnly={lockedPhone}
+                      className={`w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500 ${lockedPhone ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`}
                     />
                   </div>
                   <div className="space-y-1">
@@ -1407,7 +1418,8 @@ export default function SchoolProfilePage() {
                       placeholder="e.g. parent@gmail.com"
                       value={enquiryForm.parentEmail}
                       onChange={(e) => setEnquiryForm({ ...enquiryForm, parentEmail: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
+                      readOnly={lockedEmail}
+                      className={`w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500 ${lockedEmail ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`}
                     />
                   </div>
                   <div className="space-y-1">
@@ -1427,8 +1439,8 @@ export default function SchoolProfilePage() {
                       onChange={(e) => setEnquiryForm({ ...enquiryForm, gradeSought: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none cursor-pointer focus:border-blue-500"
                     >
-                      {['Kindergarten', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'].map((g) => (
-                        <option key={g} value={g}>{g}</option>
+                      {GRADE_OPTIONS.map((g) => (
+                        <option key={g.value} value={g.value}>{g.label}</option>
                       ))}
                     </select>
                   </div>
@@ -1702,7 +1714,8 @@ export default function SchoolProfilePage() {
                     value={enquiryForm.parentEmail}
                     onChange={(e) => setEnquiryForm({ ...enquiryForm, parentEmail: e.target.value })}
                     placeholder="e.g. parent@gmail.com"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-500"
+                    readOnly={lockedEmail}
+                    className={`w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-500 ${lockedEmail ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`}
                   />
                 </div>
                 <div className="space-y-1">
@@ -1710,11 +1723,14 @@ export default function SchoolProfilePage() {
                   <input
                     type="tel"
                     required
+                    inputMode="numeric"
+                    maxLength={10}
                     pattern="[6-9]\d{9}"
                     value={enquiryForm.parentPhone}
-                    onChange={(e) => setEnquiryForm({ ...enquiryForm, parentPhone: e.target.value })}
+                    onChange={(e) => setEnquiryForm({ ...enquiryForm, parentPhone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                     placeholder="e.g. 9845000001"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-500"
+                    readOnly={lockedPhone}
+                    className={`w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-500 ${lockedPhone ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`}
                   />
                 </div>
               </div>
@@ -1726,8 +1742,8 @@ export default function SchoolProfilePage() {
                   onChange={(e) => setEnquiryForm({ ...enquiryForm, gradeSought: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none cursor-pointer focus:border-blue-500"
                 >
-                  {['Kindergarten', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'].map((g) => (
-                    <option key={g} value={g}>{g}</option>
+                  {GRADE_OPTIONS.map((g) => (
+                    <option key={g.value} value={g.value}>{g.label}</option>
                   ))}
                 </select>
               </div>

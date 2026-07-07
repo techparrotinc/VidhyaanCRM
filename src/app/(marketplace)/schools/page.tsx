@@ -39,6 +39,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useLocation } from '@/hooks/useLocation'
+import { GRADE_OPTIONS } from '@/constants/grades'
 import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
 import { SearchAutocomplete } from '@/components/marketplace/SearchAutocomplete'
@@ -138,9 +139,22 @@ export default function SchoolsSearchPage() {
     parentName: '',
     parentEmail: '',
     parentPhone: '',
-    gradeSought: 'Grade 1',
+    gradeSought: 'class_1',
     notes: ''
   })
+  const isParentLoggedIn = session?.user?.role === 'PARENT'
+
+  // Logged-in parents enquire with their registered identity — prefill and lock
+  useEffect(() => {
+    if (isParentLoggedIn && session?.user) {
+      setEnquiryForm(prev => ({
+        ...prev,
+        parentName: session.user.name || prev.parentName,
+        parentPhone: (session.user as any).phone || prev.parentPhone,
+        parentEmail: session.user.email || prev.parentEmail
+      }))
+    }
+  }, [isParentLoggedIn, session])
 
     const [comparedSlugs, setComparedSlugs] = useState<string[]>([])
 
@@ -417,10 +431,10 @@ export default function SchoolsSearchPage() {
         setEnquirySubmitted(false)
         setSelectedSchoolForEnquiry(null)
         setEnquiryForm({
-          parentName: '',
-          parentEmail: '',
-          parentPhone: '',
-          gradeSought: 'Grade 1',
+          parentName: isParentLoggedIn ? (session?.user?.name || '') : '',
+          parentEmail: isParentLoggedIn ? (session?.user?.email || '') : '',
+          parentPhone: isParentLoggedIn ? ((session?.user as any)?.phone || '') : '',
+          gradeSought: 'class_1',
           notes: ''
         })
       }, 3000)
@@ -1301,7 +1315,8 @@ export default function SchoolsSearchPage() {
                     value={enquiryForm.parentEmail}
                     onChange={(e) => setEnquiryForm({ ...enquiryForm, parentEmail: e.target.value })}
                     placeholder="e.g. parent@gmail.com"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-500"
+                    readOnly={isParentLoggedIn && !!session?.user?.email}
+                    className={`w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-500 ${isParentLoggedIn && session?.user?.email ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`}
                   />
                 </div>
                 <div className="space-y-1">
@@ -1309,11 +1324,14 @@ export default function SchoolsSearchPage() {
                   <input
                     type="tel"
                     required
+                    inputMode="numeric"
+                    maxLength={10}
                     pattern="[6-9]\d{9}"
                     value={enquiryForm.parentPhone}
-                    onChange={(e) => setEnquiryForm({ ...enquiryForm, parentPhone: e.target.value })}
+                    onChange={(e) => setEnquiryForm({ ...enquiryForm, parentPhone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                     placeholder="e.g. 9845000001"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-500"
+                    readOnly={isParentLoggedIn && !!(session?.user as any)?.phone}
+                    className={`w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-blue-500 ${isParentLoggedIn && (session?.user as any)?.phone ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50'}`}
                   />
                 </div>
               </div>
@@ -1325,8 +1343,8 @@ export default function SchoolsSearchPage() {
                   onChange={(e) => setEnquiryForm({ ...enquiryForm, gradeSought: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none cursor-pointer focus:border-blue-500"
                 >
-                  {['Kindergarten', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 10'].map((g) => (
-                    <option key={g} value={g}>{g}</option>
+                  {GRADE_OPTIONS.map((g) => (
+                    <option key={g.value} value={g.value}>{g.label}</option>
                   ))}
                 </select>
               </div>

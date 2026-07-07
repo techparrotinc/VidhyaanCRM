@@ -55,6 +55,7 @@ export default function MarketplaceHeader() {
 
   const [isProductsOpen, setIsProductsOpen] = useState(false)
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
+  const [isGetStartedOpen, setIsGetStartedOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
 
 
@@ -94,6 +95,23 @@ export default function MarketplaceHeader() {
       document.removeEventListener('click', handleClickOutside)
     }
   }, [isProductsOpen])
+
+  // Click outside to close Get Started dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target.closest('.getstarted-trigger') || target.closest('.getstarted-dropdown')) {
+        return
+      }
+      setIsGetStartedOpen(false)
+    }
+    if (isGetStartedOpen) {
+      document.addEventListener('click', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [isGetStartedOpen])
 
   // Listen to deletion message query parameter
   useEffect(() => {
@@ -279,16 +297,52 @@ export default function MarketplaceHeader() {
                     Login
                   </Button>
                 </Link>
-                <Link href="/for-schools">
-                  <Button variant="outline" className="border-blue-200 text-[#1565D8] hover:bg-blue-50 font-bold text-xs px-4 py-2 rounded-xl h-auto shrink-0 shadow-sm">
-                    Claim Free Profile
-                  </Button>
-                </Link>
-                <Link href="/parent/register">
-                  <Button className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-full h-auto shadow-sm">
-                    Register as Parent
-                  </Button>
-                </Link>
+                <div className="relative">
+                  <button
+                    onClick={() => setIsGetStartedOpen(!isGetStartedOpen)}
+                    className="getstarted-trigger flex items-center gap-1.5 bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-full shadow-sm transition cursor-pointer"
+                    aria-expanded={isGetStartedOpen}
+                    aria-haspopup="true"
+                  >
+                    Get Started
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isGetStartedOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isGetStartedOpen && (
+                    <div className="getstarted-dropdown absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl border border-slate-100 shadow-2xl z-50 overflow-hidden py-2">
+                      <Link
+                        href="/parent/register"
+                        onClick={() => setIsGetStartedOpen(false)}
+                        className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition group"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center flex-shrink-0 transition">
+                          <Users className="w-[18px] h-[18px] text-[#1565D8]" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-800">Register as Parent</p>
+                          <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                            Find schools, track applications & fees
+                          </p>
+                        </div>
+                      </Link>
+                      <Link
+                        href="/for-schools"
+                        onClick={() => setIsGetStartedOpen(false)}
+                        className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition group"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center flex-shrink-0 transition">
+                          <Building2 className="w-[18px] h-[18px] text-[#1565D8]" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-800">List your School — Free</p>
+                          <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                            Claim your profile & manage admissions
+                          </p>
+                        </div>
+                      </Link>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -786,19 +840,29 @@ export default function MarketplaceHeader() {
               ) : (
                 <div className="flex flex-col gap-2">
                   <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
-                    <Button variant="ghost" className="w-full text-slate-700 hover:text-[#1565D8] font-bold text-xs py-2.5 rounded-xl h-auto">
+                    <Button className="w-full bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs py-3 rounded-full h-auto shadow-sm">
                       Login
                     </Button>
                   </Link>
-                  <Link href="/for-schools" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
-                    <Button variant="outline" className="w-full border-blue-200 text-[#1565D8] hover:bg-blue-50 font-bold text-xs py-2.5 rounded-xl h-auto shadow-sm">
-                      Claim Free Profile
-                    </Button>
+
+                  <p className="px-2.5 pt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 select-none">
+                    New to Vidhyaan?
+                  </p>
+                  <Link
+                    href="/parent/register"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#1565D8] rounded-lg"
+                  >
+                    <Users className="w-4 h-4 text-[#1565D8]" />
+                    Register as Parent
                   </Link>
-                  <Link href="/parent/register" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
-                    <Button className="w-full bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs py-3 rounded-full h-auto shadow-sm">
-                      Register as Parent
-                    </Button>
+                  <Link
+                    href="/for-schools"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-[#1565D8] rounded-lg"
+                  >
+                    <Building2 className="w-4 h-4 text-[#1565D8]" />
+                    List your School — Free
                   </Link>
                 </div>
               )}

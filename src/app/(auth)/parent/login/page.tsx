@@ -1,5 +1,7 @@
-'use client'
+import { redirect } from 'next/navigation'
 
-import LoginPage from '../../login/page'
-
-export default LoginPage
+// Login is unified — role is detected from the phone number.
+// Route kept alive for old links and bookmarks.
+export default function ParentLoginRedirect() {
+  redirect('/login')
+}

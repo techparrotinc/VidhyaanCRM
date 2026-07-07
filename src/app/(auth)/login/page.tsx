@@ -1,19 +1,26 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, Loader2, ArrowLeft, CheckCircle2, Lock, AlertCircle } from 'lucide-react'
+import { Shield, Loader2, ArrowLeft, CheckCircle2, Lock, AlertCircle, Users, Building2 } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import PinInput from '@/components/ui/PinInput'
 
-type LoginState = 'phone' | 'pin' | 'otp'
+type LoginState = 'phone' | 'workspace' | 'pin' | 'otp'
+
+type RoleAssignment = {
+  id: string
+  role: string
+  orgName: string | null
+}
+
+const roleLabel = (role: string) => {
+  if (role === 'PARENT') return 'Parent'
+  if (['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN'].includes(role)) return 'Platform Admin'
+  return 'School Admin'
+}
 
 export default function LoginPage() {
-  const router = useRouter()
-  const pathname = usePathname() || ''
-  const isParent = pathname.includes('/parent')
-
   // General state
   const [state, setState] = useState<LoginState>('phone')
   const [phone, setPhone] = useState('')
@@ -22,6 +29,10 @@ export default function LoginPage() {
   const [userRole, setUserRole] = useState('')
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
+
+  // Multi-role workspace selection (parent AND org roles on one number)
+  const [assignments, setAssignments] = useState<RoleAssignment[]>([])
+  const [selectedAssignment, setSelectedAssignment] = useState<RoleAssignment | null>(null)
 
   // Account check helpers
   const [accountExists, setAccountExists] = useState(true)
@@ -88,12 +99,25 @@ export default function LoginPage() {
   }
 
   const handleRoleRedirect = (roleStr: string) => {
-    if (roleStr === 'PARENT') {
+    // A chosen workspace wins over the pre-detected role
+    const effectiveRole = selectedAssignment?.role ?? roleStr
+    if (effectiveRole === 'PARENT') {
       window.location.href = '/parent/dashboard'
-    } else if (['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN'].includes(roleStr)) {
+    } else if (['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN'].includes(effectiveRole)) {
       window.location.href = '/admin'
     } else {
       window.location.href = '/dashboard'
+    }
+  }
+
+  // After phone check (and workspace choice, when needed): PIN or auto-OTP
+  const proceedToCredentials = async (pinAvailable: boolean) => {
+    if (pinAvailable) {
+      setState('pin')
+      setPinKey(prev => prev + 1)
+    } else {
+      await triggerSendOtp()
+      setState('otp')
     }
   }
 
@@ -125,13 +149,16 @@ export default function LoginPage() {
       setUserRole(data.role || '')
       setHasPin(data.hasPin)
 
-      if (data.hasPin) {
-        setState('pin')
-        setPinKey(prev => prev + 1)
+      const roleAssignments: RoleAssignment[] = data.assignments ?? []
+      setAssignments(roleAssignments)
+      setSelectedAssignment(null)
+
+      if (roleAssignments.length > 1) {
+        // Multiple workspaces on one number — user must pick BEFORE the
+        // signIn call (OTP codes are single-use, no retry after error).
+        setState('workspace')
       } else {
-        // No PIN -> automatically send OTP and switch to OTP state
-        await triggerSendOtp()
-        setState('otp')
+        await proceedToCredentials(data.hasPin)
       }
 
     } catch (err) {
@@ -198,6 +225,7 @@ export default function LoginPage() {
       const authRes = await signIn('credentials', {
         phone,
         pin,
+        ...(selectedAssignment ? { assignmentId: selectedAssignment.id } : {}),
         redirect: false
       })
 
@@ -296,6 +324,7 @@ export default function LoginPage() {
       const authRes = await signIn('credentials', {
         contact: phone,
         code,
+        ...(selectedAssignment ? { assignmentId: selectedAssignment.id } : {}),
         redirect: false
       })
 
@@ -447,69 +476,36 @@ export default function LoginPage() {
               <Shield className="text-white w-6 h-6" />
             </div>
             <span className="text-xl font-extrabold text-white tracking-tight">
-              {isParent ? 'Vidhyaan for Parents' : 'Vidhyaan for Partners'}
+              Vidhyaan
             </span>
           </div>
 
           {/* Hero text */}
           <div className="space-y-6 animate-fade-slide-up">
             <div className="space-y-3">
-              {isParent ? (
-                <>
-                  <h2 className="text-4xl font-extrabold text-white leading-tight tracking-tight drop-shadow-sm">
-                    Find the Best School<br />For Your Child,<br />
-                    <span className="text-blue-100">Stress-Free.</span>
-                  </h2>
-                  <p className="text-white/90 text-base leading-relaxed max-w-[360px]">
-                    Explore top-rated schools, compare fees & facilities, and apply online directly from your phone.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <h2 className="text-4xl font-extrabold text-white leading-tight tracking-tight drop-shadow-sm">
-                    Smart School<br />Management,<br />
-                    <span className="text-blue-100">Simplified.</span>
-                  </h2>
-                  <p className="text-white/90 text-base leading-relaxed max-w-[340px]">
-                    Admissions, fees, attendance, and academics — all in one powerful platform trusted by schools across India.
-                  </p>
-                </>
-              )}
+              <h2 className="text-4xl font-extrabold text-white leading-tight tracking-tight drop-shadow-sm">
+                One Login for<br />Everything
+                <span className="text-blue-100"> Vidhyaan.</span>
+              </h2>
+              <p className="text-white/90 text-base leading-relaxed max-w-[360px]">
+                Parents, schools and learning centers — same door. Enter your phone number and we take you to the right place.
+              </p>
             </div>
 
             {/* Floating stat cards */}
             <div className="flex gap-3 pt-2">
-              {isParent ? (
-                <>
-                  <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '0s' }}>
-                    <div className="text-2xl font-extrabold text-white">1,000+</div>
-                    <div className="text-xs font-medium text-white/70 mt-0.5">Top Schools</div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '1s' }}>
-                    <div className="text-2xl font-extrabold text-white">Direct</div>
-                    <div className="text-xs font-medium text-white/70 mt-0.5">Admissions</div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '2s' }}>
-                    <div className="text-2xl font-extrabold text-white">100%</div>
-                    <div className="text-xs font-medium text-white/70 mt-0.5">Verified Info</div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '0s' }}>
-                    <div className="text-2xl font-extrabold text-white">500+</div>
-                    <div className="text-xs font-medium text-white/70 mt-0.5">Schools</div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '1s' }}>
-                    <div className="text-2xl font-extrabold text-white">50K+</div>
-                    <div className="text-xs font-medium text-white/70 mt-0.5">Students</div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '2s' }}>
-                    <div className="text-2xl font-extrabold text-white">99.9%</div>
-                    <div className="text-xs font-medium text-white/70 mt-0.5">Uptime</div>
-                  </div>
-                </>
-              )}
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '0s' }}>
+                <div className="text-2xl font-extrabold text-white">1,000+</div>
+                <div className="text-xs font-medium text-white/70 mt-0.5">Institutions</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '1s' }}>
+                <div className="text-2xl font-extrabold text-white">50K+</div>
+                <div className="text-xs font-medium text-white/70 mt-0.5">Students</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl px-5 py-4 border border-white/15 animate-float" style={{ animationDelay: '2s' }}>
+                <div className="text-2xl font-extrabold text-white">100%</div>
+                <div className="text-xs font-medium text-white/70 mt-0.5">Verified Info</div>
+              </div>
             </div>
           </div>
 
@@ -517,9 +513,7 @@ export default function LoginPage() {
           <div className="flex items-center gap-2 text-xs text-blue-200/60 font-medium">
             <Lock className="w-3.5 h-3.5 text-white/50" />
             <span className="text-white/50">
-              {isParent 
-                ? '256-bit encrypted · Direct parent support · Zero charges' 
-                : '256-bit encrypted · SOC 2 compliant · GDPR ready'}
+              256-bit encrypted · SOC 2 compliant · Zero charges for parents
             </span>
           </div>
         </div>
@@ -565,7 +559,7 @@ export default function LoginPage() {
                     Welcome Back
                   </h2>
                   <p className="text-sm text-slate-500 font-medium">
-                    Sign in to your Vidhyaan account
+                    One login for parents, schools and learning centers
                   </p>
                 </div>
 
@@ -595,13 +589,21 @@ export default function LoginPage() {
                 {!accountExists ? (
                   <div className="space-y-3 text-center">
                     <p className="text-xs text-slate-500 font-medium">
-                      {isParent ? 'No parent account found. New to Vidhyaan?' : 'No account found. New to Vidhyaan?'}
+                      No account found for this number. New to Vidhyaan?
                     </p>
                     <Link
-                      href={isParent ? "/parent/register" : "/register"}
-                      className="w-full flex items-center justify-center h-[48px] bg-blue-50 hover:bg-blue-100 text-[#1565D8] font-bold rounded-2xl transition-all text-sm"
+                      href="/parent/register"
+                      className="w-full flex items-center justify-center gap-2 h-[48px] bg-blue-50 hover:bg-blue-100 text-[#1565D8] font-bold rounded-2xl transition-all text-sm"
                     >
-                      Create Account →
+                      <Users className="w-4 h-4" />
+                      Register as Parent →
+                    </Link>
+                    <Link
+                      href="/for-schools"
+                      className="w-full flex items-center justify-center gap-2 h-[48px] bg-white border-2 border-slate-200 hover:border-[#1565D8] text-slate-600 hover:text-[#1565D8] font-bold rounded-2xl transition-all text-sm"
+                    >
+                      <Building2 className="w-4 h-4" />
+                      List your School — Free
                     </Link>
                   </div>
                 ) : (
@@ -631,27 +633,14 @@ export default function LoginPage() {
                 {/* Footer links */}
                 <div className="flex flex-col items-center gap-2.5 text-xs font-medium">
                   <div className="flex items-center gap-3 text-slate-500">
-                    {isParent ? (
-                      <>
-                        <Link href="/login" className="hover:text-[#1565D8] transition-colors">
-                          School Partner Login
-                        </Link>
-                        <span className="text-slate-200">|</span>
-                        <Link href="/parent/register" className="hover:text-[#1565D8] transition-colors">
-                          Register as Parent
-                        </Link>
-                      </>
-                    ) : (
-                      <>
-                        <Link href="/parent/login" className="hover:text-[#1565D8] transition-colors">
-                          Parent Login
-                        </Link>
-                        <span className="text-slate-200">|</span>
-                        <Link href="/register" className="hover:text-[#1565D8] transition-colors">
-                          Register School
-                        </Link>
-                      </>
-                    )}
+                    <span className="text-slate-400">New to Vidhyaan?</span>
+                    <Link href="/parent/register" className="hover:text-[#1565D8] transition-colors font-semibold">
+                      Register as Parent
+                    </Link>
+                    <span className="text-slate-200">|</span>
+                    <Link href="/for-schools" className="hover:text-[#1565D8] transition-colors font-semibold">
+                      List your School
+                    </Link>
                   </div>
                   <Link
                     href="/"
@@ -663,13 +652,88 @@ export default function LoginPage() {
               </form>
             )}
 
+            {/* ===== STATE 1.5: WORKSPACE PICKER (multi-role users) ===== */}
+            {state === 'workspace' && (
+              <div className="space-y-6">
+                {/* Back Arrow */}
+                <button
+                  onClick={() => {
+                    setState('phone')
+                    setSelectedAssignment(null)
+                    setApiError(null)
+                  }}
+                  className="p-2 -ml-1 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-50 transition-all cursor-pointer"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+
+                <div className="space-y-1.5">
+                  <span className="text-sm font-medium text-slate-500 block">
+                    Welcome back,
+                  </span>
+                  <span className="text-2xl font-extrabold tracking-tight text-slate-900 block truncate">
+                    {userName}!
+                  </span>
+                  <p className="text-sm text-slate-500 font-medium pt-0.5">
+                    This number is linked to more than one account. Where would you like to go?
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {assignments.map(a => {
+                    const isParentRole = a.role === 'PARENT'
+                    return (
+                      <button
+                        key={a.id}
+                        disabled={loading}
+                        onClick={async () => {
+                          setSelectedAssignment(a)
+                          setApiError(null)
+                          setLoading(true)
+                          try {
+                            await proceedToCredentials(hasPin)
+                          } catch (err: any) {
+                            setApiError(err.message || 'Failed to send OTP.')
+                          } finally {
+                            setLoading(false)
+                          }
+                        }}
+                        className="w-full flex items-center gap-3.5 p-4 bg-slate-50/50 border-2 border-slate-200 hover:border-[#1565D8] hover:bg-blue-50/30 rounded-2xl transition-all text-left cursor-pointer disabled:opacity-50 group"
+                      >
+                        <div className="w-11 h-11 rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center flex-shrink-0 transition-colors">
+                          {isParentRole
+                            ? <Users className="w-5 h-5 text-[#1565D8]" />
+                            : <Building2 className="w-5 h-5 text-[#1565D8]" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-slate-800 truncate">
+                            {isParentRole ? 'Parent Portal' : a.orgName ?? 'Institution'}
+                          </p>
+                          <p className="text-xs text-slate-400 font-medium mt-0.5">
+                            {roleLabel(a.role)}
+                          </p>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {loading && (
+                  <div className="flex items-center justify-center gap-2 text-xs font-semibold text-slate-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Preparing login...
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ===== STATE 2: PIN LOGIN ===== */}
             {state === 'pin' && (
               <div className="space-y-6">
                 {/* Back Arrow */}
                 <button
                   onClick={() => {
-                    setState('phone')
+                    setState(assignments.length > 1 ? 'workspace' : 'phone')
                     setApiError(null)
                   }}
                   className="p-2 -ml-1 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-50 transition-all cursor-pointer"
@@ -685,14 +749,23 @@ export default function LoginPage() {
                   <span className="text-2xl font-extrabold tracking-tight text-slate-900 block truncate">
                     {userName}!
                   </span>
-                  <div className="flex items-center gap-2 pt-0.5">
+                  <div className="flex items-center gap-2 pt-0.5 flex-wrap">
                     <span className="text-xs font-semibold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg">
                       +91 {maskPhone(phone)}
+                    </span>
+                    <span className="text-xs font-semibold text-[#1565D8] bg-blue-50 px-2.5 py-1 rounded-lg">
+                      {selectedAssignment
+                        ? (selectedAssignment.role === 'PARENT'
+                            ? 'Parent Portal'
+                            : selectedAssignment.orgName ?? roleLabel(selectedAssignment.role))
+                        : roleLabel(userRole)}
                     </span>
                     <button
                       onClick={() => {
                         setState('phone')
                         setPhone('')
+                        setAssignments([])
+                        setSelectedAssignment(null)
                         setApiError(null)
                       }}
                       className="text-[10px] font-bold text-[#1565D8] hover:underline"
@@ -813,7 +886,7 @@ export default function LoginPage() {
                         if (hasPin) {
                           setState('pin')
                         } else {
-                          setState('phone')
+                          setState(assignments.length > 1 ? 'workspace' : 'phone')
                         }
                         setApiError(null)
                       }}

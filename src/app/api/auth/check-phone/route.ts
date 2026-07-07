@@ -39,11 +39,39 @@ export async function GET(req: NextRequest) {
     }
 
     const resolvedRole = await resolveTargetUserRole(user.id)
+
+    // Multi-role users (e.g. parent AND org admin) must pick a workspace
+    // before signIn — OTP codes are single-use, so the client needs the
+    // assignment list up front to send assignmentId with the credentials.
+    let assignments:
+      | { id: string; role: string; orgName: string | null }[]
+      | undefined
+    const activeAssignments = await prisma.userRoleAssignment.findMany({
+      where: { userId: user.id, status: 'ACTIVE' },
+      select: { id: true, role: true, orgId: true }
+    })
+    if (activeAssignments.length > 1) {
+      const orgIds = [...new Set(activeAssignments.map(a => a.orgId).filter(Boolean))] as string[]
+      const orgs = orgIds.length
+        ? await prisma.organization.findMany({
+            where: { id: { in: orgIds } },
+            select: { id: true, name: true }
+          })
+        : []
+      const orgNameById = new Map(orgs.map(o => [o.id, o.name]))
+      assignments = activeAssignments.map(a => ({
+        id: a.id,
+        role: a.role,
+        orgName: a.orgId ? orgNameById.get(a.orgId) ?? null : null
+      }))
+    }
+
     return NextResponse.json({
       exists: true,
       hasPin: user.pinHash !== null,
       name: user.name,
-      role: resolvedRole
+      role: resolvedRole,
+      ...(assignments ? { assignments } : {})
     })
 
   } catch (error: any) {

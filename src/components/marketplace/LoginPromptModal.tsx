@@ -16,7 +16,7 @@ export default function LoginPromptModal({
   open,
   onClose,
   title = 'Save this School',
-  description = 'Please sign in with a parent account to bookmark schools and track your admission enquiries.',
+  description = 'Login to bookmark schools and track your admission enquiries. New here? Register as a parent in under a minute.',
 }: LoginPromptModalProps) {
   if (!open) return null
 
@@ -34,7 +34,7 @@ export default function LoginPromptModal({
           </Link>
           <Link href="/parent/register" className="flex-1">
             <Button variant="outline" className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs py-2.5 rounded-xl h-auto">
-              Register
+              Register as Parent
             </Button>
           </Link>
         </div>

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { prisma } from '@/lib/db'
 import { sendPaymentFailedEmail } from '@/lib/services/billing'
-import { SubscriptionStatus, TransactionType, TransactionStatus, OrgStatus } from '@prisma/client'
+import { SubscriptionStatus, TransactionType, TransactionStatus, OrgStatus, type MessageChannel } from '@prisma/client'
+import { grantPurchasedCredits } from '@/lib/credits/engine'
 
 export async function POST(req: NextRequest) {
   try {
@@ -63,6 +64,34 @@ export async function POST(req: NextRequest) {
           where: { gatewayRef: orderId }
         })
 
+        if (transaction && transaction.type === TransactionType.CREDIT_PURCHASE) {
+          // Credit-pack purchase: idempotent claim (verify route may have
+          // already processed it) + idempotent grant. No subscription side
+          // effects for this transaction type.
+          const claimed = await prisma.transaction.updateMany({
+            where: { id: transaction.id, status: TransactionStatus.PENDING },
+            data: {
+              status: TransactionStatus.SUCCESS,
+              gatewayRef: paymentId,
+              paidAt: new Date()
+            }
+          })
+          if (claimed.count > 0) {
+            const meta = transaction.metadata as { channel?: string; credits?: number } | null
+            if (meta?.channel && meta?.credits) {
+              await grantPurchasedCredits(
+                transaction.orgId,
+                meta.channel as MessageChannel,
+                meta.credits,
+                transaction.id
+              )
+            } else {
+              console.error('[Razorpay Webhook] Credit purchase metadata missing', transaction.id)
+            }
+          }
+          break
+        }
+
         if (transaction) {
           // Update transaction
           await prisma.transaction.update({
@@ -111,6 +140,11 @@ export async function POST(req: NextRequest) {
               gatewayRef: paymentId
             }
           })
+
+          // A failed credit-pack purchase must not touch the subscription
+          if (transaction.type === TransactionType.CREDIT_PURCHASE) {
+            break
+          }
 
           // Trigger email to admin
           await sendPaymentFailedEmail(transaction.orgId, amount).catch(err =>

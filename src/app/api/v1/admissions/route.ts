@@ -11,6 +11,7 @@ import { asEnum } from '@/lib/api/query'
 import { Errors } from '@/lib/api/errors'
 import { Prisma } from '@prisma/client'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
+import { createNotification } from '@/lib/services/notifications'
 
 export const GET = route({
   module: MODULES.ADMISSION_MANAGEMENT,
@@ -312,6 +313,23 @@ export const POST = route({
           performedById: user.id
         }
       }).catch(err => console.error('Lead conversion activity log failed:', err))
+
+      // In-app/email alert for the assigned counsellor (not the converter)
+      const convertedLead = await db.lead.findFirst({
+        where: { id: leadId },
+        select: { parentName: true, leadCode: true, assignedToId: true }
+      })
+      if (convertedLead?.assignedToId && convertedLead.assignedToId !== user.id) {
+        createNotification({
+          orgId: user.orgId,
+          recipientType: 'USER',
+          recipientId: convertedLead.assignedToId,
+          type: 'LEAD_CONVERTED',
+          title: 'Lead converted to admission',
+          body: `${convertedLead.parentName} (${convertedLead.leadCode}) was converted to an admission by ${user.name || 'a teammate'}.`,
+          data: { leadId }
+        }).catch(err => console.error('Lead-converted notification failed:', err))
+      }
     }
 
     // Create admission — the code derives from count()+1 against a unique

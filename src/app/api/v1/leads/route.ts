@@ -9,6 +9,7 @@ import { LeadSource, LeadStatus, LeadPriority } from '@prisma/client'
 import { createNotification } from '@/lib/services/notifications'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
+import { sendOrgTemplateEmail } from '@/lib/mail/org-templates'
 import { parseQuery, paginationShape, enumParam, textParam } from '@/lib/api/query'
 
 export const GET = route({
@@ -335,6 +336,17 @@ export const POST = route({
       } catch (e) {
         console.error('Failed to trigger lead notification:', e)
       }
+    }
+
+    // 8. Acknowledge the enquiry to the parent (fire-and-forget)
+    if (lead.email) {
+      prisma.organization.findUnique({ where: { id: user.orgId }, select: { name: true } }).then((org) =>
+        sendOrgTemplateEmail(user.orgId, 'LEAD_ACKNOWLEDGEMENT', lead.email, {
+          parentName: lead.parentName,
+          childName: lead.kidName ?? '',
+          schoolName: org?.name ?? 'Your school'
+        })
+      ).catch(() => {})
     }
 
     return created({

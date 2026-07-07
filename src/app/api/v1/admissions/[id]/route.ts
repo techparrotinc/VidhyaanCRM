@@ -8,6 +8,8 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { createNotification } from '@/lib/services/notifications'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
+import { prisma } from '@/lib/db/client'
+import { sendOrgTemplateEmail } from '@/lib/mail/org-templates'
 
 // Whitelist of updatable Admission scalars + body-only fields handled separately below
 // (unknown keys are stripped — previously anything not destructured out hit prisma directly)
@@ -259,6 +261,18 @@ export const PUT = route({
         }
       }
 
+      // Interview-type stage → notify the parent (fire-and-forget)
+      if (newStage?.name?.toLowerCase().includes('interview') && updated.email) {
+        prisma.organization.findUnique({ where: { id: user.orgId }, select: { name: true } }).then((org) =>
+          sendOrgTemplateEmail(user.orgId, 'INTERVIEW_SCHEDULED', updated.email, {
+            parentName: updated.parentName ?? 'Parent',
+            applicantName: updated.applicantName,
+            stageName: newStage.name,
+            schoolName: org?.name ?? 'Your school'
+          })
+        ).catch(() => {})
+      }
+
       // Check if new stage is won
       if (updated.stage?.isWon) {
         await db.admission.update({
@@ -276,6 +290,19 @@ export const PUT = route({
         })
         updated.status = 'REJECTED'
       }
+    }
+
+    // Admission confirmed → congratulate the parent (covers both the
+    // won-stage path above and a direct status change; fire-and-forget)
+    if (updated.status === 'ADMITTED' && existing.status !== 'ADMITTED' && updated.email) {
+      prisma.organization.findUnique({ where: { id: user.orgId }, select: { name: true } }).then((org) =>
+        sendOrgTemplateEmail(user.orgId, 'ADMISSION_CONFIRMED', updated.email, {
+          parentName: updated.parentName ?? 'Parent',
+          applicantName: updated.applicantName,
+          gradeSought: updated.gradeSought ?? 'the applied class',
+          schoolName: org?.name ?? 'Your school'
+        })
+      ).catch(() => {})
     }
 
     // Log note if provided

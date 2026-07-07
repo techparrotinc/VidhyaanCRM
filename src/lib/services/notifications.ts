@@ -5,12 +5,15 @@ import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 export type NotificationType =
   | 'LEAD_RECEIVED'
   | 'LEAD_FOLLOWUP_DUE'
+  | 'LEAD_CONVERTED'
   | 'ADMISSION_STAGE_CHANGED'
   | 'FEE_PAYMENT_RECEIVED'
   | 'FEE_OVERDUE'
   | 'TRIAL_ENDING'
   | 'PAYMENT_FAILED'
   | 'PROFILE_APPROVED'
+  | 'EVENT_RSVP_RECEIVED'
+  | 'EVENT_CANCELLED'
 
 export interface CreateNotificationParams {
   orgId: string
@@ -44,12 +47,14 @@ export async function createNotification(params: CreateNotificationParams) {
 
     // 3. Determine category based on type
     let category = 'system'
-    if (type === 'LEAD_RECEIVED' || type === 'LEAD_FOLLOWUP_DUE') {
+    if (type === 'LEAD_RECEIVED' || type === 'LEAD_FOLLOWUP_DUE' || type === 'LEAD_CONVERTED') {
       category = 'leads'
     } else if (type === 'ADMISSION_STAGE_CHANGED') {
       category = 'admissions'
     } else if (type === 'FEE_PAYMENT_RECEIVED' || type === 'FEE_OVERDUE' || type === 'PAYMENT_FAILED') {
       category = 'fees'
+    } else if (type === 'EVENT_RSVP_RECEIVED' || type === 'EVENT_CANCELLED') {
+      category = 'events'
     }
 
     // 4. Retrieve email address & check notification preferences

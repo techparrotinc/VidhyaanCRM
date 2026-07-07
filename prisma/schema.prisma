@@ -622,6 +622,7 @@ model Organization {
   payments              Payment[]
   concessions           Concession[]
   events                Event[]
+  emailTemplates        OrgEmailTemplate[]
   campaigns             Campaign[]
   notifications         Notification[]
   notificationPrefs     NotificationPreference[]
@@ -2124,6 +2125,25 @@ model EventRsvp {
   @@index([orgId])
   @@index([eventId])
   @@map("event_rsvp")
+  @@schema("crm")
+}
+
+/// Org override of a system email template (subject/body). Absence of a
+/// row = the code default in src/lib/mail/org-templates.ts applies.
+model OrgEmailTemplate {
+  id        String   @id @default(cuid())
+  orgId     String   @map("org_id")
+  key       String // FEE_INVOICE, EVENT_INVITE, EVENT_CANCELLED, ENQUIRY_CONFIRMATION
+  subject   String
+  body      String // plain text with {{variables}}; rendered into branded shell
+  updatedBy String?  @map("updated_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, key])
+  @@map("org_email_templates")
   @@schema("crm")
 }
 

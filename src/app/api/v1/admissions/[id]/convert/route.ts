@@ -5,6 +5,7 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
+import { sendOrgTemplateEmail } from '@/lib/mail/org-templates'
 
 const convertSchema = z.object({
   name: z.string().optional(),
@@ -93,6 +94,21 @@ export const POST = route({
         performedById: user.id
       }
     })
+
+    // Welcome email to the guardian (fire-and-forget)
+    if (student.guardianEmail) {
+      const baseUrl = process.env.NEXTAUTH_URL || 'https://app-dev.vidhyaan.com'
+      prisma.organization.findUnique({ where: { id: user.orgId }, select: { name: true } }).then((org) =>
+        sendOrgTemplateEmail(user.orgId, 'WELCOME_STUDENT', student.guardianEmail, {
+          parentName: student.guardianName ?? 'Parent',
+          studentName: student.name,
+          studentCode,
+          gradeLabel: student.gradeLabel ?? '',
+          schoolName: org?.name ?? 'Your school',
+          portalLink: `${baseUrl}/parent/dashboard`
+        })
+      ).catch(() => {})
+    }
 
     return created({
       student,

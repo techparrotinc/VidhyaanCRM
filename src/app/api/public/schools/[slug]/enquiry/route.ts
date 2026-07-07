@@ -5,6 +5,7 @@ import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 import { enquiryNotificationTemplate, enquiryConfirmationTemplate } from '@/lib/mail/templates'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
+import { resolveOrgEmail } from '@/lib/mail/org-templates'
 
 export async function POST(
   req: NextRequest,
@@ -282,17 +283,27 @@ export async function POST(
         // TEMP DEBUG - remove after enquiry email diagnosis
         console.log('[EnquiryDebug] About to send parent confirmation to:', email)
         try {
-          await sendTransactionalEmail({
-            to: email,
-            subject: `Your enquiry to ${school.name} has been received!`,
-            htmlBody: enquiryConfirmationTemplate({
+          if (school.orgId) {
+            // Claimed school — honor the org's customized template
+            const { subject, bodyText, html } = await resolveOrgEmail(school.orgId, 'ENQUIRY_CONFIRMATION', {
               parentName,
-              schoolName: school.name,
-              schoolPhone,
-              referenceId: enquiry.id
-            }),
-            textBody: `Dear ${parentName}, your enquiry to ${school.name} has been received. Reference ID: ${enquiry.id}.`
-          })
+              childName: childName ?? '',
+              schoolName: school.name
+            })
+            await sendTransactionalEmail({ to: email, subject, htmlBody: html, textBody: bodyText })
+          } else {
+            await sendTransactionalEmail({
+              to: email,
+              subject: `Your enquiry to ${school.name} has been received!`,
+              htmlBody: enquiryConfirmationTemplate({
+                parentName,
+                schoolName: school.name,
+                schoolPhone,
+                referenceId: enquiry.id
+              }),
+              textBody: `Dear ${parentName}, your enquiry to ${school.name} has been received. Reference ID: ${enquiry.id}.`
+            })
+          }
         } catch (parentEmailErr) {
           // TEMP DEBUG - remove after enquiry email diagnosis
           console.error('[EnquiryDebug] Parent email send FAILED:', parentEmailErr)

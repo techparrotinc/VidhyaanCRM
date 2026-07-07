@@ -9,6 +9,7 @@ import {
   Receipt,
   BookOpen,
   MessageCircle,
+  Mail,
   Puzzle,
   Wallet
 } from 'lucide-react'
@@ -102,6 +103,12 @@ export function buildSettingsNav(opts: {
           path: '/settings/notifications',
           icon: Bell,
           description: 'Which events trigger emails and alerts'
+        },
+        {
+          name: 'Email Templates',
+          path: '/settings/email-templates',
+          icon: Mail,
+          description: 'Customize the emails sent to parents and leads'
         },
         {
           name: 'Add-ons',

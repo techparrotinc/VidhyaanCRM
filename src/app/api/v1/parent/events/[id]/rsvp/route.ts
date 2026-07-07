@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db/client'
 import { requireParent, linkedStudentsWhere } from '@/lib/parent-portal'
+import { createNotification } from '@/lib/services/notifications'
 
 const rsvpSchema = z.object({
   status: z.enum(['GOING', 'NOT_GOING'])
@@ -55,6 +56,19 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
             status: body.status
           }
         })
+
+    // Alert the event creator about the RSVP (first response only per parent)
+    if (!existing && event.createdById) {
+      createNotification({
+        orgId: event.orgId,
+        recipientType: 'USER',
+        recipientId: event.createdById,
+        type: 'EVENT_RSVP_RECEIVED',
+        title: 'New event RSVP',
+        body: `${parent.name ?? 'A parent'} responded "${body.status === 'GOING' ? 'Going' : 'Not going'}" to ${event.title}.`,
+        data: { eventId: id }
+      }).catch((err) => console.error('RSVP notification failed:', err))
+    }
 
     return NextResponse.json({ success: true, data: { id: rsvp.id, status: rsvp.status } })
   } catch (error: any) {

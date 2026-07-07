@@ -20,12 +20,15 @@ interface Preference {
 const EVENTS = [
   { type: 'LEAD_RECEIVED', label: 'New lead received', category: 'leads' },
   { type: 'LEAD_FOLLOWUP_DUE', label: 'Follow-up due', category: 'leads' },
+  { type: 'LEAD_CONVERTED', label: 'Lead converted to admission', category: 'leads' },
   { type: 'ADMISSION_STAGE_CHANGED', label: 'Stage changed', category: 'admissions' },
   { type: 'DOCUMENT_UPLOADED', label: 'Document uploaded', category: 'admissions' },
   { type: 'INTERVIEW_REMINDER', label: 'Interview reminder', category: 'admissions' },
   { type: 'FEE_PAYMENT_RECEIVED', label: 'Payment received', category: 'fees' },
   { type: 'FEE_OVERDUE', label: 'Fee overdue', category: 'fees' },
   { type: 'FEE_REMINDER', label: 'Fee reminder', category: 'fees' },
+  { type: 'EVENT_RSVP_RECEIVED', label: 'Event RSVP received', category: 'events' },
+  { type: 'EVENT_CANCELLED', label: 'Event cancelled', category: 'events' },
   { type: 'PROFILE_APPROVED', label: 'Profile approved', category: 'system' },
   { type: 'TRIAL_ENDING', label: 'Trial ending', category: 'system' },
   { type: 'PAYMENT_FAILED', label: 'Payment failed', category: 'system' }

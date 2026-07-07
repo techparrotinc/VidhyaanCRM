@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
-import { eventInviteTemplate, eventCancelledTemplate } from '@/lib/mail/templates'
+import { eventInviteTemplate } from '@/lib/mail/templates'
+import { resolveOrgEmail, renderEmailHtml, replaceVars } from '@/lib/mail/org-templates'
 import { EVENT_TYPE_LABELS, EventType } from '@/constants/events'
 
 // All sends are fire-and-forget from the caller's perspective: email failure
@@ -108,21 +109,25 @@ export async function sendEventCancellationNotices(event: EventLike): Promise<vo
 
     const org = await orgName(event.orgId)
 
+    // Org-customizable template; recipient name substituted per attendee
+    const template = await resolveOrgEmail(event.orgId, 'EVENT_CANCELLED', {
+      eventTitle: event.title,
+      eventDate: fmtIST(event.startsAt),
+      schoolName: org,
+      recipientName: '{{recipientName}}'
+    })
+
     await Promise.allSettled(
       rsvps.map(async (r) => {
         const contact = await resolveAttendeeContact(r.attendeeType, r.attendeeId!)
         if (!contact?.email || !contact.email.includes('@')) return
+        const bodyText = replaceVars(template.bodyText, { recipientName: contact.name })
         await sendTransactionalEmail({
           to: contact.email,
           toName: contact.name,
-          subject: `Cancelled: ${event.title} — ${org}`,
-          htmlBody: eventCancelledTemplate({
-            recipientName: esc(contact.name),
-            orgName: esc(org),
-            eventTitle: esc(event.title),
-            startsAt: fmtIST(event.startsAt)
-          }),
-          textBody: `${event.title} by ${org}, scheduled for ${fmtIST(event.startsAt)}, has been cancelled.`
+          subject: replaceVars(template.subject, { recipientName: contact.name }),
+          htmlBody: renderEmailHtml(bodyText),
+          textBody: bodyText
         })
       })
     )

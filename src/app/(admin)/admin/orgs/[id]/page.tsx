@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import MessagingAllowanceCard from '@/components/admin/MessagingAllowanceCard'
 
 interface Module {
   id: string
@@ -686,6 +687,9 @@ export default function OrgDetailPage() {
               ))}
             </div>
           </Card>
+
+          {/* Messaging Allowances Card */}
+          <MessagingAllowanceCard orgId={id} />
 
           {/* Subscription Card */}
           <Card className="p-5 bg-white border-slate-200 shadow-sm space-y-4">

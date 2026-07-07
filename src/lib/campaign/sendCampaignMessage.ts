@@ -29,6 +29,13 @@ export async function sendCampaignMessage(
     name: string
     phone: string | null
     email: string | null
+  },
+  /** Org's own MSG91 credentials (BYO); undefined = Vidhyaan account. */
+  providerCreds?: {
+    authKey: string
+    senderId?: string
+    smsFlowId?: string
+    whatsappNumber?: string
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -95,7 +102,14 @@ export async function sendCampaignMessage(
       }
       await sendCampaignSMS({
         to: recipient.phone,
-        body
+        body,
+        credentials: providerCreds
+          ? {
+              authKey: providerCreds.authKey,
+              senderId: providerCreds.senderId,
+              flowId: providerCreds.smsFlowId
+            }
+          : undefined
       })
     } else if (campaign.channel === CampaignChannel.WHATSAPP) {
       if (!recipient.phone) {
@@ -104,7 +118,13 @@ export async function sendCampaignMessage(
       await sendCampaignWhatsApp({
         to: recipient.phone,
         templateId,
-        body
+        body,
+        credentials: providerCreds
+          ? {
+              authKey: providerCreds.authKey,
+              whatsappNumber: providerCreds.whatsappNumber
+            }
+          : undefined
       })
     }
 

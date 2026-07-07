@@ -8,6 +8,9 @@ import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db/client'
 import { forOrg } from '@/lib/db'
 import { sendCampaignMessage } from '@/lib/campaign/sendCampaignMessage'
+import { spendCredits, refundCredits, InsufficientCreditsError } from '@/lib/credits/engine'
+import { getActiveProviderConfig } from '@/lib/credits/provider'
+import type { MessageChannel } from '@prisma/client'
 
 const sendConfigSchema = z.object({
   scheduledAt: z.string().optional().nullable()
@@ -35,51 +38,59 @@ async function handleSendCampaign({
     )
   }
 
-  // STEP 2 — Quota check
-  const now = new Date()
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+  // STEP 2 — Plan quota (EMAIL only; SMS/WhatsApp are credit-metered below)
+  const isCreditChannel =
+    campaign.channel === CampaignChannel.SMS ||
+    campaign.channel === CampaignChannel.WHATSAPP
+  const creditChannel: MessageChannel =
+    campaign.channel === CampaignChannel.WHATSAPP ? 'WHATSAPP' : 'SMS'
 
-  const used = await db.campaignRecipient.count({
-    where: {
-      orgId,
-      status: { not: 'PENDING' },
-      sentAt: {
-        gte: firstDay,
-        lte: lastDay
+  let emailRemaining = Infinity
+  if (!isCreditChannel) {
+    const now = new Date()
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+
+    const used = await db.campaignRecipient.count({
+      where: {
+        orgId,
+        status: { not: 'PENDING' },
+        sentAt: {
+          gte: firstDay,
+          lte: lastDay
+        }
       }
+    })
+
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      include: { plan: true }
+    })
+
+    const planSlug = org?.plan?.slug || 'starter'
+
+    let limit = 500
+    const planSlugLower = planSlug.toLowerCase()
+    if (planSlugLower === 'free') {
+      limit = 0
+    } else if (planSlugLower === 'starter') {
+      limit = 500
+    } else if (planSlugLower === 'growth') {
+      limit = 5000
     }
-  })
 
-  const org = await prisma.organization.findUnique({
-    where: { id: orgId },
-    include: { plan: true }
-  })
+    if (limit === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Campaign sending is not available on your current plan. Please upgrade.'
+        },
+        { status: 402 }
+      )
+    }
 
-  const planSlug = org?.plan?.slug || 'starter'
-  const planName = org?.plan?.name || 'Starter'
-
-  let limit = 500
-  const planSlugLower = planSlug.toLowerCase()
-  if (planSlugLower === 'free') {
-    limit = 0
-  } else if (planSlugLower === 'starter') {
-    limit = 500
-  } else if (planSlugLower === 'growth') {
-    limit = 5000
+    emailRemaining = Math.max(0, limit - used)
   }
-
-  if (limit === 0) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Campaign sending is not available on your current plan. Please upgrade.'
-      },
-      { status: 402 }
-    )
-  }
-
-  const remaining = Math.max(0, limit - used)
 
   // STEP 3 — WhatsApp addon check
   if (campaign.channel === CampaignChannel.WHATSAPP) {
@@ -190,12 +201,12 @@ async function handleSendCampaign({
     })
   }
 
-  // STEP 5 — Quota limit enforcement
-  if (recipients.length > remaining) {
+  // STEP 5 — Quota limit enforcement (EMAIL plan quota only)
+  if (!isCreditChannel && recipients.length > emailRemaining) {
     return NextResponse.json(
       {
         success: false,
-        error: `This campaign would reach ${recipients.length} recipients but you only have ${remaining} remaining this month.`
+        error: `This campaign would reach ${recipients.length} recipients but you only have ${emailRemaining} remaining this month.`
       },
       { status: 402 }
     )
@@ -220,6 +231,35 @@ async function handleSendCampaign({
           recipientCount: recipients.length
         }
       })
+    }
+  }
+
+  // STEP 6.5 — Credit metering for SMS/WhatsApp. Verified BYO provider →
+  // sends go through the org's own account, no debit. Otherwise pre-debit
+  // the whole batch (failed sends refunded in STEP 10); zero balance blocks.
+  let providerCreds: Awaited<ReturnType<typeof getActiveProviderConfig>> = null
+  let debitSplit: { fromFree: number; fromPurchased: number } | null = null
+
+  if (isCreditChannel && recipients.length > 0) {
+    providerCreds = await getActiveProviderConfig(orgId, creditChannel)
+    if (!providerCreds) {
+      try {
+        debitSplit = await spendCredits(orgId, creditChannel, recipients.length, campaign.id)
+      } catch (err) {
+        if (err instanceof InsufficientCreditsError) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Not enough ${creditChannel === 'SMS' ? 'SMS' : 'WhatsApp'} credits: this campaign needs ${recipients.length}, you have ${err.available}. Purchase credits in Settings → Add-ons.`,
+              code: 'INSUFFICIENT_CREDITS',
+              shortfall: err.shortfall,
+              available: err.available
+            },
+            { status: 402 }
+          )
+        }
+        throw err
+      }
     }
   }
 
@@ -269,7 +309,8 @@ async function handleSendCampaign({
               name: record.name || '',
               phone: record.phone,
               email: record.email
-            }
+            },
+            providerCreds ?? undefined
           )
 
           if (result.success) {
@@ -310,6 +351,13 @@ async function handleSendCampaign({
   const finalSent = finalRecipients.filter(r => r.status === 'SENT' || r.status === 'DELIVERED').length
   const finalFailed = finalRecipients.filter(r => r.status === 'FAILED').length
   const finalDelivered = finalRecipients.filter(r => r.status === 'DELIVERED').length
+
+  // Refund credits for failed sends in the pre-debited batch
+  if (debitSplit && finalFailed > 0) {
+    await refundCredits(orgId, creditChannel, finalFailed, debitSplit, campaign.id).catch(err =>
+      console.error('Credit refund failed:', err)
+    )
+  }
 
   const updatedCampaign = await db.campaign.update({
     where: { id: campaign.id },

@@ -9,7 +9,7 @@ import EventForm, { EventPayload } from '@/components/events/EventForm'
 export default function NewEventPage() {
   const router = useRouter()
 
-  const create = async (payload: EventPayload) => {
+  const create = async (payload: EventPayload, publish?: boolean) => {
     const res = await fetch('/api/v1/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -19,7 +19,26 @@ export default function NewEventPage() {
     if (!res.ok || json.success === false) {
       throw new Error(json.error?.message || json.error || 'Failed to create event')
     }
-    router.push(`/event-management/${json.data.id}`)
+    const eventId = json.data.id
+
+    if (publish) {
+      const pubRes = await fetch(`/api/v1/events/${eventId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'publish' })
+      })
+      const pubJson = await pubRes.json()
+      if (!pubRes.ok || pubJson.success === false) {
+        // Draft is saved — land on it and surface why publishing failed
+        router.push(`/event-management/${eventId}`)
+        throw new Error(pubJson.error?.message || pubJson.error || 'Saved as draft, but publishing failed')
+      }
+      // Straight into the announce step
+      router.push(`/event-management/${eventId}?announce=1`)
+      return
+    }
+
+    router.push(`/event-management/${eventId}`)
   }
 
   return (
@@ -37,6 +56,7 @@ export default function NewEventPage() {
 
       <EventForm
         submitLabel="Save Draft"
+        showPublishAction
         onSubmit={create}
         onCancel={() => router.push('/event-management')}
       />

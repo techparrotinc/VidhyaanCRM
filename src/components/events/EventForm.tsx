@@ -50,12 +50,15 @@ export default function EventForm({
   initial,
   submitLabel,
   onSubmit,
-  onCancel
+  onCancel,
+  showPublishAction = false
 }: {
   initial?: any
   submitLabel: string
-  onSubmit: (payload: EventPayload) => Promise<void>
+  onSubmit: (payload: EventPayload, publish?: boolean) => Promise<void>
   onCancel: () => void
+  /** show the primary "Save & Publish" action (create flow) */
+  showPublishAction?: boolean
 }) {
   const [form, setForm] = useState<FormState>(() => {
     // New events default to today at the next full hour
@@ -115,11 +118,14 @@ export default function EventForm({
     }
   }
 
-  const submit = async () => {
+  const submit = async (publish = false) => {
     if (!form.title.trim()) return setError('Title is required')
     if (!form.startsAt) return setError('Start date & time is required')
     if (form.endsAt && new Date(form.endsAt) < new Date(form.startsAt)) {
       return setError('End time must be after start time')
+    }
+    if (publish && new Date(form.startsAt) < new Date()) {
+      return setError('Cannot publish an event that starts in the past')
     }
     setError(null)
     setSaving(true)
@@ -134,7 +140,7 @@ export default function EventForm({
         location: form.location || null,
         meetingLink: form.meetingLink || null,
         imageUrl: form.imageUrl || null
-      })
+      }, publish)
     } catch (e: any) {
       setError(e.message || 'Failed to save event')
     } finally {
@@ -246,9 +252,12 @@ export default function EventForm({
               className={inputCls} placeholder="https://meet.google.com/… (online events)" />
           </Field>
 
-          <Field label="Capacity" icon={Users}>
+          <Field label="Seats (RSVP limit)" icon={Users}>
             <input type="number" min={1} value={form.capacity} onChange={set('capacity')}
               className={inputCls} placeholder="Leave empty for unlimited" />
+            <p className="mt-1 text-[11px] text-slate-400 leading-relaxed">
+              Limits how many people can RSVP &ldquo;going&rdquo; — it does not limit who receives the announcement.
+            </p>
           </Field>
         </div>
       </div>
@@ -263,10 +272,20 @@ export default function EventForm({
             className="border border-slate-200 text-slate-600 text-sm font-semibold rounded-lg px-5 py-2.5 hover:bg-slate-50 cursor-pointer">
             Cancel
           </button>
-          <button onClick={submit} disabled={saving || uploading}
-            className="bg-[#1565D8] hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg px-6 py-2.5 cursor-pointer">
+          <button onClick={() => submit(false)} disabled={saving || uploading}
+            className={`text-sm font-semibold rounded-lg px-6 py-2.5 cursor-pointer disabled:opacity-60 ${
+              showPublishAction
+                ? 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                : 'bg-[#1565D8] hover:bg-blue-700 text-white'
+            }`}>
             {saving ? 'Saving…' : submitLabel}
           </button>
+          {showPublishAction && (
+            <button onClick={() => submit(true)} disabled={saving || uploading}
+              className="bg-[#1565D8] hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg px-6 py-2.5 cursor-pointer">
+              {saving ? 'Saving…' : 'Save & Publish'}
+            </button>
+          )}
         </div>
       </div>
     </div>

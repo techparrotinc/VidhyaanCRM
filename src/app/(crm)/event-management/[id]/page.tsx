@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ChevronLeft, CalendarDays, MapPin, Video, Users, Pencil,
@@ -40,7 +40,9 @@ export default function EventDetailPage() {
   const [leadResults, setLeadResults] = useState<any[]>([])
   const [actionError, setActionError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [showAnnounce, setShowAnnounce] = useState(false)
+  const searchParams = useSearchParams()
+  // ?announce=1 = arrived from Save & Publish — open the announce step directly
+  const [showAnnounce, setShowAnnounce] = useState(searchParams?.get('announce') === '1')
   const confirmDialog = useConfirm()
 
   const load = useCallback(async () => {
@@ -404,6 +406,7 @@ export default function EventDetailPage() {
       <AnnounceModal
         eventId={id}
         eventTitle={event.title}
+        capacity={event.capacity}
         open={showAnnounce}
         onClose={() => setShowAnnounce(false)}
       />

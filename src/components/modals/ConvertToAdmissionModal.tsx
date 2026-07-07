@@ -432,6 +432,12 @@ export default function ConvertToAdmissionModal({
                   {getFieldError('stageId')}
                 </span>
               )}
+              {!loadingOptions && pipelineStages.length === 0 && (
+                <span className="text-xs text-amber-600 block mt-1">
+                  No admission stages found. Ask your admin to configure the
+                  pipeline in Settings → Admission Pipeline.
+                </span>
+              )}
             </div>
 
             {/* FIELD 5: ASSIGN TO */}

@@ -276,7 +276,7 @@ export default function LeadsTable(props: LeadsTableProps) {
                               editFormData.status === 'NOT_INTERESTED' ? 'border-l-red-500' : 'border-l-slate-200'
                             }`}
                           >
-                            {['NEW', 'CONTACTED', 'FOLLOW_UP_PENDING', 'CONVERTED', 'NOT_INTERESTED'].map(st => (
+                            {['NEW', 'CONTACTED', 'INTERESTED', 'FOLLOW_UP_PENDING', 'CONVERTED', 'NOT_INTERESTED'].map(st => (
                               <option key={st} value={st}>
                                 {statusLabels[st] || st}
                               </option>
@@ -510,6 +510,10 @@ export default function LeadsTable(props: LeadsTableProps) {
 
                   {/* Status */}
                   <td className="px-3 py-2.5 text-left w-[140px] min-w-[120px]" onClick={(e) => e.stopPropagation()}>
+                    {/* relative wrapper anchors the absolute dropdown (same
+                        pattern as the counsellor cell) — without it the menu
+                        resolves against the page and renders detached */}
+                    <div className="relative flex items-center min-w-0">
                     <button
                       disabled={updatingLeadId === lead.id}
                       onClick={(e) => {
@@ -555,7 +559,7 @@ export default function LeadsTable(props: LeadsTableProps) {
                           }}
                         />
                         <div className="absolute top-full left-0 mt-1.5 z-20 bg-white rounded-xl border border-slate-200 shadow-lg p-1.5 min-w-[160px]">
-                          {(['NEW', 'CONTACTED', 'FOLLOW_UP_PENDING', 'CONVERTED', 'NOT_INTERESTED'] as const).map((status) => (
+                          {(['NEW', 'CONTACTED', 'INTERESTED', 'FOLLOW_UP_PENDING', 'CONVERTED', 'NOT_INTERESTED'] as const).map((status) => (
                             <button
                               key={status}
                               onClick={async (e) => {
@@ -580,6 +584,7 @@ export default function LeadsTable(props: LeadsTableProps) {
                         </div>
                       </>
                     )}
+                    </div>
                   </td>
 
                   {/* Action */}

@@ -6,9 +6,13 @@ import { NextResponse } from 'next/server'
 import { redis } from '@/lib/redis'
 
 export const GET = route({
+  // Counsellors/receptionists need stages to convert leads to admissions
+  // (the modal's required Initial Stage field); writes stay admin-only below.
   roles: [
     ROLES.ORG_ADMIN,
-    ROLES.BRANCH_ADMIN
+    ROLES.BRANCH_ADMIN,
+    ROLES.COUNSELLOR,
+    ROLES.RECEPTIONIST
   ],
   handler: async ({ db, user }) => {
     const cacheKey = `pipeline:${user.orgId}`

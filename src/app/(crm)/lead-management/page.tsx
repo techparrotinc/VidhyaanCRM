@@ -150,6 +150,9 @@ export default function LeadManagementPage() {
       phone: l.phone || '—',
       email: l.email ?? '—',
       applyingFor: l.gradeSought ?? '—',
+      // Raw value for the convert-to-admission modal's grade pre-fill —
+      // applyingFor above is display-only ('—' is not a valid grade)
+      gradeSought: l.gradeSought ?? '',
       source: l.source || '—',
       counsellor: l.assignedTo?.name ?? null,
       counsellorId: l.assignedToId ?? null,
@@ -629,6 +632,7 @@ export default function LeadManagementPage() {
               { id: '', label: 'All', badgeClass: 'bg-slate-200 text-slate-600' },
               { id: 'NEW', label: 'New', badgeClass: 'bg-blue-100 text-blue-700' },
               { id: 'CONTACTED', label: 'Contacted', badgeClass: 'bg-amber-100 text-amber-700' },
+              { id: 'INTERESTED', label: 'Interested', badgeClass: 'bg-purple-100 text-purple-700' },
               { id: 'CONVERTED', label: 'Converted', badgeClass: 'bg-green-100 text-green-700' },
               { id: 'NOT_INTERESTED', label: 'Rejected', badgeClass: 'bg-red-100 text-red-600' },
               { id: 'FOLLOW_UP_PENDING', label: 'Follow-up', badgeClass: 'bg-orange-100 text-orange-700' },

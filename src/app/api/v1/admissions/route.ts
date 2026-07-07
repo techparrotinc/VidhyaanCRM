@@ -8,6 +8,8 @@ import { prisma } from '@/lib/db/client'
 import { redis } from '@/lib/redis'
 import { AdmissionStatus, LeadPriority } from '@prisma/client'
 import { asEnum } from '@/lib/api/query'
+import { Errors } from '@/lib/api/errors'
+import { Prisma } from '@prisma/client'
 
 export const GET = route({
   module: MODULES.ADMISSION_MANAGEMENT,
@@ -246,19 +248,22 @@ export const POST = route({
       stageId = firstStage?.id
     }
 
-    // Generate admission code
     const year = new Date().getFullYear()
-    const count = await prisma.admission.count({
-      where: { orgId: user.orgId }
-    })
-
-    const institutionType = 'SCHOOL'
-    const prefix = institutionType === 'SCHOOL' ? 'AT' : 'EN'
-
-    const admissionCode =
-      prefix + '-' + year + '-' + String(count + 1).padStart(5, '0')
 
     let leadId = body.leadId
+    if (leadId) {
+      // Duplicate-convert guard: one lead → one admission
+      const existingAdmission = await db.admission.findFirst({
+        where: { leadId, deletedAt: null },
+        select: { id: true, admissionCode: true }
+      })
+      if (existingAdmission) {
+        throw Errors.conflict(
+          `This lead is already converted (admission ${existingAdmission.admissionCode}).`
+        )
+      }
+    }
+
     if (!leadId) {
       const year = new Date().getFullYear()
       const count = await db.lead.count({
@@ -294,28 +299,61 @@ export const POST = route({
           priority: (body.priority ?? 'MEDIUM') as any
         }
       })
+
+      // The lead timeline must show the conversion (the lead PUT handler
+      // logs status changes; conversion previously logged nothing here)
+      await db.leadActivity.create({
+        data: {
+          orgId: user.orgId,
+          leadId,
+          type: 'STATUS_CHANGE',
+          summary: 'Lead converted to admission',
+          performedById: user.id
+        }
+      }).catch(err => console.error('Lead conversion activity log failed:', err))
     }
 
-    // Create admission
-    const admission = await db.admission.create({
-      data: {
-        applicantName: body.applicantName,
-        parentName: body.parentName ?? null,
-        phone: body.phone ?? null,
-        email: body.email ?? null,
-        gradeSought: body.gradeSought ?? null,
-        orgId: user.orgId,
-        admissionCode,
-        stageId: stageId ?? null,
-        assignedToId: body.assignedToId ?? null,
-        academicYearId: body.academicYearId ?? academicYearId ?? null,
-        leadId,
-        status: 'IN_PROGRESS'
-      },
-      include: {
-        stage: true
+    // Create admission — the code derives from count()+1 against a unique
+    // [orgId, admissionCode] constraint, so concurrent converts can collide;
+    // retry with a re-count instead of surfacing a 500.
+    const institutionType = 'SCHOOL'
+    const prefix = institutionType === 'SCHOOL' ? 'AT' : 'EN'
+
+    let admission
+    for (let attempt = 0; ; attempt++) {
+      const count = await prisma.admission.count({
+        where: { orgId: user.orgId }
+      })
+      const admissionCode =
+        prefix + '-' + year + '-' + String(count + 1 + attempt).padStart(5, '0')
+
+      try {
+        admission = await db.admission.create({
+          data: {
+            applicantName: body.applicantName,
+            parentName: body.parentName ?? null,
+            phone: body.phone ?? null,
+            email: body.email ?? null,
+            gradeSought: body.gradeSought ?? null,
+            orgId: user.orgId,
+            admissionCode,
+            stageId: stageId ?? null,
+            assignedToId: body.assignedToId ?? null,
+            academicYearId: body.academicYearId ?? academicYearId ?? null,
+            leadId,
+            status: 'IN_PROGRESS'
+          },
+          include: {
+            stage: true
+          }
+        })
+        break
+      } catch (err) {
+        const isCodeCollision =
+          err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002'
+        if (!isCodeCollision || attempt >= 2) throw err
       }
-    })
+    }
 
     // Log activity
     await db.admissionActivity.create({

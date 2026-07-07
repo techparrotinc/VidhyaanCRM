@@ -7,6 +7,7 @@ import { Errors, AppError } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { createNotification } from '@/lib/services/notifications'
+import { createLeadWithUniqueCode } from '@/lib/lead-code'
 
 // Whitelist of updatable Admission scalars + body-only fields handled separately below
 // (unknown keys are stripped — previously anything not destructured out hit prisma directly)
@@ -171,29 +172,25 @@ export const PUT = route({
 
     let leadId = existing.leadId
     if (!leadId) {
-      const year = new Date().getFullYear()
-      const count = await db.lead.count({
-        where: { orgId: user.orgId }
-      })
-      const leadCode = 'LD-' + year + '-' + String(count + 1).padStart(5, '0')
-
-      const newLead = await db.lead.create({
-        data: {
-          orgId: user.orgId,
-          branchId: existing.branchId,
-          academicYearId: existing.academicYearId || body.academicYearId || null,
-          leadCode,
-          kidName: body.applicantName || existing.applicantName,
-          parentName: body.parentName || existing.parentName || '',
-          phone: body.phone || existing.phone || '',
-          email: body.email || existing.email,
-          status: 'CONVERTED',
-          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
-          currentSchool: body.currentSchool || null,
-          priority: body.priority || 'MEDIUM',
-          gradeSought: existing.gradeSought
-        }
-      })
+      const newLead = await createLeadWithUniqueCode(user.orgId, (leadCode) =>
+        db.lead.create({
+          data: {
+            orgId: user.orgId,
+            branchId: existing.branchId,
+            academicYearId: existing.academicYearId || body.academicYearId || null,
+            leadCode,
+            kidName: body.applicantName || existing.applicantName,
+            parentName: body.parentName || existing.parentName || '',
+            phone: body.phone || existing.phone || '',
+            email: body.email || existing.email,
+            status: 'CONVERTED',
+            expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+            currentSchool: body.currentSchool || null,
+            priority: body.priority || 'MEDIUM',
+            gradeSought: existing.gradeSought
+          }
+        })
+      )
       leadId = newLead.id
 
       // Update the admission record with the new leadId

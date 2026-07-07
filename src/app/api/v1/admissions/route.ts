@@ -10,6 +10,7 @@ import { AdmissionStatus, LeadPriority } from '@prisma/client'
 import { asEnum } from '@/lib/api/query'
 import { Errors } from '@/lib/api/errors'
 import { Prisma } from '@prisma/client'
+import { createLeadWithUniqueCode } from '@/lib/lead-code'
 
 export const GET = route({
   module: MODULES.ADMISSION_MANAGEMENT,
@@ -265,29 +266,25 @@ export const POST = route({
     }
 
     if (!leadId) {
-      const year = new Date().getFullYear()
-      const count = await db.lead.count({
-        where: { orgId: user.orgId }
-      })
-      const leadCode = 'LD-' + year + '-' + String(count + 1).padStart(5, '0')
-
-      const newLead = await db.lead.create({
-        data: {
-          orgId: user.orgId,
-          branchId: null,
-          academicYearId: body.academicYearId || academicYearId || null,
-          leadCode,
-          kidName: body.applicantName,
-          parentName: body.parentName ?? "",
-          phone: body.phone ?? "",
-          email: body.email ?? null,
-          status: 'CONVERTED',
-          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
-          currentSchool: body.currentSchool ?? null,
-          priority: (body.priority ?? 'MEDIUM') as any,
-          gradeSought: body.gradeSought ?? null
-        }
-      })
+      const newLead = await createLeadWithUniqueCode(user.orgId, (leadCode) =>
+        db.lead.create({
+          data: {
+            orgId: user.orgId,
+            branchId: null,
+            academicYearId: body.academicYearId || academicYearId || null,
+            leadCode,
+            kidName: body.applicantName,
+            parentName: body.parentName ?? "",
+            phone: body.phone ?? "",
+            email: body.email ?? null,
+            status: 'CONVERTED',
+            expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+            currentSchool: body.currentSchool ?? null,
+            priority: (body.priority ?? 'MEDIUM') as any,
+            gradeSought: body.gradeSought ?? null
+          }
+        })
+      )
       leadId = newLead.id
     } else {
       await db.lead.update({

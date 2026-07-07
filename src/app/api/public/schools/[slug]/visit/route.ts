@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { cleanPhoneNumber } from '@/lib/utils'
+import { createLeadWithUniqueCode } from '@/lib/lead-code'
 
 const visitRequestSchema = z.object({
   parentName: z.string().max(150).optional().nullable(),
@@ -107,6 +108,7 @@ export async function POST(
 
     // 5. If claimed school (has orgId), auto-create Lead in CRM schema and log visit activity
     if (school.orgId) {
+      const orgId = school.orgId
       const branch = await prisma.branch.findFirst({
         where: { orgId: school.orgId, isDefault: true }
       })
@@ -115,27 +117,22 @@ export async function POST(
         where: { orgId: school.orgId, status: 'ACTIVE' }
       })
 
-      // Generate unique lead code
-      const year = new Date().getFullYear()
-      const leadCount = await prisma.lead.count({
-        where: { orgId: school.orgId }
-      })
-      const leadCode = `LD-${year}-${String(leadCount + 1).padStart(5, '0')}`
-
-      const lead = await prisma.lead.create({
-        data: {
-          orgId: school.orgId,
-          branchId: branch?.id || null,
-          academicYearId: academicYear?.id || null,
-          leadCode,
-          parentName,
-          phone,
-          email: email || null,
-          source: 'VIDHYAAN',
-          status: 'NEW',
-          priority: 'HIGH'
-        }
-      })
+      const lead = await createLeadWithUniqueCode(orgId, (leadCode) =>
+        prisma.lead.create({
+          data: {
+            orgId,
+            branchId: branch?.id || null,
+            academicYearId: academicYear?.id || null,
+            leadCode,
+            parentName,
+            phone,
+            email: email || null,
+            source: 'VIDHYAAN',
+            status: 'NEW',
+            priority: 'HIGH'
+          }
+        })
+      )
 
       // Link lead back to the visit enquiry
       await prisma.parentEnquiry.update({

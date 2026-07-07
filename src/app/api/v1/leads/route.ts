@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db'
 import { LeadSource, LeadStatus, LeadPriority } from '@prisma/client'
 import { createNotification } from '@/lib/services/notifications'
 import { cleanPhoneNumber } from '@/lib/utils'
+import { createLeadWithUniqueCode } from '@/lib/lead-code'
 import { parseQuery, paginationShape, enumParam, textParam } from '@/lib/api/query'
 
 export const GET = route({
@@ -191,26 +192,27 @@ export const POST = route({
     })
 
     if (org.leadCap !== null && leadCount >= org.leadCap) {
-      const leadCode = await generateLeadCode(user.orgId)
-      const lead = await db.lead.create({
-        data: {
-          parentName: body.parentName,
-          phone: body.phone,
-          email: body.email || null,
-          kidName: body.kidName || null,
-          childAge: body.childAge || null,
-          currentSchool: body.currentSchool || null,
-          source: (body.source || 'WALK_IN') as LeadSource,
-          priority: (body.priority || 'MEDIUM') as LeadPriority,
-          status: 'NEW',
-          gradeSought: body.gradeSought || null,
-          leadCode,
-          orgId: user.orgId,
-          academicYearId: body.academicYearId || null,
-          nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
-          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
-        }
-      })
+      const lead = await createLeadWithUniqueCode(user.orgId, (leadCode) =>
+        db.lead.create({
+          data: {
+            parentName: body.parentName,
+            phone: body.phone,
+            email: body.email || null,
+            kidName: body.kidName || null,
+            childAge: body.childAge || null,
+            currentSchool: body.currentSchool || null,
+            source: (body.source || 'WALK_IN') as LeadSource,
+            priority: (body.priority || 'MEDIUM') as LeadPriority,
+            status: 'NEW',
+            gradeSought: body.gradeSought || null,
+            leadCode,
+            orgId: user.orgId,
+            academicYearId: body.academicYearId || null,
+            nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
+            expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+          }
+        })
+      )
 
       return ok({
         ...lead,
@@ -270,32 +272,31 @@ export const POST = route({
       }
     }
 
-    // 4. Generate lead code
-    const leadCode = await generateLeadCode(user.orgId)
-
-    // 5. Create lead
-    const lead = await db.lead.create({
-      data: {
-        parentName: body.parentName,
-        phone: body.phone,
-        email: body.email || null,
-        kidName: body.kidName || null,
-        childAge: body.childAge || null,
-        currentSchool: body.currentSchool || null,
-        source: (body.source || 'WALK_IN') as LeadSource,
-        priority: (body.priority || 'MEDIUM') as LeadPriority,
-        status: 'NEW',
-        gradeSought: body.gradeSought || null,
-        leadCode,
-        orgId: user.orgId,
-        academicYearId: body.academicYearId || null,
-        nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
-        expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
-        ...(finalAssignedToId && {
-          assignedToId: finalAssignedToId
-        }),
-      }
-    })
+    // 4. Create lead (code generated + collision-retried inside helper)
+    const lead = await createLeadWithUniqueCode(user.orgId, (leadCode) =>
+      db.lead.create({
+        data: {
+          parentName: body.parentName,
+          phone: body.phone,
+          email: body.email || null,
+          kidName: body.kidName || null,
+          childAge: body.childAge || null,
+          currentSchool: body.currentSchool || null,
+          source: (body.source || 'WALK_IN') as LeadSource,
+          priority: (body.priority || 'MEDIUM') as LeadPriority,
+          status: 'NEW',
+          gradeSought: body.gradeSought || null,
+          leadCode,
+          orgId: user.orgId,
+          academicYearId: body.academicYearId || null,
+          nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
+          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+          ...(finalAssignedToId && {
+            assignedToId: finalAssignedToId
+          }),
+        }
+      })
+    )
 
     // 6. Create activity log
     await db.leadActivity.create({
@@ -336,11 +337,4 @@ export const POST = route({
   }
 })
 
-async function generateLeadCode(orgId: string): Promise<string> {
-  const year = new Date().getFullYear()
-  const count = await prisma.lead.count({
-    where: { orgId }
-  })
-  return 'LD-' + year + '-' + String(count + 1).padStart(5, '0')
-}
 

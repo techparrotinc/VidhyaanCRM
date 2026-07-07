@@ -126,13 +126,84 @@ Record of a review + hardening + performance session. Production branch is
 - **next-auth v5**: still beta (`beta.31`, which is what we run; `latest` remains v4).
   Nothing to do until GA.
 
+### 2026-07-07 — big feature day (12 commits, `83241f7..7b9e77f`)
+
+**Fixes & hardening**
+- **Admission stages auto-seeded for every new org** — all 5 org-creation paths call
+  `createDefaultAdmissionStages` (8 stages); backfill ran against prod (87 orgs).
+  Root cause of "AGM Global School has no pipeline".
+- **Prod checkout vault failure** — Vercel `PAYMENT_ENCRYPTION_KEY` differed from local;
+  since local+prod **share one Neon DB**, secrets encrypted locally failed prod GCM auth.
+  Fixed by syncing the env var (prod+preview) + redeploy. **Rule: any encryption/secret
+  env must be identical in `.env.local` and Vercel** (see memory: shared-db-env-parity).
+- **Code generation collision class killed** — lead codes, admission student codes and
+  invoice numbers all used `count()+1`, which collides after soft deletes and on
+  non-numeric legacy codes (`LD-2026-SEED-00007` broke string-max). All moved to
+  SQL numeric-max over strictly-formatted codes + P2002 retry
+  (`src/lib/lead-code.ts`, `src/lib/invoice-number.ts`, convert route).
+- **Marketplace enquiry dedupe per child** — 24h/48h guards now key on
+  school+phone+childName+grade (was school+phone), so a second child can enquire same day.
+- **Profile completion single source** — dashboard had hardcoded `100`; two formulas
+  fought over `School.profileCompletion`. `school-profile-helper` checklist formula is
+  now canonical everywhere; all 87 schools recalculated.
+- **Dashboard demo-data purge** — lead overview (3/8/14, source chips, unassigned nudge),
+  fee overview (YTD, last payment, student paid/overdue/due-soon split, oldest overdue)
+  all real + AY-scoped now. Fetch race guards added (stale response can't overwrite).
+- **Academic-year switcher is real** — was a hardcoded dropdown wired to nothing.
+  Now: zustand-persisted store (`stores/academic-year.store.ts`) fed by real years;
+  consumed by dashboard summary, leads, admissions (list+pipeline+stage tabs),
+  students (list + detail invoices tab), fee management (list+KPIs). Legacy rows with
+  null AY appear under every year (AND-wrapped so search ORs still work).
+- **Duplicate academic-year names** → clean 400 with message (was raw P2002 500).
+
+**Features**
+- **Setup checklist** (`/setup`) — 9 live-computed steps (profile, academic year,
+  pipeline, fees/courses, data import, gateway, WhatsApp, SMS, team) with skip support
+  in `org.settings.setup`; dashboard banner for paid/trialing orgs; sidebar link until 100%.
+- **Admission archive** — `Event`-style lifecycle for ADMITTED records: `archivedAt`
+  column, archive/restore API + list toggle. Admitted can't be deleted (anchors student
+  records/reports); archive hides from active views. Delete errors surface real reasons.
+- **Year-end student movement** (`/student-management/promote`) — 3-step wizard:
+  per-student Promote/Retain/Alumni, `Student.section` (new column, finally persisted
+  from convert flow), target AY/class/section, fee-plan line-item tweaks per batch,
+  batch invoice generation (decoupled from the move — billing failure never rolls back).
+- **App-level ConfirmDialog** (`components/ui/confirm-dialog.tsx`) — replaced all
+  `window.confirm` in lead/admission/fee/student/event surfaces. Student bulk delete
+  (ORG_ADMIN only, cascade warning). Settings pages still on native confirm.
+- **Event redesign** — real S3 uploads (`lib/storage.ts`, bucket `vidhyaan`,
+  `ap-south-1`, per-module folders `uploads/{orgId}/{events|admissions|...}`; the old
+  route faked URLs); branded `DateTimePicker` component (replaces datetime-local);
+  cover image on form/list/detail/parent portal/announce email; Save & Publish one-click
+  flow → announce modal auto-opens (`?announce=1`); Announce modal with live recipient
+  counts, per-class parent filter, hand-picked people (server resolves contacts),
+  capacity warning, channels: portal (free) / email (free) / SMS (metered wallet or BYO);
+  `EventAnnouncement` audit table. WhatsApp deferred (needs approved template — Campaigns).
+  Parent portal **Events tab** with RSVP (capacity-checked).
+- **Email Templates settings** (`/settings/email-templates`) — 8 org-customizable
+  emails (fee invoice, event announce/cancel, enquiry confirmation, lead ack,
+  interview scheduled, admission confirmed, student welcome) with variable chips,
+  sample preview, reset-to-default. `OrgEmailTemplate` table; defaults in
+  `lib/mail/org-templates.ts`; bodies render inside branded shell. Four sends are NEW
+  (lead ack, interview-stage move, admitted transition, convert welcome) — all
+  fire-and-forget. Platform emails (OTP/registration/billing) deliberately locked.
+- **Notification prefs** — new events category (RSVP received / event cancelled) +
+  lead-converted, with real emitters. Pre-existing rows without emitters
+  (DOCUMENT_UPLOADED, INTERVIEW_REMINDER, FEE_REMINDER) still unwired.
+
+**Infra**
+- AWS S3: bucket `vidhyaan` (ap-south-1), IAM user `vidhyaan-crm-aws-storage`,
+  public-read policy on `uploads/*` only; env `AWS_*`/`S3_BUCKET_NAME` in `.env.local`
+  + Vercel prod/preview. `@aws-sdk/client-s3` added.
+- Migrations applied to shared DB same-day: `admission_archived_at`, `student_section`,
+  `event_image_announce`, `org_email_templates`.
+
 ## ⏳ Pending
 
 1. **Subdomain-per-school** (phase 2) — `schoolname.vidhyaan.com`. Needs Vercel Pro +
    wildcard `*.vidhyaan.com` + NS. Safe to start steps 1–2 anytime (`Organization.subdomain`
    column + allocation + backfill); additive, no disruption if apex stays live + host-only cookies.
 2. ~~**Tier-2 zod sweep**~~ — **DONE 2026-07-05** (see above).
-3. **Lead bulk-action bar** — Assign/Change Status/Export/Delete buttons are no-ops; wire or remove.
+3. ~~**Lead bulk-action bar**~~ — **DONE 2026-07-06** (see backlog sweep above).
 4. ~~**Dashboard "Profile Views"**~~ — **DONE 2026-07-05**: wired to `School.viewCount`
    + `SchoolView` 7-day count via summary API; full-page loading skeleton kills the
    0-then-value flash. **Still fake**: "This Month vs Last Month" chips (26/+44%,
@@ -145,6 +216,18 @@ Record of a review + hardening + performance session. Production branch is
 7. **next-auth v5 beta** pin — migrate at GA.
 8. **Optional India latency**: move both to Mumbai (Neon `ap-south-1` + Vercel `bom1`) —
    needs Neon data migration; not worth it now (Singapore co-located is fine).
+9. **WhatsApp event announcements** — needs wiring to the approved-template catalog
+   (whatsapp-templates feature); announce modal points to Campaigns meanwhile.
+10. **Notification emitters missing** — DOCUMENT_UPLOADED, INTERVIEW_REMINDER,
+   FEE_REMINDER have preference rows but nothing fires them.
+11. **Fee dues carry-forward** — promoted students' unpaid balances only visible under
+   the old academic year; flagged during year-end movement build.
+12. **Orphaned S3 uploads** — replaced/abandoned cover images are never deleted;
+   periodic cleanup of unreferenced `uploads/**` objects.
+13. **Settings pages still on `window.confirm`** — migrate to the shared ConfirmDialog
+   (core CRM surfaces done 2026-07-07).
+14. **Dashboard AY scoping leftovers** — profile views / events / recent activity
+   deliberately unscoped (not year-bound); revisit if users expect otherwise.
 
 ---
 

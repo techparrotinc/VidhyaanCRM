@@ -76,11 +76,18 @@ Feature history lives in git log — this is a capability map only.
 *   **Data layer**: 76 Prisma models across 4 PostgreSQL schemas (`platform`, `crm`, `billing`, `marketplace`); tenant isolation + soft delete via fail-closed `$extends` client in [src/lib/db/tenant.ts](file:///Users/vimaldas/Projects/VidhyaanCRM/src/lib/db/tenant.ts).
 *   **Auth**: NextAuth v5 OTP + PIN login, role-gated middleware (platform/org/parent roles), identity headers stripped and re-set per request, Redis-backed revocation.
 *   **API framework**: `route()` composer in [src/lib/api/compose.ts](file:///Users/vimaldas/Projects/VidhyaanCRM/src/lib/api/compose.ts) (auth → role → org cache → module license → read-only guard → tenant DB); zod query helpers in `src/lib/api/query.ts`; central ZodError → 422.
-*   **CRM**: lead management (list/inline-edit/drawer/convert), admission pipeline (list/grid/kanban, documents, convert-to-student), student management, fee management (invoices, payments, PDF export, email), dashboard KPIs. Shared UI in `src/components/leads/` and `src/components/admissions/`.
-*   **Billing**: Razorpay orders/webhooks (signature-verified, fail-closed), subscriptions, plan modules; pure fee math in `src/lib/fees.ts`.
+*   **CRM**: lead management (list/inline-edit/drawer/convert), admission pipeline (list/grid/kanban, documents, convert-to-student, archive for admitted), student management (incl. section + year-end promotion wizard `/student-management/promote`), fee management (invoices, payments, PDF export, email), dashboard KPIs. Shared UI in `src/components/leads/` and `src/components/admissions/`.
+*   **Academic-year switcher**: persisted global store [src/stores/academic-year.store.ts](file:///Users/vimaldas/Projects/VidhyaanCRM/src/stores/academic-year.store.ts) scopes dashboard, leads, admissions, students, fees; legacy null-AY rows show under every year.
+*   **Events**: draft→publish→cancel lifecycle, cover images, list + month calendar, publish-time Announce (portal/email/metered SMS, audience counts, per-class filter, hand-picked recipients), parent portal Events tab with RSVP.
+*   **Email templates**: 8 org-customizable emails in `/settings/email-templates` (registry + resolver in [src/lib/mail/org-templates.ts](file:///Users/vimaldas/Projects/VidhyaanCRM/src/lib/mail/org-templates.ts)); platform emails (OTP/registration/billing) locked.
+*   **Onboarding/setup**: default admission stages seeded on org creation (`src/lib/utils/createDefaultAdmissionStages.ts`); one-time setup checklist at `/setup` with dashboard banner.
+*   **Storage**: real S3 uploads via [src/lib/storage.ts](file:///Users/vimaldas/Projects/VidhyaanCRM/src/lib/storage.ts) — bucket `vidhyaan` (ap-south-1), per-module folders `uploads/{orgId}/{category}/`, public-read on `uploads/*` only.
+*   **Codes**: lead/invoice/student codes generated from numeric max (never `count()+1`) — `src/lib/lead-code.ts`, `src/lib/invoice-number.ts`.
+*   **Billing**: Razorpay orders/webhooks (signature-verified, fail-closed), subscriptions, plan modules; pure fee math in `src/lib/fees.ts`. **Payment secrets encrypted with `PAYMENT_ENCRYPTION_KEY` — must be identical in `.env.local` and Vercel (shared DB).**
 *   **Platform admin** (`/admin`): org approval, plans, stats, impersonation (SUPER_ADMIN).
-*   **Marketplace** (`/`, `/schools`, `/learning-centers`): public search + profiles, enquiries, reviews, bookmarks, GPS distance filtering.
-*   **Parent portal** (`/parent`): registration, dashboard, applications tracking, kids CRUD, notifications.
+*   **Marketplace** (`/`, `/schools`, `/learning-centers`): public search + profiles, enquiries (deduped per child+class), reviews, bookmarks, GPS distance filtering.
+*   **Parent portal** (`/parent`): registration, dashboard, applications tracking, kids CRUD, notifications, events + RSVP, fees.
+*   **UX primitives**: app-level ConfirmDialog ([src/components/ui/confirm-dialog.tsx](file:///Users/vimaldas/Projects/VidhyaanCRM/src/components/ui/confirm-dialog.tsx), provider mounted in CRM layout — never use `window.confirm`), branded DateTimePicker (`src/components/ui/datetime-picker.tsx` — never `datetime-local`).
 *   **Tests**: vitest (`npm test`) — tenant isolation, fee math, rate limiter, query helpers.
 
 ---

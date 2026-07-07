@@ -44,7 +44,8 @@ async function main() {
     'admission_workflow',
     'student_lifecycle',
     'api_access',
-    'custom_domain'
+    'custom_domain',
+    'ai_copilot'
   ]
 
   const modules = await Promise.all(

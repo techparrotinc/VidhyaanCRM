@@ -23,7 +23,9 @@ import {
   Pencil,
   AlertCircle,
   Loader2,
-  UserPlus
+  UserPlus,
+  Archive as ArchiveIcon,
+  ArchiveRestore
 } from 'lucide-react'
 import TableSkeleton from '@/components/shared/TableSkeleton'
 import {
@@ -46,6 +48,7 @@ import KanbanView from '@/components/admissions/KanbanView'
 import FilterBar from '@/components/admissions/FilterBar'
 import ListTable from '@/components/admissions/ListTable'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { useAcademicYearStore } from '@/stores/academic-year.store'
 
 const moduleLabel = config.moduleLabel[type]
 export default function AdmissionManagementPage() {
@@ -134,6 +137,8 @@ export default function AdmissionManagementPage() {
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
+  const [showArchived, setShowArchived] = useState(false)
+  const selectedYearId = useAcademicYearStore((s) => s.selectedYearId)
 
   useEffect(() => {
     const close = () => setOpenMenuId(null)
@@ -161,9 +166,9 @@ export default function AdmissionManagementPage() {
   const [showRejectModal, setShowRejectModal] =
     useState<any | null>(null)
 
-  // SWR for pipeline summary
+  // SWR for pipeline summary (scoped to the selected academic year)
   const { data: pipelineData, mutate: mutatePipeline } = useSWR(
-    '/api/v1/admissions/pipeline',
+    `/api/v1/admissions/pipeline${selectedYearId ? `?academicYearId=${selectedYearId}` : ''}`,
     fetcher,
     {
       revalidateOnFocus: true,
@@ -226,8 +231,16 @@ export default function AdmissionManagementPage() {
       params.set('dateTo', dateRange.to)
     }
 
+    if (showArchived) {
+      params.set('archived', 'true')
+    }
+
+    if (selectedYearId) {
+      params.set('academicYearId', selectedYearId)
+    }
+
     return params.toString()
-  }, [currentPage, searchQuery, activeStageId, counsellorFilter, priorityFilter, dateRange])
+  }, [currentPage, searchQuery, activeStageId, counsellorFilter, priorityFilter, dateRange, showArchived, selectedYearId])
 
   const { data: admissionsData, error: swrError, isLoading: loading, mutate } = useSWR<any>(
     `/api/v1/admissions?${buildQueryParams()}`,
@@ -868,10 +881,15 @@ export default function AdmissionManagementPage() {
           )
         )
       )
-      
+
       const failed = results.filter(r => !r.ok)
       if (failed.length > 0) {
-        showToast('Failed to delete some admissions', 'error')
+        const firstError = await failed[0].json().catch(() => null)
+        const deleted = results.length - failed.length
+        showToast(
+          `${failed.length} admission(s) could not be deleted${deleted > 0 ? ` (${deleted} deleted)` : ''}: ${firstError?.error || 'unknown error'}`,
+          'error'
+        )
       } else {
         showToast(`${selectedItems.length} admission(s) deleted`, 'success')
       }
@@ -881,6 +899,28 @@ export default function AdmissionManagementPage() {
     } catch (err) {
       console.error(err)
       showToast('Failed to delete some admissions', 'error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleArchiveAdmission = async (admissionId: string, archive: boolean) => {
+    setIsLoading(true)
+    try {
+      const res = await fetch(`/api/v1/admissions/${admissionId}/archive`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archived: archive })
+      })
+      if (!res.ok) {
+        const json = await res.json().catch(() => null)
+        throw new Error(json?.error || 'Failed to update archive state')
+      }
+      showToast(archive ? 'Admission archived' : 'Admission restored', 'success')
+      fetchAdmissions()
+      fetchPipeline()
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update archive state', 'error')
     } finally {
       setIsLoading(false)
     }
@@ -899,12 +939,15 @@ export default function AdmissionManagementPage() {
       const res = await fetch(`/api/v1/admissions/${admissionId}`, {
         method: 'DELETE'
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const json = await res.json().catch(() => null)
+        throw new Error(json?.error || 'Failed to delete')
+      }
       showToast('Admission deleted', 'success')
       fetchAdmissions()
       fetchPipeline()
-    } catch {
-      showToast('Failed to delete', 'error')
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete', 'error')
     } finally {
       setIsLoading(false)
     }
@@ -1099,6 +1142,21 @@ export default function AdmissionManagementPage() {
             </h1>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => {
+                  setShowArchived(v => !v)
+                  setCurrentPage(1)
+                }}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap border ${
+                  showArchived
+                    ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
+                    : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+                title={showArchived ? 'Showing archived records' : 'Show archived records'}
+              >
+                <ArchiveIcon size={14} />
+                {showArchived ? 'Viewing Archived' : 'Archived'}
+              </button>
               <button
                 onClick={handleExport}
                 disabled={isExporting}
@@ -1398,6 +1456,16 @@ export default function AdmissionManagementPage() {
               Edit Admission
             </button>
             <div className="h-px bg-slate-100 mx-2" />
+            <button
+              onClick={() => {
+                setOpenMenuId(null)
+                handleArchiveAdmission(openMenuId, !showArchived)
+              }}
+              className="w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 text-left flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              {showArchived ? <ArchiveRestore size={13} /> : <ArchiveIcon size={13} />}
+              {showArchived ? 'Restore Admission' : 'Archive Admission'}
+            </button>
             <button
               onClick={() => {
                 setOpenMenuId(null)

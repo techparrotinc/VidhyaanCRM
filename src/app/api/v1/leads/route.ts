@@ -27,9 +27,10 @@ export const GET = route({
       priority: enumParam(LeadPriority),
       counsellorId: textParam,
       assignedToId: textParam,
-      search: textParam
+      search: textParam,
+      academicYearId: textParam
     })
-    const { page, limit, status, source, priority, search } = q
+    const { page, limit, status, source, priority, search, academicYearId } = q
     const counsellorId = q.counsellorId ?? q.assignedToId
 
     const skip = (page - 1) * limit
@@ -41,6 +42,13 @@ export const GET = route({
     if (priority) where.priority = priority
     if (counsellorId) {
       where.assignedToId = counsellorId
+    }
+    if (academicYearId) {
+      // Legacy leads predate AY stamping — include them under every year.
+      // AND-wrapped so it composes with the search OR below.
+      where.AND = [
+        { OR: [{ academicYearId }, { academicYearId: null }] }
+      ]
     }
     if (search) {
       where.OR = [

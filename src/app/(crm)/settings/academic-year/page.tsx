@@ -77,8 +77,11 @@ export default function AcademicYearSettingsPage() {
         })
       })
 
-      if (!res.ok) throw new Error('Failed to create academic year')
-      
+      if (!res.ok) {
+        const json = await res.json().catch(() => null)
+        throw new Error(json?.error || 'Failed to create academic year')
+      }
+
       triggerToast('Academic year created successfully')
       setName('')
       setType('ACADEMIC')

@@ -1638,6 +1638,9 @@ model Admission {
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
   deletedAt       DateTime?       @map("deleted_at")
+  /// Admitted records cannot be deleted (they anchor student records and
+  /// reporting); archiving hides them from active views instead.
+  archivedAt      DateTime?       @map("archived_at")
 
   organization Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch       Branch?             @relation(fields: [branchId], references: [id])
@@ -1761,6 +1764,7 @@ model Student {
   academicYearId        String?       @map("academic_year_id")
   studentCode           String        @map("student_code") // STU-YYYY-XXXXX
   rollNumber            String?       @map("roll_number")
+  section               String?
   admissionId           String?       @unique @map("admission_id")
   batchId               String?       @map("batch_id")
   name                  String
@@ -1796,6 +1800,7 @@ model Student {
   @@index([orgId, createdAt])
   @@index([orgId, status])
   @@index([orgId, gradeLabel])
+  @@index([orgId, gradeLabel, section])
   @@index([branchId])
   @@index([academicYearId])
   @@index([batchId])
@@ -2083,6 +2088,9 @@ model Event {
   endsAt         DateTime?   @map("ends_at")
   location       String?
   meetingLink    String?     @map("meeting_link") // manual Zoom link Phase 1
+  imageUrl       String?     @map("image_url") // S3 cover image
+  publishedAt    DateTime?   @map("published_at")
+  audience       String?     // ALL | PARENTS | LEADS (announce default)
   createdById    String?     @map("created_by_id") // soft reference
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
@@ -2091,7 +2099,8 @@ model Event {
   organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch       Branch?       @relation(fields: [branchId], references: [id])
   academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
-  rsvps        EventRsvp[]
+  rsvps         EventRsvp[]
+  announcements EventAnnouncement[]
 
   @@index([orgId])
   @@index([startsAt])
@@ -2115,6 +2124,27 @@ model EventRsvp {
   @@index([orgId])
   @@index([eventId])
   @@map("event_rsvp")
+  @@schema("crm")
+}
+
+/// Audit of an event being announced through channels on publish.
+model EventAnnouncement {
+  id             String   @id @default(cuid())
+  orgId          String   @map("org_id")
+  eventId        String   @map("event_id")
+  channels       String[] // PORTAL, EMAIL, WHATSAPP, SMS
+  audience       String // ALL | PARENTS | LEADS
+  recipientCount Int      @default(0) @map("recipient_count")
+  sentCount      Int      @default(0) @map("sent_count")
+  failedCount    Int      @default(0) @map("failed_count")
+  createdById    String?  @map("created_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([eventId])
+  @@map("event_announcements")
   @@schema("crm")
 }
 

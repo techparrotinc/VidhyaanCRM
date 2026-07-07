@@ -59,6 +59,7 @@ export default function ConvertToStudentModal({
             name,
             dateOfBirth: dob || undefined,
             gradeLabel: grade,
+            section: section || undefined,
             rollNumber: rollNumber || undefined,
             guardianName: guardianName || undefined
           })

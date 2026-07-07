@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect,
-  useCallback, useMemo } from 'react'
+  useCallback, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { useAcademicYearStore } from '@/stores/academic-year.store'
 import { format, subMonths, addMonths } from 'date-fns'
 import {
   Download, Plus, Search,
@@ -44,6 +45,9 @@ type Summary = {
 export default function FeeManagementPage() {
   const router = useRouter()
   const confirmDialog = useConfirm()
+  const invoiceSeqRef = useRef(0)
+  const summarySeqRef = useRef(0)
+  const selectedYearId = useAcademicYearStore((s) => s.selectedYearId)
   const { years, currentYear } =
     useAcademicYears()
 
@@ -132,6 +136,9 @@ export default function FeeManagementPage() {
 
   const fetchInvoices = useCallback(
     async () => {
+      // Stale-response guard: rapid filter/year changes can resolve out of
+      // order; only the latest request may write state
+      const seq = ++invoiceSeqRef.current
       setIsLoading(true)
       try {
         const params = new URLSearchParams()
@@ -158,11 +165,15 @@ export default function FeeManagementPage() {
         if (monthFilter && monthFilter !== 'all') {
           params.set('month', monthFilter)
         }
+        if (selectedYearId) {
+          params.set('academicYearId', selectedYearId)
+        }
 
         const res = await fetch(
           `/api/v1/fees/invoices?${params}`
         )
         const data = await res.json()
+        if (seq !== invoiceSeqRef.current) return
         setInvoices(data.data ?? [])
         setTotal(data.total ?? 0)
         setTotalPages(data.totalPages ?? 1)
@@ -170,13 +181,14 @@ export default function FeeManagementPage() {
       } catch (err) {
         console.error(err)
       } finally {
-        setIsLoading(false)
+        if (seq === invoiceSeqRef.current) setIsLoading(false)
       }
-    }, [page, activeStatus, search, gradeLabel, termFilter, monthFilter, courseFilter, institutionType, studentIdFilter]
+    }, [page, activeStatus, search, gradeLabel, termFilter, monthFilter, courseFilter, institutionType, studentIdFilter, selectedYearId]
   )
 
   const fetchSummary = useCallback(
     async () => {
+      const seq = ++summarySeqRef.current
       try {
         const params = new URLSearchParams()
         if (activeStatus)
@@ -198,16 +210,20 @@ export default function FeeManagementPage() {
         if (monthFilter && monthFilter !== 'all') {
           params.set('month', monthFilter)
         }
+        if (selectedYearId) {
+          params.set('academicYearId', selectedYearId)
+        }
 
         const res = await fetch(
           `/api/v1/fees/summary?${params}`
         )
         const data = await res.json()
+        if (seq !== summarySeqRef.current) return
         setSummary(data.data ?? null)
       } catch (err) {
         console.error(err)
       }
-    }, [activeStatus, gradeLabel, termFilter, monthFilter, courseFilter, institutionType, studentIdFilter]
+    }, [activeStatus, gradeLabel, termFilter, monthFilter, courseFilter, institutionType, studentIdFilter, selectedYearId]
   )
 
   // One-time initial configurations on mount

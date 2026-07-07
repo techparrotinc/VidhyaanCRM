@@ -22,6 +22,7 @@ interface Student {
   gender: string | null
   status: string
   rollNumber: string | null
+  section: string | null
   academicYearId: string | null
   createdAt: string
   branch: {

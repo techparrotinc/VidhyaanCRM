@@ -35,9 +35,13 @@ export const GET = route({
 
     const skip = (page - 1) * limit
 
+    const showArchived = searchParams.get('archived') === 'true'
+
     const where: any = {
       orgId: user.orgId,
       deletedAt: null,
+      // Archived records live in a dedicated view; active lists exclude them
+      archivedAt: showArchived ? { not: null } : null,
       ...(stageId && {
         stageId: stageId
       }),

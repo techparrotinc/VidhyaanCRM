@@ -52,6 +52,7 @@ export const GET = route({
       : undefined
     const search = searchParams.get('search') ?? undefined
     const academicYearId = searchParams.get('academicYearId') ?? undefined
+    const section = searchParams.get('section') ?? undefined
     const countOnly = searchParams.get('countOnly') === 'true'
 
     const skip = (page - 1) * limit
@@ -62,7 +63,14 @@ export const GET = route({
       where.gradeLabel = gradeLabel
     }
     if (academicYearId) {
-      where.academicYearId = academicYearId
+      // Legacy students predate AY stamping — include them under every year.
+      // AND-wrapped so it composes with the search OR below.
+      where.AND = [
+        { OR: [{ academicYearId }, { academicYearId: null }] }
+      ]
+    }
+    if (section) {
+      where.section = { equals: section, mode: 'insensitive' }
     }
     if (search) {
       where.OR = [
@@ -93,6 +101,7 @@ export const GET = route({
           gender: true,
           status: true,
           rollNumber: true,
+          section: true,
           academicYearId: true,
           createdAt: true,
           branch: {

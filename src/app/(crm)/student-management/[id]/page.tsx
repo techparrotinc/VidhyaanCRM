@@ -306,6 +306,7 @@ export default function StudentDetailPage() {
                   <span className="text-slate-300">·</span>
                   <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
                     {getGradeLabel(student.gradeLabel)}
+                    {(student as any).section ? ` · ${(student as any).section}` : ''}
                   </span>
                 </>
               )}
@@ -394,7 +395,9 @@ export default function StudentDetailPage() {
               {
                 icon: <GraduationCap className="w-4 h-4" />,
                 label: 'Grade',
-                value: student.gradeLabel ? getGradeLabel(student.gradeLabel) : null
+                value: student.gradeLabel
+                  ? `${getGradeLabel(student.gradeLabel)}${(student as any).section ? ` · Section ${(student as any).section}` : ''}`
+                  : null
               },
               {
                 icon: <Hash className="w-4 h-4" />,

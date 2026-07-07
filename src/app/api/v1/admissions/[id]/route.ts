@@ -373,7 +373,7 @@ export const DELETE = route({
     if (admission.status === 'ADMITTED') {
       throw new AppError(
         'BUSINESS_RULE',
-        'Cannot delete an admitted applicant. Archive instead.',
+        'Admitted applicants cannot be deleted — they anchor student records and reports. Use Archive to hide them from active views.',
         400
       )
     }

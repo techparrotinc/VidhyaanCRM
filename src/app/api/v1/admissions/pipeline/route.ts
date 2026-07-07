@@ -32,6 +32,7 @@ export const GET = route({
       where: {
         orgId: user.orgId,
         deletedAt: null,
+        archivedAt: null,
         ...(academicYearId && {
           OR: [
             { academicYearId: academicYearId },

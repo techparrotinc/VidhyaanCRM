@@ -31,6 +31,7 @@ export const POST = route({
       where: { id: params?.id },
       data: {
         gradeLabel: body.newClass,
+        section: body.newSection?.trim() || student.section,
         rollNumber: body.newRollNumber ?? student.rollNumber,
         academicYear: { connect: { id: body.academicYearId } }
       }

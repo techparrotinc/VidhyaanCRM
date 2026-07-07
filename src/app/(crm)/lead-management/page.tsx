@@ -41,6 +41,7 @@ import LeadFilterBar from '@/components/leads/LeadFilterBar'
 import LeadsTable from '@/components/leads/LeadsTable'
 import LeadGridView from '@/components/leads/LeadGridView'
 import { formatDate } from '@/components/leads/leadConfig'
+import { useAcademicYearStore } from '@/stores/academic-year.store'
 
 import {
   Dialog,
@@ -103,6 +104,8 @@ export default function LeadManagementPage() {
   const statusFilter = filters.status
   const counsellorFilter = filters.counsellorId
 
+  const selectedYearId = useAcademicYearStore((s) => s.selectedYearId)
+
   const params = useMemo(() => {
     return new URLSearchParams({
       page: String(currentPage),
@@ -112,8 +115,9 @@ export default function LeadManagementPage() {
       ...(counsellorFilter && { assignedToId: counsellorFilter }),
       ...(filters.source && { source: filters.source }),
       ...(filters.priority && { priority: filters.priority }),
+      ...(selectedYearId && { academicYearId: selectedYearId }),
     })
-  }, [currentPage, search, statusFilter, counsellorFilter, filters.source, filters.priority])
+  }, [currentPage, search, statusFilter, counsellorFilter, filters.source, filters.priority, selectedYearId])
 
   const { data, error: swrError, isLoading: loading, mutate } = useSWR<any>(
     `/api/v1/leads?${params.toString()}`,

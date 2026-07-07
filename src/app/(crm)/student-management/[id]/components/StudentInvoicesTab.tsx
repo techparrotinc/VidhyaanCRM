@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
+import { useAcademicYearStore } from '@/stores/academic-year.store'
 import { KpiTile } from '@/components/fees/KpiTile'
 import { InvoiceTable, type InvoiceRow } from '@/components/fees/InvoiceTable'
 import { computeCollectionRate } from '@/lib/fees'
@@ -31,13 +32,15 @@ type InvoicesResponse = {
 export default function StudentInvoicesTab({ studentId }: { studentId: string }) {
   const router = useRouter()
   const [page, setPage] = useState(1)
+  const selectedYearId = useAcademicYearStore((s) => s.selectedYearId)
+  const ayParam = selectedYearId ? `&academicYearId=${selectedYearId}` : ''
 
   const { data: summaryRes } = useSWR<SummaryResponse>(
-    `/api/v1/fees/summary?studentId=${studentId}`,
+    `/api/v1/fees/summary?studentId=${studentId}${ayParam}`,
     fetcher
   )
   const { data: invoicesRes, isLoading } = useSWR<InvoicesResponse>(
-    `/api/v1/fees/invoices?studentId=${studentId}&page=${page}&limit=25`,
+    `/api/v1/fees/invoices?studentId=${studentId}&page=${page}&limit=25${ayParam}`,
     fetcher
   )
 

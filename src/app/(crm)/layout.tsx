@@ -10,6 +10,8 @@ import NotificationBell from '@/components/NotificationBell'
 import { RouteLoader } from '@/components/shared/RouteLoader'
 import { ConfirmProvider } from '@/components/ui/confirm-dialog'
 import { useUIStore } from '@/stores/ui.store'
+import { useAcademicYearStore } from '@/stores/academic-year.store'
+import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { Menu, LogOut, User, Settings, Calendar, ChevronDown } from 'lucide-react'
 
 export default function CrmLayout({ children }: { children: React.ReactNode }) {
@@ -19,8 +21,22 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession()
 
   const [avatarDropdownOpen, setAvatarDropdownOpen] = useState(false)
-  const [academicYear, setAcademicYear] = useState('AY 2026-27')
   const [ayDropdownOpen, setAyDropdownOpen] = useState(false)
+  const { years } = useAcademicYears()
+  const { selectedYearId, selectedYearName, setYear } = useAcademicYearStore()
+
+  // Default the switcher to the org's active year; heal stale selections
+  // (e.g. a year deleted in settings)
+  useEffect(() => {
+    if (years.length === 0) return
+    const selectionValid = selectedYearId && years.some((y: any) => y.id === selectedYearId)
+    if (!selectionValid) {
+      const active = years.find((y: any) => y.status === 'ACTIVE') ?? years[0]
+      setYear(active.id, active.name)
+    }
+  }, [years, selectedYearId, setYear])
+
+  const academicYear = selectedYearName ?? 'Academic Year'
   const [isMobile, setIsMobile] = useState(false)
 
   // Detect mobile viewport
@@ -135,18 +151,22 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setAyDropdownOpen(false)} />
                   <div className="absolute right-0 mt-1.5 w-36 bg-white border border-[#E2E8F0] rounded-lg shadow-lg py-1 z-50 text-left animate-fade-in">
-                    {['AY 2025-26', 'AY 2026-27', 'AY 2027-28'].map((year) => (
+                    {years.length === 0 && (
+                      <p className="px-3 py-1.5 text-xs text-slate-400">No academic years</p>
+                    )}
+                    {years.map((year: any) => (
                       <button
-                        key={year}
+                        key={year.id}
                         onClick={() => {
-                          setAcademicYear(year)
+                          setYear(year.id, year.name)
                           setAyDropdownOpen(false)
                         }}
                         className={`w-full px-3 py-1.5 text-xs text-left transition-colors hover:bg-slate-50 ${
-                          academicYear === year ? 'text-[#1565D8] font-bold bg-blue-50/50' : 'text-slate-600'
+                          selectedYearId === year.id ? 'text-[#1565D8] font-bold bg-blue-50/50' : 'text-slate-600'
                         }`}
                       >
-                        {year}
+                        {year.name}
+                        {year.status === 'ACTIVE' && <span className="ml-1 text-[10px] text-green-600">●</span>}
                       </button>
                     ))}
                   </div>

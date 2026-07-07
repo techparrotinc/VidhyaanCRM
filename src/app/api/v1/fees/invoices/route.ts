@@ -5,6 +5,7 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { redis } from '@/lib/redis'
 import { prisma } from '@/lib/db/client'
+import { nextInvoiceNumber } from '@/lib/invoice-number'
 import { NextResponse } from 'next/server'
 import { startOfMonth, endOfMonth, parseISO } from 'date-fns'
 import { InvoiceStatus, InvoiceType } from '@prisma/client'
@@ -32,6 +33,7 @@ export const GET = route({
     const search = searchParams.get('search') ?? undefined
     const gradeLabel = searchParams.get('gradeLabel') ?? undefined
     const month = searchParams.get('month') ?? undefined
+    const academicYearIdParam = searchParams.get('academicYearId') ?? undefined
 
     const skip = (page - 1) * limit
 
@@ -40,6 +42,14 @@ export const GET = route({
       deletedAt: null
     }
     if (studentId) baseWhere.studentId = studentId
+    if (academicYearIdParam) {
+      // Legacy invoices predate AY stamping — include them under every year.
+      // AND-wrapped so it composes with the search OR below.
+      baseWhere.AND = [
+        ...(baseWhere.AND ?? []),
+        { OR: [{ academicYearId: academicYearIdParam }, { academicYearId: null }] }
+      ]
+    }
     if (termId && termId !== 'all') baseWhere.termId = termId
     if (courseId && courseId !== 'all') baseWhere.courseId = courseId
     if (invoiceType) baseWhere.invoiceType = asEnum(InvoiceType, invoiceType, 'invoiceType')
@@ -167,7 +177,8 @@ const createInvoiceSchema = z.discriminatedUnion('mode', [
   }),
   z.object({
     mode: z.literal('batch'),
-    batchId: z.string().min(1),
+    // Optional: promotion-wizard batches have no StudentBatch row
+    batchId: z.string().optional().nullable(),
     invoices: z.array(
       z.object({
         studentId: z.string().min(1),
@@ -199,19 +210,12 @@ export const POST = route({
     const body = createInvoiceSchema.parse(rawBody)
 
     if (body.mode === 'batch') {
-      const year = new Date().getFullYear()
-
       const result = await prisma.$transaction(async (tx) => {
-        const initialCount = await tx.invoice.count({
-          where: { orgId: user.orgId }
-        })
-
         const invoicesList = []
 
         for (let i = 0; i < body.invoices.length; i++) {
           const inv = body.invoices[i]
-          const invoiceNumber =
-            'INV-' + year + '-' + String(initialCount + 1 + i).padStart(5, '0')
+          const invoiceNumber = await nextInvoiceNumber(tx, user.orgId, i)
 
           const totalAmount = sumLineItems(
             inv.items.map(item => ({ price: item.unitPrice, quantity: item.quantity }))
@@ -233,7 +237,7 @@ export const POST = route({
               status,
               dueDate: inv.dueDate ? new Date(inv.dueDate) : null,
               scheduledDate: scheduledDateVal,
-              batchId: body.batchId,
+              batchId: body.batchId ?? null,
               notes: inv.notes ?? null,
               items: {
                 create: inv.items.map(item => ({
@@ -273,13 +277,9 @@ export const POST = route({
       }, { status: 201 })
     }
 
-    // Generate invoice number scoped to the organization
-    const year = new Date().getFullYear()
-    const count = await db.invoice.count({
-      where: { orgId: user.orgId }
-    })
-    const invoiceNumber =
-      'INV-' + year + '-' + String(count + 1).padStart(5, '0')
+    // Generate invoice number scoped to the organization (numeric max,
+    // not count()+1 — counts collide after soft deletes)
+    const invoiceNumber = await nextInvoiceNumber(prisma, user.orgId)
 
     const totalAmount = sumLineItems(
       body.items.map(item => ({ price: item.amount, quantity: item.quantity }))

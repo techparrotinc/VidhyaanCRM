@@ -13,7 +13,8 @@ import { GRADE_OPTIONS } from '@/constants/grades'
 import { createPortal } from 'react-dom'
 import { useSession } from 'next-auth/react'
 import { useConfirm } from '@/components/ui/confirm-dialog'
-import { CheckSquare, Trash2, X, Loader2 } from 'lucide-react'
+import { useAcademicYearStore } from '@/stores/academic-year.store'
+import { CheckSquare, Trash2, X, Loader2, GraduationCap } from 'lucide-react'
 
 const STATUS_CONFIG = {
   ACTIVE: {
@@ -68,6 +69,8 @@ export default function StudentListingPage() {
   const [bulkBusy, setBulkBusy] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
 
+  const selectedYearId = useAcademicYearStore((s) => s.selectedYearId)
+
   const {
     students,
     total,
@@ -78,7 +81,8 @@ export default function StudentListingPage() {
     page,
     search,
     status: activeStatus || undefined,
-    gradeLabel: gradeLabel || undefined
+    gradeLabel: gradeLabel || undefined,
+    academicYearId: selectedYearId || undefined
   })
 
   const statusCounts = useMemo(() => {
@@ -188,6 +192,16 @@ export default function StudentListingPage() {
         </h1>
 
         <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Year-end movement wizard (admins + counsellors) */}
+          {['ORG_ADMIN', 'BRANCH_ADMIN', 'COUNSELLOR'].includes(session?.user?.role ?? '') && (
+            <button
+              onClick={() => router.push('/student-management/promote')}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors whitespace-nowrap flex-shrink-0">
+              <GraduationCap className="w-4 h-4" />
+              <span className="hidden sm:inline">Year-End Movement</span>
+              <span className="sm:hidden">Promote</span>
+            </button>
+          )}
           {/* New Student button */}
           <button
             onClick={() => router.push('/student-management/create')}
@@ -426,6 +440,7 @@ export default function StudentListingPage() {
                             {student.gradeLabel ? (
                               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
                                 {student.gradeLabel}
+                                {student.section ? ` · ${student.section}` : ''}
                               </span>
                             ) : (
                               <span className="text-xs text-slate-400">

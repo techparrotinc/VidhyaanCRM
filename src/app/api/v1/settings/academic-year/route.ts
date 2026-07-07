@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { route } from '@/lib/api/compose'
 import { ok, created } from '@/lib/api/respond'
+import { Errors } from '@/lib/api/errors'
 import { ROLES } from '@/constants/roles'
 import { AcademicYearType } from '@prisma/client'
 import { NextResponse } from 'next/server'
@@ -54,6 +55,15 @@ export const POST = route({
       isCurrent: z.boolean().default(false)
     }).parse(await req.json())
 
+    const duplicate = await db.academicYear.findFirst({
+      where: { orgId: user.orgId, name: { equals: body.name.trim(), mode: 'insensitive' } }
+    })
+    if (duplicate) {
+      throw Errors.businessRule(
+        `An academic year named "${body.name.trim()}" already exists. Use a different name or edit the existing one.`
+      )
+    }
+
     if (body.isCurrent) {
       await db.academicYear.updateMany({
         where: { status: 'ACTIVE', orgId: user.orgId },
@@ -64,7 +74,7 @@ export const POST = route({
     const year = await db.academicYear.create({
       data: {
         orgId: user.orgId,
-        name: body.name,
+        name: body.name.trim(),
         type: body.type as AcademicYearType,
         startDate: new Date(body.startDate),
         endDate: new Date(body.endDate),

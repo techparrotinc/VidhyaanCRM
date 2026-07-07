@@ -177,11 +177,14 @@ export default function AdmissionDetailPage() {
         `/api/v1/admissions/${admissionId}`,
         { method: 'DELETE' }
       )
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const json = await res.json().catch(() => null)
+        throw new Error(json?.error || 'Failed to delete')
+      }
       showToast('Admission deleted', 'success')
       router.push('/admission-management')
-    } catch {
-      showToast('Failed to delete', 'error')
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete', 'error')
     } finally {
       setIsLoading(false)
     }
@@ -596,6 +599,7 @@ export default function AdmissionDetailPage() {
           name: convertStudentName,
           dateOfBirth: convertStudentDob || undefined,
           gradeLabel: convertStudentGrade,
+          section: convertStudentSection || undefined,
           rollNumber: convertStudentRollNumber || undefined,
           guardianName: convertStudentGuardianName || undefined
         })

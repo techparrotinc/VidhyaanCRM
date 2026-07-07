@@ -10,6 +10,7 @@ const convertSchema = z.object({
   name: z.string().optional(),
   dateOfBirth: z.string().optional().nullable(),
   gradeLabel: z.string().optional().nullable(),
+  section: z.string().max(10).optional().nullable(),
   rollNumber: z.string().optional().nullable(),
   guardianName: z.string().optional().nullable(),
 })
@@ -49,14 +50,18 @@ export const POST = route({
     const parsed = convertSchema.safeParse(body)
     const inputData = parsed.success ? parsed.data : {}
 
-    // Generate student code
+    // Generate student code from the numeric max, not count()+1 — counts
+    // undercount after soft deletes and collide on the unique constraint
     const year = new Date().getFullYear()
-    const count = await prisma.student.count({
-      where: { orgId: user.orgId }
-    })
-
+    const prefix = `STU-${year}-`
+    const codeRows = await prisma.$queryRaw<{ max: number | null }[]>`
+      SELECT MAX(CAST(SUBSTRING(student_code FROM ${prefix.length + 1}::int) AS INTEGER)) AS max
+      FROM crm.students
+      WHERE org_id = ${user.orgId}
+        AND student_code ~ ${'^' + prefix + '[0-9]+$'}
+    `
     const studentCode =
-      'STU-' + year + '-' + String(count + 1).padStart(5, '0')
+      prefix + String(Number(codeRows[0]?.max ?? 0) + 1).padStart(5, '0')
 
     // Create student from admission
     const student = await db.student.create({
@@ -71,6 +76,7 @@ export const POST = route({
         status: 'ACTIVE',
         academicYearId: admission.academicYearId ?? academicYearId ?? null,
         rollNumber: inputData.rollNumber ?? null,
+        section: inputData.section?.trim() || null,
         guardianName: inputData.guardianName ?? null,
         dateOfBirth: inputData.dateOfBirth ? new Date(inputData.dateOfBirth) : null
       }

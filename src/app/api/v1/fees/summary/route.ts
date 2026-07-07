@@ -19,6 +19,7 @@ export const GET = route({
     const gradeLabel = searchParams.get('gradeLabel') ?? undefined
     const status = searchParams.get('status') ?? undefined
     const studentId = searchParams.get('studentId') ?? undefined
+    const academicYearIdParam = searchParams.get('academicYearId') ?? undefined
 
     const baseWhere: any = {
       orgId: user.orgId,
@@ -27,8 +28,13 @@ export const GET = route({
     if (studentId) {
       baseWhere.studentId = studentId
     }
-    // NOTE: no academicYearId scoping here — the invoices list route does not
-    // apply it either, and the summary must agree with the visible list.
+    // AY scoping mirrors the invoices list route (legacy null-AY invoices
+    // included under every year) so the summary agrees with the visible list.
+    if (academicYearIdParam) {
+      baseWhere.AND = [
+        { OR: [{ academicYearId: academicYearIdParam }, { academicYearId: null }] }
+      ]
+    }
     if (termId && termId !== 'all') {
       baseWhere.termId = termId
     }

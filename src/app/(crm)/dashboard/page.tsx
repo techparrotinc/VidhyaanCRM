@@ -44,6 +44,7 @@ import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SetupBanner } from "@/components/dashboard/SetupBanner"
+import { useAcademicYearStore } from "@/stores/academic-year.store"
 
 // ===================================================================
 // INSTITUTION TYPE CONTEXT VARIABLE & CONSTANTS
@@ -76,33 +77,6 @@ const institutionConfig = {
   },
 }
 
-const leadsUsed: number = 18
-const leadsMax: number = 25
-const unassignedLeads: number = 2
-
-const feeData = {
-  collected: 0,
-  collectedLastMonth: 45000,
-  overdue: 12221,
-  overdueAccumulated: true,
-  overdueOldestDays: 45,
-  upcoming: 3000,
-  upcomingInvoiceCount: 3,
-  ytdCollected: 245000,
-  academicYear: 'AY 2026-27',
-  lastPayment: {
-    studentName: 'Karthi S',
-    amount: 2110,
-    date: '15 May 2026',
-  },
-  students: {
-    total: 23,
-    paidOnTime: 12,
-    overdue: 3,
-    upcomingDues: 8,
-  },
-}
-
 const formatINR = (amount: number) =>
   new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -125,6 +99,36 @@ export default function DashboardPage() {
   const [schoolName, setSchoolName] = useState('Prince Matriculation School')
   // Same field the School Profile Manager shows — never hardcode this
   const [profileCompletion, setProfileCompletion] = useState<number>(100)
+  const selectedYearId = useAcademicYearStore((s) => s.selectedYearId)
+  const selectedYearName = useAcademicYearStore((s) => s.selectedYearName)
+
+  // Fee overview card data — real per-year numbers from the summary API
+  // (this block was hardcoded demo data until 2026-07)
+  const fo = dashData?.feeOverview
+  const feeData = {
+    overdue: fo?.overdueOutstanding ?? 0,
+    overdueOldestDays: fo?.overdueOldestDays ?? null,
+    upcomingInvoiceCount: fo?.upcomingInvoiceCount ?? 0,
+    ytdCollected: fo?.ytdCollected ?? 0,
+    academicYear: selectedYearName ?? '',
+    lastPayment: fo?.lastPayment
+      ? {
+          studentName: fo.lastPayment.studentName,
+          amount: fo.lastPayment.amount,
+          date: fo.lastPayment.date
+            ? new Date(fo.lastPayment.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+            : ''
+        }
+      : null,
+    students: {
+      total: fo?.students?.total ?? 0,
+      paidOnTime: fo?.students?.paidOnTime ?? 0,
+      overdue: fo?.students?.overdue ?? 0,
+      upcomingDues: fo?.students?.upcomingDues ?? 0
+    }
+  }
+  const feeStatusPct = (n: number) =>
+    feeData.students.total > 0 ? Math.round((n / feeData.students.total) * 100) : 0
 
   useEffect(() => {
     fetch('/api/v1/school-profile')
@@ -161,21 +165,27 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
+    // Stale-response guard: on hard refresh this effect fires once before the
+    // persisted year hydrates (unscoped) and again after (scoped). The slow
+    // unscoped response can land last and overwrite the scoped data — ignore
+    // any response from a superseded run.
+    let cancelled = false
     async function fetchDashboard() {
       try {
-        const res = await fetch('/api/v1/dashboard/summary')
+        const res = await fetch(`/api/v1/dashboard/summary${selectedYearId ? `?academicYearId=${selectedYearId}` : ''}`)
         if (!res.ok) throw new Error('Failed to fetch dashboard data')
         const json = await res.json()
-        setDashData(json.data)
+        if (!cancelled) setDashData(json.data)
       } catch (err) {
-        setError('Failed to load dashboard')
+        if (!cancelled) setError('Failed to load dashboard')
         console.error(err)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     fetchDashboard()
-  }, [])
+    return () => { cancelled = true }
+  }, [selectedYearId])
 
   // Toast notifications state
   const [toast, setToast] = useState<{
@@ -565,8 +575,8 @@ export default function DashboardPage() {
                     <h3 className="text-sm md:text-base font-bold text-slate-800 tracking-tight">
                       {pipelineTitle}
                     </h3>
-                    {institutionConfig.type === 'school' && (
-                      <span className="text-xs text-slate-400 mt-0.5">AY 2026-27</span>
+                    {institutionConfig.type === 'school' && selectedYearName && (
+                      <span className="text-xs text-slate-400 mt-0.5">{selectedYearName}</span>
                     )}
                   </div>
                   <div className="bg-amber-100 text-amber-700 text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-0.5 shrink-0">
@@ -739,15 +749,15 @@ export default function DashboardPage() {
                 {/* Temporal stats */}
                 <div className="grid grid-cols-3 gap-2 mt-4">
                   <div className="text-center bg-slate-50 rounded-lg p-2 md:p-3">
-                    <h4 className="text-lg md:text-2xl font-bold text-slate-800">3</h4>
+                    <h4 className="text-lg md:text-2xl font-bold text-slate-800">{dashData?.leads?.createdToday ?? 0}</h4>
                     <span className="text-[9px] md:text-[10px] uppercase tracking-wider text-slate-400 mt-1 block">Today</span>
                   </div>
                   <div className="text-center bg-slate-50 rounded-lg p-2 md:p-3">
-                    <h4 className="text-lg md:text-2xl font-bold text-slate-800">8</h4>
+                    <h4 className="text-lg md:text-2xl font-bold text-slate-800">{dashData?.leads?.createdThisWeek ?? 0}</h4>
                     <span className="text-[9px] md:text-[10px] uppercase tracking-wider text-slate-400 mt-1 block">This Week</span>
                   </div>
                   <div className="text-center bg-slate-50 rounded-lg p-2 md:p-3">
-                    <h4 className="text-lg md:text-2xl font-bold text-slate-800">14</h4>
+                    <h4 className="text-lg md:text-2xl font-bold text-slate-800">{dashData?.leads?.createdThisMonth ?? 0}</h4>
                     <span className="text-[9px] md:text-[10px] uppercase tracking-wider text-slate-400 mt-1 block">This Month</span>
                   </div>
                 </div>
@@ -808,25 +818,27 @@ export default function DashboardPage() {
                   })}
                 </div>
 
-                {/* Source chips */}
-                <div className="mt-4 flex gap-1 flex-wrap">
-                  <span className="text-[10px] font-medium border border-slate-200 bg-slate-50 rounded-full px-3 py-1 flex items-center gap-1.5 text-slate-600">
-                    <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" /> Vidhyaan · 18
-                  </span>
-                  <span className="text-[10px] font-medium border border-slate-200 bg-slate-50 rounded-full px-3 py-1 flex items-center gap-1.5 text-slate-600">
-                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full" /> Web · 9
-                  </span>
-                  <span className="text-[10px] font-medium border border-slate-200 bg-slate-50 rounded-full px-3 py-1 flex items-center gap-1.5 text-slate-600">
-                    <span className="w-1.5 h-1.5 bg-purple-500 rounded-full" /> Phone · 4
-                  </span>
-                </div>
+                {/* Source chips (top 4 real sources) */}
+                {(dashData?.leads?.bySource?.length ?? 0) > 0 && (
+                  <div className="mt-4 flex gap-1 flex-wrap">
+                    {(dashData?.leads?.bySource ?? []).slice(0, 4).map((s: any, i: number) => {
+                      const dotColors = ['bg-blue-500', 'bg-slate-400', 'bg-purple-500', 'bg-amber-400']
+                      const label = String(s.source || 'Other').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())
+                      return (
+                        <span key={s.source} className="text-[10px] font-medium border border-slate-200 bg-slate-50 rounded-full px-3 py-1 flex items-center gap-1.5 text-slate-600">
+                          <span className={`w-1.5 h-1.5 ${dotColors[i]} rounded-full`} /> {label} · {s.count}
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
 
                 {/* Counsellor nudge */}
-                {unassignedLeads > 0 && (
+                {(dashData?.leads?.unassigned ?? 0) > 0 && (
                   <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
                     <div className="flex items-center text-amber-800 font-semibold min-w-0">
                       <TriangleAlert className="w-3.5 h-3.5 text-amber-500 shrink-0 mr-2" strokeWidth={1.5} />
-                      <span className="truncate">{unassignedLeads} leads need counsellor assignment</span>
+                      <span className="truncate">{dashData?.leads?.unassigned} leads need counsellor assignment</span>
                     </div>
                     <span className="font-bold text-amber-700 cursor-pointer shrink-0 hover:underline min-h-[44px] sm:min-h-0 flex items-center justify-center w-full sm:w-auto text-center bg-amber-100/50 sm:bg-transparent py-2 sm:py-0 rounded-md sm:rounded-none">
                       Assign Now →
@@ -922,7 +934,9 @@ export default function DashboardPage() {
                     </span>
                     <div className="hidden md:block mt-1.5">
                       <span className="text-[10px] text-red-400 font-medium">
-                        Accumulated · Oldest: {feeData.overdueOldestDays} days ago
+                        {feeData.overdueOldestDays != null
+                          ? `Accumulated · Oldest: ${feeData.overdueOldestDays} days ago`
+                          : 'No overdue invoices'}
                       </span>
                     </div>
                   </div>
@@ -973,12 +987,12 @@ export default function DashboardPage() {
                               students
                             </span>
                             <span className="text-[11px] text-slate-400 font-medium">
-                              (52%)
+                              ({feeStatusPct(feeData.students.paidOnTime)}%)
                             </span>
                           </div>
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-1.5">
-                          <div className="bg-green-500 rounded-full h-1.5 transition-all duration-500" style={{ width: '52%' }} />
+                          <div className="bg-green-500 rounded-full h-1.5 transition-all duration-500" style={{ width: `${feeStatusPct(feeData.students.paidOnTime)}%` }} />
                         </div>
                       </div>
 
@@ -997,12 +1011,12 @@ export default function DashboardPage() {
                               students
                             </span>
                             <span className="text-[11px] text-slate-400 font-medium">
-                              (13%)
+                              ({feeStatusPct(feeData.students.overdue)}%)
                             </span>
                           </div>
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-1.5">
-                          <div className="bg-red-500 rounded-full h-1.5 transition-all duration-500" style={{ width: '13%' }} />
+                          <div className="bg-red-500 rounded-full h-1.5 transition-all duration-500" style={{ width: `${feeStatusPct(feeData.students.overdue)}%` }} />
                         </div>
                       </div>
 
@@ -1021,12 +1035,12 @@ export default function DashboardPage() {
                               students
                             </span>
                             <span className="text-[11px] text-slate-400 font-medium">
-                              (35%)
+                              ({feeStatusPct(feeData.students.upcomingDues)}%)
                             </span>
                           </div>
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-1.5">
-                          <div className="bg-amber-400 rounded-full h-1.5 transition-all duration-500" style={{ width: '35%' }} />
+                          <div className="bg-amber-400 rounded-full h-1.5 transition-all duration-500" style={{ width: `${feeStatusPct(feeData.students.upcomingDues)}%` }} />
                         </div>
                       </div>
                     </div>
@@ -1185,15 +1199,23 @@ export default function DashboardPage() {
                 })}
               </div>
 
-              <p className="text-xs text-slate-400 font-medium text-center mt-3 cursor-pointer hover:text-[#1565D8]">
-                <span className="inline sm:hidden">+3 more events this month</span>
-                <span className="hidden sm:inline">+2 more events this month</span>
-              </p>
+              {(() => {
+                const shown = dashData?.upcomingEvents?.length ?? 0
+                const more = Math.max(0, (dashData?.eventsThisMonth ?? 0) - shown)
+                return more > 0 ? (
+                  <Link href="/event-management" className="text-xs text-slate-400 font-medium text-center mt-3 cursor-pointer hover:text-[#1565D8] block">
+                    +{more} more event{more > 1 ? 's' : ''} this month
+                  </Link>
+                ) : null
+              })()}
 
               <div className="mt-auto pt-4 border-t border-slate-200">
-                <span className="text-xs md:text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer min-h-[44px] sm:min-h-0 flex items-center">
+                <Link
+                  href="/event-management?view=calendar"
+                  className="text-xs md:text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer min-h-[44px] sm:min-h-0 flex items-center"
+                >
                   View Calendar →
-                </span>
+                </Link>
               </div>
             </div>
           </section>

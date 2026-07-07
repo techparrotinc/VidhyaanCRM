@@ -16,6 +16,7 @@ import {
   UserCog,
   ShieldCheck,
   Settings,
+  ListChecks,
   ChevronLeft,
   ChevronRight,
   Shield,
@@ -50,6 +51,7 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
   const [enabledModules, setEnabledModules] = useState<string[]>([])
   const [orgName, setOrgName] = useState('Prince Matriculation')
   const [unreadLeadsCount, setUnreadLeadsCount] = useState(0)
+  const [setupPct, setSetupPct] = useState<number | null>(null)
 
   // Upgrade Modal states
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
@@ -83,6 +85,18 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
           if (data.orgName) {
             setOrgName(data.orgName)
           }
+        }
+      })
+      .catch(() => { })
+  }, [])
+
+  // Fetch setup checklist progress (admins only; API 403s for other roles)
+  useEffect(() => {
+    fetch('/api/v1/setup/status')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.data && typeof data.data.pct === 'number') {
+          setSetupPct(data.data.pct)
         }
       })
       .catch(() => { })
@@ -136,6 +150,10 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
     { name: 'Roles', href: '/roles', icon: ShieldCheck, section: 'Team', roles: ['ORG_ADMIN'] },
 
     // Section 5: Configuration
+    // Setup checklist link shows for admins until every step is done
+    ...(setupPct !== null && setupPct < 100
+      ? [{ name: 'Setup', href: '/setup', icon: ListChecks, section: 'Configuration', roles: ['ORG_ADMIN', 'BRANCH_ADMIN'] }]
+      : []),
     { name: 'Settings', href: '/settings', icon: Settings, section: 'Configuration' }
   ]
 

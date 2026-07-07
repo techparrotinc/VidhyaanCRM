@@ -43,6 +43,7 @@ import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { SetupBanner } from "@/components/dashboard/SetupBanner"
 
 // ===================================================================
 // INSTITUTION TYPE CONTEXT VARIABLE & CONSTANTS
@@ -408,6 +409,9 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* ONE-TIME SETUP CHECKLIST BANNER (paid orgs, until complete) */}
+      <SetupBanner />
 
       {error ? (
         <div className="text-center py-20">

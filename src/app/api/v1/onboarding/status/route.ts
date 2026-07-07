@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db/client'
+import { calculateProfileCompletePct } from '@/lib/setup/profile-completeness'
 
 export async function GET(req: NextRequest) {
   try {
@@ -60,49 +61,7 @@ export async function GET(req: NextRequest) {
     const isComplete = settings.onboardingIsComplete || false
 
     // Calculate dynamic profile completion percentage (100-point formula)
-    let profileCompletePct = 0
-    if (school) {
-      // 1. Name: 10 points (always true if registered)
-      profileCompletePct += 10
-
-      // 2. Logo: 15 points (media item with caption 'logo')
-      const hasLogo = school.media.some(m => m.caption === 'logo')
-      if (hasLogo) profileCompletePct += 15
-
-      // 3. Cover photo: 15 points (media item with caption 'cover')
-      const hasCover = school.media.some(m => m.caption === 'cover')
-      if (hasCover) profileCompletePct += 15
-
-      // 4. Gallery: 10 points (count gallery items > 0)
-      const hasGallery = school.media.some(m => m.caption === 'gallery')
-      if (hasGallery) profileCompletePct += 10
-
-      // 5. Description: 10 points
-      if (school.description && school.description.trim() !== '') {
-        profileCompletePct += 10
-      }
-
-      // 6. Location: 10 points
-      if (school.locations.length > 0) {
-        profileCompletePct += 10
-      }
-
-      // 7. Board/affiliation: 10 points
-      if (school.affiliations.length > 0) {
-        profileCompletePct += 10
-      }
-
-      // 8. Contact details: 10 points
-      if (school.contacts.length > 0) {
-        profileCompletePct += 10
-      }
-
-      // 9. Fee range: 10 points
-      const hasFeeRange = school.feeRanges.length > 0 || school.monthlyFeeMin !== null
-      if (hasFeeRange) {
-        profileCompletePct += 10
-      }
-    }
+    const profileCompletePct = calculateProfileCompletePct(school)
 
     // Save calculated percentage back to settings and to School model
     if (profileCompletePct !== settings.profileCompletePct) {

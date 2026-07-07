@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { cleanPhoneNumber } from '@/lib/utils'
+import { createLeadWithUniqueCode } from '@/lib/lead-code'
 
 const trialBookingSchema = z.object({
   parentName: z.string().max(150).optional().nullable(),
@@ -122,20 +123,27 @@ export async function POST(
       }
     }
 
-    // 4. Check for duplicates in the last 48 hours
+    // 4. Duplicate guard: block only an identical resubmit (same center +
+    // phone + child + activity) within 48h. A booking for another child or
+    // another activity from the same parent is legitimate.
     const duplicate = await prisma.trialClassBooking.findFirst({
       where: {
         schoolId: lc.id,
         phone,
         createdAt: {
           gte: new Date(Date.now() - 48 * 60 * 60 * 1000)
-        }
+        },
+        childName: { equals: childName.trim(), mode: 'insensitive' },
+        activityType: activityType || null
       }
     })
 
     if (duplicate) {
       return NextResponse.json(
-        { success: false, error: 'You already booked a trial class at this center recently.' },
+        {
+          success: false,
+          error: `You already booked a trial class for ${childName.trim()} recently. To book for another child or activity, just change those details.`
+        },
         { status: 409 }
       )
     }
@@ -160,6 +168,7 @@ export async function POST(
 
     // 6. If claimed (has orgId), auto-create Lead in CRM schema with a note
     if (lc.orgId) {
+      const orgId = lc.orgId
       const branch = await prisma.branch.findFirst({
         where: { orgId: lc.orgId, isDefault: true }
       })
@@ -168,35 +177,31 @@ export async function POST(
         where: { orgId: lc.orgId, status: 'ACTIVE' }
       })
 
-      const year = new Date().getFullYear()
-      const leadCount = await prisma.lead.count({
-        where: { orgId: lc.orgId }
-      })
-      const leadCode = `LD-${year}-${String(leadCount + 1).padStart(5, '0')}`
-
-      await prisma.lead.create({
-        data: {
-          orgId: lc.orgId,
-          branchId: branch?.id || null,
-          academicYearId: academicYear?.id || null,
-          leadCode,
-          parentName,
-          phone,
-          email: email || null,
-          kidName: childName,
-          gradeSought: activityType || 'Learning Center',
-          source: 'VIDHYAAN',
-          status: 'NEW',
-          priority: 'MEDIUM',
-          activities: {
-            create: {
-              orgId: lc.orgId,
-              type: 'NOTE',
-              summary: `Trial class booking request for ${activityType || 'Learning Center'}.`
+      await createLeadWithUniqueCode(orgId, (leadCode) =>
+        prisma.lead.create({
+          data: {
+            orgId,
+            branchId: branch?.id || null,
+            academicYearId: academicYear?.id || null,
+            leadCode,
+            parentName,
+            phone,
+            email: email || null,
+            kidName: childName,
+            gradeSought: activityType || 'Learning Center',
+            source: 'VIDHYAAN',
+            status: 'NEW',
+            priority: 'MEDIUM',
+            activities: {
+              create: {
+                orgId,
+                type: 'NOTE',
+                summary: `Trial class booking request for ${activityType || 'Learning Center'}.`
+              }
             }
           }
-        }
-      })
+        })
+      )
     }
 
     // 7. Increment LC enquiryCount asynchronously

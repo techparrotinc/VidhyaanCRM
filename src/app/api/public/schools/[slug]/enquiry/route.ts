@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/client'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 import { enquiryNotificationTemplate, enquiryConfirmationTemplate } from '@/lib/mail/templates'
 import { cleanPhoneNumber } from '@/lib/utils'
+import { createLeadWithUniqueCode } from '@/lib/lead-code'
 
 export async function POST(
   req: NextRequest,
@@ -71,7 +72,9 @@ export async function POST(
       )
     }
 
-    // 3. Check for duplicates in last 24 hours
+    // 3. Duplicate guard: block only an identical resubmit (same school +
+    // phone + child + class) within 24h. A second enquiry for another child
+    // or another class from the same parent is legitimate and goes through.
     const duplicate = await prisma.parentEnquiry.findFirst({
       where: {
         schoolId: school.id,
@@ -80,13 +83,22 @@ export async function POST(
         },
         parent: {
           phone
-        }
+        },
+        kidName: childName
+          ? { equals: childName.trim(), mode: 'insensitive' }
+          : null,
+        gradeSought: gradeSought || null
       }
     })
 
     if (duplicate) {
       return NextResponse.json(
-        { success: false, error: 'You already sent an enquiry to this school recently.' },
+        {
+          success: false,
+          error: childName
+            ? `You already sent an enquiry for ${childName.trim()} recently. To enquire for another child or class, just change those details.`
+            : 'You already sent an enquiry to this school recently.'
+        },
         { status: 409 }
       )
     }
@@ -147,6 +159,7 @@ export async function POST(
 
     // 6. If claimed school (has orgId), auto-create Lead in CRM schema
     if (school.orgId) {
+      const orgId = school.orgId
       // Find branch and academic year if available
       const branch = await prisma.branch.findFirst({
         where: { orgId: school.orgId, isDefault: true }
@@ -156,29 +169,24 @@ export async function POST(
         where: { orgId: school.orgId, status: 'ACTIVE' }
       })
 
-      // Generate unique lead code
-      const year = new Date().getFullYear()
-      const leadCount = await prisma.lead.count({
-        where: { orgId: school.orgId }
-      })
-      const leadCode = `LD-${year}-${String(leadCount + 1).padStart(5, '0')}`
-
-      const lead = await prisma.lead.create({
-        data: {
-          orgId: school.orgId,
-          branchId: branch?.id || null,
-          academicYearId: academicYear?.id || null,
-          leadCode,
-          parentName,
-          phone,
-          email: email || null,
-          kidName: childName || null,
-          gradeSought: gradeSought || null,
-          source: 'VIDHYAAN',
-          status: 'NEW',
-          priority: 'MEDIUM'
-        }
-      })
+      const lead = await createLeadWithUniqueCode(orgId, (leadCode) =>
+        prisma.lead.create({
+          data: {
+            orgId,
+            branchId: branch?.id || null,
+            academicYearId: academicYear?.id || null,
+            leadCode,
+            parentName,
+            phone,
+            email: email || null,
+            kidName: childName || null,
+            gradeSought: gradeSought || null,
+            source: 'VIDHYAAN',
+            status: 'NEW',
+            priority: 'MEDIUM'
+          }
+        })
+      )
 
       // Link lead back to the enquiry
       await prisma.parentEnquiry.update({

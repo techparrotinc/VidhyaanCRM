@@ -44,9 +44,20 @@ export const POST = route({
           }
         })
       } else {
+        // Probe with one of the org's own templates when available — their
+        // WABA almost certainly has no template literally named otp_template
+        let probeTemplateId = body.templateId
+        if (!probeTemplateId) {
+          const ownTemplate = await prisma.whatsappTemplate.findFirst({
+            where: { orgId: user.orgId, accountScope: 'OWN', deletedAt: null },
+            orderBy: { createdAt: 'desc' },
+            select: { msg91TemplateId: true }
+          })
+          probeTemplateId = ownTemplate?.msg91TemplateId ?? 'otp_template'
+        }
         await sendCampaignWhatsApp({
           to: body.testPhone,
-          templateId: body.templateId ?? 'otp_template',
+          templateId: probeTemplateId,
           body: 'Vidhyaan test message — your WhatsApp account is connected.',
           credentials: {
             authKey,

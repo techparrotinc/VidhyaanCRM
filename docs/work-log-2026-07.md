@@ -126,6 +126,46 @@ Record of a review + hardening + performance session. Production branch is
 - **next-auth v5**: still beta (`beta.31`, which is what we run; `latest` remains v4).
   Nothing to do until GA.
 
+### 2026-07-06 evening → 07-07 morning (19 commits, `061c697..83241f7`)
+
+**Fee & student UX pass (07-06 evening)**
+- Student detail → tabbed view (Overview + **Invoices + Payments** tabs,
+  `StudentInvoicesTab`/`StudentPaymentsTab` components); student edit page restyled to
+  lead-edit design parity.
+- Create-invoice wizard: 3-step with stepper → Details+Fee Items merged into one step;
+  **fix: adhoc invoices from the wizard actually generate** (were silently dropped).
+  Invoice detail page rebuilt full-width 3-column.
+- Parent portal fees: invoices **grouped by institution** for multi-org parents +
+  term/period grouped views with subtotals.
+
+**Unified login (07-07 morning)**
+- One login flow with a **workspace picker** for multi-role users (same phone as
+  org admin + parent etc.) — `beaae68`.
+
+**Messaging credits add-on (SMS/WhatsApp) — full slice**
+- Schema + engine: `MessageWallet` (free allowance 25/channel + purchased balance),
+  `MessageCreditLedger`, `MessagingProviderConfig` (BYO MSG91, vault-encrypted authKey);
+  `src/lib/credits/` — `engine.ts` (spend/refund/grant), `provider.ts`,
+  `metered-send.ts` (**the entry point for org-attributed SMS/WhatsApp**; BYO creds
+  first, else 1 credit/message, throws `InsufficientCreditsError` at zero).
+- Credit-pack purchase via Razorpay (order → verify → webhook, fail-closed).
+- Campaign sends metered against wallets; platform admin can adjust free allowances.
+- Settings → **Add-ons** UI: wallet KPIs, purchase packs, BYO provider config + ledger.
+
+**Settings shell redesign**
+- Grouped nav + card-grid landing (`src/components/settings/settingsNav.ts` is the
+  single nav source — new settings pages register there).
+
+**Leads**
+- Convert-to-admission fix + status dropdown hardening (`14dc32e`).
+
+**WhatsApp template catalog**
+- `WhatsappTemplate` with positional `{{1}}..{{n}}` params + campaign FK
+  (migration `whatsapp_template_structure`); **platform admin shared catalog** with
+  per-org copies (`/admin/whatsapp-templates`); org settings page with tabbed UI,
+  BYO manual template entry, test-send, and sync. Campaign WhatsApp sends resolve
+  the approved template's name/language and build positional params.
+
 ### 2026-07-07 — big feature day (12 commits, `83241f7..7b9e77f`)
 
 **Fixes & hardening**

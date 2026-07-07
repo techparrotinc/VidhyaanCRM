@@ -84,6 +84,8 @@ Feature history lives in git log — this is a capability map only.
 *   **Storage**: real S3 uploads via [src/lib/storage.ts](file:///Users/vimaldas/Projects/VidhyaanCRM/src/lib/storage.ts) — bucket `vidhyaan` (ap-south-1), per-module folders `uploads/{orgId}/{category}/`, public-read on `uploads/*` only.
 *   **Codes**: lead/invoice/student codes generated from numeric max (never `count()+1`) — `src/lib/lead-code.ts`, `src/lib/invoice-number.ts`.
 *   **Billing**: Razorpay orders/webhooks (signature-verified, fail-closed), subscriptions, plan modules; pure fee math in `src/lib/fees.ts`. **Payment secrets encrypted with `PAYMENT_ENCRYPTION_KEY` — must be identical in `.env.local` and Vercel (shared DB).**
+*   **Messaging credits**: SMS/WhatsApp wallets + ledger in `src/lib/credits/` — **`metered-send.ts` is THE entry point for org-attributed sends** (BYO MSG91 creds first, else 1 credit/msg); credit-pack purchase via Razorpay; Settings → Add-ons UI. WhatsApp campaign templates: platform shared catalog + org copies (`/settings/whatsapp-templates`, `/admin/whatsapp-templates`), positional `{{1}}..{{n}}` params.
+*   **Auth extras**: unified login with workspace picker for multi-role users; settings nav registered in `src/components/settings/settingsNav.ts` (single source for new settings pages).
 *   **Platform admin** (`/admin`): org approval, plans, stats, impersonation (SUPER_ADMIN).
 *   **Marketplace** (`/`, `/schools`, `/learning-centers`): public search + profiles, enquiries (deduped per child+class), reviews, bookmarks, GPS distance filtering.
 *   **Parent portal** (`/parent`): registration, dashboard, applications tracking, kids CRUD, notifications, events + RSVP, fees.

@@ -13,7 +13,8 @@ export const MODULES = {
   STUDENT_LIFECYCLE: 'student_lifecycle',
   API_ACCESS: 'api_access',
   CUSTOM_DOMAIN: 'custom_domain',
-  WHATSAPP_ADDON: 'whatsapp_addon'
+  WHATSAPP_ADDON: 'whatsapp_addon',
+  SMS_ADDON: 'sms_addon'
 } as const
 
 export type ModuleSlug = typeof MODULES[keyof typeof MODULES]

@@ -72,6 +72,16 @@ async function main() {
     }
   })
 
+  // Seed sms_addon module (enabled per-org by default at org creation)
+  await prisma.module.create({
+    data: {
+      id: 'cmqxu0bcnr6us00009yha8sms',
+      name: 'SMS',
+      slug: 'sms_addon',
+      description: 'SMS campaign and notification sending via MSG91'
+    }
+  })
+
   // STEP 3: Create Plans (4 plans)
   console.log('Creating plans...')
   const freePlan = await prisma.plan.create({

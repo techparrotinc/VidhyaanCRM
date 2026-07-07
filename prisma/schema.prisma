@@ -516,6 +516,32 @@ enum TransactionType {
   UPGRADE
   REFUND
   ADJUSTMENT
+  CREDIT_PURCHASE
+
+  @@schema("billing")
+}
+
+enum MessageChannel {
+  SMS
+  WHATSAPP
+
+  @@schema("billing")
+}
+
+enum CreditLedgerReason {
+  FREE_GRANT
+  SEND
+  SEND_REFUND
+  PURCHASE
+  ADMIN_ADJUST
+
+  @@schema("billing")
+}
+
+enum MessagingProviderStatus {
+  DRAFT
+  VERIFIED
+  DISABLED
 
   @@schema("billing")
 }
@@ -610,6 +636,8 @@ model Organization {
   refunds               Refund[]
   guardianLinks         StudentGuardianLink[]
   ledgerEntries         LedgerEntry[]
+  messageWallets        MessageWallet[]
+  messagingProviders    MessagingProviderConfig[]
 
   @@index([status])
   @@index([institutionType])
@@ -2385,6 +2413,7 @@ model Transaction {
   currency       String            @default("INR")
   gatewayRef     String?           @map("gateway_ref")
   invoiceUrl     String?           @map("invoice_url")
+  metadata       Json? // credit purchases: { channel, packId, credits } — server-side grant truth
   paidAt         DateTime?         @map("paid_at")
   createdAt      DateTime          @default(now()) @map("created_at")
   updatedAt      DateTime          @updatedAt @map("updated_at")
@@ -2396,6 +2425,75 @@ model Transaction {
   @@index([subscriptionId])
   @@index([status])
   @@map("transactions")
+  @@schema("billing")
+}
+
+/// Per-org, per-channel message credit wallet. Free credits reset lazily
+/// each UTC month (compared via periodStart); purchased credits never expire.
+/// freeAllowance is edited by platform admins only.
+model MessageWallet {
+  id               String         @id @default(cuid())
+  orgId            String         @map("org_id")
+  channel          MessageChannel
+  freeAllowance    Int            @default(25) @map("free_allowance")
+  freeUsed         Int            @default(0) @map("free_used")
+  purchasedBalance Int            @default(0) @map("purchased_balance")
+  periodStart      DateTime       @default(now()) @map("period_start")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, channel])
+  @@map("message_wallets")
+  @@schema("billing")
+}
+
+/// Append-only credit movement trail. `ref` carries campaignId /
+/// transactionId / admin userId depending on reason.
+model MessageCreditLedger {
+  id                    String             @id @default(cuid())
+  orgId                 String             @map("org_id")
+  channel               MessageChannel
+  delta                 Int // negative = spend
+  reason                CreditLedgerReason
+  ref                   String?
+  freeBalanceAfter      Int                @map("free_balance_after")
+  purchasedBalanceAfter Int                @map("purchased_balance_after")
+  note                  String?
+  createdAt             DateTime           @default(now()) @map("created_at")
+
+  @@index([orgId, channel, createdAt])
+  @@index([ref])
+  @@map("message_credit_ledger")
+  @@schema("billing")
+}
+
+/// Bring-your-own messaging provider credentials (school's own MSG91
+/// account). Auth key encrypted with the payments vault (AES-256-GCM).
+/// A VERIFIED config makes sends bypass Vidhyaan credit metering.
+model MessagingProviderConfig {
+  id               String                  @id @default(cuid())
+  orgId            String                  @map("org_id")
+  channel          MessageChannel
+  provider         String                  @default("MSG91")
+  authKeyEncrypted String                  @map("auth_key_encrypted")
+  encryptionKeyVer Int                     @default(1) @map("encryption_key_version")
+  authKeyLast4     String?                 @map("auth_key_last4")
+  senderId         String?                 @map("sender_id")
+  smsFlowId        String?                 @map("sms_flow_id")
+  whatsappNumber   String?                 @map("whatsapp_number")
+  status           MessagingProviderStatus @default(DRAFT)
+  verifiedAt       DateTime?               @map("verified_at")
+  createdById      String?                 @map("created_by_id")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+  deletedAt        DateTime?               @map("deleted_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, channel])
+  @@map("messaging_provider_configs")
   @@schema("billing")
 }
 

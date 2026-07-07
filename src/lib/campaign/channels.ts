@@ -34,9 +34,22 @@ export async function sendCampaignEmail(params: {
   })
 }
 
+export interface SmsCredentials {
+  authKey: string
+  senderId?: string
+  flowId?: string
+}
+
+export interface WhatsAppCredentials {
+  authKey: string
+  whatsappNumber?: string
+}
+
 export async function sendCampaignSMS(params: {
   to: string
   body: string
+  /** Org's own MSG91 account (BYO); falls back to Vidhyaan env keys. */
+  credentials?: SmsCredentials
 }): Promise<void> {
   const phone = params.to.replace(/\D/g, '')
   const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`
@@ -45,11 +58,11 @@ export async function sendCampaignSMS(params: {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      authkey: process.env.MSG91_AUTH_KEY ?? ''
+      authkey: params.credentials?.authKey ?? process.env.MSG91_AUTH_KEY ?? ''
     },
     body: JSON.stringify({
-      flow_id: process.env.MSG91_SMS_FLOW_ID,
-      sender: process.env.MSG91_SENDER_ID,
+      flow_id: params.credentials?.flowId ?? process.env.MSG91_SMS_FLOW_ID,
+      sender: params.credentials?.senderId ?? process.env.MSG91_SENDER_ID,
       mobiles: formattedPhone,
       body: params.body
     })
@@ -71,6 +84,8 @@ export async function sendCampaignWhatsApp(params: {
   to: string
   templateId: string
   body: string
+  /** Org's own MSG91 WhatsApp account (BYO); falls back to Vidhyaan env keys. */
+  credentials?: WhatsAppCredentials
 }): Promise<void> {
   const phone = params.to.replace(/\D/g, '')
   const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`
@@ -81,10 +96,10 @@ export async function sendCampaignWhatsApp(params: {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        authkey: process.env.MSG91_AUTH_KEY ?? ''
+        authkey: params.credentials?.authKey ?? process.env.MSG91_AUTH_KEY ?? ''
       },
       body: JSON.stringify({
-        integrated_number: process.env.MSG91_WHATSAPP_NUMBER,
+        integrated_number: params.credentials?.whatsappNumber ?? process.env.MSG91_WHATSAPP_NUMBER,
         content_type: 'template',
         payload: {
           to: formattedPhone,

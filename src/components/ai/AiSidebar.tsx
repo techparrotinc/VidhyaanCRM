@@ -156,6 +156,28 @@ export function AiSidebar({ open, onClose }: { open: boolean; onClose: () => voi
                   >
                     {m.text}
                     {m.streaming && <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-slate-400 align-text-bottom" />}
+                    {!m.streaming && m.citations && m.citations.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5 border-t border-slate-200 pt-2">
+                        {m.citations.map((c) =>
+                          c.appRoute ? (
+                            <a
+                              key={c.docId}
+                              href={c.appRoute}
+                              className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-[#1565D8] hover:border-[#1565D8]"
+                            >
+                              {c.title}
+                            </a>
+                          ) : (
+                            <span
+                              key={c.docId}
+                              className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500"
+                            >
+                              {c.title}
+                            </span>
+                          )
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

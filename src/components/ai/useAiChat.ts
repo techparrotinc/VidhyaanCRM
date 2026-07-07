@@ -5,11 +5,14 @@ import { useAcademicYearStore } from '@/stores/academic-year.store'
 
 const GATEWAY = process.env.NEXT_PUBLIC_AI_GATEWAY_URL ?? 'https://ai.vidhyaan.com'
 
+export type AiCitation = { docId: string; title: string; appRoute: string }
+
 export type AiMessage = {
   id: string
   role: 'user' | 'assistant'
   text: string
   streaming?: boolean
+  citations?: AiCitation[]
 }
 
 export type AiChatState = {
@@ -133,6 +136,16 @@ export function useAiChat() {
               continue
             }
             if (evt.type === 'meta') sessionRef.current = evt.conversationId
+            if (evt.type === 'citation') {
+              setState((s) => ({
+                ...s,
+                messages: s.messages.map((m) =>
+                  m.id === assistantMsg.id
+                    ? { ...m, citations: [...(m.citations ?? []), evt.citation] }
+                    : m
+                )
+              }))
+            }
             if (evt.type === 'token') {
               acc += evt.text
               patchAssistant({ text: acc })

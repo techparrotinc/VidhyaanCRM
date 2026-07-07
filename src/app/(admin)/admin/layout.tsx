@@ -19,7 +19,8 @@ import {
   Bell,
   Search,
   ChevronRight,
-  ShieldAlert
+  ShieldAlert,
+  MessageCircle
 } from 'lucide-react'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -45,6 +46,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Parents', href: '/admin/parents', icon: Users },
     { label: 'Revenue', href: '/admin/revenue', icon: TrendingUp },
     { label: 'Plans', href: '/admin/plans', icon: CreditCard },
+    { label: 'WhatsApp Templates', href: '/admin/whatsapp-templates', icon: MessageCircle },
     { label: 'Audit Logs', href: '/admin/audit-logs', icon: History },
     { label: 'Settings', href: '/admin/settings', icon: Settings },
   ]

@@ -95,7 +95,8 @@ export const POST = route({
             subject: msg.subject,
             body: msg.body,
             fromName: orgName,
-            campaignName: event.title
+            campaignName: event.title,
+            imageUrl: event.imageUrl
           })
         }
         if (body.channels.includes('SMS') && r.phone) {

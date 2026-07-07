@@ -23,14 +23,20 @@ export function publicUrl(key: string): string {
   return `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`
 }
 
+export const UPLOAD_CATEGORIES = ['leads', 'admissions', 'events', 'campaigns', 'students', 'documents'] as const
+export type UploadCategory = (typeof UPLOAD_CATEGORIES)[number]
+
 export async function uploadObject(opts: {
   orgId: string
   fileName: string
   contentType: string
   body: Buffer
+  /** module folder inside the org's space; defaults to documents */
+  category?: UploadCategory
 }): Promise<{ key: string; url: string }> {
   const ext = (opts.fileName.split('.').pop() || 'bin').toLowerCase()
-  const key = `uploads/${opts.orgId}/${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`
+  const category = opts.category ?? 'documents'
+  const key = `uploads/${opts.orgId}/${category}/${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`
 
   await s3().send(
     new PutObjectCommand({

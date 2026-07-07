@@ -378,7 +378,7 @@ export default function AdmissionDetailPage() {
     try {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('folder', 'admissions')
+      formData.append('category', 'admissions')
 
       const uploadRes = await fetch(
         '/api/v1/files/upload',

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { uploadObject } from '@/lib/storage'
+import { uploadObject, UPLOAD_CATEGORIES, type UploadCategory } from '@/lib/storage'
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024 // 10MB
 const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx'])
@@ -37,12 +37,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const rawCategory = String(formData.get('category') ?? 'documents')
+    const category = (UPLOAD_CATEGORIES as readonly string[]).includes(rawCategory)
+      ? (rawCategory as UploadCategory)
+      : 'documents'
+
     const body = Buffer.from(await file.arrayBuffer())
     const { url, key } = await uploadObject({
       orgId: session.user.orgId ?? session.user.id,
       fileName: file.name,
       contentType: file.type || 'application/octet-stream',
-      body
+      body,
+      category
     })
 
     return NextResponse.json({

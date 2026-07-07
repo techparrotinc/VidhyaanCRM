@@ -103,6 +103,7 @@ export default function EventForm({
     try {
       const fd = new FormData()
       fd.append('file', file)
+      fd.append('category', 'events')
       const res = await fetch('/api/v1/files/upload', { method: 'POST', body: fd })
       const json = await res.json()
       if (!res.ok || !json.success) throw new Error(json.error || 'Upload failed')

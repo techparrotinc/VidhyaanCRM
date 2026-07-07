@@ -6,6 +6,8 @@ export async function sendCampaignEmail(params: {
   body: string
   fromName: string
   campaignName: string
+  /** hero image rendered above the body (e.g. event cover) */
+  imageUrl?: string | null
 }): Promise<void> {
   let subject = params.subject
   let bodyContent = params.body
@@ -21,8 +23,11 @@ export async function sendCampaignEmail(params: {
     subject = params.campaignName || 'Message from your school'
   }
 
-  const html = `<div style="font-family: sans-serif; line-height: 1.6; color: #333;">
-    ${bodyContent.replace(/\n/g, '<br/>')}
+  const heroImg = params.imageUrl
+    ? `<img src="${params.imageUrl}" alt="" style="width:100%;max-width:560px;border-radius:12px;display:block;margin-bottom:16px;" />`
+    : ''
+  const html = `<div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 560px;">
+    ${heroImg}${bodyContent.replace(/\n/g, '<br/>')}
   </div>`
 
   await zeptoSendCampaignEmail({

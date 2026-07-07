@@ -45,6 +45,7 @@ import GridView from '@/components/admissions/GridView'
 import KanbanView from '@/components/admissions/KanbanView'
 import FilterBar from '@/components/admissions/FilterBar'
 import ListTable from '@/components/admissions/ListTable'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 const moduleLabel = config.moduleLabel[type]
 export default function AdmissionManagementPage() {
@@ -165,8 +166,8 @@ export default function AdmissionManagementPage() {
     '/api/v1/admissions/pipeline',
     fetcher,
     {
-      revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      revalidateOnFocus: true,
+      dedupingInterval: 10000,
     }
   )
 
@@ -232,8 +233,11 @@ export default function AdmissionManagementPage() {
     `/api/v1/admissions?${buildQueryParams()}`,
     fetcher,
     {
-      revalidateOnFocus: false,
-      dedupingInterval: 30000,
+      // Refresh on focus/mount so creates/converts/deletes made elsewhere
+      // appear without a full browser reload
+      revalidateOnFocus: true,
+      revalidateOnMount: true,
+      dedupingInterval: 5000,
       keepPreviousData: true,
     }
   )
@@ -345,6 +349,7 @@ export default function AdmissionManagementPage() {
 
   const router = useRouter()
   const searchParams = useSearchParams()
+  const confirmDialog = useConfirm()
 
   useEffect(() => {
     if (searchParams && searchParams.get('success') === 'created') {
@@ -845,9 +850,12 @@ export default function AdmissionManagementPage() {
   const handleBulkDelete = async () => {
     if (selectedItems.length === 0) return
 
-    const confirmed = window.confirm(
-      `Delete ${selectedItems.length} admission(s)? This cannot be undone.`
-    )
+    const confirmed = await confirmDialog({
+      title: `Delete ${selectedItems.length} admission(s)?`,
+      message: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger'
+    })
     if (!confirmed) return
 
     setIsLoading(true)
@@ -879,7 +887,12 @@ export default function AdmissionManagementPage() {
   }
 
   const handleDeleteAdmission = async (admissionId: string) => {
-    const confirmed = window.confirm('Delete this admission record?')
+    const confirmed = await confirmDialog({
+      title: 'Delete this admission record?',
+      message: 'The record will be removed from all views.',
+      confirmLabel: 'Delete',
+      variant: 'danger'
+    })
     if (!confirmed) return
     setIsLoading(true)
     try {

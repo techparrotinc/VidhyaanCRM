@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { CheckSquare, UserPlus, ClipboardList, Download, Trash2, X, Loader2 } from 'lucide-react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 type Counsellor = { id: string; name: string }
 
@@ -36,6 +37,7 @@ export default function LeadBulkActionBar({
   onDone,
   onError
 }: LeadBulkActionBarProps) {
+  const confirm = useConfirm()
   const [menu, setMenu] = useState<'assign' | 'status' | null>(null)
   const [busy, setBusy] = useState(false)
   const barRef = useRef<HTMLDivElement>(null)
@@ -87,8 +89,14 @@ export default function LeadBulkActionBar({
     onDone(`Exported ${selectedLeads.length} leads to CSV`)
   }
 
-  const confirmDelete = () => {
-    if (!confirm(`Delete ${selectedIds.length} selected lead(s)? They will be removed from all views.`)) return
+  const confirmDelete = async () => {
+    const okToDelete = await confirm({
+      title: `Delete ${selectedIds.length} selected lead(s)?`,
+      message: 'They will be removed from all views.',
+      confirmLabel: 'Delete',
+      variant: 'danger'
+    })
+    if (!okToDelete) return
     runBulk({ action: 'delete' }, `${selectedIds.length} lead(s) deleted`)
   }
 

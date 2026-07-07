@@ -119,8 +119,12 @@ export default function LeadManagementPage() {
     `/api/v1/leads?${params.toString()}`,
     fetcher,
     {
-      revalidateOnFocus: false,
-      dedupingInterval: 30000,
+      // Revalidate when the tab/page regains focus and on mount so the list
+      // reflects creates/deletes made on other pages without a full browser
+      // refresh. keepPreviousData avoids flicker while the fresh page loads.
+      revalidateOnFocus: true,
+      revalidateOnMount: true,
+      dedupingInterval: 5000,
       keepPreviousData: true,
     }
   )

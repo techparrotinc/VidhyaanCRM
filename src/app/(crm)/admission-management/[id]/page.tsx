@@ -51,6 +51,7 @@ import { Button } from "@/components/ui/button"
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 import { Skeleton } from "@/components/ui/skeleton"
 import RecordSkeleton from "@/components/shared/RecordSkeleton"
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import {
   Dialog,
   DialogContent,
@@ -124,6 +125,7 @@ const getStageColor = (
 
 export default function AdmissionDetailPage() {
   const router = useRouter()
+  const confirmDialog = useConfirm()
   const params = useParams()
   const admissionId = params?.id as string
 
@@ -162,9 +164,12 @@ export default function AdmissionDetailPage() {
   }, [menuOpen])
 
   const handleDelete = async () => {
-    const confirmed = window.confirm(
-      'Delete this admission record?'
-    )
+    const confirmed = await confirmDialog({
+      title: 'Delete this admission record?',
+      message: 'The record will be removed from all views.',
+      confirmLabel: 'Delete',
+      variant: 'danger'
+    })
     if (!confirmed) return
     setIsLoading(true)
     try {
@@ -329,7 +334,13 @@ export default function AdmissionDetailPage() {
   }
 
   const handleDeleteDoc = async (docId: string) => {
-    if (!confirm('Are you sure you want to delete this document?')) return
+    const okToDelete = await confirmDialog({
+      title: 'Delete this document?',
+      message: 'The uploaded file will be removed from this admission.',
+      confirmLabel: 'Delete',
+      variant: 'danger'
+    })
+    if (!okToDelete) return
     try {
       const res = await fetch(`/api/v1/admissions/${admissionId}/documents/${docId}`, {
         method: 'DELETE'
@@ -1160,8 +1171,9 @@ export default function AdmissionDetailPage() {
               <input
                 type="date"
                 value={convertStudentDob}
+                max={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setConvertStudentDob(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 min-w-0 cursor-pointer"
               />
             </div>
 
@@ -1217,21 +1229,21 @@ export default function AdmissionDetailPage() {
             </div>
           </div>
 
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex justify-end gap-3">
             <button
               disabled={isSubmittingConvert}
               onClick={() => {
                 setShowConvertModal(false)
                 setConvertError('')
               }}
-              className="flex-1 border border-slate-200 text-slate-600 text-sm font-semibold py-3 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+              className="px-4 py-2 border border-slate-200 text-slate-600 text-sm font-semibold rounded-lg hover:bg-slate-50 transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               disabled={isSubmittingConvert}
               onClick={handleConvert}
-              className={`flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer ${isSubmittingConvert ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg flex items-center justify-center gap-2 transition cursor-pointer whitespace-nowrap ${isSubmittingConvert ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {isSubmittingConvert ? (
                 <>
@@ -1239,7 +1251,10 @@ export default function AdmissionDetailPage() {
                   <span>Creating...</span>
                 </>
               ) : (
-                <span>Create Student Record →</span>
+                <>
+                  <span className="sm:hidden">Create Student</span>
+                  <span className="hidden sm:inline">Create Student Record</span>
+                </>
               )}
             </button>
           </div>

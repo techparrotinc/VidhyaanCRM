@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
 import { UserCheck, Loader2, Copy, Check, ShieldOff } from 'lucide-react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 type AccessData = {
   status: 'NOT_INVITED' | 'INVITED' | 'ACTIVE' | 'REVOKED'
@@ -26,6 +27,7 @@ export default function ParentAccessCard({ studentId, guardianPhone }: { student
     `/api/v1/students/${studentId}/parent-access`,
     fetcher
   )
+  const confirmDialog = useConfirm()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [shareMessage, setShareMessage] = useState<string | null>(null)
@@ -51,7 +53,13 @@ export default function ParentAccessCard({ studentId, guardianPhone }: { student
   }
 
   const revoke = async () => {
-    if (!window.confirm('Revoke portal access? The parent will no longer see this student’s invoices.')) return
+    const okToRevoke = await confirmDialog({
+      title: 'Revoke portal access?',
+      message: 'The parent will no longer see this student’s invoices.',
+      confirmLabel: 'Revoke Access',
+      variant: 'danger'
+    })
+    if (!okToRevoke) return
     setBusy(true)
     setError(null)
     try {

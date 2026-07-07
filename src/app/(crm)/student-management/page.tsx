@@ -11,6 +11,9 @@ import {
 import { useStudents } from '@/hooks/useStudents'
 import { GRADE_OPTIONS } from '@/constants/grades'
 import { createPortal } from 'react-dom'
+import { useSession } from 'next-auth/react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
+import { CheckSquare, Trash2, X, Loader2 } from 'lucide-react'
 
 const STATUS_CONFIG = {
   ACTIVE: {
@@ -59,6 +62,11 @@ export default function StudentListingPage() {
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
 
   const router = useRouter()
+  const { data: session } = useSession()
+  const confirm = useConfirm()
+  const isOrgAdmin = session?.user?.role === 'ORG_ADMIN'
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const [toastMsg, setToastMsg] = useState<string | null>(null)
 
   const {
     students,
@@ -102,18 +110,54 @@ export default function StudentListingPage() {
 
   const handleDelete = useCallback(
     async (id: string) => {
-      if (!confirm(
-        'Delete this student? ' +
-        'This cannot be undone.'
-      )) return
+      const okToDelete = await confirm({
+        title: 'Delete this student?',
+        message:
+          'All records associated with this student — invoices, payments, activities and parent login access — will be deleted and cannot be rolled back.',
+        confirmLabel: 'Delete Student',
+        variant: 'danger'
+      })
+      if (!okToDelete) return
       await fetch(
         `/api/v1/students/${id}`,
         { method: 'DELETE' }
       )
       mutate()
       setActionMenuId(null)
-    }, [mutate]
+    }, [mutate, confirm]
   )
+
+  const handleBulkDelete = useCallback(async () => {
+    const count = selectedIds.length
+    const okToDelete = await confirm({
+      title: `Delete ${count} selected student${count > 1 ? 's' : ''}?`,
+      message:
+        'All records associated with these students — invoices, payments, activities and parent login access — will be deleted and cannot be rolled back.',
+      confirmLabel: `Delete ${count} Student${count > 1 ? 's' : ''}`,
+      variant: 'danger'
+    })
+    if (!okToDelete) return
+    setBulkBusy(true)
+    try {
+      const res = await fetch('/api/v1/students/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', ids: selectedIds })
+      })
+      const json = await res.json()
+      if (!res.ok || json.success === false) {
+        throw new Error(json.error?.message || json.error || 'Bulk delete failed')
+      }
+      setToastMsg(`${json.data?.deleted ?? count} student(s) deleted`)
+      setSelectedIds([])
+      mutate()
+    } catch (e: any) {
+      setToastMsg(e.message || 'Bulk delete failed')
+    } finally {
+      setBulkBusy(false)
+      setTimeout(() => setToastMsg(null), 3000)
+    }
+  }, [selectedIds, mutate, confirm])
 
   const handleExport = useCallback(() => {
     const params = new URLSearchParams()
@@ -503,6 +547,43 @@ export default function StudentListingPage() {
         </div>
       </div>
 
+      {/* ── BULK ACTION BAR ── */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white rounded-2xl px-4 py-2.5 sm:px-6 sm:py-3 shadow-2xl flex items-center gap-3 sm:gap-4 z-50 animate-fade-in max-w-[95%] sm:max-w-none">
+          <div className="flex items-center gap-2">
+            <CheckSquare className="size-4 text-blue-400" />
+            <span className="text-sm font-semibold">{selectedIds.length} selected</span>
+          </div>
+          {isOrgAdmin && (
+            <>
+              <div className="w-px h-5 bg-slate-600" />
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkBusy}
+                className="flex items-center gap-1 text-red-400 hover:text-red-300 transition cursor-pointer text-sm font-medium disabled:opacity-50"
+                title="Delete Selected"
+              >
+                {bulkBusy ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                <span className="hidden sm:inline">Delete</span>
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => setSelectedIds([])}
+            className="ml-1 sm:ml-2 text-slate-400 hover:text-slate-200 cursor-pointer"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
+
+      {/* ── TOAST ── */}
+      {toastMsg && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-xl z-50 animate-fade-in">
+          {toastMsg}
+        </div>
+      )}
+
       {/* ── ACTION PORTAL MENU ── */}
       {actionMenuId && typeof window !== 'undefined' &&
         createPortal(
@@ -535,11 +616,13 @@ export default function StudentListingPage() {
                 className="w-full px-4 py-2 text-sm text-left text-slate-700 hover:bg-slate-50 transition-colors">
                 Edit
               </button>
-              <button
-                onClick={() => handleDelete(actionMenuId)}
-                className="w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50 transition-colors">
-                Delete
-              </button>
+              {isOrgAdmin && (
+                <button
+                  onClick={() => handleDelete(actionMenuId)}
+                  className="w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50 transition-colors">
+                  Delete
+                </button>
+              )}
             </div>
           </>,
           document.body

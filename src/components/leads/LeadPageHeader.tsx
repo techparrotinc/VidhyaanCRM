@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import {
   ChevronLeft,
   ChevronRight,
@@ -82,6 +83,7 @@ export default function LeadPageHeader({
   showToast
 }: LeadPageHeaderProps) {
   const router = useRouter()
+  const confirmDialog = useConfirm()
 
   const handleCopyCode = () => {
     if (lead?.leadCode) {
@@ -100,7 +102,13 @@ export default function LeadPageHeader({
 
   const handleDelete = async () => {
     if (!lead?.id) return
-    if (!confirm('Are you sure you want to delete this lead?')) return
+    const okToDelete = await confirmDialog({
+      title: 'Delete this lead?',
+      message: 'The lead will be removed from all views.',
+      confirmLabel: 'Delete Lead',
+      variant: 'danger'
+    })
+    if (!okToDelete) return
     try {
       const res = await fetch(`/api/v1/leads/${lead.id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed to delete lead')

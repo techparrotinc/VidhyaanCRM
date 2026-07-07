@@ -8,6 +8,7 @@ import { useSession, signOut } from 'next-auth/react'
 import Sidebar from '@/components/Sidebar'
 import NotificationBell from '@/components/NotificationBell'
 import { RouteLoader } from '@/components/shared/RouteLoader'
+import { ConfirmProvider } from '@/components/ui/confirm-dialog'
 import { useUIStore } from '@/stores/ui.store'
 import { Menu, LogOut, User, Settings, Calendar, ChevronDown } from 'lucide-react'
 
@@ -227,7 +228,9 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
               dedupingInterval: 30000,
             }}
           >
-            {children}
+            <ConfirmProvider>
+              {children}
+            </ConfirmProvider>
           </SWRConfig>
         </main>
       </div>

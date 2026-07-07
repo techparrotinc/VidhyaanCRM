@@ -158,10 +158,9 @@ export const PUT = route({
 
 export const DELETE = route({
   module: MODULES.STUDENT_MANAGEMENT,
-  roles: [
-    ROLES.ORG_ADMIN,
-    ROLES.BRANCH_ADMIN
-  ],
+  // Deleting a student takes their invoices, payments and parent access
+  // with them — org admin only.
+  roles: [ROLES.ORG_ADMIN],
   handler: async ({ db, params }) => {
     const resolvedParams = await params
     const id = resolvedParams?.id

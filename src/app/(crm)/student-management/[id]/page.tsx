@@ -19,6 +19,7 @@ import ParentAccessCard from './components/ParentAccessCard'
 import StudentInvoicesTab from './components/StudentInvoicesTab'
 import StudentPaymentsTab from './components/StudentPaymentsTab'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 const STATUS_CONFIG = {
   ACTIVE: {
@@ -121,6 +122,7 @@ export default function StudentDetailPage() {
   const params = useParams()
   const id = params?.id as string
   const router = useRouter()
+  const confirmDialog = useConfirm()
 
   const { student, isLoading, mutate } = useStudent(id)
 
@@ -205,7 +207,14 @@ export default function StudentDetailPage() {
   }
 
   const handleDelete = async () => {
-    if (!confirm('Delete this student? This cannot be undone.')) return
+    const okToDelete = await confirmDialog({
+      title: 'Delete this student?',
+      message:
+        'All records associated with this student — invoices, payments, activities and parent login access — will be deleted and cannot be rolled back.',
+      confirmLabel: 'Delete Student',
+      variant: 'danger'
+    })
+    if (!okToDelete) return
     const res = await fetch(`/api/v1/students/${id}`, { method: 'DELETE' })
     if (res.ok) {
       router.push('/student-management')

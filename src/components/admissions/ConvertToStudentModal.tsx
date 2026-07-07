@@ -116,8 +116,9 @@ export default function ConvertToStudentModal({
               <input
                 type="date"
                 value={dob}
+                max={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setDob(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 min-w-0 cursor-pointer"
               />
             </div>
 
@@ -176,14 +177,14 @@ export default function ConvertToStudentModal({
               <button
                 disabled={isSubmitting}
                 onClick={onClose}
-                className="flex-1 px-4 py-3 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-sm font-semibold cursor-pointer font-sans text-center transition"
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg text-sm font-semibold cursor-pointer font-sans text-center transition"
               >
                 Cancel
               </button>
               <button
                 disabled={isSubmitting}
                 onClick={handleConfirm}
-                className={`flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold cursor-pointer font-sans text-center transition flex items-center justify-center ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold cursor-pointer font-sans text-center transition flex items-center justify-center whitespace-nowrap ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {isSubmitting ? (
                   <>
@@ -191,7 +192,10 @@ export default function ConvertToStudentModal({
                     <span>Creating...</span>
                   </>
                 ) : (
-                  <span>Create Student Record →</span>
+                  <>
+                    <span className="sm:hidden">Create Student</span>
+                    <span className="hidden sm:inline">Create Student Record</span>
+                  </>
                 )}
               </button>
             </div>

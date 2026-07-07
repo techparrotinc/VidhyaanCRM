@@ -406,11 +406,16 @@ export default function AddLeadPage() {
       }
 
       const created = await res.json()
-      console.log('Created lead:', created)
 
       showToast('Lead created successfully')
 
-      router.push(`/lead-management/${created.id}`)
+      // API envelope is { success, data: lead }
+      const newLeadId = created.data?.id ?? created.id
+      if (newLeadId) {
+        router.push(`/lead-management/${newLeadId}`)
+      } else {
+        router.push('/lead-management')
+      }
 
     } catch (err: any) {
       console.error('Submit error:', err)

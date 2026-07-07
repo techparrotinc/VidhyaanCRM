@@ -4,6 +4,7 @@ import { useState, useEffect,
   useCallback } from 'react'
 import { useParams, useRouter, useSearchParams }
   from 'next/navigation'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { format } from 'date-fns'
 import {
   ArrowLeft, Pencil, Trash2,
@@ -107,6 +108,7 @@ export default function InvoiceDetailPage() {
   const params = useParams()
   const id = params?.id as string
   const router = useRouter()
+  const confirmDialog = useConfirm()
   const searchParams = useSearchParams()
 
   const [invoice, setInvoice] =
@@ -241,10 +243,13 @@ export default function InvoiceDetailPage() {
   }
 
   const handleDelete = async () => {
-    if (!confirm(
-      'Delete this invoice? ' +
-      'This cannot be undone.'
-    )) return
+    const okToDelete = await confirmDialog({
+      title: 'Delete this invoice?',
+      message: 'This cannot be undone.',
+      confirmLabel: 'Delete Invoice',
+      variant: 'danger'
+    })
+    if (!okToDelete) return
     await fetch(
       `/api/v1/fees/invoices/${id}`,
       { method: 'DELETE' }

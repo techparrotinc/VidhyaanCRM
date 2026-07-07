@@ -3,6 +3,7 @@
 import { useState, useEffect,
   useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { format, subMonths, addMonths } from 'date-fns'
 import {
   Download, Plus, Search,
@@ -42,6 +43,7 @@ type Summary = {
 
 export default function FeeManagementPage() {
   const router = useRouter()
+  const confirmDialog = useConfirm()
   const { years, currentYear } =
     useAcademicYears()
 
@@ -373,10 +375,13 @@ export default function FeeManagementPage() {
 
   const handleDelete = useCallback(
     async (id: string) => {
-      if (!confirm(
-        'Delete this invoice? ' +
-        'This cannot be undone.'
-      )) return
+      const okToDelete = await confirmDialog({
+        title: 'Delete this invoice?',
+        message: 'This cannot be undone.',
+        confirmLabel: 'Delete Invoice',
+        variant: 'danger'
+      })
+      if (!okToDelete) return
       await fetch(
         `/api/v1/fees/invoices/${id}`,
         { method: 'DELETE' }
@@ -384,7 +389,7 @@ export default function FeeManagementPage() {
       fetchInvoices()
       fetchSummary()
       setActionMenuId(null)
-    }, [fetchInvoices, fetchSummary]
+    }, [fetchInvoices, fetchSummary, confirmDialog]
   )
 
   const handleExport = useCallback(() => {

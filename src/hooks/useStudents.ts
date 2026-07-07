@@ -76,7 +76,15 @@ export function useStudents(
   const key = `/api/v1/students?${query}`
 
   const { data, error, isLoading, mutate } =
-    useSWR<StudentsResponse>(key, fetcher)
+    useSWR<StudentsResponse>(key, fetcher, {
+      // Override the layout-level SWR defaults (focus revalidation off,
+      // 30s dedupe) so the list reflects deletes/creates without a full
+      // browser refresh
+      revalidateOnFocus: true,
+      revalidateOnMount: true,
+      dedupingInterval: 5000,
+      keepPreviousData: true
+    })
 
   return {
     students: data?.data ?? [],

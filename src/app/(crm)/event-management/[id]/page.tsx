@@ -9,6 +9,8 @@ import {
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EVENT_TYPE_LABELS, EventType } from '@/constants/events'
+import AnnounceModal from '@/components/events/AnnounceModal'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 const STATUS_BADGE: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-600',
@@ -38,6 +40,8 @@ export default function EventDetailPage() {
   const [leadResults, setLeadResults] = useState<any[]>([])
   const [actionError, setActionError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [showAnnounce, setShowAnnounce] = useState(false)
+  const confirmDialog = useConfirm()
 
   const load = useCallback(async () => {
     try {
@@ -52,10 +56,22 @@ export default function EventDetailPage() {
   useEffect(() => { load() }, [load])
 
   const transition = async (action: 'publish' | 'cancel') => {
-    const confirmMsg = action === 'publish'
-      ? 'Publish this event? Once published, it cannot be edited — only cancelled.'
-      : 'Cancel this event? This cannot be undone. Attendee list is kept for records.'
-    if (!confirm(confirmMsg)) return
+    const okToProceed = await confirmDialog(
+      action === 'publish'
+        ? {
+            title: 'Publish this event?',
+            message: 'Once published it cannot be edited — only cancelled. You can announce it to parents right after.',
+            confirmLabel: 'Publish',
+            variant: 'primary'
+          }
+        : {
+            title: 'Cancel this event?',
+            message: 'This cannot be undone. The attendee list is kept for records.',
+            confirmLabel: 'Cancel Event',
+            variant: 'danger'
+          }
+    )
+    if (!okToProceed) return
     setBusy(true)
     setActionError(null)
     try {
@@ -68,7 +84,8 @@ export default function EventDetailPage() {
       if (!res.ok || json.success === false) {
         throw new Error(json.error?.message || json.error || `Failed to ${action}`)
       }
-      load()
+      await load()
+      if (action === 'publish') setShowAnnounce(true)
     } catch (e: any) {
       setActionError(e.message)
     } finally {
@@ -77,7 +94,13 @@ export default function EventDetailPage() {
   }
 
   const deleteDraft = async () => {
-    if (!confirm('Delete this draft event?')) return
+    const okToDelete = await confirmDialog({
+      title: 'Delete this event?',
+      message: 'The event will be removed from all views. Published events cannot be deleted — cancel them instead.',
+      confirmLabel: 'Delete Event',
+      variant: 'danger'
+    })
+    if (!okToDelete) return
     const res = await fetch(`/api/v1/events/${id}`, { method: 'DELETE' })
     if (res.ok) router.push('/event-management')
   }
@@ -208,9 +231,21 @@ export default function EventDetailPage() {
                 </>
               )}
               {isPublished && (
-                <button onClick={() => transition('cancel')} disabled={busy}
-                  className="border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60 text-sm font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5">
-                  <Ban size={14} /> Cancel Event
+                <>
+                  <button onClick={() => setShowAnnounce(true)} disabled={busy}
+                    className="bg-[#1565D8] hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5">
+                    <Megaphone size={14} /> Announce
+                  </button>
+                  <button onClick={() => transition('cancel')} disabled={busy}
+                    className="border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60 text-sm font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5">
+                    <Ban size={14} /> Cancel Event
+                  </button>
+                </>
+              )}
+              {event.status === 'CANCELLED' && (
+                <button onClick={deleteDraft}
+                  className="border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 text-sm font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5">
+                  <Trash2 size={14} /> Delete
                 </button>
               )}
             </div>
@@ -250,6 +285,10 @@ export default function EventDetailPage() {
         <div className="p-6">
           {tab === 'overview' ? (
             <div className="space-y-6">
+              {event.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={event.imageUrl} alt="Event cover" className="w-full max-h-64 object-cover rounded-xl border border-slate-100" />
+              )}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
                   ['Going', counts.going, 'text-blue-700'],
@@ -361,6 +400,13 @@ export default function EventDetailPage() {
           )}
         </div>
       </div>
+
+      <AnnounceModal
+        eventId={id}
+        eventTitle={event.title}
+        open={showAnnounce}
+        onClose={() => setShowAnnounce(false)}
+      />
     </div>
   )
 }

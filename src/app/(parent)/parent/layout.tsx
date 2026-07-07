@@ -5,10 +5,11 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import { 
-  Shield, 
+  Shield,
   LayoutDashboard,
   FileText,
   Receipt,
+  CalendarDays,
   Bookmark, 
   User, 
   Bell, 
@@ -91,6 +92,7 @@ function ParentLayout({ children }: ParentLayoutProps) {
     { label: 'Dashboard', href: '/parent/dashboard', icon: LayoutDashboard },
     { label: 'My Applications', href: '/parent/applications', icon: FileText },
     { label: 'Fees', href: '/parent/fees', icon: Receipt },
+    { label: 'Events', href: '/parent/events', icon: CalendarDays },
     { label: 'Saved Schools', href: '/parent/bookmarks', icon: Bookmark },
     { label: 'My Profile', href: '/parent/profile', icon: User }
   ]

@@ -2,11 +2,12 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Calendar, CalendarDays, List, Plus, MapPin, Users,
-  ChevronLeft, ChevronRight, Search, FileEdit, CalendarCheck, UserCheck
+  ChevronLeft, ChevronRight, Search, FileEdit, CalendarCheck, UserCheck, Trash2
 } from 'lucide-react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EVENT_TYPES, EVENT_TYPE_LABELS, EventType } from '@/constants/events'
 
@@ -34,7 +35,11 @@ const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).pad
 
 export default function EventManagementPage() {
   const router = useRouter()
-  const [view, setView] = useState<View>('list')
+  const searchParams = useSearchParams()
+  const confirmDialog = useConfirm()
+  const [view, setView] = useState<View>(
+    searchParams?.get('view') === 'calendar' ? 'calendar' : 'list'
+  )
   const [scope, setScope] = useState<Scope>('upcoming')
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
@@ -89,6 +94,18 @@ export default function EventManagementPage() {
   }, [view, scope, page, calMonth, statusFilter, typeFilter, debouncedSearch])
 
   useEffect(() => { fetchEvents() }, [fetchEvents])
+
+  const deleteEvent = async (eventId: string) => {
+    const okToDelete = await confirmDialog({
+      title: 'Delete this event?',
+      message: 'The event will be removed from all views. Published events cannot be deleted — cancel them instead.',
+      confirmLabel: 'Delete Event',
+      variant: 'danger'
+    })
+    if (!okToDelete) return
+    const res = await fetch(`/api/v1/events/${eventId}`, { method: 'DELETE' })
+    if (res.ok) fetchEvents()
+  }
 
   const metricCards = [
     { label: 'Upcoming', value: metrics?.upcoming, icon: CalendarCheck, color: 'text-[#1565D8]', bg: 'bg-blue-50' },
@@ -244,14 +261,19 @@ export default function EventManagementPage() {
               return (
                 <button key={ev.id} onClick={() => router.push(`/event-management/${ev.id}`)}
                   className="w-full bg-white border border-slate-200 rounded-xl p-4 md:p-5 flex items-center gap-4 hover:border-blue-200 hover:shadow-md transition-all text-left">
-                  <div className="w-14 shrink-0 text-center bg-slate-50 rounded-lg py-2">
-                    <div className="text-[10px] font-bold uppercase text-slate-400">
-                      {new Date(ev.startsAt).toLocaleDateString('en-IN', { month: 'short' })}
+                  {ev.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={ev.imageUrl} alt="" className="w-14 h-14 shrink-0 rounded-lg object-cover border border-slate-100" />
+                  ) : (
+                    <div className="w-14 shrink-0 text-center bg-slate-50 rounded-lg py-2">
+                      <div className="text-[10px] font-bold uppercase text-slate-400">
+                        {new Date(ev.startsAt).toLocaleDateString('en-IN', { month: 'short' })}
+                      </div>
+                      <div className="text-xl font-bold text-slate-800 leading-none mt-0.5">
+                        {new Date(ev.startsAt).getDate()}
+                      </div>
                     </div>
-                    <div className="text-xl font-bold text-slate-800 leading-none mt-0.5">
-                      {new Date(ev.startsAt).getDate()}
-                    </div>
-                  </div>
+                  )}
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -274,6 +296,19 @@ export default function EventManagementPage() {
                     </div>
                   </div>
 
+                  {ev.status !== 'PUBLISHED' && (
+                    <span
+                      role="button"
+                      title="Delete event"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deleteEvent(ev.id)
+                      }}
+                      className="shrink-0 p-2 rounded-lg text-slate-300 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 size={15} />
+                    </span>
+                  )}
                   <div className="shrink-0 text-right">
                     <div className="flex items-center gap-1.5 justify-end text-slate-600">
                       <Users size={14} className="text-slate-300" />

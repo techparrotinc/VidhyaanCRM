@@ -5,13 +5,14 @@ import { Errors, AppError } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { sendEventCancellationNotices } from '@/lib/services/eventEmails'
+import { invalidateDashboardCache } from '@/lib/dashboard-cache'
 
 // Lifecycle: DRAFT --publish--> PUBLISHED --cancel--> CANCELLED.
 // Published events are locked (no edit, no delete) — cancel is the only exit.
 export const PUT = route({
   module: MODULES.EVENT_MANAGEMENT,
   roles: [ROLES.ORG_ADMIN, ROLES.BRANCH_ADMIN],
-  handler: async ({ req, db, params }) => {
+  handler: async ({ req, db, params, user }) => {
     const { id } = (await params) as { id?: string }
     if (!id) throw Errors.notFound('Event')
 
@@ -27,7 +28,9 @@ export const PUT = route({
       if (new Date(event.startsAt) < new Date()) {
         throw new AppError('BUSINESS_RULE', 'Cannot publish an event that starts in the past.', 409)
       }
-      const updated = await db.event.update({ where: { id }, data: { status: 'PUBLISHED' } })
+      const updated = await db.event.update({ where: { id }, data: { status: 'PUBLISHED', publishedAt: new Date() } })
+      // Dashboard "Upcoming Events" card must reflect this immediately
+      await invalidateDashboardCache(user.orgId)
       return ok(updated)
     }
 
@@ -36,6 +39,7 @@ export const PUT = route({
       throw new AppError('BUSINESS_RULE', 'Only published events can be cancelled.', 409)
     }
     const updated = await db.event.update({ where: { id }, data: { status: 'CANCELLED' } })
+    await invalidateDashboardCache(user.orgId)
 
     // Fire-and-forget: notify GOING/MAYBE attendees by email
     sendEventCancellationNotices(event)

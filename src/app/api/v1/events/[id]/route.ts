@@ -15,6 +15,7 @@ const updateEventSchema = z.object({
   endsAt: z.string().max(40).optional().nullable(),
   location: z.string().max(300).optional().nullable(),
   meetingLink: z.string().max(1000).optional().nullable(),
+  imageUrl: z.string().url().max(1000).optional().nullable().or(z.literal('').transform(() => null)),
   academicYearId: z.string().max(50).optional().nullable(),
   branchId: z.string().max(50).optional().nullable()
 })
@@ -119,7 +120,8 @@ export const PUT = route({
       startsAt,
       endsAt,
       location: body.location,
-      meetingLink: body.meetingLink
+      meetingLink: body.meetingLink,
+      imageUrl: body.imageUrl
     }
 
     if (body.academicYearId !== undefined) {

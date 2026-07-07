@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
+import { uploadObject } from '@/lib/storage'
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024 // 10MB
 const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx'])
@@ -36,14 +37,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Simulate S3/DO Spaces upload delay (e.g. 500ms)
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    const uniqueId = Math.random().toString(36).substring(2, 10)
-    const simulatedUrl = `https://vidhyaan-documents.sfo3.digitaloceanspaces.com/uploads/${uniqueId}-${Date.now()}.${fileExtension}`
+    const body = Buffer.from(await file.arrayBuffer())
+    const { url, key } = await uploadObject({
+      orgId: session.user.orgId ?? session.user.id,
+      fileName: file.name,
+      contentType: file.type || 'application/octet-stream',
+      body
+    })
 
     return NextResponse.json({
       success: true,
-      url: simulatedUrl
+      url,
+      key
     })
   } catch (error: any) {
     console.error('File upload route error:', error)

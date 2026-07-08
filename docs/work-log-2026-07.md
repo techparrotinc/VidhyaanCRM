@@ -7,6 +7,47 @@ Record of a review + hardening + performance session. Production branch is
 
 ## ✅ Done
 
+### Reports & Analytics module — Phase 1 (2026-07-08)
+Full build per [reports-analytics-phase1-prd.md](reports-analytics-phase1-prd.md); all 4 sprints.
+- **Data layer** — new `reporting` Postgres schema (migration `20260707182911_reporting_phase1`):
+  `daily_rollups` (nightly per-day aggregates, delete-then-insert idempotent, **IST day
+  boundaries**), `report_saved_views`, `report_usage` (favourite+recency), `report_schedules`
+  (Phase 2 placeholder). Hot-path indexes: `leads(orgId,source,status)`,
+  `leads(orgId,nextFollowUpAt)`, `invoices(orgId,status,dueDate)`. All 4 models in `forOrg`.
+- **Rollup pipeline** — `src/lib/reports/rollup.ts` (9 metrics; snapshot metric
+  `students_active` only written for yesterday); cron `/api/cron/reports-rollup`
+  (01:30 IST, trailing 3-day self-heal, per-org error isolation) in `vercel.json`;
+  backfill `scripts/backfill-report-rollups.ts` (**not yet run on prod — trend charts
+  empty until it runs or cron accumulates**).
+- **3 dashboards** — `/reports/executive` (5 KPIs w/ true YoY vs previous AY, funnel w/ LY
+  ghost, fee trend from rollups, source conversion, capacity heat, attention strip),
+  `/reports/my-desk` (counsellor work queue: overdue/today/gone-cold + `CounsellorTarget`
+  attainment + median response vs team), `/reports/finance` (MTD KPIs, ageing buckets,
+  method mix, today's receipts). Role-based landing at `/reports`.
+- **10 reports** — registry-driven (`src/lib/reports/registry.ts` = single source: roles,
+  filters, exports). Query modules in `src/lib/reports/queries/*` implement
+  `summary/rows`; generic routes `/api/v1/reports/r/[reportKey]/{summary,rows,export}`
+  dispatch by key. Reports: lead-funnel, lead-source-effectiveness (low-sample badges),
+  counsellor-performance (source-mix fairness col), follow-up-discipline,
+  admission-pipeline (stage ageing + capacity), fee-collection-summary (rollup trend),
+  defaulter-ageing (bucket→dueDate window), concession-audit (₹ vs % types kept separate),
+  campaign-effectiveness (14-day source attribution; credits via ledger `ref=campaignId`),
+  enrollment-strength (grade movement + LC batch data).
+- **Engine surfaces** — Library page (`/reports/library`: category cards, favourites,
+  recents, search), generic report page (`/reports/r/[slug]`: filter bar from config,
+  saved views CRUD, star, insight sentence, chart-by-slug, cursor-paginated table),
+  exports CSV (streamed), XLSX (exceljs), PDF (react-pdf generic template for
+  fee-summary/defaulter/enrollment) — every export writes an `AuditLog` EXPORT row
+  (guardian-phone data). Row scoping single choke point (`queries/scope.ts` +
+  `leadBaseWhere`): COUNSELLOR → own leads, BRANCH_ADMIN → `UserBranchAccess` branches.
+- **Caching** — exec/finance dashboards 120s, report summaries 300s (key = filter+scope
+  hash so counsellor numbers never leak into admin cache); rows/exports uncached.
+- **Module gate** — existing `advanced_reports` slug (already on growth/enterprise plans);
+  sidebar item already existed.
+- **Deps added**: recharts, exceljs. **Tests**: 178 passing (rollup correctness/idempotency,
+  query-module integration incl. role scoping, insight rules, CSV/drain, registry parity).
+
+
 ### Security / correctness
 - **Tenant isolation hardened** — `forOrg()` (`src/lib/db/tenant.ts`) rewritten as a
   fail-closed `$allOperations` switch. `count/aggregate/groupBy/upsert/findFirstOrThrow/
@@ -238,6 +279,10 @@ Record of a review + hardening + performance session. Production branch is
   `event_image_announce`, `org_email_templates`.
 
 ## ⏳ Pending
+0. **Reports Phase 2** — rollup backfill on prod (script ready); scheduled email reports
+   (`report_schedules` table shipped); marketplace analytics; 90+ ageing MoM insight
+   (needs ageing snapshot metric in rollups); mutation-driven cache invalidation;
+   bulk fee-reminder action from defaulter report.
 
 1. **Subdomain-per-school** (phase 2) — `schoolname.vidhyaan.com`. Needs Vercel Pro +
    wildcard `*.vidhyaan.com` + NS. Safe to start steps 1–2 anytime (`Organization.subdomain`

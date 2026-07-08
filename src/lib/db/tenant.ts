@@ -11,7 +11,10 @@ const TENANT_MODELS = [
   // Payment gateway. WebhookEvent is deliberately absent: it is written by
   // the public webhook route (no tenant session) via the base client.
   'PaymentGatewayConfig', 'GatewayOrder', 'Refund', 'LedgerEntry',
-  'StudentGuardianLink'
+  'StudentGuardianLink',
+  // Reporting. DailyRollup is written by the rollup cron via the base client
+  // (explicit orgId, no session); listed here so API reads stay org-scoped.
+  'DailyRollup', 'ReportSavedView', 'ReportUsage', 'ReportSchedule'
 ]
 
 const SOFT_DELETE_MODELS = [

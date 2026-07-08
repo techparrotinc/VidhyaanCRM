@@ -29,9 +29,16 @@ export async function GET(req: NextRequest) {
     const formattedPlans = plans.map((plan) => {
       const subscriberCount = plan.organizations.length
       
-      // Calculate revenue per plan (sum of active subscriptions)
+      // MRR contribution — normalize each active subscription to a monthly
+      // amount (matches /api/admin/stats): quarterly ÷ 3, annual ÷ 12.
+      // Summing raw amounts overstated plans with non-monthly cycles up to 12×.
       const revenue = plan.organizations.reduce((sum, org) => {
-        const activeSubSum = org.subscriptions.reduce((subSum, sub) => subSum + Number(sub.amount), 0)
+        const activeSubSum = org.subscriptions.reduce((subSum, sub) => {
+          const amount = Number(sub.amount)
+          if (sub.billingCycle === 'QUARTERLY') return subSum + amount / 3
+          if (sub.billingCycle === 'ANNUAL') return subSum + amount / 12
+          return subSum + amount // MONTHLY
+        }, 0)
         return sum + activeSubSum
       }, 0)
 

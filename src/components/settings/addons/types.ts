@@ -1,5 +1,5 @@
 export type AddonWallet = {
-  channel: 'SMS' | 'WHATSAPP'
+  channel: 'SMS' | 'WHATSAPP' | 'AI'
   freeAllowance: number
   freeUsed: number
   freeRemaining: number
@@ -21,7 +21,7 @@ export type AddonProvider = {
 
 export type CreditPack = {
   id: string
-  channel: 'SMS' | 'WHATSAPP'
+  channel: 'SMS' | 'WHATSAPP' | 'AI'
   credits: number
   priceInr: number
 }
@@ -30,7 +30,7 @@ export type Addon = {
   slug: string
   name: string
   description: string
-  channel: 'SMS' | 'WHATSAPP' | null
+  channel: 'SMS' | 'WHATSAPP' | 'AI' | 'AI' | null
   selfServe: boolean
   enabled: boolean
   wallet: AddonWallet | null

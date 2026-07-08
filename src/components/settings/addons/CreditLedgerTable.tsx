@@ -27,7 +27,7 @@ const REASON_LABEL: Record<string, { label: string; badge: string }> = {
   ADMIN_ADJUST: { label: 'Allowance change', badge: 'bg-purple-50 text-purple-700' }
 }
 
-export default function CreditLedgerTable({ channel }: { channel: 'SMS' | 'WHATSAPP' }) {
+export default function CreditLedgerTable({ channel }: { channel: 'SMS' | 'WHATSAPP' | 'AI' }) {
   const [page, setPage] = useState(1)
   const { data, isLoading } = useSWR<LedgerResponse>(
     `/api/v1/settings/addons/messaging/${channel.toLowerCase()}/ledger?page=${page}&limit=10`,

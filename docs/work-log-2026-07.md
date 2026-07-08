@@ -21,7 +21,11 @@ Record of a review + hardening + performance session. Production branch is
 - **Executive dashboard widget customization** — show/hide + reorder via Customize
   popover; per-device localStorage prefs (`useWidgetPrefs`), unknown/new widget keys
   self-heal.
-- Rollup backfill executed on prod (15 months, all orgs).
+- Rollup backfill executed on prod (15 months, all orgs). Backfill rewritten
+  **set-based** (`src/lib/reports/rollup-backfill.ts`): one SQL aggregate per metric
+  across all orgs/days (GROUP BY org, IST day) — 1s vs the hours the original
+  per-org-per-day loop took. Parity with the cron path pinned by
+  `tests/reports-rollup-backfill.test.ts` (same fixture, both paths, identical rows).
 - Fixed pre-existing lint error in `AiSidebar.tsx` (`<a>` → `next/link`).
 
 ### Reports & Analytics — institution-type + role enhancements (2026-07-08)

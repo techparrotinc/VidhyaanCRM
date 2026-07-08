@@ -90,6 +90,39 @@ const IDENTITY_HEADERS = [
   'x-active-role-assignment-id'
 ]
 
+// Verifies the AI Gateway service token (edge-safe Web Crypto).
+// Format: v1.<ts>.<userId>.<orgId>.<role>.<hexHmacSha256(secret, "ts.userId.orgId.role")>
+// 60s validity window bounds replay; the signature covers the acting identity.
+async function verifyAiServiceToken(
+  token: string
+): Promise<{ userId: string; orgId: string; role: string } | null> {
+  const secret = process.env.ERP_SERVICE_TOKEN_SECRET
+  if (!secret) return null
+  const parts = token.split('.')
+  if (parts.length !== 6 || parts[0] !== 'v1') return null
+  const [, ts, userId, orgId, role, sig] = parts
+  if (!ts || !userId || !orgId || !role || !sig) return null
+  if (Math.abs(Date.now() / 1000 - Number(ts)) > 60) return null
+
+  const enc = new TextEncoder()
+  const key = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  const mac = await crypto.subtle.sign('HMAC', key, enc.encode(`${ts}.${userId}.${orgId}.${role}`))
+  const expected = Array.from(new Uint8Array(mac))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+  if (expected.length !== sig.length) return null
+  // constant-time compare
+  let diff = 0
+  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ sig.charCodeAt(i)
+  return diff === 0 ? { userId, orgId, role } : null
+}
+
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -100,6 +133,25 @@ export default async function middleware(request: NextRequest) {
   IDENTITY_HEADERS.forEach((h) => requestHeaders.delete(h))
   const passThrough = () =>
     addSecurityHeaders(NextResponse.next({ request: { headers: requestHeaders } }))
+
+  // AI Gateway service path: a valid HMAC service token lets the gateway act
+  // on behalf of a user — identity headers are then set from the SIGNED
+  // acting-* values (not trusted client input; the signature covers them).
+  // route() then applies its normal RBAC/revocation/module checks unchanged.
+  if (pathname.startsWith('/api/v1/')) {
+    const svcToken = request.headers.get('x-ai-service-token')
+    if (svcToken) {
+      const acting = await verifyAiServiceToken(svcToken)
+      if (!acting) {
+        return NextResponse.json({ success: false, error: 'invalid service token' }, { status: 401 })
+      }
+      requestHeaders.set('x-user-id', acting.userId)
+      requestHeaders.set('x-user-role', acting.role)
+      requestHeaders.set('x-org-id', acting.orgId)
+      requestHeaders.set('x-user-name', 'Vidhyaan AI (on behalf)')
+      return passThrough()
+    }
+  }
 
   // Allow onboarding routes to pass through
   if (pathname.startsWith('/onboarding') || pathname.startsWith('/api/v1/onboarding')) {

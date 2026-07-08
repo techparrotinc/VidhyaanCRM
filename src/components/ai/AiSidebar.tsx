@@ -96,7 +96,8 @@ export function AiSidebar({
       <div className="absolute inset-0 bg-slate-900/30" onClick={onClose} />
 
       {/* drawer */}
-      <div className="absolute right-0 top-0 flex h-full w-full max-w-[400px] flex-col bg-white shadow-2xl">
+      {/* Neon-style width: comfortable reading pane on desktop, full-screen on mobile */}
+      <div className="absolute right-0 top-0 flex h-full w-full flex-col bg-white shadow-2xl sm:max-w-[520px] xl:max-w-[640px]">
         {/* header — always visible, owns the controls */}
         <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
           <div className="flex items-center gap-2.5">
@@ -179,8 +180,8 @@ export function AiSidebar({
                   <div
                     className={
                       m.role === 'user'
-                        ? 'max-w-[85%] rounded-2xl rounded-br-sm bg-[#1565D8] px-4 py-2.5 text-sm font-normal leading-relaxed text-white'
-                        : 'max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-slate-100 px-4 py-2.5 text-sm font-normal leading-relaxed text-slate-800'
+                        ? 'max-w-[80%] rounded-2xl rounded-br-sm bg-[#1565D8] px-4 py-2.5 text-sm font-normal leading-relaxed text-white'
+                        : 'max-w-[92%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-slate-100 px-4 py-3 text-sm font-normal leading-relaxed text-slate-800'
                     }
                   >
                     {m.text}

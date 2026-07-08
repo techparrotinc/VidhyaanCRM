@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 
+const SLAB_ORDER = ['S50', 'S100', 'S200', 'S500', 'S500_PLUS']
+
 export async function GET(req: NextRequest) {
   try {
     const session = await auth()
@@ -14,6 +16,7 @@ export async function GET(req: NextRequest) {
       where: { deletedAt: null },
       include: {
         planModules: true,
+        planPrices: true,
         organizations: {
           where: { deletedAt: null },
           include: {
@@ -54,6 +57,17 @@ export async function GET(req: NextRequest) {
         isPublic: plan.isPublic,
         isActive: plan.isActive,
         modules: plan.planModules.map((pm) => pm.moduleSlug),
+        slabPrices: plan.planPrices
+          .sort((a, b) => SLAB_ORDER.indexOf(a.slab) - SLAB_ORDER.indexOf(b.slab))
+          .map((pp) => ({
+            slab: pp.slab,
+            monthlyPrice: Number(pp.monthlyPrice),
+            annualPrice: Number(pp.annualPrice),
+            launchMonthly: pp.launchMonthly ? Number(pp.launchMonthly) : null,
+            launchEndsAt: pp.launchEndsAt,
+            bundledAiCredits: pp.bundledAiCredits,
+            overagePerStudent: pp.overagePerStudent ? Number(pp.overagePerStudent) : null
+          })),
         subscriberCount,
         revenue
       }

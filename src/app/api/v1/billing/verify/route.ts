@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db/client'
-import { verifyPayment } from '@/lib/integrations/razorpay'
+import { verifyPayment, fetchPayment } from '@/lib/integrations/razorpay'
+import { getEffectivePricing, priceForCycle } from '@/lib/pricing/effective'
+import { recordCouponRedemption } from '@/lib/billing/coupons'
+import { syncBundledAiAllowance } from '@/lib/billing/lifecycle'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 import { AuditAction, SubscriptionStatus, BillingCycle } from '@prisma/client'
 import { redis } from '@/lib/redis'
@@ -24,11 +27,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 
-    // 2. Parse request
+    // 2. Parse request — invoice-backed Checkout callbacks may omit orderId
+    // and signature (they return invoice fields instead), so both are optional
+    // and the API-fetch path below covers them.
     const parsed = z.object({
-      orderId: z.string().min(1),
+      orderId: z.string().min(1).optional(),
       paymentId: z.string().min(1),
-      signature: z.string().min(1),
+      signature: z.string().min(1).optional(),
       planSlug: z.string().min(1),
       billingCycle: z.enum(['MONTHLY', 'QUARTERLY', 'ANNUAL'])
     }).safeParse(await req.json())
@@ -39,11 +44,24 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
-    const { orderId, paymentId, signature, planSlug, billingCycle } = parsed.data
+    const { paymentId, signature, planSlug, billingCycle } = parsed.data
+    let { orderId } = parsed.data
 
-    // 3. Verify signature
-    const isValid = verifyPayment(orderId, paymentId, signature)
-    if (!isValid) {
+    // 3. Verify payment: order signature when present, else authenticated
+    // API fetch (server-to-server; equally trustworthy, fails closed).
+    let verified = false
+    let fetchedPayment: Awaited<ReturnType<typeof fetchPayment>> = null
+    if (orderId && signature) {
+      verified = verifyPayment(orderId, paymentId, signature)
+    }
+    if (!verified) {
+      fetchedPayment = await fetchPayment(paymentId)
+      if (fetchedPayment && ['captured', 'authorized'].includes(fetchedPayment.status)) {
+        if (fetchedPayment.order_id) orderId = fetchedPayment.order_id
+        verified = !!orderId || paymentId.startsWith('pay_mock_')
+      }
+    }
+    if (!verified || (!orderId && !paymentId.startsWith('pay_mock_'))) {
       return NextResponse.json({ success: false, error: 'Invalid payment signature' }, { status: 400 })
     }
 
@@ -55,10 +73,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Plan not found' }, { status: 404 })
     }
 
-    // 5. Update transaction
-    const transaction = await prisma.transaction.findFirst({
-      where: { gatewayRef: orderId, orgId: user.orgId }
-    })
+    // 5. Update transaction (gatewayRef = the order id the payment settled)
+    const transaction = orderId
+      ? await prisma.transaction.findFirst({
+          where: { gatewayRef: orderId, orgId: user.orgId }
+        })
+      : null
+
+    // Amount guard on the API-fetch path: paid amount must match the order
+    if (transaction && fetchedPayment && fetchedPayment.amount > 0) {
+      const expectedPaise = Math.round(Number(transaction.amount) * 100)
+      if (fetchedPayment.amount !== expectedPaise) {
+        return NextResponse.json({ success: false, error: 'Payment amount mismatch' }, { status: 400 })
+      }
+    }
 
     if (transaction) {
       await prisma.transaction.update({
@@ -66,9 +94,15 @@ export async function POST(req: NextRequest) {
         data: {
           status: 'SUCCESS',
           gatewayRef: paymentId,
-          paidAt: new Date()
+          paidAt: new Date(),
+          // Hosted Razorpay GST invoice becomes downloadable once paid
+          invoiceUrl: ((transaction.metadata as any)?.invoiceUrl as string | undefined) ?? undefined
         }
       })
+      const couponId = (transaction.metadata as any)?.couponId as string | undefined
+      if (couponId) {
+        await recordCouponRedemption(couponId, user.orgId, transaction.id)
+      }
     }
 
     // 6. Calculate renewal periods
@@ -82,13 +116,12 @@ export async function POST(req: NextRequest) {
       currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1)
     }
 
-    const monthly = Number(plan.monthlyPrice)
-    let price = monthly
-    if (billingCycle === 'QUARTERLY') {
-      price = plan.quarterlyPrice ? Number(plan.quarterlyPrice) : monthly * 3 * 0.9
-    } else if (billingCycle === 'ANNUAL') {
-      price = plan.annualPrice ? Number(plan.annualPrice) : monthly * 12 * 0.75
-    }
+    // Slab-aware price — the slab priced into the order was persisted on the
+    // pending transaction at order creation (server-side truth, not client input)
+    const orderSlab = (transaction?.metadata as any)?.slab as
+      | 'S50' | 'S100' | 'S200' | 'S500' | 'S500_PLUS' | undefined
+    const pricing = await getEffectivePricing(plan.id, user.orgId, orderSlab ?? null)
+    const price = priceForCycle(pricing, billingCycle as 'MONTHLY' | 'QUARTERLY' | 'ANNUAL')
 
     // Find or create Subscription
     let subscription = await prisma.subscription.findFirst({
@@ -104,6 +137,9 @@ export async function POST(req: NextRequest) {
       startedAt: currentPeriodStart,
       currentPeriodEnd: currentPeriodEnd,
       trialEndsAt: null,
+      // A fresh payment supersedes any pending cancellation or grace state
+      cancelAtPeriodEnd: false,
+      graceEndsAt: null,
       gatewaySubId: null // One-time order verification path
     }
 
@@ -160,13 +196,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 8. Update Organization plan status
+    // 7.5 Grant the slab's bundled monthly AI credit allowance
+    await syncBundledAiAllowance(
+      user.orgId,
+      plan.id,
+      (transaction?.metadata as any)?.slab ?? pricing.slab
+    ).catch((e) => console.error('AI allowance sync failed:', e))
+
+    // 8. Update Organization plan status; a paid plan change supersedes any
+    // previously scheduled (downgrade) plan change
+    const { pendingPlanChange: _superseded, ...cleanSettings } =
+      ((user.organization.settings as any) || {})
     await prisma.organization.update({
       where: { id: user.orgId },
       data: {
         planId: plan.id,
         trialEndsAt: null,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        settings: cleanSettings
       }
     })
 
@@ -205,6 +252,10 @@ export async function POST(req: NextRequest) {
           <div style="text-align: center; margin: 30px 0;">
             <a href="${process.env.NEXTAUTH_URL || 'https://vidhyaan.com'}/settings/billing" style="display: inline-block; background-color: #1565D8; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">Go to Billing Dashboard</a>
           </div>
+          ${(transaction?.metadata as any)?.invoiceUrl ? `
+          <p style="text-align: center; font-size: 12px; margin-top: -14px;">
+            <a href="${(transaction!.metadata as any).invoiceUrl}" style="color: #1565D8; font-weight: bold;">Download your GST invoice</a>
+          </p>` : ''}
         </div>
       </div>
     `

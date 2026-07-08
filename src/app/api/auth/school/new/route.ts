@@ -240,17 +240,24 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    // 5. Enable modules based on institutionType
+    // 5. Enable modules — the 7-day trial showcases the full Enterprise
+    // experience (all modules incl. AI); trial expiry drops to free-plan modules.
     try {
+      const enterprisePlan = await prisma.plan.findUnique({
+        where: { slug: 'enterprise' },
+        include: { planModules: true }
+      })
       const isSchool = mappedInstType !== 'LEARNING_CENTER'
-      const coreModuleSlugs = [
-        'lead_management',
-        'student_management',
-        'fee_management',
-        'campaign_management',
-        'event_management',
-        ...(isSchool ? ['admission_management'] : [])
-      ]
+      const coreModuleSlugs = enterprisePlan?.planModules.length
+        ? enterprisePlan.planModules.map((pm) => pm.moduleSlug)
+        : [
+            'lead_management',
+            'student_management',
+            'fee_management',
+            'campaign_management',
+            'event_management',
+            ...(isSchool ? ['admission_management'] : [])
+          ]
       const dbModules = await prisma.module.findMany({
         where: { slug: { in: coreModuleSlugs } }
       })

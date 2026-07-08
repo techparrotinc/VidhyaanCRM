@@ -24,7 +24,15 @@ const platformSettingsSchema = z.object({
   razorpayWebhookSecret: strOpt(200),
   doSpacesEndpoint: strOpt(300),
   doSpacesBucket: strOpt(100),
-  doSpacesCdnUrl: strOpt(300)
+  doSpacesCdnUrl: strOpt(300),
+  enabledBillingCycles: z
+    .array(z.enum(['MONTHLY', 'QUARTERLY', 'ANNUAL']))
+    .min(1, 'At least one billing cycle must stay enabled')
+    .optional(),
+  pricesIncludeGst: z.boolean().optional(),
+  businessName: strOpt(200),
+  businessAddress: strOpt(500),
+  businessGstin: strOpt(20)
 })
 
 export async function GET(req: NextRequest) {
@@ -110,6 +118,11 @@ export async function PUT(req: NextRequest) {
         doSpacesEndpoint: body.doSpacesEndpoint !== undefined ? body.doSpacesEndpoint : undefined,
         doSpacesBucket: body.doSpacesBucket !== undefined ? body.doSpacesBucket : undefined,
         doSpacesCdnUrl: body.doSpacesCdnUrl !== undefined ? body.doSpacesCdnUrl : undefined,
+        enabledBillingCycles: body.enabledBillingCycles !== undefined ? body.enabledBillingCycles : undefined,
+        pricesIncludeGst: body.pricesIncludeGst !== undefined ? Boolean(body.pricesIncludeGst) : undefined,
+        businessName: body.businessName !== undefined ? body.businessName : undefined,
+        businessAddress: body.businessAddress !== undefined ? body.businessAddress : undefined,
+        businessGstin: body.businessGstin !== undefined ? body.businessGstin.toUpperCase() : undefined,
       }
     })
 

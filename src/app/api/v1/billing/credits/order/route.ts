@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
-import { createOrder } from '@/lib/integrations/razorpay'
+import { createGstInvoice } from '@/lib/integrations/razorpay'
 import { TransactionType } from '@prisma/client'
 import { getPack } from '@/lib/credits/constants'
 
@@ -27,13 +27,59 @@ export async function POST(req: NextRequest) {
     }
 
     const amountInPaise = Math.round(pack.priceInr * 100)
-    const receipt = `CRD-${session.user.orgId}-${Date.now()}`
+    // Razorpay caps receipt at 40 chars
+    const receipt = `CRD-${session.user.orgId.slice(-8)}-${Date.now()}`
 
-    const order = await createOrder(amountInPaise, 'INR', receipt, {
-      orgId: session.user.orgId,
-      packId: pack.id,
-      channel: pack.channel,
-      kind: 'CREDIT_PURCHASE'
+    // GST invoice (same as subscriptions): auto-creates the Checkout order,
+    // hosted invoice becomes downloadable once paid.
+    const [org, platform] = await Promise.all([
+      prisma.organization.findUniqueOrThrow({
+        where: { id: session.user.orgId },
+        select: { name: true, email: true, phone: true, gstNumber: true, settings: true }
+      }),
+      prisma.platformSettings.findUnique({ where: { id: 'default' } })
+    ])
+    const storedBilling = ((org.settings as any) || {}).billingAddress as
+      | { addressLine?: string; city?: string; state?: string; pincode?: string }
+      | undefined
+
+    const invoice = await createGstInvoice({
+      customer: {
+        name: org.name,
+        email: org.email ?? undefined,
+        contact: org.phone ?? undefined,
+        gstin: org.gstNumber ?? undefined
+      },
+      lineItemName: `Vidhyaan ${pack.channel} credit pack — ${pack.credits.toLocaleString('en-IN')} credits`,
+      description: `Credit pack ${pack.id}`,
+      amountInPaise,
+      receipt,
+      gstInclusive: !!platform?.pricesIncludeGst,
+      billToText: [
+        `Billed To: ${org.name}`,
+        storedBilling?.addressLine &&
+          [storedBilling.addressLine, storedBilling.city, storedBilling.state, storedBilling.pincode]
+            .filter(Boolean)
+            .join(', '),
+        org.gstNumber && `Customer GSTIN: ${org.gstNumber}`
+      ]
+        .filter(Boolean)
+        .join(' | '),
+      sellerTerms: [
+        platform?.businessName && `Sold by: ${platform.businessName}`,
+        platform?.businessAddress && `Address: ${platform.businessAddress}`,
+        platform?.businessGstin && `GSTIN: ${platform.businessGstin}`,
+        'SAC 998314 — Information technology services',
+        'All payments are final and non-refundable.'
+      ]
+        .filter(Boolean)
+        .join(' | '),
+      notes: {
+        orgId: session.user.orgId,
+        packId: pack.id,
+        channel: pack.channel,
+        kind: 'CREDIT_PURCHASE'
+      }
     })
 
     // metadata is the server-side truth used when granting credits — the
@@ -43,16 +89,22 @@ export async function POST(req: NextRequest) {
         orgId: session.user.orgId,
         type: TransactionType.CREDIT_PURCHASE,
         status: 'PENDING',
-        amount: pack.priceInr,
+        amount: invoice.amount / 100,
         currency: 'INR',
-        gatewayRef: order.id,
-        metadata: { channel: pack.channel, packId: pack.id, credits: pack.credits }
+        gatewayRef: invoice.order_id,
+        metadata: {
+          channel: pack.channel,
+          packId: pack.id,
+          credits: pack.credits,
+          invoiceId: invoice.id,
+          invoiceUrl: invoice.short_url
+        }
       }
     })
 
     return NextResponse.json({
-      orderId: order.id,
-      amount: amountInPaise,
+      orderId: invoice.order_id,
+      amount: invoice.amount,
       currency: 'INR',
       keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'mock_public_key'
     })

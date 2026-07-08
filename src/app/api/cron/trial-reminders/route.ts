@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/client'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 import { trialEndingTemplate } from '@/lib/mail/templates'
 import { createNotification } from '@/lib/services/notifications'
+import { remapOrgModulesToPlan } from '@/lib/billing/lifecycle'
 
 export async function GET(req: NextRequest) {
   try {
@@ -132,6 +133,14 @@ export async function GET(req: NextRequest) {
         where: { id: org.id },
         data: { status: 'TRIAL_EXPIRED' }
       })
+
+      // Trial ran on Enterprise modules — lock back down to the free plan's set
+      try {
+        const freePlan = await prisma.plan.findUnique({ where: { slug: 'free' } })
+        if (freePlan) await remapOrgModulesToPlan(org.id, freePlan.id)
+      } catch (e) {
+        console.error(`Trial expiry module lockdown failed for org ${org.id}:`, e)
+      }
     }
 
     return NextResponse.json({

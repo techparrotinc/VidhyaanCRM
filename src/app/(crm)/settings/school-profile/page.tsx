@@ -12,6 +12,7 @@ import {
   DollarSign,
   Clock,
   Settings as SettingsIcon,
+  Receipt,
   Upload,
   Trash2,
   Star,
@@ -34,6 +35,7 @@ import AcademicsTab from '@/components/settings/school-profile/AcademicsTab'
 import GalleryTab from '@/components/settings/school-profile/GalleryTab'
 import FacilitiesTab from '@/components/settings/school-profile/FacilitiesTab'
 import HoursTab from '@/components/settings/school-profile/HoursTab'
+import BillingTab from '@/components/settings/school-profile/BillingTab'
 import AdmissionsTab from '@/components/settings/school-profile/AdmissionsTab'
 import FeesTab from '@/components/settings/school-profile/FeesTab'
 import { Progress } from '@/components/ui/progress'
@@ -841,6 +843,7 @@ export default function SchoolProfilePage() {
             { id: 'gallery', label: 'Gallery', icon: ImageIcon },
             { id: 'fees', label: 'Fee Structure', icon: DollarSign },
             { id: 'hours', label: 'Operating Hours', icon: Clock },
+            { id: 'billing', label: 'Billing Details', icon: Receipt },
             { id: 'admissions', label: 'Admission Settings', icon: SettingsIcon }
           ].map((tab) => {
             const Icon = tab.icon
@@ -968,6 +971,9 @@ export default function SchoolProfilePage() {
               saving={saving}
             />
           )}
+
+          {/* TAB: BILLING DETAILS (Bill-To + GSTIN for GST invoices) */}
+          {activeTab === 'billing' && <BillingTab />}
 
           {/* TAB 8: ADMISSIONS SETTINGS */}
           {activeTab === 'admissions' && (

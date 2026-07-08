@@ -204,17 +204,26 @@ export async function POST(req: NextRequest) {
       })
 
       try {
+        // 7-day trial showcases the full Enterprise experience (all modules
+        // incl. AI + advanced reports); expiry drops the org to free-plan
+        // modules via the trial cron.
+        const enterprisePlan = await prisma.plan.findUnique({
+          where: { slug: 'enterprise' },
+          include: { planModules: true }
+        })
         const isSchool = mappedInstType !== 'LEARNING_CENTER'
-        const coreModuleSlugs = [
-          'lead_management',
-          'student_management',
-          'fee_management',
-          'campaign_management',
-          'event_management',
-          ...(isSchool ? ['admission_management'] : [])
-        ]
+        const trialModuleSlugs = enterprisePlan?.planModules.length
+          ? enterprisePlan.planModules.map((pm) => pm.moduleSlug)
+          : [
+              'lead_management',
+              'student_management',
+              'fee_management',
+              'campaign_management',
+              'event_management',
+              ...(isSchool ? ['admission_management'] : [])
+            ]
         const dbModules = await prisma.module.findMany({
-          where: { slug: { in: coreModuleSlugs } }
+          where: { slug: { in: trialModuleSlugs } }
         })
         await prisma.organizationModule.createMany({
           data: dbModules.map(m => ({

@@ -1,44 +1,50 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import Script from 'next/script'
+import Link from 'next/link'
 import {
-  CreditCard,
-  Check,
   AlertTriangle,
   History,
-  Calendar,
-  Layers,
   ArrowUpRight,
   ShieldCheck,
-  XCircle,
   X
 } from 'lucide-react'
+
+const SLAB_INFO: Record<string, { label: string; cap: number }> = {
+  S50: { label: 'up to 50 students', cap: 50 },
+  S100: { label: 'up to 100 students', cap: 100 },
+  S200: { label: 'up to 200 students', cap: 200 },
+  S500: { label: 'up to 500 students', cap: 500 },
+  S500_PLUS: { label: '500+ students', cap: 1000 }
+}
 
 export default function BillingSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [org, setOrg] = useState<any>(null)
-  const [plans, setPlans] = useState<any[]>([])
   const [subscription, setSubscription] = useState<any>(null)
   const [transactions, setTransactions] = useState<any[]>([])
+  const [pendingPlanChange, setPendingPlanChange] = useState<any>(null)
+  const [wallets, setWallets] = useState<any[]>([])
+  const [studentCount, setStudentCount] = useState(0)
+  const [paidSlab, setPaidSlab] = useState<string | null>(null)
 
-  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
-  const [billingCycle, setBillingCycle] = useState<'MONTHLY' | 'QUARTERLY' | 'ANNUAL'>('MONTHLY')
-  const [processingPlanSlug, setProcessingPlanSlug] = useState<string | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
-  // Fetch all billing metadata on load
-  const fetchBillingData = async () => {
+  // Fetch all billing metadata on load; background=true skips the page spinner
+  const fetchBillingData = async (background = false) => {
     try {
-      setLoading(true)
+      if (!background) setLoading(true)
       const res = await fetch('/api/v1/billing')
       const data = await res.json()
       if (res.ok) {
         setOrg(data.org)
         setSubscription(data.subscription)
         setTransactions(data.transactions)
-        setPlans(data.plans)
+        setPendingPlanChange(data.pendingPlanChange ?? null)
+        setWallets(data.wallets ?? [])
+        setStudentCount(data.studentCount ?? 0)
+        setPaidSlab(data.paidSlab ?? null)
       } else {
         showToast('error', data.error || 'Failed to load billing configurations.')
       }
@@ -52,6 +58,21 @@ export default function BillingSettingsPage() {
 
   useEffect(() => {
     fetchBillingData()
+    // Landing back from the upgrade flow after a successful payment
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('activated')) {
+      showToast('success', 'Payment received — your plan is now active!')
+      window.history.replaceState({}, '', '/settings/billing')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Returning to the tab re-syncs billing state — the server reconciles
+  // paid-but-unverified orders on every GET.
+  useEffect(() => {
+    const onFocus = () => fetchBillingData(true)
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const showToast = (type: 'success' | 'error', message: string) => {
@@ -59,117 +80,6 @@ export default function BillingSettingsPage() {
     setTimeout(() => setToast(null), 5000)
   }
 
-  // Handle plan upgrade trigger
-  const handleUpgradeSelect = async (planSlug: string) => {
-    try {
-      setProcessingPlanSlug(planSlug)
-      const subRes = await fetch('/api/v1/billing/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planSlug, billingCycle })
-      })
-      const subData = await subRes.json()
-
-      if (!subRes.ok) {
-        throw new Error(subData.error || 'Failed to initialize subscription checkout')
-      }
-
-      const { orderId, amount, currency, keyId } = subData
-
-      if (keyId === 'mock_public_key' || keyId.startsWith('mock')) {
-        console.log('[Dev Mock] Bypassing Razorpay Checkout overlay, auto-verifying order:', orderId)
-        try {
-          setLoading(true)
-          const verifyRes = await fetch('/api/v1/billing/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              orderId,
-              paymentId: 'pay_mock_' + Math.random().toString(36).substring(2, 10),
-              signature: 'sig_mock_' + Math.random().toString(36).substring(2, 10),
-              planSlug,
-              billingCycle
-            })
-          })
-          const verifyData = await verifyRes.json()
-
-          if (verifyRes.ok && verifyData.success) {
-            showToast('success', 'Plan upgraded and activated successfully (Mock Verification)!')
-            setUpgradeModalOpen(false)
-            fetchBillingData()
-          } else {
-            showToast('error', verifyData.error || 'Signature verification failed.')
-          }
-        } catch (err: any) {
-          showToast('error', err.message || 'Verification request failed.')
-        } finally {
-          setLoading(false)
-          setProcessingPlanSlug(null)
-        }
-        return
-      }
-
-      const options = {
-        key: keyId,
-        amount,
-        currency,
-        name: 'Vidhyaan CRM',
-        description: `${planSlug.toUpperCase()} Plan Subscription`,
-        order_id: orderId,
-        handler: async function (response: any) {
-          try {
-            setLoading(true)
-            const verifyRes = await fetch('/api/v1/billing/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                orderId: response.razorpay_order_id,
-                paymentId: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
-                planSlug,
-                billingCycle
-              })
-            })
-            const verifyData = await verifyRes.json()
-
-            if (verifyRes.ok && verifyData.success) {
-              showToast('success', 'Plan upgraded and activated successfully!')
-              setUpgradeModalOpen(false)
-              fetchBillingData()
-            } else {
-              showToast('error', verifyData.error || 'Signature verification failed.')
-            }
-          } catch (err: any) {
-            showToast('error', err.message || 'Verification request failed.')
-          } finally {
-            setLoading(false)
-          }
-        },
-        modal: {
-          ondismiss: function () {
-            setProcessingPlanSlug(null)
-          }
-        },
-        prefill: {
-          name: org?.name || '',
-          email: org?.email || '',
-          contact: org?.phone || ''
-        },
-        theme: {
-          color: '#1565D8'
-        }
-      }
-
-      const rzp = new (window as any).Razorpay(options)
-      rzp.open()
-
-    } catch (err: any) {
-      showToast('error', err.message || 'Checkout failed to initialize.')
-      setProcessingPlanSlug(null)
-    }
-  }
-
-  // Handle plan cancellation
   const handleCancelSubscription = async () => {
     try {
       setLoading(true)
@@ -192,12 +102,6 @@ export default function BillingSettingsPage() {
     }
   }
 
-  const getPrice = (plan: any) => {
-    if (billingCycle === 'MONTHLY') return Number(plan.monthlyPrice)
-    if (billingCycle === 'QUARTERLY') return plan.quarterlyPrice ? Number(plan.quarterlyPrice) : Number(plan.monthlyPrice) * 3 * 0.9
-    return plan.annualPrice ? Number(plan.annualPrice) : Number(plan.monthlyPrice) * 12 * 0.75
-  }
-
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'ACTIVE': return 'bg-green-55 border-green-200 text-green-700 bg-green-50'
@@ -218,8 +122,6 @@ export default function BillingSettingsPage() {
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
-
       {/* TOAST ALERTS */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 p-4 rounded-xl shadow-lg border flex items-center gap-3 animate-fade-in ${
@@ -235,13 +137,27 @@ export default function BillingSettingsPage() {
           <h2 className="text-xl font-bold text-slate-900">Billing & Subscriptions</h2>
           <p className="text-xs text-slate-500 font-medium">Manage plan upgrades, transaction logs, and payment credentials.</p>
         </div>
-        <button
-          onClick={() => setUpgradeModalOpen(true)}
-          className="bg-[#1565D8] hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition"
-        >
-          <ArrowUpRight className="size-4" />
-          Upgrade Plan
-        </button>
+        <div className="flex items-center gap-2">
+          {subscription &&
+            (['GRACE_PERIOD', 'PAST_DUE', 'EXPIRED'].includes(subscription.status) ||
+              (subscription.status === 'ACTIVE' &&
+                subscription.currentPeriodEnd &&
+                (new Date(subscription.currentPeriodEnd).getTime() - Date.now()) / 86400000 <= 15)) && (
+              <Link
+                href="/settings/billing/upgrade"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition w-fit"
+              >
+                Renew Now
+              </Link>
+            )}
+          <Link
+            href="/settings/billing/upgrade"
+            className="bg-[#1565D8] hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-sm transition w-fit"
+          >
+            <ArrowUpRight className="size-4" />
+            Upgrade Plan
+          </Link>
+        </div>
       </div>
 
       {/* CURRENT STATUS */}
@@ -263,18 +179,74 @@ export default function BillingSettingsPage() {
               {subscription?.plan?.name || org?.plan?.name || 'Free Trial Plan'}
             </h3>
 
-            <div className="grid grid-cols-2 gap-4 mt-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
               <div>
                 <span className="text-[10px] text-slate-400 font-bold block uppercase">Billing Period</span>
-                <span className="text-xs text-slate-700 font-bold uppercase">{subscription?.billingCycle || 'None (Trial)'}</span>
+                <span className="text-xs text-slate-700 font-bold uppercase">
+                  {subscription?.billingCycle === 'ANNUAL' ? 'Yearly' : subscription?.billingCycle === 'QUARTERLY' ? '3 Months' : subscription?.billingCycle === 'MONTHLY' ? 'Monthly' : 'None (Trial)'}
+                </span>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 font-bold block uppercase">Cycle Cost</span>
                 <span className="text-xs text-slate-700 font-bold">
                   {subscription?.amount ? `₹${Number(subscription.amount).toLocaleString()}` : '₹0 (Free)'}
+                  <span className="text-[9px] text-slate-400 font-semibold"> + GST</span>
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold block uppercase">Started On</span>
+                <span className="text-xs text-slate-700 font-bold">
+                  {subscription?.startedAt ? new Date(subscription.startedAt).toLocaleDateString('en-IN') : '—'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold block uppercase">Renews On</span>
+                <span className="text-xs text-slate-700 font-bold">
+                  {subscription?.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toLocaleDateString('en-IN') : '—'}
+                  {subscription?.currentPeriodEnd && (
+                    <span className="text-[9px] text-slate-400 font-semibold block">
+                      {Math.max(0, Math.ceil((new Date(subscription.currentPeriodEnd).getTime() - Date.now()) / 86400000))} days left
+                    </span>
+                  )}
                 </span>
               </div>
             </div>
+
+            {/* Student capacity usage */}
+            {paidSlab && SLAB_INFO[paidSlab] && (
+              <div className="mt-5">
+                <div className="flex justify-between items-baseline text-[10px] font-bold uppercase text-slate-400 mb-1.5">
+                  <span>Student Capacity</span>
+                  <span className="text-slate-600 normal-case font-semibold">
+                    {studentCount.toLocaleString('en-IN')} of {SLAB_INFO[paidSlab].label}
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      studentCount > SLAB_INFO[paidSlab].cap
+                        ? 'bg-red-500'
+                        : studentCount > SLAB_INFO[paidSlab].cap * 0.9
+                          ? 'bg-amber-500'
+                          : 'bg-[#1565D8]'
+                    }`}
+                    style={{ width: `${Math.min(100, (studentCount / SLAB_INFO[paidSlab].cap) * 100)}%` }}
+                  />
+                </div>
+                {studentCount > SLAB_INFO[paidSlab].cap && (
+                  <p className="text-[10px] font-bold text-red-600 mt-1">
+                    Over capacity — <Link href="/settings/billing/upgrade" className="underline">upgrade your slab</Link> to stay compliant.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {pendingPlanChange && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-800 font-semibold">
+                Plan change scheduled: switching to <span className="uppercase font-black">{pendingPlanChange.planSlug === 'starter' ? 'CRM Package' : pendingPlanChange.planSlug === 'growth' ? 'Fee Management' : pendingPlanChange.planSlug}</span> on{' '}
+                {new Date(pendingPlanChange.effectiveAt).toLocaleDateString('en-IN')}. Your current plan stays active until then.
+              </div>
+            )}
 
             {subscription?.cancelAtPeriodEnd && (
               <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700 font-semibold">
@@ -313,12 +285,25 @@ export default function BillingSettingsPage() {
           <div>
             <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Usage Details</span>
             <div className="mt-4">
-              <span className="text-3xl font-extrabold">{org?.leadCap || 10}</span>
+              <span className="text-3xl font-extrabold">
+                {subscription?.status === 'ACTIVE' ? '∞' : org?.leadCap || 10}
+              </span>
               <span className="text-xs text-slate-400 font-bold block mt-1">Lead Limit Capacity</span>
             </div>
             <p className="text-[11px] text-slate-400 mt-4 leading-relaxed font-semibold">
               The lead limit is automatically expanded to unlimited once you activate any paid subscription tier.
             </p>
+            {wallets.length > 0 && (
+              <div className="mt-5 grid grid-cols-3 gap-2">
+                {wallets.map((w: any) => (
+                  <Link key={w.channel} href="/settings/addons" className="bg-slate-800/70 rounded-lg p-2.5 text-center hover:bg-slate-800 transition" title="Buy credits">
+                    <div className="text-[9px] font-bold text-slate-400 uppercase">{w.channel}</div>
+                    <div className="text-sm font-black text-white tabular-nums mt-0.5">{w.balance.toLocaleString('en-IN')}</div>
+                    <div className="text-[8px] font-semibold text-slate-500">credits</div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
           <div className="mt-6 border-t border-slate-800 pt-4 flex gap-2 items-center text-xs font-semibold text-slate-355">
             <ShieldCheck className="size-4 text-blue-400 shrink-0" />
@@ -359,7 +344,14 @@ export default function BillingSettingsPage() {
                     <td className="p-4">
                       {tx.subscription?.plan?.name || 'Subscription Activation'} ({tx.type})
                     </td>
-                    <td className="p-4">₹{Number(tx.amount).toLocaleString()}</td>
+                    <td className="p-4">
+                      ₹{Number(tx.amount).toLocaleString()}
+                      {(tx.metadata as any)?.gstAmount ? (
+                        <span className="block text-[9px] text-slate-400 font-semibold">
+                          incl. ₹{Number((tx.metadata as any).gstAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })} GST
+                        </span>
+                      ) : null}
+                    </td>
                     <td className="p-4">
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
                         tx.status === 'SUCCESS' ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'
@@ -384,140 +376,16 @@ export default function BillingSettingsPage() {
         )}
       </div>
 
-      {/* UPGRADE PLAN MODAL */}
-      {upgradeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative">
-            
-            <button
-              onClick={() => setUpgradeModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 cursor-pointer"
-            >
-              <X className="size-5" />
-            </button>
-
-            <div className="p-6 md:p-8">
-              <h3 className="text-2xl font-black tracking-tight text-slate-900 text-center">
-                Select Your Subscription Plan
-              </h3>
-              <p className="text-xs text-slate-500 font-medium text-center mt-1">
-                Unlock admissions campaigns, fee collection pipelines, and unlimited leads.
-              </p>
-
-              {/* Cycle Toggle inside Modal */}
-              <div className="mt-6 flex justify-center">
-                <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200 shadow-sm">
-                  {['MONTHLY', 'QUARTERLY', 'ANNUAL'].map((cycle) => (
-                    <button
-                      key={cycle}
-                      onClick={() => setBillingCycle(cycle as any)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all relative ${
-                        billingCycle === cycle
-                          ? 'bg-[#1565D8] text-white shadow-sm'
-                          : 'text-slate-600 hover:text-slate-950'
-                      }`}
-                    >
-                      {cycle.toLowerCase()}
-                      {cycle === 'QUARTERLY' && (
-                        <span className="absolute -top-3.5 left-1/2 transform -translate-x-1/2 bg-green-50 text-green-700 border border-green-200 text-[8px] font-black px-1 rounded-full whitespace-nowrap">
-                          -10%
-                        </span>
-                      )}
-                      {cycle === 'ANNUAL' && (
-                        <span className="absolute -top-3.5 left-1/2 transform -translate-x-1/2 bg-blue-50 text-blue-700 border border-blue-200 text-[8px] font-black px-1 rounded-full whitespace-nowrap">
-                          -25%
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Plan Cards inside Modal */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-                {plans.map((plan) => {
-                  const isCurrent = org?.planId === plan.id
-                  const price = getPrice(plan)
-                  const totalFormatted = billingCycle === 'QUARTERLY' ? `(₹${(price * 3).toLocaleString()} billed quarterly)` : billingCycle === 'ANNUAL' ? `(₹${(price * 12).toLocaleString()} billed annually)` : ''
-
-                  return (
-                    <div
-                      key={plan.id}
-                      className={`bg-white rounded-xl border p-6 flex flex-col justify-between relative transition-shadow ${
-                        plan.slug === 'growth' ? 'border-[#1565D8] ring-2 ring-blue-50' : 'border-slate-200'
-                      }`}
-                    >
-                      <div>
-                        {plan.slug === 'growth' && (
-                          <div className="absolute top-4 right-4 bg-[#1565D8] text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                            Recommended
-                          </div>
-                        )}
-                        <h4 className="text-lg font-black text-slate-900">{plan.name}</h4>
-                        <p className="text-xs text-slate-500 font-medium mt-1">{plan.description}</p>
-
-                        <div className="mt-4 flex items-baseline gap-1">
-                          <span className="text-3xl font-black text-slate-900">₹{price.toLocaleString()}</span>
-                          <span className="text-xs text-slate-400 font-bold">/mo</span>
-                        </div>
-                        <span className="text-[10px] text-slate-400 font-semibold block">{totalFormatted}</span>
-
-                        <ul className="mt-6 space-y-3 text-xs text-slate-600">
-                          <li className="flex gap-2">
-                            <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                            <span>Unlimited leads capture</span>
-                          </li>
-                          <li className="flex gap-2">
-                            <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                            <span>Admission manager</span>
-                          </li>
-                          {plan.slug === 'growth' && (
-                            <>
-                              <li className="flex gap-2">
-                                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                                <span>Fee invoice automation</span>
-                              </li>
-                              <li className="flex gap-2">
-                                <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                                <span>WhatsApp alerts</span>
-                              </li>
-                            </>
-                          )}
-                        </ul>
-                      </div>
-
-                      <div className="mt-8">
-                        <button
-                          disabled={isCurrent || processingPlanSlug === plan.slug}
-                          onClick={() => handleUpgradeSelect(plan.slug)}
-                          className={`w-full py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                            isCurrent
-                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-                              : 'bg-[#1565D8] hover:bg-blue-700 text-white shadow-sm'
-                          }`}
-                        >
-                          {processingPlanSlug === plan.slug ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          ) : isCurrent ? (
-                            'Current Active Plan'
-                          ) : (
-                            'Select Plan & Subscribe'
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* CANCEL SUBSCRIPTION CONFIRMATION MODAL */}
       {cancelModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-2xl relative">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={() => setCancelModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setCancelModalOpen(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 cursor-pointer"
@@ -533,6 +401,10 @@ export default function BillingSettingsPage() {
               <h3 className="text-lg font-black text-slate-900">Are you absolutely sure?</h3>
               <p className="text-xs text-slate-500 leading-relaxed font-semibold">
                 Cancelling means you will lose access to premium pipelines, WhatsApp parent alerts, automated fee receipts, and lead capture dashboards at the end of the billing period.
+              </p>
+              <p className="text-[11px] text-slate-400 leading-relaxed font-semibold">
+                Payments already made are <strong className="text-slate-600">non-refundable</strong> — your plan stays
+                fully active until the paid period ends, and no further charges will occur after that.
               </p>
 
               <div className="pt-4 space-y-3 flex flex-col">

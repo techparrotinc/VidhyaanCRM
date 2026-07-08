@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
-import { verifyPayment } from '@/lib/integrations/razorpay'
+import { verifyPayment, fetchPayment } from '@/lib/integrations/razorpay'
 import { TransactionStatus, TransactionType, type MessageChannel } from '@prisma/client'
 import { grantPurchasedCredits, getWalletSummary } from '@/lib/credits/engine'
 
@@ -18,17 +18,27 @@ export async function POST(req: NextRequest) {
     const orgId = session.user.orgId
 
     const parsed = z.object({
-      orderId: z.string().min(1),
+      orderId: z.string().min(1).optional(),
       paymentId: z.string().min(1),
-      signature: z.string().min(1)
+      signature: z.string().min(1).optional()
     }).safeParse(await req.json())
     if (!parsed.success) {
       return NextResponse.json({ success: false, error: 'Invalid parameters' }, { status: 400 })
     }
-    const { orderId, paymentId, signature } = parsed.data
+    const { paymentId, signature } = parsed.data
+    let { orderId } = parsed.data
 
-    const isValid = verifyPayment(orderId, paymentId, signature)
+    // Signature when present; else authenticated API fetch (invoice-backed
+    // Checkout callbacks may omit the order signature)
+    let isValid = orderId && signature ? verifyPayment(orderId, paymentId, signature) : false
     if (!isValid) {
+      const payment = await fetchPayment(paymentId)
+      if (payment && ['captured', 'authorized'].includes(payment.status)) {
+        if (payment.order_id) orderId = payment.order_id
+        isValid = !!orderId || paymentId.startsWith('pay_mock_')
+      }
+    }
+    if (!isValid || (!orderId && !paymentId.startsWith('pay_mock_'))) {
       return NextResponse.json({ success: false, error: 'Payment verification failed' }, { status: 400 })
     }
 
@@ -51,7 +61,13 @@ export async function POST(req: NextRequest) {
       const transaction = await prisma.transaction.findFirst({
         where: { orgId, gatewayRef: paymentId, type: TransactionType.CREDIT_PURCHASE }
       })
-      const meta = transaction?.metadata as { channel?: string; credits?: number } | null
+      const meta = transaction?.metadata as { channel?: string; credits?: number; invoiceUrl?: string } | null
+      if (transaction && meta?.invoiceUrl) {
+        await prisma.transaction.update({
+          where: { id: transaction.id },
+          data: { invoiceUrl: meta.invoiceUrl }
+        }).catch(() => {})
+      }
       if (transaction && meta?.channel && meta?.credits) {
         await grantPurchasedCredits(
           orgId,

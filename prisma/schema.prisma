@@ -2442,9 +2442,74 @@ model Plan {
 
   organizations Organization[]
   planModules   PlanModule[]
+  planPrices    PlanPrice[]
   subscriptions Subscription[]
 
   @@map("plans")
+  @@schema("billing")
+}
+
+enum StudentSlab {
+  S50 // up to 50 students
+  S100 // 51–100
+  S200 // 101–200
+  S500 // 201–500
+  S500_PLUS // 500+ ("starting at"; overage per student, custom quote above 1000)
+
+  @@schema("billing")
+}
+
+/// Student-slab pricing for a plan (list + optional launch-offer price).
+model PlanPrice {
+  id                String      @id @default(cuid())
+  planId            String      @map("plan_id")
+  slab              StudentSlab
+  monthlyPrice      Decimal     @map("monthly_price") @db.Decimal(12, 2)
+  annualPrice       Decimal     @map("annual_price") @db.Decimal(12, 2)
+  launchMonthly     Decimal?    @map("launch_monthly") @db.Decimal(12, 2)
+  launchEndsAt      DateTime?   @map("launch_ends_at") // launch price valid until; null = no expiry
+  bundledAiCredits  Int         @default(0) @map("bundled_ai_credits")
+  overagePerStudent Decimal?    @map("overage_per_student") @db.Decimal(12, 2)
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, slab])
+  @@index([planId])
+  @@map("plan_prices")
+  @@schema("billing")
+}
+
+/// Percent-off discount code for subscription checkout (one use per org).
+model Coupon {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  percentOff     Int       @map("percent_off") // 1–50 (floor-price guard)
+  maxRedemptions Int?      @map("max_redemptions") // null = unlimited
+  expiresAt      DateTime? @map("expires_at")
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  redemptions CouponRedemption[]
+
+  @@map("coupons")
+  @@schema("billing")
+}
+
+model CouponRedemption {
+  id            String   @id @default(cuid())
+  couponId      String   @map("coupon_id")
+  orgId         String   @map("org_id")
+  transactionId String?  @map("transaction_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@unique([couponId, orgId])
+  @@index([orgId])
+  @@map("coupon_redemptions")
   @@schema("billing")
 }
 
@@ -2633,6 +2698,15 @@ model PlatformSettings {
   enableAiFeatures      Boolean  @default(false) @map("enable_ai_features")
   enablePublicApiAccess Boolean  @default(false) @map("enable_public_api_access")
   maintenanceMode       Boolean  @default(false) @map("maintenance_mode")
+  // Billing cycles orgs may subscribe with (any combination, min 1)
+  enabledBillingCycles  BillingCycle[] @default([MONTHLY, ANNUAL]) @map("enabled_billing_cycles")
+  // true → catalog prices are the final amount (GST carved out on the invoice);
+  // false → 18% GST is added on top at checkout
+  pricesIncludeGst      Boolean  @default(false) @map("prices_include_gst")
+  // Seller details printed on subscription GST invoices
+  businessName          String?  @map("business_name")
+  businessAddress       String?  @map("business_address")
+  businessGstin         String?  @map("business_gstin")
   fromEmailAddress      String?  @map("from_email_address")
   supportEmail          String?  @map("support_email")
   fromName              String?  @map("from_name")

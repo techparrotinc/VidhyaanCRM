@@ -9,6 +9,7 @@ import { cleanPhoneNumber } from '@/lib/utils'
 import { redis } from '@/lib/redis'
 import { findOrCreateUserByPhone } from '@/lib/auth/findOrCreateUserByPhone'
 import { resolveTargetUserRole } from '@/lib/auth/resolveTargetUserRole'
+import { assertFreeTierLimit } from '@/lib/billing/limits'
 
 
 export const GET = route({
@@ -34,10 +35,25 @@ export const GET = route({
       orderBy: { createdAt: 'desc' }
     })
 
+    const grants = await prisma.userBranchAccess.findMany({
+      where: {
+        userId: { in: users.map(u => u.id) },
+        branch: { deletedAt: null }
+      },
+      select: { userId: true, branchId: true, branch: { select: { name: true } } }
+    })
+    const branchesByUser = new Map<string, { id: string; name: string }[]>()
+    for (const g of grants) {
+      const list = branchesByUser.get(g.userId) ?? []
+      list.push({ id: g.branchId, name: g.branch.name })
+      branchesByUser.set(g.userId, list)
+    }
+
     const usersWithRoles = await Promise.all(
       users.map(async (u) => ({
         ...u,
-        role: await resolveTargetUserRole(u.id, user.orgId)
+        role: await resolveTargetUserRole(u.id, user.orgId),
+        branches: branchesByUser.get(u.id) ?? []
       }))
     )
 
@@ -58,12 +74,15 @@ export const POST = route({
         'RECEPTIONIST',
         'ACCOUNTANT',
         'TEACHER'
-      ])
+      ]),
+      branchIds: z.array(z.string().min(1)).max(50).optional()
     }).parse(await req.json())
 
     const email = body.email && body.email.trim() !== ''
       ? body.email
       : null
+
+    await assertFreeTierLimit(user.orgId, 'USER')
 
     let userResult
     try {
@@ -85,6 +104,35 @@ export const POST = route({
     const { user: newUser, isNewUser } = userResult
     if (!isNewUser) {
       throw Errors.conflict('A user with this phone number already exists')
+    }
+
+    // Branch grants for branch-scoped roles; default a branch admin with no
+    // explicit selection to the org's main branch (fail-closed enforcement
+    // would otherwise strand them).
+    let grantIds = body.branchIds ?? []
+    if (grantIds.length === 0 && body.role === 'BRANCH_ADMIN') {
+      const main = await prisma.branch.findFirst({
+        where: { orgId: user.orgId, isDefault: true, deletedAt: null },
+        select: { id: true }
+      })
+      if (main) grantIds = [main.id]
+    }
+    if (grantIds.length > 0) {
+      const valid = await prisma.branch.findMany({
+        where: { id: { in: grantIds }, orgId: user.orgId, deletedAt: null },
+        select: { id: true }
+      })
+      if (valid.length !== grantIds.length) {
+        throw Errors.businessRule('One or more branches were not found')
+      }
+      await prisma.userBranchAccess.createMany({
+        data: grantIds.map(branchId => ({
+          userId: newUser.id,
+          branchId,
+          role: body.role as UserRole
+        })),
+        skipDuplicates: true
+      })
     }
 
     // Invalidate counsellors cache

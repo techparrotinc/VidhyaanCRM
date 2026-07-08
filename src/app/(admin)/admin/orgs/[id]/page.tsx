@@ -27,6 +27,7 @@ import {
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import MessagingAllowanceCard from '@/components/admin/MessagingAllowanceCard'
+import OrgRevenueMetrics from '@/components/admin/OrgRevenueMetrics'
 
 interface Module {
   id: string
@@ -61,6 +62,7 @@ export default function OrgDetailPage() {
   const [editPlanId, setEditPlanId] = useState('')
   const [editLeadCap, setEditLeadCap] = useState('')
   const [editTrialEndsAt, setEditTrialEndsAt] = useState('')
+  const [editBillingDiscountPct, setEditBillingDiscountPct] = useState('')
   
   // Notes State
   const [notes, setNotes] = useState('')
@@ -107,6 +109,11 @@ export default function OrgDetailPage() {
       setEditPlanId(orgJson.organization.planId || '')
       setEditLeadCap(orgJson.organization.leadCap?.toString() || '')
       setEditTrialEndsAt(orgJson.organization.trialEndsAt ? orgJson.organization.trialEndsAt.split('T')[0] : '')
+      setEditBillingDiscountPct(
+        (orgJson.organization?.settings as any)?.billingDiscountPct != null
+          ? String((orgJson.organization.settings as any).billingDiscountPct)
+          : ''
+      )
 
       setError(null)
     } catch (err: any) {
@@ -254,7 +261,8 @@ export default function OrgDetailPage() {
         status: editStatus,
         planId: editPlanId || null,
         leadCap: editLeadCap ? parseInt(editLeadCap) : null,
-        trialEndsAt: editTrialEndsAt ? new Date(editTrialEndsAt).toISOString() : null
+        trialEndsAt: editTrialEndsAt ? new Date(editTrialEndsAt).toISOString() : null,
+        billingDiscountPct: editBillingDiscountPct !== '' ? parseInt(editBillingDiscountPct) : null
       }
 
       const res = await fetch(`/api/admin/organizations/${id}`, {
@@ -369,14 +377,22 @@ export default function OrgDetailPage() {
               <h3 className="text-lg font-black tracking-tight">Impersonation Token Generated</h3>
             </div>
             <p className="text-sm text-slate-500 leading-relaxed">
-              SUPER ADMIN impersonation token generated successfully. Copy this token to initiate your login session:
+              Single-use token valid for <strong>15 minutes</strong>. Launching replaces your admin session with a
+              30-minute session as this organization&apos;s admin — you&apos;ll need to log in again to return here.
+              To keep this admin session, open the link below in an incognito window instead.
             </p>
             <div className="p-3 bg-slate-100 rounded-lg text-xs font-mono break-all text-slate-700 border border-slate-200 select-all">
-              {impersonationToken}
+              {`${typeof window !== 'undefined' ? window.location.origin : ''}/impersonate?token=${impersonationToken}`}
             </div>
-            <div className="flex justify-end pt-2">
-              <Button onClick={() => setImpersonationToken(null)} className="bg-slate-900 text-white hover:bg-slate-800 font-semibold px-4 py-2 text-xs">
+            <div className="flex justify-end gap-3 pt-2">
+              <Button onClick={() => setImpersonationToken(null)} className="bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold px-4 py-2 text-xs">
                 Close
+              </Button>
+              <Button
+                onClick={() => { window.location.href = `/impersonate?token=${impersonationToken}` }}
+                className="bg-amber-600 text-white hover:bg-amber-700 font-bold px-4 py-2 text-xs"
+              >
+                Launch Impersonation Session
               </Button>
             </div>
           </Card>
@@ -520,6 +536,21 @@ export default function OrgDetailPage() {
                   onChange={(e) => setEditTrialEndsAt(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden"
                 />
+              </div>
+
+              {/* Negotiated Billing Discount */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Billing Discount % (0–50)</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={editBillingDiscountPct}
+                  onChange={(e) => setEditBillingDiscountPct(e.target.value)}
+                  placeholder="0 = catalog price"
+                  className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden"
+                />
+                <p className="text-[9px] text-slate-400 mt-1">Applied to all slab prices for this org at checkout. Capped at 50% (floor-price guard). Audit-logged.</p>
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
@@ -687,6 +718,9 @@ export default function OrgDetailPage() {
               ))}
             </div>
           </Card>
+
+          {/* Revenue Metrics Card */}
+          <OrgRevenueMetrics orgId={id} />
 
           {/* Messaging Allowances Card */}
           <MessagingAllowanceCard orgId={id} />

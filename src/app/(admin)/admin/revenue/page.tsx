@@ -36,9 +36,24 @@ interface PlanItem {
   modules: string[]
 }
 
+interface OrgRevenueRow {
+  id: string
+  name: string
+  institutionType: string
+  status: string
+  plan: string
+  students: number
+  mrr: number
+  lifetimeRevenue: number
+  transactionCount: number
+}
+
 export default function RevenuePage() {
   const [stats, setStats] = useState<RevenueStats | null>(null)
   const [plans, setPlans] = useState<PlanItem[]>([])
+  const [orgRows, setOrgRows] = useState<OrgRevenueRow[]>([])
+  const [recentTx, setRecentTx] = useState<any[]>([])
+  const [problemTx, setProblemTx] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null)
@@ -46,9 +61,11 @@ export default function RevenuePage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [statsRes, plansRes] = await Promise.all([
+      const [statsRes, plansRes, byOrgRes, txRes] = await Promise.all([
         fetch('/api/admin/stats'),
-        fetch('/api/admin/plans')
+        fetch('/api/admin/plans'),
+        fetch('/api/admin/revenue/by-org'),
+        fetch('/api/admin/revenue/transactions')
       ])
 
       if (!statsRes.ok || !plansRes.ok) {
@@ -60,6 +77,15 @@ export default function RevenuePage() {
 
       const plansData = await plansRes.json()
       setPlans(plansData)
+
+      if (byOrgRes.ok) {
+        setOrgRows(await byOrgRes.json())
+      }
+      if (txRes.ok) {
+        const tx = await txRes.json()
+        setRecentTx(tx.recent ?? [])
+        setProblemTx(tx.problems ?? [])
+      }
       setError(null)
     } catch (err: any) {
       setError(err.message || 'Error loading revenue analytics')
@@ -101,19 +127,6 @@ export default function RevenuePage() {
   const totalSubscribers = plans.reduce((sum, p) => sum + p.subscriberCount, 0)
   const totalMRRFromPlans = plans.reduce((sum, p) => sum + p.revenue, 0)
 
-  // Simulated transactions list
-  const recentTransactions = [
-    { orgName: 'Greenwood International', plan: 'Starter Plan', amount: 9999, date: '2026-06-23', status: 'SUCCESS' },
-    { orgName: 'Apex Coding Academy', plan: 'Growth Plan', amount: 24999, date: '2026-06-22', status: 'SUCCESS' },
-    { orgName: 'Little Angels Nursery', plan: 'Free Plan', amount: 0, date: '2026-06-21', status: 'SUCCESS' },
-    { orgName: 'Ignite Junior College', plan: 'Enterprise Plan', amount: 89999, date: '2026-06-20', status: 'SUCCESS' },
-    { orgName: 'Bright Horizons School', plan: 'Starter Plan', amount: 9999, date: '2026-06-19', status: 'SUCCESS' }
-  ]
-
-  // Mock failed payments
-  const failedPayments = [
-    { id: '1', orgName: 'Zenith Sports Academy', plan: 'Growth Plan', amount: 24999, date: '2026-06-24', error: 'Insufficient Funds' }
-  ]
 
   if (loading) {
     return (
@@ -359,11 +372,17 @@ export default function RevenuePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {recentTransactions.map((tx, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/50 transition">
+              {recentTx.length === 0 && (
+                <tr><td colSpan={4} className="py-6 px-3 text-center text-slate-400 font-semibold">No payments yet.</td></tr>
+              )}
+              {recentTx.map((tx) => (
+                <tr key={tx.id} className="hover:bg-slate-50/50 transition">
                   <td className="py-3 px-3 font-bold text-slate-900">{tx.orgName}</td>
-                  <td className="py-3 px-3 font-semibold">{tx.plan}</td>
-                  <td className="py-3 px-3 font-bold">{formatCurrency(tx.amount)}</td>
+                  <td className="py-3 px-3 font-semibold">
+                    {tx.description}
+                    <span className="block text-[9px] text-slate-400 font-semibold">{new Date(tx.date).toLocaleDateString('en-IN')}</span>
+                  </td>
+                  <td className="py-3 px-3 font-bold tabular-nums">{formatCurrency(tx.amount)}</td>
                   <td className="py-3 px-3 text-right">
                     <span className="text-[9px] font-bold bg-green-50 text-green-700 border border-green-150 px-2 py-0.5 rounded-full">
                       {tx.status}
@@ -376,6 +395,58 @@ export default function RevenuePage() {
         </Card>
       </div>
 
+      {/* Revenue by Organization */}
+      <Card className="p-5 bg-white border-slate-200 shadow-sm space-y-4">
+        <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-slate-450" /> Revenue by Organization
+        </h3>
+        {orgRows.length === 0 ? (
+          <p className="text-xs font-semibold text-slate-400">No organizations found.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse min-w-[720px]">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[10px] bg-slate-50/50">
+                  <th className="py-2.5 px-3">Organization</th>
+                  <th className="py-2.5 px-3">Plan</th>
+                  <th className="py-2.5 px-3">Students</th>
+                  <th className="py-2.5 px-3">MRR</th>
+                  <th className="py-2.5 px-3">Lifetime Revenue</th>
+                  <th className="py-2.5 px-3">Txns</th>
+                  <th className="py-2.5 px-3 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {orgRows.map((row) => (
+                  <tr key={row.id} className="hover:bg-slate-50/50 transition">
+                    <td className="py-3 px-3">
+                      <a href={`/admin/orgs/${row.id}`} className="font-bold text-slate-900 hover:text-blue-600 transition">
+                        {row.name}
+                      </a>
+                      <div className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{row.institutionType.replace('_', ' ')}</div>
+                    </td>
+                    <td className="py-3 px-3 font-semibold">{row.plan}</td>
+                    <td className="py-3 px-3 font-semibold tabular-nums">{row.students}</td>
+                    <td className="py-3 px-3 font-bold tabular-nums">{formatCurrency(row.mrr)}</td>
+                    <td className="py-3 px-3 font-black tabular-nums text-slate-900">{formatCurrency(row.lifetimeRevenue)}</td>
+                    <td className="py-3 px-3 font-semibold tabular-nums">{row.transactionCount}</td>
+                    <td className="py-3 px-3 text-right">
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                        row.status === 'ACTIVE'
+                          ? 'bg-green-50 text-green-700 border-green-150'
+                          : 'bg-slate-50 text-slate-500 border-slate-200'
+                      }`}>
+                        {row.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
       {/* Failed Payments Section */}
       <Card className="p-5 border-l-4 border-l-red-500 bg-white border-slate-200 shadow-sm space-y-4">
         <div className="flex items-start gap-3">
@@ -387,22 +458,24 @@ export default function RevenuePage() {
         </div>
 
         <div className="divide-y divide-slate-100 border-t border-slate-100">
-          {failedPayments.map((pay) => (
+          {problemTx.length === 0 && (
+            <div className="py-4 text-xs text-slate-400 font-semibold">No failed, refunded, or stuck payments. All clear.</div>
+          )}
+          {problemTx.map((pay) => (
             <div key={pay.id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-3">
               <div className="min-w-0">
                 <div className="font-bold text-slate-900">{pay.orgName}</div>
                 <div className="text-[10px] text-slate-400 mt-1">
-                  {pay.plan} • Amount: {formatCurrency(pay.amount)} • Reason: <span className="text-red-500 font-bold">{pay.error}</span>
+                  {pay.description} • {formatCurrency(pay.amount)} • {new Date(pay.date).toLocaleDateString('en-IN')} •{' '}
+                  <span className={`font-bold ${pay.status === 'REFUNDED' ? 'text-amber-600' : 'text-red-500'}`}>{pay.status}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button className="bg-slate-900 text-white hover:bg-slate-800 text-[10px] py-1.5 px-3 font-bold">
-                  Retry Charge
-                </Button>
-                <Button className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[10px] py-1.5 px-3 font-bold">
-                  Contact Client
-                </Button>
-              </div>
+              <a
+                href={`/admin/orgs/${pay.orgId}`}
+                className="shrink-0 bg-slate-900 text-white hover:bg-slate-800 text-[10px] py-1.5 px-3 font-bold rounded-lg"
+              >
+                View Organization
+              </a>
             </div>
           ))}
         </div>

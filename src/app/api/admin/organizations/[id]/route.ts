@@ -9,10 +9,13 @@ const orgUpdateSchema = z.object({
   planId: z.string().max(60).nullable().optional(),
   leadCap: z.coerce.number().int().min(0).max(1_000_000).nullable().optional(),
   trialEndsAt: z.string().max(40).nullable().optional(),
-  notes: z.string().max(5000).nullable().optional()
+  notes: z.string().max(5000).nullable().optional(),
+  // Negotiated subscription discount, capped at 50% (floor-price guard)
+  billingDiscountPct: z.coerce.number().int().min(0).max(50).nullable().optional()
 })
 import { redis } from '@/lib/redis'
 import { resolveTargetUserRole } from '@/lib/auth/resolveTargetUserRole'
+import { remapOrgModulesToPlan } from '@/lib/billing/lifecycle'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -134,7 +137,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         { status: 400 }
       )
     }
-    const { status, planId, leadCap, trialEndsAt, notes } = parsed.data
+    const { status, planId, leadCap, trialEndsAt, notes, billingDiscountPct } = parsed.data
 
     // Find existing organization
     const org = await prisma.organization.findUnique({
@@ -185,10 +188,47 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
-    // 2. Plan update
+    // 2. Plan update — keep the billing record consistent: a comped/manual
+    // plan change gets a real subscription row (amount 0, 1-year period) so
+    // the renewal cron and billing page see it, and modules follow the plan.
     if (planId !== undefined && planId !== org.planId) {
       updateData.planId = planId
       auditLogsToCreate.push({ field: 'planId', before: org.planId, after: planId })
+
+      if (planId) {
+        const targetPlan = await prisma.plan.findUnique({ where: { id: planId } })
+        if (targetPlan && targetPlan.slug !== 'free') {
+          const periodStart = new Date()
+          const periodEnd = new Date()
+          periodEnd.setFullYear(periodEnd.getFullYear() + 1)
+          const existingSub = await prisma.subscription.findFirst({ where: { orgId: id } })
+          const compData = {
+            orgId: id,
+            planId,
+            status: 'ACTIVE' as const,
+            billingCycle: 'ANNUAL' as const,
+            amount: 0, // comped by platform admin
+            startedAt: periodStart,
+            currentPeriodEnd: periodEnd,
+            trialEndsAt: null,
+            cancelAtPeriodEnd: false,
+            graceEndsAt: null,
+            gatewaySubId: null
+          }
+          if (existingSub) {
+            // Paid, still-running subscriptions keep their period; only the plan moves
+            const stillPaid = existingSub.status === 'ACTIVE' && Number(existingSub.amount) > 0 &&
+              existingSub.currentPeriodEnd && existingSub.currentPeriodEnd > new Date()
+            await prisma.subscription.update({
+              where: { id: existingSub.id },
+              data: stillPaid ? { planId } : compData
+            })
+          } else {
+            await prisma.subscription.create({ data: compData })
+          }
+        }
+        await remapOrgModulesToPlan(id, planId)
+      }
     }
 
     // 3. Lead cap update
@@ -222,6 +262,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           internalNotes: notes
         }
         auditLogsToCreate.push({ field: 'internalNotes', before: oldNotes, after: notes })
+      }
+    }
+
+    // 6. Negotiated billing discount (settings JSON; applied by pricing engine)
+    if (billingDiscountPct !== undefined) {
+      const currentSettings = (updateData.settings as any) || (org.settings as any) || {}
+      const oldPct = currentSettings.billingDiscountPct ?? null
+      if (oldPct !== billingDiscountPct) {
+        updateData.settings = {
+          ...currentSettings,
+          billingDiscountPct: billingDiscountPct ?? undefined
+        }
+        auditLogsToCreate.push({ field: 'billingDiscountPct', before: oldPct, after: billingDiscountPct })
       }
     }
 

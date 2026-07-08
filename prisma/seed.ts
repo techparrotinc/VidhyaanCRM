@@ -87,7 +87,8 @@ async function main() {
   console.log('Creating plans...')
   const freePlan = await prisma.plan.create({
     data: {
-      name: 'Free',
+      name: 'School / LC Listing',
+      description: 'Free public listing on the Vidhyaan directory with basic lead capture (up to 10 leads).',
       slug: 'free',
       monthlyPrice: 0,
       leadCap: 10,
@@ -98,7 +99,8 @@ async function main() {
 
   const starterPlan = await prisma.plan.create({
     data: {
-      name: 'Starter',
+      name: 'CRM Package',
+      description: 'Lead, Admission & Campaign Management — pipeline, counsellors, follow-ups, events, core reports.',
       slug: 'starter',
       monthlyPrice: 2999,
       leadCap: null,
@@ -109,7 +111,8 @@ async function main() {
 
   const growthPlan = await prisma.plan.create({
     data: {
-      name: 'Growth',
+      name: 'Fee Management',
+      description: 'Student & Fee Management — fee structures, invoices, online payments, receipts, dues, financial reports.',
       slug: 'growth',
       monthlyPrice: 4999,
       leadCap: null,
@@ -121,6 +124,7 @@ async function main() {
   const enterprisePlan = await prisma.plan.create({
     data: {
       name: 'Enterprise',
+      description: 'Everything in CRM Package and Fee Management plus AI, Parent Portal, advanced reports, and integrations.',
       slug: 'enterprise',
       monthlyPrice: 9999,
       leadCap: null,
@@ -138,22 +142,28 @@ async function main() {
     ]
   })
 
-  // Starter plan gets: lead_management, admission_management, student_management
+  // CRM Package (starter): lead, admission & campaign management
   await prisma.planModule.createMany({
     data: [
-      { planId: starterPlan.id, moduleSlug: 'lead_management' },
-      { planId: starterPlan.id, moduleSlug: 'admission_management' },
-      { planId: starterPlan.id, moduleSlug: 'student_management' }
-    ]
+      'lead_management',
+      'admission_management',
+      'admission_workflow',
+      'campaign_management',
+      'event_management',
+      'forms_requests',
+      'whatsapp_sms_notifications'
+    ].map(slug => ({ planId: starterPlan.id, moduleSlug: slug }))
   })
 
-  // Growth plan gets all modules except: api_access, custom_domain
-  const growthSlugs = modulesData.filter(slug => slug !== 'api_access' && slug !== 'custom_domain')
+  // Fee Management (growth): student & fee management
   await prisma.planModule.createMany({
-    data: growthSlugs.map(slug => ({
-      planId: growthPlan.id,
-      moduleSlug: slug
-    }))
+    data: [
+      'student_management',
+      'student_lifecycle',
+      'fee_management',
+      'payment_gateway',
+      'whatsapp_sms_notifications'
+    ].map(slug => ({ planId: growthPlan.id, moduleSlug: slug }))
   })
 
   // Enterprise plan gets all 13 modules
@@ -274,10 +284,17 @@ async function main() {
     }
   })
 
-  // STEP 10: Enable Growth Modules for Test Org
+  // STEP 10: Enable Fee Management (growth) modules for Test Org
   console.log('Enabling growth modules for test organization...')
+  const testOrgModuleSlugs = [
+    'student_management',
+    'student_lifecycle',
+    'fee_management',
+    'payment_gateway',
+    'whatsapp_sms_notifications'
+  ]
   await prisma.organizationModule.createMany({
-    data: growthSlugs.map(slug => {
+    data: testOrgModuleSlugs.map(slug => {
       const mod = modules.find(m => m.slug === slug)
       return {
         orgId: testOrg.id,

@@ -121,6 +121,55 @@ export async function POST(req: NextRequest) {
         break
       }
 
+      case 'refund.processed': {
+        // Vidhyaan's policy is no-refunds, so any refund here was issued
+        // manually from the Razorpay dashboard — reflect it and alert ops.
+        const refundEntity = event.payload.refund.entity
+        const paymentId = refundEntity.payment_id
+
+        const transaction = await prisma.transaction.findFirst({
+          where: { gatewayRef: paymentId }
+        })
+        if (transaction) {
+          await prisma.transaction.update({
+            where: { id: transaction.id },
+            data: { status: TransactionStatus.REFUNDED }
+          })
+          await prisma.auditLog
+            .create({
+              data: {
+                orgId: transaction.orgId,
+                action: 'UPDATE',
+                entityType: 'TRANSACTION',
+                entityId: transaction.id,
+                after: {
+                  status: 'REFUNDED',
+                  refundId: refundEntity.id,
+                  amount: refundEntity.amount / 100,
+                  source: 'razorpay_dashboard'
+                }
+              }
+            })
+            .catch(() => {})
+
+          const settings = await prisma.platformSettings.findUnique({ where: { id: 'default' } })
+          try {
+            const { sendTransactionalEmail } = await import('@/lib/integrations/zeptomail')
+            if (settings?.opsAlertEmail) {
+              await sendTransactionalEmail({
+                to: settings.opsAlertEmail,
+                subject: `⚠ Refund processed — ₹${(refundEntity.amount / 100).toLocaleString('en-IN')} (org ${transaction.orgId})`,
+                htmlBody: `<p>Razorpay refund <strong>${refundEntity.id}</strong> processed for payment ${paymentId} (transaction ${transaction.id}, org ${transaction.orgId}).</p><p>The transaction is now marked REFUNDED. Review the org's subscription — refunds are outside Vidhyaan's standard no-refund policy, so the plan was NOT auto-deactivated.</p>`,
+                textBody: `Refund ${refundEntity.id} processed for payment ${paymentId}.`
+              })
+            }
+          } catch (e) {
+            console.error('[Razorpay Webhook] refund ops alert failed:', e)
+          }
+        }
+        break
+      }
+
       case 'payment.failed': {
         const paymentEntity = event.payload.payment.entity
         const orderId = paymentEntity.order_id
@@ -132,12 +181,18 @@ export async function POST(req: NextRequest) {
         })
 
         if (transaction) {
-          // Update transaction
+          // Mark failed but KEEP gatewayRef = order id: Checkout retries pay
+          // against the same order, and reconciliation matches by order id to
+          // recover a captured retry. Failed payment id goes into metadata.
           await prisma.transaction.update({
             where: { id: transaction.id },
             data: {
               status: TransactionStatus.FAILED,
-              gatewayRef: paymentId
+              metadata: {
+                ...((transaction.metadata as any) || {}),
+                failedPaymentId: paymentId,
+                failedAt: new Date().toISOString()
+              }
             }
           })
 

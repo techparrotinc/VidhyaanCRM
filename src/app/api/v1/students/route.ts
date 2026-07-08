@@ -6,6 +6,7 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { Gender, StudentStatus } from '@prisma/client'
 import { parseQuery, paginationShape, enumParam } from '@/lib/api/query'
+import { assertFreeTierLimit } from '@/lib/billing/limits'
 
 export const GET = route({
   module: MODULES.STUDENT_MANAGEMENT,
@@ -154,6 +155,8 @@ export const POST = route({
   ],
   handler: async ({ req, db, user, academicYearId }) => {
     const body = createStudentSchema.parse(await req.json())
+
+    await assertFreeTierLimit(user.orgId, 'STUDENT')
 
     const year = new Date().getFullYear()
     const count = await db.student.count()

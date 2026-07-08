@@ -1,6 +1,7 @@
 import Razorpay from 'razorpay'
 import crypto from 'crypto'
 import { prisma } from '@/lib/db'
+import { gstBreakupPaise } from '@/lib/billing/money'
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET || 'fallback_secret_32_characters_long_!!'
 
@@ -120,6 +121,164 @@ export async function createOrder(
     }
     console.error('[Razorpay] createOrder error:', error)
     throw error
+  }
+}
+
+/**
+ * Creates a Razorpay Invoice (GST invoice + underlying order for Checkout).
+ * Amounts are in paise and EXCLUSIVE of GST — an 18% GST line (SAC 998314)
+ * is added here. The returned invoice carries `order_id` (open standard
+ * Checkout with it) and `short_url` (hosted invoice, downloadable after payment).
+ */
+export async function createGstInvoice(params: {
+  customer: {
+    name: string
+    email?: string
+    contact?: string
+    gstin?: string
+    billing_address?: {
+      line1?: string
+      city?: string
+      state?: string
+      zipcode?: string
+      country?: string
+    }
+  }
+  lineItemName: string
+  description?: string
+  amountInPaise: number
+  receipt: string
+  notes?: any
+  /** true → amountInPaise is the final price; GST is carved out of it.
+   *  false (default) → 18% GST is added on top of amountInPaise. */
+  gstInclusive?: boolean
+  /** Seller identification block printed on the invoice (terms section). */
+  sellerTerms?: string
+  /** Bill-To block printed on the invoice (comment section). Razorpay dedupes
+   *  customers by contact/email and then ignores inline billing_address, so
+   *  the address must travel on the invoice itself to be visible. */
+  billToText?: string
+}): Promise<{ id: string; order_id: string; short_url: string; amount: number }> {
+  const isDev = process.env.NODE_ENV === 'development'
+  const isMock = !process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID === 'mock_key'
+
+  const { basePaise: baseInPaise, gstPaise: gstInPaise, totalPaise: totalInPaise } =
+    gstBreakupPaise(params.amountInPaise, !!params.gstInclusive)
+
+  if (isMock && isDev) {
+    console.log('[Razorpay Mock] Creating mock GST invoice, total:', totalInPaise)
+    const suffix = crypto.randomUUID().replace(/-/g, '').slice(0, 14)
+    return {
+      id: 'inv_mock_' + suffix,
+      order_id: 'order_mock_' + suffix,
+      short_url: 'https://rzp.io/i/mock_' + suffix,
+      amount: totalInPaise
+    }
+  }
+
+  try {
+    const invoice = await (razorpay as any).invoices.create({
+      type: 'invoice',
+      currency: 'INR',
+      receipt: params.receipt,
+      customer: params.customer,
+      line_items: [
+        {
+          name: params.lineItemName,
+          description: params.description || '',
+          amount: baseInPaise,
+          quantity: 1
+        },
+        {
+          name: 'GST 18% (SAC 998314)',
+          amount: gstInPaise,
+          quantity: 1
+        }
+      ],
+      sms_notify: 0,
+      email_notify: 0,
+      terms: params.sellerTerms || undefined,
+      comment: params.billToText || undefined,
+      notes: params.notes || {}
+    })
+
+    // Best-effort: keep the deduped customer record's GSTIN current so future
+    // invoices show it in customer_details too.
+    if (params.customer.gstin && invoice.customer_details?.id) {
+      await (razorpay as any).customers
+        .edit(invoice.customer_details.id, { gstin: params.customer.gstin })
+        .catch(() => {})
+    }
+    return {
+      id: invoice.id,
+      order_id: invoice.order_id,
+      short_url: invoice.short_url,
+      amount: invoice.amount
+    }
+  } catch (error: any) {
+    if (isDev && (error.statusCode === 401 || error.message?.includes('auth') || error.description?.includes('Authentication'))) {
+      console.warn('[Razorpay] Auth failed. Falling back to mock GST invoice.')
+      const suffix = crypto.randomUUID().replace(/-/g, '').slice(0, 14)
+      return {
+        id: 'inv_mock_' + suffix,
+        order_id: 'order_mock_' + suffix,
+        short_url: 'https://rzp.io/i/mock_' + suffix,
+        amount: totalInPaise
+      }
+    }
+    console.error('[Razorpay] createGstInvoice error:', error)
+    throw error
+  }
+}
+
+/**
+ * Fetches a payment from the Razorpay API — authenticated server-side check
+ * used to verify invoice-backed Checkout payments, whose callback carries
+ * invoice fields instead of an order signature.
+ */
+export async function fetchPayment(paymentId: string): Promise<{
+  id: string
+  status: string
+  order_id: string | null
+  invoice_id: string | null
+  amount: number
+} | null> {
+  if (paymentId?.startsWith('pay_mock_') && process.env.NODE_ENV === 'development') {
+    return { id: paymentId, status: 'captured', order_id: null, invoice_id: null, amount: 0 }
+  }
+  try {
+    const payment: any = await razorpay.payments.fetch(paymentId)
+    return {
+      id: payment.id,
+      status: payment.status,
+      order_id: payment.order_id ?? null,
+      invoice_id: payment.invoice_id ?? null,
+      amount: Number(payment.amount)
+    }
+  } catch (error) {
+    console.error('[Razorpay] fetchPayment error:', error)
+    return null
+  }
+}
+
+/**
+ * Fetches all payments made against an order — used to reconcile pending
+ * transactions when the Checkout callback never reached us (redirect flows).
+ */
+export async function fetchOrderPayments(orderId: string): Promise<
+  { id: string; status: string; amount: number }[]
+> {
+  if (orderId?.startsWith('order_mock_')) return []
+  try {
+    const res: any = await razorpay.orders.fetchPayments(orderId)
+    return (res.items || []).map((p: any) => ({
+      id: p.id,
+      status: p.status,
+      amount: Number(p.amount)
+    }))
+  } catch (error) {
+    console.error('[Razorpay] fetchOrderPayments error:', error)
+    return []
   }
 }
 

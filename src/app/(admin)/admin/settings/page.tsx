@@ -5,6 +5,7 @@ import {
   Settings,
   Shield,
   Key,
+  CreditCard,
   Bell,
   Mail,
   Cloud,
@@ -37,6 +38,13 @@ export default function AdminSettingsPage() {
   const [enableAiFeatures, setEnableAiFeatures] = useState(false)
   const [enablePublicApiAccess, setEnablePublicApiAccess] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const [enabledBillingCycles, setEnabledBillingCycles] = useState<string[]>(['MONTHLY', 'ANNUAL'])
+  const [pricesIncludeGst, setPricesIncludeGst] = useState(false)
+
+  // Business / seller details printed on subscription GST invoices
+  const [businessName, setBusinessName] = useState('')
+  const [businessAddress, setBusinessAddress] = useState('')
+  const [businessGstin, setBusinessGstin] = useState('')
 
   // Emails
   const [fromEmailAddress, setFromEmailAddress] = useState('')
@@ -73,6 +81,11 @@ export default function AdminSettingsPage() {
       setEnableAiFeatures(data.enableAiFeatures)
       setEnablePublicApiAccess(data.enablePublicApiAccess)
       setMaintenanceMode(data.maintenanceMode)
+      setEnabledBillingCycles(data.enabledBillingCycles?.length ? data.enabledBillingCycles : ['MONTHLY', 'ANNUAL'])
+      setPricesIncludeGst(!!data.pricesIncludeGst)
+      setBusinessName(data.businessName || '')
+      setBusinessAddress(data.businessAddress || '')
+      setBusinessGstin(data.businessGstin || '')
 
       setFromEmailAddress(data.fromEmailAddress || '')
       setSupportEmail(data.supportEmail || '')
@@ -140,7 +153,10 @@ export default function AdminSettingsPage() {
         razorpayWebhookSecret,
         doSpacesEndpoint,
         doSpacesBucket,
-        doSpacesCdnUrl
+        doSpacesCdnUrl,
+        businessName,
+        businessAddress,
+        businessGstin
       }
 
       const res = await fetch('/api/admin/settings', {
@@ -254,6 +270,49 @@ export default function AdminSettingsPage() {
                   type="number"
                   value={defaultOtpTtlMinutes}
                   onChange={(e) => setDefaultOtpTtlMinutes(parseInt(e.target.value))}
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* Business / Invoice Details Card */}
+          <Card className="p-5 bg-white border-slate-200 shadow-sm space-y-4">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-slate-100 pb-3">
+              <CreditCard className="w-4 h-4 text-blue-650" /> Business / Invoice Details (Seller)
+            </h3>
+            <p className="text-[10px] font-semibold text-slate-400 -mt-2">
+              Printed on every subscription GST invoice as the seller. Keep in sync with your Razorpay account business profile.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold text-slate-700">
+              <div>
+                <label className="block text-slate-450 mb-1.5">Business Name</label>
+                <input
+                  type="text"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  placeholder="TechParrot Pvt. Ltd."
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-450 mb-1.5">GSTIN</label>
+                <input
+                  type="text"
+                  value={businessGstin}
+                  onChange={(e) => setBusinessGstin(e.target.value.toUpperCase())}
+                  placeholder="33ABCDE1234F1Z5"
+                  maxLength={15}
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium tracking-wider outline-hidden focus:border-blue-500"
+                />
+              </div>
+              <div className="sm:col-span-3">
+                <label className="block text-slate-450 mb-1.5">Registered Address</label>
+                <input
+                  type="text"
+                  value={businessAddress}
+                  onChange={(e) => setBusinessAddress(e.target.value)}
+                  placeholder="Full registered address incl. city, state, pincode"
                   className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
                 />
               </div>
@@ -488,6 +547,89 @@ export default function AdminSettingsPage() {
                 >
                   <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ${
                     maintenanceMode ? 'translate-x-4' : 'translate-x-0'
+                  }`} />
+                </button>
+              </div>
+            </div>
+          </Card>
+
+          {/* Billing Cycles Card */}
+          <Card className="p-5 bg-white border-slate-200 shadow-sm space-y-4">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <CreditCard className="w-4 h-4 text-blue-650" /> Billing Cycles
+            </h3>
+            <p className="text-[10px] font-semibold text-slate-400 -mt-2">
+              Cycles schools can subscribe with. At least one must stay enabled; annual is pre-selected for schools when available.
+            </p>
+            <div className="space-y-3">
+              {[
+                { key: 'MONTHLY', label: 'Monthly', hint: 'Full price, billed every month' },
+                { key: 'QUARTERLY', label: '3 Months', hint: '3 × monthly price, billed quarterly' },
+                { key: 'ANNUAL', label: 'Yearly', hint: 'Pay for 10 months — 2 months free' }
+              ].map((cycle) => {
+                const enabled = enabledBillingCycles.includes(cycle.key)
+                return (
+                  <div key={cycle.key} className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">{cycle.label}</span>
+                      <span className="text-[9px] text-slate-400 block mt-0.5">{cycle.hint}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const next = enabled
+                          ? enabledBillingCycles.filter((c) => c !== cycle.key)
+                          : [...enabledBillingCycles, cycle.key]
+                        if (next.length === 0) {
+                          alert('At least one billing cycle must stay enabled.')
+                          return
+                        }
+                        const res = await fetch('/api/admin/settings', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ enabledBillingCycles: next })
+                        })
+                        if (res.ok) setEnabledBillingCycles(next)
+                        else alert('Failed to update billing cycles')
+                      }}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                        enabled ? 'bg-blue-600' : 'bg-slate-250'
+                      }`}
+                    >
+                      <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ${
+                        enabled ? 'translate-x-4' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                )
+              })}
+
+              {/* GST pricing mode */}
+              <div className="flex items-center justify-between border-t border-slate-100 pt-3.5">
+                <div>
+                  <span className="text-xs font-bold text-slate-900 block">Prices Include GST</span>
+                  <span className="text-[9px] text-slate-400 block mt-0.5">
+                    On: catalog prices are final (GST carved out on the invoice). Off: 18% GST added at checkout.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const next = !pricesIncludeGst
+                    const res = await fetch('/api/admin/settings', {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ pricesIncludeGst: next })
+                    })
+                    if (res.ok) setPricesIncludeGst(next)
+                    else alert('Failed to update GST pricing mode')
+                  }}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                    pricesIncludeGst ? 'bg-blue-600' : 'bg-slate-250'
+                  }`}
+                >
+                  <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ${
+                    pricesIncludeGst ? 'translate-x-4' : 'translate-x-0'
                   }`} />
                 </button>
               </div>

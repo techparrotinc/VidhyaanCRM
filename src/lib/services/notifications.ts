@@ -11,6 +11,7 @@ export type NotificationType =
   | 'FEE_OVERDUE'
   | 'TRIAL_ENDING'
   | 'PAYMENT_FAILED'
+  | 'BILLING'
   | 'PROFILE_APPROVED'
   | 'EVENT_RSVP_RECEIVED'
   | 'EVENT_CANCELLED'

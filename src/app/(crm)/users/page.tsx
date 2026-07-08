@@ -9,9 +9,16 @@ import {
   CheckCircle2,
   X,
   Trash2,
-  Edit2
+  Edit2,
+  Building2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useBranches } from '@/hooks/useBranches'
+
+interface UserBranch {
+  id: string
+  name: string
+}
 
 interface User {
   id: string
@@ -22,6 +29,7 @@ interface User {
   status: string
   createdAt: string
   lastLoginAt: string | null
+  branches: UserBranch[]
 }
 
 export default function UsersPage() {
@@ -44,11 +52,19 @@ export default function UsersPage() {
   const [invitePhone, setInvitePhone] = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState('COUNSELLOR')
+  const [inviteBranchIds, setInviteBranchIds] = useState<string[]>([])
   const [inviting, setInviting] = useState(false)
 
   // Edit Role Form State
   const [editRoleValue, setEditRoleValue] = useState('')
   const [editingRole, setEditingRole] = useState(false)
+
+  // Branch assignment (transfer) modal state
+  const { branches } = useBranches()
+  const [showBranchModal, setShowBranchModal] = useState<User | null>(null)
+  const [branchSelection, setBranchSelection] = useState<string[]>([])
+  const [savingBranches, setSavingBranches] = useState(false)
+  const isOrgAdmin = session?.user?.role === 'ORG_ADMIN'
 
   // Toast notifier state
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false })
@@ -105,7 +121,8 @@ export default function UsersPage() {
           name: inviteName,
           phone: invitePhone,
           email: inviteEmail,
-          role: inviteRole
+          role: inviteRole,
+          ...(inviteBranchIds.length > 0 ? { branchIds: inviteBranchIds } : {})
         })
       })
 
@@ -119,6 +136,7 @@ export default function UsersPage() {
       setInvitePhone('')
       setInviteEmail('')
       setInviteRole('COUNSELLOR')
+      setInviteBranchIds([])
       setShowInviteModal(false)
       await fetchUsers()
     } catch (err: any) {
@@ -149,6 +167,36 @@ export default function UsersPage() {
       alert(err.message || 'Could not update user role')
     } finally {
       setEditingRole(false)
+    }
+  }
+
+  const openBranchModal = (u: User) => {
+    setBranchSelection(u.branches.map(b => b.id))
+    setShowBranchModal(u)
+    setActiveMenuId(null)
+  }
+
+  const handleSaveBranches = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!showBranchModal) return
+    setSavingBranches(true)
+    try {
+      const res = await fetch(`/api/v1/users/${showBranchModal.id}/branches`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ branchIds: branchSelection })
+      })
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error?.message || 'Failed to update branch access')
+      }
+      triggerToast(`Branch access updated for ${showBranchModal.name}`)
+      setShowBranchModal(null)
+      await fetchUsers()
+    } catch (err: any) {
+      alert(err.message || 'Could not update branch access')
+    } finally {
+      setSavingBranches(false)
     }
   }
 
@@ -246,6 +294,7 @@ export default function UsersPage() {
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold uppercase tracking-wider text-[10px]">
                 <th className="py-3 px-6">Name</th>
                 <th className="py-3 px-6">Role</th>
+                <th className="py-3 px-6">Branches</th>
                 <th className="py-3 px-6">Phone</th>
                 <th className="py-3 px-6">Last Login</th>
                 <th className="py-3 px-6 text-right">Actions</th>
@@ -276,6 +325,25 @@ export default function UsersPage() {
                         {u.role}
                       </span>
                     </td>
+                    <td className="py-4 px-6">
+                      {u.role === 'ORG_ADMIN' ? (
+                        <span className="text-xs text-slate-500 font-medium">All branches</span>
+                      ) : u.branches.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 max-w-[220px]">
+                          {u.branches.map((b) => (
+                            <span
+                              key={b.id}
+                              className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full"
+                            >
+                              <Building2 className="w-2.5 h-2.5" />
+                              {b.name}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 font-normal">—</span>
+                      )}
+                    </td>
                     <td className="py-4 px-6 text-slate-600 font-medium">{u.phone || '—'}</td>
                     <td className="py-4 px-6 text-slate-500 font-normal text-xs">
                       {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : 'Never logged in'}
@@ -303,6 +371,15 @@ export default function UsersPage() {
                             <Edit2 className="w-3.5 h-3.5 text-slate-400" />
                             Edit Role
                           </button>
+                          {isOrgAdmin && u.role !== 'ORG_ADMIN' && (
+                            <button
+                              onClick={() => openBranchModal(u)}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                            >
+                              <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                              Manage Branches
+                            </button>
+                          )}
                           {u.status !== 'DEACTIVATED' && u.status !== 'INACTIVE' && (
                             <button
                               onClick={() => handleDeactivate(u.id, u.name)}
@@ -320,7 +397,7 @@ export default function UsersPage() {
               })}
               {filteredUsers.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-500 font-semibold">
+                  <td colSpan={6} className="py-8 text-center text-slate-500 font-semibold">
                     No team members in this tab list.
                   </td>
                 </tr>
@@ -395,6 +472,37 @@ export default function UsersPage() {
                 </select>
               </div>
 
+              {branches.length > 1 && inviteRole !== 'ORG_ADMIN' && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Branch Access {inviteRole === 'BRANCH_ADMIN' && <span className="text-red-500">*</span>}
+                  </label>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto border border-slate-200 rounded-lg p-3 bg-slate-50">
+                    {branches.map((b: any) => (
+                      <label key={b.id} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={inviteBranchIds.includes(b.id)}
+                          onChange={(e) =>
+                            setInviteBranchIds((prev) =>
+                              e.target.checked ? [...prev, b.id] : prev.filter((id) => id !== b.id)
+                            )
+                          }
+                          className="rounded border-slate-300 text-[#1565D8] focus:ring-[#1565D8]"
+                        />
+                        {b.name}
+                        {b.isDefault && <span className="text-[10px] text-slate-400">(Main)</span>}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-normal">
+                    {inviteRole === 'BRANCH_ADMIN'
+                      ? 'Branch admins only see data for their assigned branches. Defaults to the main branch if none selected.'
+                      : 'Optional — leave empty for org-wide access.'}
+                  </p>
+                </div>
+              )}
+
               <div className="flex gap-3 justify-end pt-4">
                 <Button
                   type="button"
@@ -463,6 +571,71 @@ export default function UsersPage() {
                   className="bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-4 py-2 h-auto rounded-lg"
                 >
                   {editingRole ? 'Saving...' : 'Update Role'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MANAGE BRANCHES MODAL (transfer / assign) */}
+      {showBranchModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+              <span className="font-extrabold text-slate-800 text-sm">Manage Branch Access</span>
+              <button
+                onClick={() => setShowBranchModal(null)}
+                className="p-1 rounded-md text-slate-400 hover:bg-slate-200 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveBranches} className="p-6 space-y-4 text-left">
+              <p className="text-xs text-slate-500 font-medium">
+                Select the branches <span className="font-bold text-slate-700">{showBranchModal.name}</span> can
+                work in. Changes apply immediately — no re-login needed.
+              </p>
+              <div className="space-y-1.5 max-h-52 overflow-y-auto border border-slate-200 rounded-lg p-3 bg-slate-50">
+                {branches.map((b: any) => (
+                  <label key={b.id} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={branchSelection.includes(b.id)}
+                      onChange={(e) =>
+                        setBranchSelection((prev) =>
+                          e.target.checked ? [...prev, b.id] : prev.filter((id) => id !== b.id)
+                        )
+                      }
+                      className="rounded border-slate-300 text-[#1565D8] focus:ring-[#1565D8]"
+                    />
+                    {b.name}
+                    {b.isDefault && <span className="text-[10px] text-slate-400">(Main)</span>}
+                  </label>
+                ))}
+                {branches.length === 0 && (
+                  <p className="text-xs text-slate-400">No branches found.</p>
+                )}
+              </div>
+              {showBranchModal.role === 'BRANCH_ADMIN' && branchSelection.length === 0 && (
+                <p className="text-xs text-red-600 font-medium">
+                  A branch admin must have at least one branch.
+                </p>
+              )}
+              <div className="flex gap-3 justify-end pt-2">
+                <Button
+                  type="button"
+                  onClick={() => setShowBranchModal(null)}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 border border-slate-200 h-auto rounded-lg shadow-none"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={savingBranches || (showBranchModal.role === 'BRANCH_ADMIN' && branchSelection.length === 0)}
+                  className="bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-4 py-2 h-auto rounded-lg"
+                >
+                  {savingBranches ? 'Saving...' : 'Save Access'}
                 </Button>
               </div>
             </form>

@@ -1,11 +1,17 @@
 import { signOut } from 'next-auth/react'
+import { useBranchStore } from '@/stores/branch.store'
 
 let isSigningOut = false
 
 export const fetcher = async (
   url: string
 ) => {
-  const res = await fetch(url)
+  // Branch switcher preference; server clamps it in compose.ts. Read outside
+  // React on purpose — SWR calls this from anywhere.
+  const branchId = useBranchStore.getState().selectedBranchId
+  const res = await fetch(url, {
+    headers: branchId ? { 'x-branch-id': branchId } : undefined
+  })
   if (!res.ok) {
     if (res.status === 401 && !isSigningOut) {
       try {

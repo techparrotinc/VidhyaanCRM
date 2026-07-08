@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
-import { forOrg } from '@/lib/db/tenant'
+import { forOrg, type BranchContext } from '@/lib/db/tenant'
 import { Errors } from './errors'
 import { errorResponse } from './respond'
 import { redis } from '@/lib/redis'
@@ -31,8 +31,16 @@ type RouteContext = {
   }
   db: ReturnType<typeof forOrg>
   academicYearId: string | null
+  /** Resolved multi-branch scope (multi-branch-architecture.md §3.1).
+   *  activeBranchId: the single branch the request is narrowed to (null = all
+   *  accessible). allowedBranchIds: hard access boundary (null = whole org). */
+  branch: BranchContext
   params?: Record<string, string>
 }
+
+// Roles whose data access is limited to their UserBranchAccess grants.
+// Phase 1: BRANCH_ADMIN only; COUNSELLOR scoping arrives in Phase 2.
+const BRANCH_RESTRICTED_ROLES = new Set(['BRANCH_ADMIN'])
 
 export function route(config: RouteConfig) {
   return async function handler(
@@ -80,18 +88,31 @@ export function route(config: RouteConfig) {
       const orgCacheKey = `org:${user.orgId}`
       const moduleCacheKey = config.module ? `org:${user.orgId}:module:${config.module}` : null
       const academicYearCacheKey = `org:${user.orgId}:academic-year:active`
+      const orgBranchesCacheKey = `org:${user.orgId}:branch-ids`
+      const userBranchesCacheKey = `user:${user.id}:branch-ids`
+      const requestedBranchHeader = req.headers.get('x-branch-id')
+      const requestedBranchId =
+        requestedBranchHeader && requestedBranchHeader !== '' && requestedBranchHeader !== 'all'
+          ? requestedBranchHeader
+          : null
+      const branchRestricted = BRANCH_RESTRICTED_ROLES.has(user.role)
+      // Org branch list only needed to validate an explicit switch; the
+      // restricted-role grant lookup is always needed for those roles.
+      const needOrgBranches = requestedBranchId !== null
       const safeGet = (key: string) =>
         redis.get(key).catch((err) => {
           console.error('Cache read:', key, err)
           return null
         })
 
-      const [revoked, assignmentRevoked, orgCached, moduleCached, ayCached] = await Promise.all([
+      const [revoked, assignmentRevoked, orgCached, moduleCached, ayCached, orgBranchesCached, userBranchesCached] = await Promise.all([
         isUserRevoked(user.id),
         isAssignmentRevoked(user.id, activeRoleAssignmentId),
         safeGet(orgCacheKey),
         moduleCacheKey ? safeGet(moduleCacheKey) : Promise.resolve(null),
         safeGet(academicYearCacheKey),
+        needOrgBranches ? safeGet(orgBranchesCacheKey) : Promise.resolve(null),
+        branchRestricted ? safeGet(userBranchesCacheKey) : Promise.resolve(null),
       ])
 
       // Revocation checks
@@ -179,8 +200,66 @@ export function route(config: RouteConfig) {
         throw Errors.featureReadOnly()
       }
 
+      // STEP 5b: Resolve branch scope (multi-branch-architecture.md §3.1).
+      // The client-sent x-branch-id is a preference; this clamp is the
+      // authority. Fail closed for branch-restricted roles.
+      let allowedBranchIds: string[] | null = null
+      if (branchRestricted) {
+        let grants: string[] | null = userBranchesCached ? JSON.parse(userBranchesCached) : null
+        if (!grants) {
+          const rows = await prisma.userBranchAccess.findMany({
+            where: { userId: user.id, branch: { orgId: user.orgId, deletedAt: null } },
+            select: { branchId: true }
+          })
+          grants = rows.map(r => r.branchId)
+          try {
+            await redis.set(userBranchesCacheKey, JSON.stringify(grants), 'EX', 300)
+          } catch (err) {
+            console.error('User branches cache write:', err)
+          }
+        }
+        allowedBranchIds = grants
+      }
+
+      let activeBranchId: string | null = null
+      if (requestedBranchId) {
+        if (allowedBranchIds) {
+          // Restricted role: switch only within own grants; anything else is
+          // ignored and the grant set stays the boundary.
+          if (allowedBranchIds.includes(requestedBranchId)) {
+            activeBranchId = requestedBranchId
+          }
+        } else {
+          // Unrestricted role: validate the branch actually belongs to this
+          // org; stale/foreign ids degrade to the all-branches view.
+          let orgBranchIds: string[] | null = orgBranchesCached ? JSON.parse(orgBranchesCached) : null
+          if (!orgBranchIds) {
+            const rows = await prisma.branch.findMany({
+              where: { orgId: user.orgId, deletedAt: null },
+              select: { id: true }
+            })
+            orgBranchIds = rows.map(r => r.id)
+            try {
+              await redis.set(orgBranchesCacheKey, JSON.stringify(orgBranchIds), 'EX', 300)
+            } catch (err) {
+              console.error('Org branches cache write:', err)
+            }
+          }
+          if (orgBranchIds.includes(requestedBranchId)) {
+            activeBranchId = requestedBranchId
+          }
+        }
+      }
+
+      const branch: BranchContext = {
+        branchIds: activeBranchId ? [activeBranchId] : allowedBranchIds,
+        activeBranchId:
+          activeBranchId ??
+          (allowedBranchIds && allowedBranchIds.length === 1 ? allowedBranchIds[0] : null)
+      }
+
       // STEP 6: Create tenant DB client
-      const db = forOrg(user.orgId)
+      const db = forOrg(user.orgId, branch)
 
       // STEP 7: Resolve academic year (cache read already batched above)
       let activeYear = ayCached ? JSON.parse(ayCached) : null
@@ -228,6 +307,7 @@ export function route(config: RouteConfig) {
         },
         db,
         academicYearId,
+        branch,
         params: context?.params && typeof context.params.then === 'function' ? await context.params : context?.params
       }
 

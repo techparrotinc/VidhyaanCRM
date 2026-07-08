@@ -74,6 +74,31 @@ export const PUT = route({
 
     const updated = await prisma.$transaction(async (tx) => {
       if (body.role) {
+        // Keep branch grants in step with the role: grant rows carry the
+        // role, and a freshly-minted BRANCH_ADMIN needs at least the main
+        // branch or fail-closed scoping strands them.
+        await tx.userBranchAccess.updateMany({
+          where: { userId: target.id },
+          data: { role: body.role as UserRole }
+        })
+        if (body.role === 'BRANCH_ADMIN') {
+          const hasGrant = await tx.userBranchAccess.count({
+            where: { userId: target.id }
+          })
+          if (hasGrant === 0) {
+            const main = await tx.branch.findFirst({
+              where: { orgId: user.orgId, isDefault: true, deletedAt: null },
+              select: { id: true }
+            })
+            if (main) {
+              await tx.userBranchAccess.create({
+                data: { userId: target.id, branchId: main.id, role: 'BRANCH_ADMIN' }
+              })
+            }
+          }
+        }
+      }
+      if (body.role) {
         const currentAssignment = await tx.userRoleAssignment.findFirst({
           where: { userId: target.id, orgId: user.orgId, status: 'ACTIVE' }
         })
@@ -135,8 +160,13 @@ export const PUT = route({
       await clearUserRevocation(params!.id as string)
     }
 
-    // Invalidate counsellors cache
+    // Invalidate counsellors + branch-scope caches
     await redis.del(`counsellors:${user.orgId}`)
+    try {
+      await redis.del(`user:${target.id}:branch-ids`)
+    } catch (err) {
+      console.error('User branch cache bust:', err)
+    }
 
     const resolvedRole = await resolveTargetUserRole(target.id, user.orgId)
     return ok({ ...updated, role: resolvedRole })

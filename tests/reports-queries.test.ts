@@ -90,13 +90,23 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  const orgs = { orgId: { in: [orgA, orgB] } }
-  await prisma.invoice.deleteMany({ where: orgs })
-  await prisma.student.deleteMany({ where: orgs })
-  await prisma.lead.deleteMany({ where: orgs })
-  await prisma.userRoleAssignment.deleteMany({ where: { userId: counsellorId } })
-  await prisma.user.deleteMany({ where: { id: counsellorId } })
-  await prisma.organization.deleteMany({ where: { id: { in: [orgA, orgB] } } })
+  // Guard every id: if beforeAll died before assigning them, an undefined in
+  // a where clause makes Prisma drop the filter entirely — deleteMany({})
+  // would wipe the whole table (this happened; see work log 2026-07-08).
+  const orgIds = [orgA, orgB].filter(Boolean)
+  if (orgIds.length > 0) {
+    const orgs = { orgId: { in: orgIds } }
+    await prisma.invoice.deleteMany({ where: orgs })
+    await prisma.student.deleteMany({ where: orgs })
+    await prisma.lead.deleteMany({ where: orgs })
+  }
+  if (counsellorId) {
+    await prisma.userRoleAssignment.deleteMany({ where: { userId: counsellorId } })
+    await prisma.user.deleteMany({ where: { id: counsellorId } })
+  }
+  if (orgIds.length > 0) {
+    await prisma.organization.deleteMany({ where: { id: { in: orgIds } } })
+  }
   await prisma.$disconnect()
 })
 

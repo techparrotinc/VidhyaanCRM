@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useSession } from 'next-auth/react'
-import { X, Send, Square, RotateCcw, Sparkles } from 'lucide-react'
-import { useAiChat } from './useAiChat'
+import { X, Send, Square, RotateCcw, Sparkles, Minus } from 'lucide-react'
+import type { useAiChat } from './useAiChat'
 
 const SUGGESTIONS_BY_ROLE: Record<string, string[]> = {
   ORG_ADMIN: [
@@ -33,9 +34,16 @@ const SUGGESTIONS_BY_ROLE: Record<string, string[]> = {
   TEACHER: ['How do I view my students?', 'How do events and RSVPs work?']
 }
 
-export function AiSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function AiSidebar({
+  open,
+  onClose,
+  chat
+}: {
+  open: boolean
+  onClose: () => void
+  chat: ReturnType<typeof useAiChat> // state lives in the launcher — minimize keeps the conversation
+}) {
   const { data: session } = useSession()
-  const chat = useAiChat()
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -69,19 +77,21 @@ export function AiSidebar({ open, onClose }: { open: boolean; onClose: () => voi
     setInput('')
   }
 
-  if (!open) return null
+  if (!open || typeof document === 'undefined') return null
 
-  return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-label="Vidhyaan AI">
-      {/* backdrop */}
-      <div className="absolute inset-0 bg-slate-900/20" onClick={onClose} />
+  return createPortal(
+    // portaled to <body> + very high z: no app header/sidebar stacking context
+    // can cover the drawer or its controls
+    <div className="fixed inset-0 z-[9999]" role="dialog" aria-modal="true" aria-label="Vidhyaan AI">
+      {/* backdrop — click to minimize */}
+      <div className="absolute inset-0 bg-slate-900/30" onClick={onClose} />
 
       {/* drawer */}
       <div className="absolute right-0 top-0 flex h-full w-full max-w-[400px] flex-col bg-white shadow-2xl">
-        {/* header */}
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1565D8]">
+        {/* header — always visible, owns the controls */}
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1565D8]">
               <Sparkles className="h-4 w-4 text-white" />
             </span>
             <div>
@@ -93,20 +103,30 @@ export function AiSidebar({ open, onClose }: { open: boolean; onClose: () => voi
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <button
               onClick={chat.newConversation}
               title="New conversation"
-              className="rounded-md p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+              aria-label="Start new conversation"
+              className="rounded-lg p-2.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
             >
-              <RotateCcw className="h-4 w-4" />
+              <RotateCcw className="h-[18px] w-[18px]" />
+            </button>
+            <button
+              onClick={onClose}
+              title="Minimize — conversation is kept"
+              aria-label="Minimize chat"
+              className="rounded-lg p-2.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            >
+              <Minus className="h-[18px] w-[18px]" />
             </button>
             <button
               onClick={onClose}
               title="Close"
-              className="rounded-md p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+              aria-label="Close chat"
+              className="rounded-lg p-2.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
             >
-              <X className="h-4 w-4" />
+              <X className="h-[18px] w-[18px]" />
             </button>
           </div>
         </div>
@@ -229,6 +249,7 @@ export function AiSidebar({ open, onClose }: { open: boolean; onClose: () => voi
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

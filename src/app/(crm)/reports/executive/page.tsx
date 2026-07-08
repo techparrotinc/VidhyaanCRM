@@ -8,6 +8,7 @@ import { AttentionStrip, AttentionItem } from '@/components/reports/AttentionStr
 import { ChartCard, ChartCardSkeleton, WidgetError } from '@/components/reports/ChartCard'
 import { FeeTrendChart, FunnelChart, SourceBars, CapacityBars, MethodDonut, SimpleBars } from '@/components/reports/charts'
 import { Users, Target, GraduationCap, Wallet, AlertCircle } from 'lucide-react'
+import { WidgetCustomizer, useWidgetPrefs, WidgetDef } from '@/components/reports/WidgetCustomizer'
 import { formatINR, formatPct, deltaPct } from '@/components/reports/format'
 
 type ExecutiveData = {
@@ -31,8 +32,18 @@ type ExecutiveData = {
   attention: AttentionItem[]
 }
 
+const WIDGET_DEFS: WidgetDef[] = [
+  { key: 'funnel', label: 'Admission Funnel' },
+  { key: 'feeTrend', label: 'Fee Collection Trend' },
+  { key: 'sources', label: 'Lead Sources by Conversion' },
+  { key: 'seats', label: 'Grade Capacity / Courses' },
+  { key: 'sourceShare', label: 'Lead Source Share' },
+  { key: 'batches', label: 'Batch Fill' }
+]
+
 export default function ExecutiveDashboard() {
   const { selectedYearId } = useAcademicYearStore()
+  const { order, hidden, persist } = useWidgetPrefs('vidhyaan:widgets:executive', WIDGET_DEFS)
   const { data, error, isLoading, mutate } = useSWR<{ data: ExecutiveData }>(
     `/api/v1/reports/dashboards/executive${selectedYearId ? `?academicYearId=${selectedYearId}` : ''}`,
     fetcher,
@@ -59,9 +70,12 @@ export default function ExecutiveDashboard() {
             {d?.compareYear ? ` · compared with ${d.compareYear.name}` : ''}
           </p>
         </div>
-        <a href="/reports/library" className="inline-flex items-center h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-slate-300 shrink-0">
-          Report Library
-        </a>
+        <div className="flex items-center gap-2 shrink-0">
+          <WidgetCustomizer defs={WIDGET_DEFS} order={order} hidden={hidden} onChange={persist} />
+          <a href="/reports/library" className="inline-flex items-center h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-slate-300">
+            Report Library
+          </a>
+        </div>
       </div>
 
       {d && d.attention.length > 0 && <AttentionStrip items={d.attention} />}
@@ -136,75 +150,97 @@ export default function ExecutiveDashboard() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ChartCard
-              title="Admission Funnel"
-              subtitle={d.compareYear ? `This year vs ${d.compareYear.name}` : undefined}
-              empty={d.funnel.every(f => f.count === 0)}
-              emptyMessage="No leads recorded in this academic year yet"
-            >
-              <FunnelChart data={d.funnel} compareLabel={d.compareYear?.name} />
-            </ChartCard>
-
-            <ChartCard
-              title="Fee Collection Trend"
-              subtitle="Billed vs collected, last 12 months"
-              empty={d.feeTrend.length === 0}
-              emptyMessage="Trend data builds up nightly — check back tomorrow"
-            >
-              <FeeTrendChart data={d.feeTrend} />
-            </ChartCard>
-
-            <ChartCard
-              title="Lead Sources by Conversion"
-              empty={d.sources.length === 0}
-              emptyMessage="No leads recorded in this academic year yet"
-            >
-              <SourceBars data={d.sources} />
-            </ChartCard>
-
-            {d.courseLed ? (
-              <ChartCard
-                title="Active Enrollments by Course"
-                empty={d.courses.length === 0}
-                emptyMessage="No active course enrollments yet"
-              >
-                <SimpleBars data={d.courses} xKey="course" yKey="students" yLabel="Students" />
-              </ChartCard>
-            ) : (
-              <ChartCard
-                title="Grade Capacity"
-                subtitle="Seats filled per grade"
-                empty={d.capacity.length === 0}
-                emptyMessage="No seat capacity configured for this year"
-              >
-                <CapacityBars data={d.capacity} />
-              </ChartCard>
-            )}
-
-            <ChartCard
-              title="Lead Source Share"
-              subtitle="Where enquiries come from"
-              empty={d.sources.length === 0}
-              emptyMessage="No leads recorded in this academic year yet"
-            >
-              <MethodDonut
-                valueFormat="int"
-                data={d.sources.slice(0, 8).map(s => ({
-                  method: s.source, amount: s.leads, count: s.leads
-                }))}
-              />
-            </ChartCard>
-
-            {d.courseLed && (
-              <ChartCard
-                title="Batch Fill"
-                subtitle="Students vs batch capacity"
-                empty={d.batches.length === 0}
-                emptyMessage="No batches configured yet"
-              >
-                <CapacityBars data={d.batches} />
-              </ChartCard>
-            )}
+            {order.filter(k => !hidden.includes(k)).map(key => {
+              switch (key) {
+                case 'funnel':
+                  return (
+                    <ChartCard
+                      key={key}
+                      title="Admission Funnel"
+                      subtitle={d.compareYear ? `This year vs ${d.compareYear.name}` : undefined}
+                      empty={d.funnel.every(f => f.count === 0)}
+                      emptyMessage="No leads recorded in this academic year yet"
+                    >
+                      <FunnelChart data={d.funnel} compareLabel={d.compareYear?.name} />
+                    </ChartCard>
+                  )
+                case 'feeTrend':
+                  return (
+                    <ChartCard
+                      key={key}
+                      title="Fee Collection Trend"
+                      subtitle="Billed vs collected, last 12 months"
+                      empty={d.feeTrend.length === 0}
+                      emptyMessage="Trend data builds up nightly — check back tomorrow"
+                    >
+                      <FeeTrendChart data={d.feeTrend} />
+                    </ChartCard>
+                  )
+                case 'sources':
+                  return (
+                    <ChartCard
+                      key={key}
+                      title="Lead Sources by Conversion"
+                      empty={d.sources.length === 0}
+                      emptyMessage="No leads recorded in this academic year yet"
+                    >
+                      <SourceBars data={d.sources} />
+                    </ChartCard>
+                  )
+                case 'seats':
+                  return d.courseLed ? (
+                    <ChartCard
+                      key={key}
+                      title="Active Enrollments by Course"
+                      empty={d.courses.length === 0}
+                      emptyMessage="No active course enrollments yet"
+                    >
+                      <SimpleBars data={d.courses} xKey="course" yKey="students" yLabel="Students" />
+                    </ChartCard>
+                  ) : (
+                    <ChartCard
+                      key={key}
+                      title="Grade Capacity"
+                      subtitle="Seats filled per grade"
+                      empty={d.capacity.length === 0}
+                      emptyMessage="No seat capacity configured for this year"
+                    >
+                      <CapacityBars data={d.capacity} />
+                    </ChartCard>
+                  )
+                case 'sourceShare':
+                  return (
+                    <ChartCard
+                      key={key}
+                      title="Lead Source Share"
+                      subtitle="Where enquiries come from"
+                      empty={d.sources.length === 0}
+                      emptyMessage="No leads recorded in this academic year yet"
+                    >
+                      <MethodDonut
+                        valueFormat="int"
+                        data={d.sources.slice(0, 8).map(s => ({
+                          method: s.source, amount: s.leads, count: s.leads
+                        }))}
+                      />
+                    </ChartCard>
+                  )
+                case 'batches':
+                  return d.courseLed ? (
+                    <ChartCard
+                      key={key}
+                      title="Batch Fill"
+                      subtitle="Students vs batch capacity"
+                      empty={d.batches.length === 0}
+                      emptyMessage="No batches configured yet"
+                    >
+                      <CapacityBars data={d.batches} />
+                    </ChartCard>
+                  ) : null
+                default:
+                  return null
+              }
+            })}
           </div>
         </>
       )}

@@ -227,6 +227,19 @@ export const REPORTS: ReportDefinition[] = [
     exports: ['csv', 'xlsx']
   },
   {
+    key: 'trial-class-conversion',
+    title: 'Trial Class Conversion',
+    decision: 'Learn which trial classes turn into paying enrolments',
+    category: 'courses',
+    allowedRoles: ADMIN_ROLES,
+    filters: [dateRange,
+      {
+        key: 'status', label: 'Booking status', type: 'enum',
+        options: ['PENDING', 'CONFIRMED', 'CANCELLED'].map(v => ({ value: v, label: v }))
+      }],
+    exports: ['csv', 'xlsx']
+  },
+  {
     key: 'daily-activity',
     title: 'Daily Activity Log',
     decision: 'Know what the front desk and counsellors actually did today',

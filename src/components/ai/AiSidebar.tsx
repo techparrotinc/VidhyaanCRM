@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { X, Send, Square, RotateCcw, Sparkles, Minus, Copy, Check, ThumbsUp, ThumbsDown } from 'lucide-react'
 import type { useAiChat, AiMessage, FeedbackCategory } from './useAiChat'
@@ -244,12 +245,12 @@ export function AiSidebar({
                 <p className="text-center text-xs font-normal text-red-500">{chat.error}</p>
               )}
               {chat.creditsLeft === 0 && (
-                <a
+                <Link
                   href="/settings/addons"
                   className="mx-auto block w-fit rounded-lg bg-[#1565D8] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1255b8]"
                 >
                   Top up AI credits →
-                </a>
+                </Link>
               )}
             </div>
 

@@ -7,6 +7,23 @@ Record of a review + hardening + performance session. Production branch is
 
 ## ✅ Done
 
+### Reports & Analytics — schedules, trial conversion, widget customization (2026-07-08)
+- **Scheduled email reports live** (14 reports total): `/api/v1/reports/schedules` CRUD
+  (cadence tokens daily/weekly_*/monthly_1|15, ≤5 recipients, ≤10 schedules/user,
+  optional saved-view filters); delivery cron `/api/cron/report-schedules` (02:30 UTC =
+  08:00 IST) — **fail-closed re-checks per send**: org active, `advanced_reports` module
+  enabled, creator's ACTIVE role assignment; runs with creator's row scoping. HTML email
+  (KPI cards + insight + top-15 rows + deep link) via ZeptoMail; Schedule popover on
+  every report page.
+- **Trial Class Conversion report** — marketplace `TrialClassBooking` linked through
+  `School.orgId` (claimed profiles); outcome via phone-match to CRM leads
+  (ENROLLED/LEAD/NO_LEAD), per-activity conversion chart. Approximation stated in UI.
+- **Executive dashboard widget customization** — show/hide + reorder via Customize
+  popover; per-device localStorage prefs (`useWidgetPrefs`), unknown/new widget keys
+  self-heal.
+- Rollup backfill executed on prod (15 months, all orgs).
+- Fixed pre-existing lint error in `AiSidebar.tsx` (`<a>` → `next/link`).
+
 ### Reports & Analytics — institution-type + role enhancements (2026-07-08)
 - **3 new reports (13 total)**: `course-performance` (LC/coaching lens — enrollments,
   batch fill, monthly run-rate, per-course billed/collected via `invoice.courseId`),

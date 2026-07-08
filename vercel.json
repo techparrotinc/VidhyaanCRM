@@ -1,5 +1,7 @@
 {
-  "regions": ["sin1"],
+  "regions": [
+    "sin1"
+  ],
   "crons": [
     {
       "path": "/api/cron/auto-invoice",
@@ -8,6 +10,10 @@
     {
       "path": "/api/cron/reports-rollup",
       "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/cron/report-schedules",
+      "schedule": "30 2 * * *"
     }
   ]
 }

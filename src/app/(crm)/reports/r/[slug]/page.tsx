@@ -16,6 +16,7 @@ import {
 } from '@/components/reports/charts'
 import { formatINR, formatPct } from '@/components/reports/format'
 import { ArrowLeft, Star, Download, Lightbulb } from 'lucide-react'
+import { ScheduleMenu } from '@/components/reports/ScheduleMenu'
 
 type ReportMeta = {
   key: string
@@ -271,6 +272,7 @@ export default function ReportPage({ params }: { params: Promise<{ slug: string 
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <ScheduleMenu reportKey={slug} />
           <button
             onClick={toggleFavourite}
             className={`p-2 rounded-lg border ${favourite ? 'border-amber-200 bg-amber-50 text-amber-500' : 'border-slate-200 bg-white text-slate-400 hover:text-slate-600'}`}

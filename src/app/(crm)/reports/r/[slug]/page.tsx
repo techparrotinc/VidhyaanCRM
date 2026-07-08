@@ -110,6 +110,36 @@ function ReportCharts({ slug, charts }: { slug: string; charts: Record<string, u
           <SimpleBars data={charts.channels as never} xKey="channel" yKey="leads" yLabel="Leads" />
         </ChartCard>
       )
+    case 'course-performance':
+      return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartCard title="Active Enrollments by Course" empty={(charts.courses as unknown[]).length === 0}>
+            <SimpleBars data={charts.courses as never} xKey="course" yKey="students" yLabel="Students" />
+          </ChartCard>
+          <ChartCard title="Batch Fill" subtitle="Students vs capacity" empty={(charts.batches as unknown[]).length === 0}>
+            <CapacityBars data={charts.batches as never} />
+          </ChartCard>
+        </div>
+      )
+    case 'daily-activity': {
+      const byType = (charts.byType as { type: string; count: number }[]) ?? []
+      return (
+        <ChartCard title="Activity Mix" empty={byType.length === 0}>
+          <MethodDonut valueFormat="int" data={byType.map(t => ({ method: t.type, amount: t.count, count: t.count }))} />
+        </ChartCard>
+      )
+    }
+    case 'payment-register':
+      return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartCard title="Method Mix" empty={(charts.methodMix as unknown[]).length === 0}>
+            <MethodDonut data={charts.methodMix as never} />
+          </ChartCard>
+          <ChartCard title="Daily Collections" empty={(charts.daily as unknown[]).length === 0}>
+            <SimpleBars data={charts.daily as never} xKey="day" yKey="amount" yLabel="Collected" />
+          </ChartCard>
+        </div>
+      )
     case 'enrollment-strength':
       return (
         <ChartCard title="Students by Grade" empty={(charts.grades as unknown[]).length === 0}>

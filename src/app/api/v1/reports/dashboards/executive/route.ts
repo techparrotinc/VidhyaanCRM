@@ -20,11 +20,22 @@ export const GET = route({
     const cached = await redis.get(cacheKey).catch(() => null)
     if (cached) return ok(JSON.parse(cached))
 
-    // Resolve selected + previous academic year for YoY comparison.
-    const years = await db.academicYear.findMany({
-      orderBy: { startDate: 'asc' },
-      select: { id: true, name: true, startDate: true, status: true }
-    })
+    // Resolve selected + previous academic year for YoY comparison, and the
+    // institution type — course/batch widgets replace grade capacity for
+    // learning centres, coaching, skill and sports academies.
+    const [years, orgRow] = await Promise.all([
+      db.academicYear.findMany({
+        orderBy: { startDate: 'asc' },
+        select: { id: true, name: true, startDate: true, status: true }
+      }),
+      db.organization.findFirst({
+        where: { id: user.orgId },
+        select: { institutionType: true }
+      })
+    ])
+    const institutionType = orgRow?.institutionType ?? 'SCHOOL'
+    const courseLed = ['LEARNING_CENTER', 'COACHING_CENTER', 'SKILL_DEVELOPMENT', 'SPORTS_ACADEMY']
+      .includes(institutionType)
     const selected =
       years.find(y => y.id === academicYearId) ??
       years.find(y => y.status === 'ACTIVE') ??
@@ -131,6 +142,41 @@ export const GET = route({
       })
     ])
 
+    // Course-led institutions: enrollments per course + batch fill.
+    let courses: { course: string; students: number }[] = []
+    let batches: { grade: string; totalSeats: number; filledSeats: number }[] = []
+    if (courseLed) {
+      const [courseRows, enrollments, batchRows] = await Promise.all([
+        db.course.findMany({
+          where: { deletedAt: null },
+          select: { id: true, name: true }
+        }),
+        db.courseEnrollment.groupBy({
+          by: ['courseId'],
+          where: { status: 'ACTIVE' },
+          _count: { _all: true }
+        }),
+        db.studentBatch.findMany({
+          where: { deletedAt: null },
+          select: { name: true, capacity: true, _count: { select: { students: true } } },
+          take: 20
+        })
+      ])
+      const countMap = new Map(enrollments.map(e => [e.courseId, e._count._all]))
+      courses = courseRows
+        .map(c => ({ course: c.name, students: countMap.get(c.id) ?? 0 }))
+        .filter(c => c.students > 0)
+        .sort((a, b) => b.students - a.students)
+        .slice(0, 10)
+      batches = batchRows
+        .filter(b => b.capacity || b._count.students > 0)
+        .map(b => ({
+          grade: b.name,
+          totalSeats: b.capacity ?? b._count.students,
+          filledSeats: b._count.students
+        }))
+    }
+
     const outstanding =
       Number(openInvoiceAgg._sum.totalAmount ?? 0) -
       Number(openInvoiceAgg._sum.paidAmount ?? 0)
@@ -200,6 +246,8 @@ export const GET = route({
     })
 
     const data = {
+      institutionType,
+      courseLed,
       year: selected ? { id: selected.id, name: selected.name } : null,
       compareYear: prev ? { id: prev.id, name: prev.name } : null,
       kpis: {
@@ -216,6 +264,8 @@ export const GET = route({
       feeTrend,
       sources,
       capacity,
+      courses,
+      batches,
       attention
     }
 

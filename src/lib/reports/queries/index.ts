@@ -9,6 +9,9 @@ import { defaulterAgeing } from './defaulter-ageing'
 import { concessionAudit } from './concession-audit'
 import { campaignEffectiveness } from './campaign-effectiveness'
 import { enrollmentStrength } from './enrollment-strength'
+import { coursePerformance } from './course-performance'
+import { dailyActivity } from './daily-activity'
+import { paymentRegister } from './payment-register'
 
 // Keyed by registry.ts report keys — the generic routes dispatch here.
 export const REPORT_QUERIES: Record<string, ReportQuery> = {
@@ -21,5 +24,8 @@ export const REPORT_QUERIES: Record<string, ReportQuery> = {
   'defaulter-ageing': defaulterAgeing,
   'concession-audit': concessionAudit,
   'campaign-effectiveness': campaignEffectiveness,
-  'enrollment-strength': enrollmentStrength
+  'enrollment-strength': enrollmentStrength,
+  'course-performance': coursePerformance,
+  'daily-activity': dailyActivity,
+  'payment-register': paymentRegister
 }

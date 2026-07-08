@@ -7,6 +7,7 @@ import { AttentionStrip, AttentionItem } from '@/components/reports/AttentionStr
 import { ChartCard, ChartCardSkeleton, WidgetError } from '@/components/reports/ChartCard'
 import { FeeTrendChart, AgeingChart, MethodDonut } from '@/components/reports/charts'
 import { formatINR, formatINRFull, formatPct, deltaPct } from '@/components/reports/format'
+import { Wallet, Receipt, Percent, Hourglass, AlertCircle } from 'lucide-react'
 
 type FinanceData = {
   kpis: {
@@ -79,6 +80,8 @@ export default function FinanceDashboard() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <KpiCard
+              icon={Wallet}
+              tone="green"
               label="Collected (MTD)"
               value={formatINR(d.kpis.collectedMTD.value)}
               delta={deltaPct(d.kpis.collectedMTD.value, d.kpis.collectedMTD.prev)}
@@ -86,23 +89,31 @@ export default function FinanceDashboard() {
               href="/fee-management"
             />
             <KpiCard
+              icon={Receipt}
+              tone="blue"
               label="Billed (MTD)"
               value={formatINR(d.kpis.billedMTD.value)}
               caption={`${d.kpis.billedMTD.invoices} invoices`}
               href="/fee-management"
             />
             <KpiCard
+              icon={Percent}
+              tone="violet"
               label="Collection Rate"
               value={formatPct(d.kpis.collectionRate)}
               caption="collected ÷ billed this month"
             />
             <KpiCard
+              icon={Hourglass}
+              tone="amber"
               label="Outstanding"
               value={formatINR(d.kpis.outstanding.value)}
               caption="all open invoices"
               href="/fee-management?status=UNPAID"
             />
             <KpiCard
+              icon={AlertCircle}
+              tone="rose"
               label="Overdue"
               value={formatINR(d.kpis.overdue.value)}
               caption="past due date"

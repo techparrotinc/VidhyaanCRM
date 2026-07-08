@@ -10,6 +10,7 @@ export type ReportCategory =
   | 'finance'
   | 'team'
   | 'students'
+  | 'courses'
   | 'campaigns'
 
 export type ReportFilterType =
@@ -83,7 +84,8 @@ export const REPORTS: ReportDefinition[] = [
     title: 'Lead Funnel & Conversion',
     decision: 'Find where the funnel leaks and whether it is worse than last year',
     category: 'admissions',
-    allowedRoles: ADMIN_ROLES,
+    // COUNSELLOR sees the funnel scoped to their own leads (leadBaseWhere).
+    allowedRoles: [...ADMIN_ROLES, 'COUNSELLOR'],
     filters: [dateRange, sourceFilter, gradeFilter, counsellorFilter,
       {
         key: 'priority', label: 'Priority', type: 'enum',
@@ -208,6 +210,51 @@ export const REPORTS: ReportDefinition[] = [
       {
         key: 'gender', label: 'Gender', type: 'enum',
         options: ['MALE', 'FEMALE', 'OTHER'].map(v => ({ value: v, label: v }))
+      }],
+    exports: ['csv', 'xlsx', 'pdf']
+  },
+  {
+    key: 'course-performance',
+    title: 'Course & Batch Performance',
+    decision: 'See which courses fill, earn and retain — and which batches run empty',
+    category: 'courses',
+    allowedRoles: ADMIN_ROLES,
+    filters: [
+      {
+        key: 'status', label: 'Enrollment status', type: 'enum',
+        options: ['ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED'].map(v => ({ value: v, label: v }))
+      }],
+    exports: ['csv', 'xlsx']
+  },
+  {
+    key: 'daily-activity',
+    title: 'Daily Activity Log',
+    decision: 'Know what the front desk and counsellors actually did today',
+    category: 'team',
+    allowedRoles: [...ADMIN_ROLES, 'COUNSELLOR', 'RECEPTIONIST'],
+    filters: [dateRange,
+      {
+        key: 'type', label: 'Activity type', type: 'enum',
+        options: ['NOTE', 'CALL', 'EMAIL', 'SMS', 'WHATSAPP', 'MEETING', 'STATUS_CHANGE', 'ASSIGNMENT']
+          .map(v => ({ value: v, label: v.replace(/_/g, ' ') }))
+      }],
+    exports: ['csv']
+  },
+  {
+    key: 'payment-register',
+    title: 'Payment Collections Register',
+    decision: 'Reconcile every rupee received — by day, method and collector',
+    category: 'finance',
+    allowedRoles: ['ORG_ADMIN', 'ACCOUNTANT'],
+    filters: [dateRange,
+      {
+        key: 'method', label: 'Method', type: 'enum',
+        options: ['RAZORPAY', 'CASH', 'CHEQUE', 'DD', 'NEFT', 'BANK_TRANSFER', 'UPI', 'CARD', 'OTHER']
+          .map(v => ({ value: v, label: v.replace(/_/g, ' ') }))
+      },
+      {
+        key: 'status', label: 'Status', type: 'enum',
+        options: ['SUCCESS', 'PENDING', 'FAILED', 'REFUNDED'].map(v => ({ value: v, label: v }))
       }],
     exports: ['csv', 'xlsx', 'pdf']
   }

@@ -17,15 +17,17 @@ type ReportMeta = {
 
 const CATEGORY_LABELS: Record<string, string> = {
   admissions: 'Admissions',
-  finance: 'Finance',
+  finance: 'Fees & Finance',
   team: 'Team',
   students: 'Students',
+  courses: 'Courses & Batches',
   campaigns: 'Campaigns'
 }
-const CATEGORY_ORDER = ['admissions', 'finance', 'team', 'students', 'campaigns']
+const CATEGORY_ORDER = ['admissions', 'finance', 'team', 'students', 'courses', 'campaigns']
 
 export default function ReportLibrary() {
   const [search, setSearch] = useState('')
+  const [tab, setTab] = useState('all')
   const { data: metaData, isLoading } = useSWR<{ data: ReportMeta[] }>(
     '/api/v1/reports/meta', fetcher, { revalidateOnFocus: false }
   )
@@ -52,6 +54,10 @@ export default function ReportLibrary() {
     }
     return m
   }, [filtered])
+
+  const visibleCategories = CATEGORY_ORDER.filter(
+    c => byCategory.has(c) && (tab === 'all' || tab === c)
+  )
 
   const toggleFavourite = async (key: string, current: boolean) => {
     await fetch(`/api/v1/reports/usage/${key}`, {
@@ -112,6 +118,22 @@ export default function ReportLibrary() {
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-1 border-b border-slate-200 -mb-4">
+        {['all', ...CATEGORY_ORDER.filter(c => byCategory.has(c))].map(c => (
+          <button
+            key={c}
+            onClick={() => setTab(c)}
+            className={`px-3.5 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${
+              tab === c
+                ? 'border-[#1565D8] text-[#1565D8]'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            {c === 'all' ? 'All Reports' : CATEGORY_LABELS[c] ?? c}
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -120,7 +142,7 @@ export default function ReportLibrary() {
         </div>
       ) : (
         <>
-          {recent.length > 0 && !search && (
+          {recent.length > 0 && !search && tab === 'all' && (
             <div>
               <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-3">
                 Recently Viewed
@@ -144,7 +166,7 @@ export default function ReportLibrary() {
             </div>
           )}
 
-          {favourites.size > 0 && !search && (
+          {favourites.size > 0 && !search && tab === 'all' && (
             <div>
               <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-3">
                 Favourites
@@ -155,7 +177,7 @@ export default function ReportLibrary() {
             </div>
           )}
 
-          {CATEGORY_ORDER.filter(c => byCategory.has(c)).map(category => (
+          {visibleCategories.map(category => (
             <div key={category}>
               <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-3">
                 {CATEGORY_LABELS[category] ?? category}

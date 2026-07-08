@@ -7,9 +7,9 @@ const KNOWN_ROLES = [
 ]
 
 describe('report registry', () => {
-  it('has 10 Phase-1 reports with unique keys', () => {
-    expect(REPORTS).toHaveLength(10)
-    expect(new Set(REPORTS.map(r => r.key)).size).toBe(10)
+  it('has 13 reports with unique keys', () => {
+    expect(REPORTS).toHaveLength(13)
+    expect(new Set(REPORTS.map(r => r.key)).size).toBe(13)
   })
 
   it('every report names only real roles and at least one', () => {

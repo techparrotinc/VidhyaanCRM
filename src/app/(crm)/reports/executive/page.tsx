@@ -6,10 +6,13 @@ import { useAcademicYearStore } from '@/stores/academic-year.store'
 import { KpiCard, KpiCardSkeleton } from '@/components/reports/KpiCard'
 import { AttentionStrip, AttentionItem } from '@/components/reports/AttentionStrip'
 import { ChartCard, ChartCardSkeleton, WidgetError } from '@/components/reports/ChartCard'
-import { FeeTrendChart, FunnelChart, SourceBars, CapacityBars } from '@/components/reports/charts'
+import { FeeTrendChart, FunnelChart, SourceBars, CapacityBars, MethodDonut, SimpleBars } from '@/components/reports/charts'
+import { Users, Target, GraduationCap, Wallet, AlertCircle } from 'lucide-react'
 import { formatINR, formatPct, deltaPct } from '@/components/reports/format'
 
 type ExecutiveData = {
+  institutionType: string
+  courseLed: boolean
   year: { id: string; name: string } | null
   compareYear: { id: string; name: string } | null
   kpis: {
@@ -23,6 +26,8 @@ type ExecutiveData = {
   feeTrend: { month: string; billed: number; collected: number }[]
   sources: { source: string; leads: number; converted: number; conversionPct: number }[]
   capacity: { grade: string; totalSeats: number; filledSeats: number; admitted: number }[]
+  courses: { course: string; students: number }[]
+  batches: { grade: string; totalSeats: number; filledSeats: number }[]
   attention: AttentionItem[]
 }
 
@@ -77,6 +82,8 @@ export default function ExecutiveDashboard() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <KpiCard
+              icon={Users}
+              tone="blue"
               label="New Leads"
               value={String(d.kpis.leads.value)}
               delta={deltaPct(d.kpis.leads.value, d.kpis.leads.prev)}
@@ -84,6 +91,8 @@ export default function ExecutiveDashboard() {
               href="/lead-management"
             />
             <KpiCard
+              icon={Target}
+              tone="violet"
               label="Conversion"
               value={formatPct(d.kpis.conversionPct.value)}
               delta={
@@ -95,6 +104,8 @@ export default function ExecutiveDashboard() {
               href="/lead-management?status=CONVERTED"
             />
             <KpiCard
+              icon={GraduationCap}
+              tone="sky"
               label="Admissions"
               value={
                 d.kpis.admissions.capacity
@@ -106,6 +117,8 @@ export default function ExecutiveDashboard() {
               href="/admission-management"
             />
             <KpiCard
+              icon={Wallet}
+              tone="green"
               label="Collected"
               value={formatINR(d.kpis.collectedThisMonth.value)}
               delta={deltaPct(d.kpis.collectedThisMonth.value, d.kpis.collectedThisMonth.prev)}
@@ -113,6 +126,8 @@ export default function ExecutiveDashboard() {
               href="/fee-management"
             />
             <KpiCard
+              icon={AlertCircle}
+              tone="rose"
               label="Outstanding"
               value={formatINR(d.kpis.outstanding.value)}
               caption={`${d.kpis.outstanding.invoices} open invoices`}
@@ -147,14 +162,49 @@ export default function ExecutiveDashboard() {
               <SourceBars data={d.sources} />
             </ChartCard>
 
+            {d.courseLed ? (
+              <ChartCard
+                title="Active Enrollments by Course"
+                empty={d.courses.length === 0}
+                emptyMessage="No active course enrollments yet"
+              >
+                <SimpleBars data={d.courses} xKey="course" yKey="students" yLabel="Students" />
+              </ChartCard>
+            ) : (
+              <ChartCard
+                title="Grade Capacity"
+                subtitle="Seats filled per grade"
+                empty={d.capacity.length === 0}
+                emptyMessage="No seat capacity configured for this year"
+              >
+                <CapacityBars data={d.capacity} />
+              </ChartCard>
+            )}
+
             <ChartCard
-              title="Grade Capacity"
-              subtitle="Seats filled per grade"
-              empty={d.capacity.length === 0}
-              emptyMessage="No seat capacity configured for this year"
+              title="Lead Source Share"
+              subtitle="Where enquiries come from"
+              empty={d.sources.length === 0}
+              emptyMessage="No leads recorded in this academic year yet"
             >
-              <CapacityBars data={d.capacity} />
+              <MethodDonut
+                valueFormat="int"
+                data={d.sources.slice(0, 8).map(s => ({
+                  method: s.source, amount: s.leads, count: s.leads
+                }))}
+              />
             </ChartCard>
+
+            {d.courseLed && (
+              <ChartCard
+                title="Batch Fill"
+                subtitle="Students vs batch capacity"
+                empty={d.batches.length === 0}
+                emptyMessage="No batches configured yet"
+              >
+                <CapacityBars data={d.batches} />
+              </ChartCard>
+            )}
           </div>
         </>
       )}

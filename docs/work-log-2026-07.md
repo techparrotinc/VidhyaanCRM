@@ -7,6 +7,22 @@ Record of a review + hardening + performance session. Production branch is
 
 ## ✅ Done
 
+### Reports & Analytics — institution-type + role enhancements (2026-07-08)
+- **3 new reports (13 total)**: `course-performance` (LC/coaching lens — enrollments,
+  batch fill, monthly run-rate, per-course billed/collected via `invoice.courseId`),
+  `daily-activity` (front-desk ops log from `LeadActivity`; COUNSELLOR sees own),
+  `payment-register` (accountant reconciliation — cash vs digital split, collector
+  column, defaults to today). `Course`/`CourseEnrollment` added to `forOrg` tenant list.
+- **Institution-aware executive dashboard** — course-led org types
+  (LEARNING_CENTER/COACHING_CENTER/SKILL_DEVELOPMENT/SPORTS_ACADEMY) get
+  enrollments-by-course + batch-fill widgets instead of grade capacity; response
+  carries `institutionType`/`courseLed`.
+- **UI pass** — KpiCard icons + colour tones (top accent bar + tinted icon chip),
+  categorical donut palette, stage-coloured funnel (converted green / lost red),
+  lead-source share donut on executive, Library page now tabbed by category
+  (All / Admissions / Fees & Finance / Team / Students / Courses & Batches / Campaigns).
+- COUNSELLOR granted lead-funnel (scoped to own leads via `leadBaseWhere`).
+
 ### Reports & Analytics module — Phase 1 (2026-07-08)
 Full build per [reports-analytics-phase1-prd.md](reports-analytics-phase1-prd.md); all 4 sprints.
 - **Data layer** — new `reporting` Postgres schema (migration `20260707182911_reporting_phase1`):

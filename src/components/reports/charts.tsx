@@ -79,7 +79,17 @@ export function FunnelChart({
             formatter={v => (v === 'count' ? 'This year' : compareLabel)}
           />
         )}
-        <Bar dataKey="count" fill={BLUE} radius={[0, 3, 3, 0]} maxBarSize={16}>
+        <Bar dataKey="count" radius={[0, 3, 3, 0]} maxBarSize={16}>
+          {rows.map((r, i) => (
+            <Cell
+              key={i}
+              fill={
+                r.status === 'CONVERTED' ? '#10B981'
+                  : r.status === 'NOT_INTERESTED' ? '#F43F5E'
+                    : ['#1565D8', '#2E7CE0', '#4A94E8', '#66ABF0'][i] ?? BLUE
+              }
+            />
+          ))}
           <LabelList dataKey="count" position="right" style={{ fontSize: 11, fill: '#334155' }} />
         </Bar>
         {hasPrev && <Bar dataKey="prevCount" fill={SLATE} radius={[0, 3, 3, 0]} maxBarSize={16} />}
@@ -190,12 +200,14 @@ export function AgeingChart({
   )
 }
 
-const DONUT_COLORS = ['#1565D8', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE', '#DBEAFE', '#EFF6FF', '#CBD5E1', '#94A3B8']
+const DONUT_COLORS = ['#1565D8', '#0EA5E9', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#64748B']
 
 export function MethodDonut({
-  data
+  data,
+  valueFormat = 'inr'
 }: {
   data: { method: string; amount: number; count: number }[]
+  valueFormat?: 'inr' | 'int'
 }) {
   return (
     <ResponsiveContainer width="100%" height={240}>
@@ -215,7 +227,7 @@ export function MethodDonut({
         </Pie>
         <Tooltip
           contentStyle={tooltipStyle}
-          formatter={((v: number, name: string) => [formatINRFull(v), name.replace(/_/g, ' ')]) as never}
+          formatter={((v: number, name: string) => [valueFormat === 'inr' ? formatINRFull(v) : v.toLocaleString('en-IN'), name.replace(/_/g, ' ')]) as never}
         />
         <Legend
           wrapperStyle={{ fontSize: 11 }}

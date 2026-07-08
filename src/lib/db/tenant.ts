@@ -14,7 +14,10 @@ const TENANT_MODELS = [
   'StudentGuardianLink',
   // Reporting. DailyRollup is written by the rollup cron via the base client
   // (explicit orgId, no session); listed here so API reads stay org-scoped.
-  'DailyRollup', 'ReportSavedView', 'ReportUsage', 'ReportSchedule'
+  'DailyRollup', 'ReportSavedView', 'ReportUsage', 'ReportSchedule',
+  // Learning-centre course catalog (settings routes already scope manually;
+  // this makes it fail-closed for report queries too).
+  'Course', 'CourseEnrollment'
 ]
 
 const SOFT_DELETE_MODELS = [

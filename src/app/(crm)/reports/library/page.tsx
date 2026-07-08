@@ -99,31 +99,31 @@ export default function ReportLibrary() {
             Every report answers one business question
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
           <Link
             href="/reports"
             className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-slate-300"
           >
             <LayoutDashboard className="h-3.5 w-3.5" /> Dashboards
           </Link>
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none min-w-[180px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search reports…"
-              className="h-9 w-56 rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-sm"
+              className="h-9 w-full sm:w-56 rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-sm"
             />
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1 border-b border-slate-200 -mb-4">
+      <div className="flex flex-nowrap gap-1 border-b border-slate-200 overflow-x-auto scrollbar-none -mx-6 px-6 sm:mx-0 sm:px-0">
         {['all', ...CATEGORY_ORDER.filter(c => byCategory.has(c))].map(c => (
           <button
             key={c}
             onClick={() => setTab(c)}
-            className={`px-3.5 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${
+            className={`shrink-0 whitespace-nowrap px-3.5 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${
               tab === c
                 ? 'border-[#1565D8] text-[#1565D8]'
                 : 'border-transparent text-slate-500 hover:text-slate-700'

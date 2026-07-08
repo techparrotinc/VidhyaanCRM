@@ -87,11 +87,11 @@ export function ReportTable({
               </tr>
             )}
             {rows.map((row, i) => (
-              <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
+              <tr key={i} className="group border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
                 {columns.map(c => (
                   <td
                     key={c.key}
-                    className="text-sm font-normal leading-relaxed text-slate-700 px-4 py-3 whitespace-nowrap first:sticky first:left-0 first:bg-white"
+                    className="text-sm font-normal leading-relaxed text-slate-700 px-4 py-3 whitespace-nowrap first:sticky first:left-0 first:bg-white group-hover:first:bg-slate-50"
                   >
                     {renderCell(row[c.key], c.format)}
                   </td>

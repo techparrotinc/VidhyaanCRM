@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { X, Send, Square, RotateCcw, Sparkles, Minus, Copy, Check, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { X, Send, Square, RotateCcw, Sparkles, Minus, Copy, Check, ThumbsUp, ThumbsDown, History, Trash2, MessageSquare } from 'lucide-react'
 import type { useAiChat, AiMessage, FeedbackCategory } from './useAiChat'
 import { AiFeedbackDialog } from './AiFeedbackDialog'
 
@@ -49,6 +49,28 @@ export function AiSidebar({
   const [input, setInput] = useState('')
   const [feedbackFor, setFeedbackFor] = useState<AiMessage | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [view, setView] = useState<'chat' | 'history'>('chat')
+  const [historyItems, setHistoryItems] = useState<
+    { id: string; title: string | null; messageCount: number; lastMessageAt: string | null }[]
+  >([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+
+  const openHistory = async () => {
+    setView('history')
+    setHistoryLoading(true)
+    setHistoryItems(await chat.loadHistory())
+    setHistoryLoading(false)
+  }
+
+  const resumeConversation = async (id: string) => {
+    const ok = await chat.loadConversation(id)
+    if (ok) setView('chat')
+  }
+
+  const removeConversation = async (id: string) => {
+    await chat.deleteConversation(id)
+    setHistoryItems((items) => items.filter((i) => i.id !== id))
+  }
 
   const copyMessage = (m: AiMessage) => {
     void navigator.clipboard.writeText(m.text)
@@ -116,7 +138,18 @@ export function AiSidebar({
           </div>
           <div className="flex items-center gap-0.5">
             <button
-              onClick={chat.newConversation}
+              onClick={() => (view === 'history' ? setView('chat') : openHistory())}
+              title={view === 'history' ? 'Back to chat' : 'Conversation history'}
+              aria-label="Conversation history"
+              className={`rounded-lg p-2.5 hover:bg-slate-100 ${view === 'history' ? 'bg-slate-100 text-[#1565D8]' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              <History className="h-[18px] w-[18px]" />
+            </button>
+            <button
+              onClick={() => {
+                chat.newConversation()
+                setView('chat')
+              }}
               title="New conversation"
               aria-label="Start new conversation"
               className="rounded-lg p-2.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
@@ -152,6 +185,47 @@ export function AiSidebar({
             <p className="text-sm font-normal leading-relaxed text-slate-500">
               Ask your administrator to enable the AI Copilot add-on in subscription settings.
             </p>
+          </div>
+        ) : view === 'history' ? (
+          <div className="flex-1 space-y-1 overflow-y-auto px-3 py-3">
+            <p className="px-2 pb-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+              Recent conversations
+            </p>
+            {historyLoading && <p className="px-2 text-sm text-slate-400">Loading…</p>}
+            {!historyLoading && historyItems.length === 0 && (
+              <p className="px-2 text-sm text-slate-400">No conversations yet.</p>
+            )}
+            {historyItems.map((c) => (
+              <div
+                key={c.id}
+                className="group flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-slate-50"
+              >
+                <button
+                  onClick={() => resumeConversation(c.id)}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                >
+                  <MessageSquare className="h-4 w-4 shrink-0 text-slate-300" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-slate-700">
+                      {c.title || 'Untitled conversation'}
+                    </span>
+                    <span className="block text-xs font-normal text-slate-400">
+                      {c.messageCount} messages
+                      {c.lastMessageAt &&
+                        ` · ${new Date(c.lastMessageAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
+                    </span>
+                  </span>
+                </button>
+                <button
+                  onClick={() => removeConversation(c.id)}
+                  title="Delete conversation"
+                  aria-label="Delete conversation"
+                  className="rounded-md p-1.5 text-slate-300 opacity-0 hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
           </div>
         ) : (
           <>

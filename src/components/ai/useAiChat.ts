@@ -206,6 +206,73 @@ export function useAiChat() {
 
   const stop = useCallback(() => abortRef.current?.abort(), [])
 
+  const authedFetch = useCallback(
+    async (path: string, init?: RequestInit) => {
+      const token = await getToken()
+      if (!token) return null
+      return fetch(`${GATEWAY}${path}`, {
+        ...init,
+        headers: { ...(init?.headers ?? {}), authorization: `Bearer ${token}` }
+      })
+    },
+    [getToken]
+  )
+
+  const loadHistory = useCallback(async (): Promise<
+    { id: string; title: string | null; messageCount: number; lastMessageAt: string | null }[]
+  > => {
+    try {
+      const res = await authedFetch('/v1/ai/history')
+      if (!res?.ok) return []
+      return (await res.json()).conversations ?? []
+    } catch {
+      return []
+    }
+  }, [authedFetch])
+
+  const loadConversation = useCallback(
+    async (id: string) => {
+      try {
+        const res = await authedFetch(`/v1/ai/session/${id}`)
+        if (!res?.ok) return false
+        const data = await res.json()
+        sessionRef.current = data.id
+        setState((s) => ({
+          ...s,
+          status: 'idle',
+          error: null,
+          messages: (data.messages ?? []).map((m: any) => ({
+            id: m.id,
+            role: m.role,
+            text: m.text,
+            citations: m.citations,
+            serverMessageId: m.role === 'assistant' ? m.id : undefined
+          }))
+        }))
+        return true
+      } catch {
+        return false
+      }
+    },
+    [authedFetch]
+  )
+
+  const deleteConversation = useCallback(
+    async (id: string) => {
+      try {
+        await authedFetch(`/v1/ai/session/${id}`, { method: 'DELETE' })
+        if (sessionRef.current === id) {
+          sessionRef.current = null
+          setState((s) => ({ ...s, messages: [] }))
+        }
+        return true
+      } catch {
+        return false
+      }
+    },
+    [authedFetch]
+  )
+
   const sendFeedback = useCallback(
     async (msg: AiMessage, rating: 1 | -1, categories: FeedbackCategory[] = [], comment?: string) => {
       if (!msg.serverMessageId) return
@@ -241,5 +308,15 @@ export function useAiChat() {
     }
   }, [getToken])
 
-  return { ...state, send, stop, newConversation, checkEntitlement, sendFeedback }
+  return {
+    ...state,
+    send,
+    stop,
+    newConversation,
+    checkEntitlement,
+    sendFeedback,
+    loadHistory,
+    loadConversation,
+    deleteConversation
+  }
 }

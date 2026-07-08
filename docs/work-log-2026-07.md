@@ -315,6 +315,37 @@ Full build per [reports-analytics-phase1-prd.md](reports-analytics-phase1-prd.md
 - Migrations applied to shared DB same-day: `admission_archived_at`, `student_section`,
   `event_image_announce`, `org_email_templates`.
 
+
+**Billing & Pricing system (2026-07-08, full build)**
+- Strategy: docs/pricing-strategy-2026.md (4 plans × 5 student slabs, launch offers,
+  yearly default, break-even model). Plans renamed in DB (slugs unchanged): free =
+  "School / LC Listing", starter = "CRM Package", growth = "Fee Management", enterprise.
+- Schema (migrations applied to prod): `plan_prices` (slab pricing + `launch_ends_at`),
+  `coupons` + `coupon_redemptions`, platform_settings columns `enabled_billing_cycles`,
+  `prices_include_gst`, business seller details.
+- Checkout: full-page `/settings/billing/upgrade` (plan grid → Teachmint-style order
+  summary), slab picker (server-validated ≥ detected), GST breakup incl./excl. modes,
+  Razorpay Invoices API (Bill-To on `comment`, seller GSTIN on `terms`), coupons,
+  per-org discount (settings.billingDiscountPct, cap 50%), proration (upgrade = credit,
+  downgrade = scheduled at period end), no-refund disclosure at 4 touchpoints.
+- Lifecycle: daily cron `/api/cron/billing` — reconcile sweep (paid-but-unactivated,
+  incl. failed-then-retried orders; 10-day window), T−7/3/1 reminders **with hosted
+  renewal payment links** (early payment extends from period end), 7-day grace →
+  expiry downgrade + module lockout, slab-overflow warnings, 1000+ custom-quote ops
+  alert. Trial = full Enterprise modules; trial cron locks to free at expiry.
+- Free tier enforced: 2 users / 25 students (lib/billing/limits.ts).
+- Bundled AI credits (100–500/mo by slab) granted on activation via wallet allowance.
+- Admin: /admin/pricing (metrics, projections, coupon manager, live ARPU), slab editor
+  w/ launch expiry, per-org discount field, comp plan changes create ₹0 subscriptions,
+  real revenue dashboards, refund webhook → REFUNDED + ops alert.
+- Impersonation redemption finished: `/impersonate?token=` + 30-min sessions + CRM banner.
+- Settings UX: index = card grid + search (sidebar only on subpages); School Profile
+  billing-details tab (Bill-To + GSTIN). Public /pricing rewritten — features only,
+  no prices revealed.
+- Money math extracted to lib/billing/money.ts; tests/billing-math.test.ts (212 total).
+- Key invariant: `payment.failed` webhook must NOT overwrite gatewayRef (order id
+  needed for retry reconciliation).
+
 ## ⏳ Pending
 0. **Reports Phase 2** — rollup backfill on prod (script ready); scheduled email reports
    (`report_schedules` table shipped); marketplace analytics; 90+ ageing MoM insight

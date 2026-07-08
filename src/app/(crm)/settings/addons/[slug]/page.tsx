@@ -146,8 +146,8 @@ export default function AddonDetailPage() {
         </>
       )}
 
-      {/* BYO provider config */}
-      {addon.enabled && addon.channel && (
+      {/* BYO provider config — messaging channels only; AI has no MSG91 equivalent */}
+      {addon.enabled && addon.channel && addon.channel !== 'AI' && (
         <ProviderConfigForm
           channel={addon.channel}
           provider={addon.provider}

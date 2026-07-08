@@ -3,8 +3,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useSession } from 'next-auth/react'
-import { X, Send, Square, RotateCcw, Sparkles, Minus } from 'lucide-react'
-import type { useAiChat } from './useAiChat'
+import { X, Send, Square, RotateCcw, Sparkles, Minus, Copy, Check, ThumbsUp, ThumbsDown } from 'lucide-react'
+import type { useAiChat, AiMessage, FeedbackCategory } from './useAiChat'
+import { AiFeedbackDialog } from './AiFeedbackDialog'
 
 const SUGGESTIONS_BY_ROLE: Record<string, string[]> = {
   ORG_ADMIN: [
@@ -45,6 +46,14 @@ export function AiSidebar({
 }) {
   const { data: session } = useSession()
   const [input, setInput] = useState('')
+  const [feedbackFor, setFeedbackFor] = useState<AiMessage | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const copyMessage = (m: AiMessage) => {
+    void navigator.clipboard.writeText(m.text)
+    setCopiedId(m.id)
+    setTimeout(() => setCopiedId(null), 1500)
+  }
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -99,7 +108,7 @@ export function AiSidebar({
               <div className="text-xs font-normal text-slate-400">
                 {chat.remainingToday !== null
                   ? `${chat.remainingToday} messages left today`
-                  : 'Your ERP copilot'}
+                  : 'Your Vidhyaan copilot'}
               </div>
             </div>
           </div>
@@ -149,8 +158,8 @@ export function AiSidebar({
               {chat.messages.length === 0 && (
                 <div className="space-y-3 pt-4">
                   <p className="text-sm font-normal leading-relaxed text-slate-500">
-                    Hi! I can help you use Vidhyaan — workflows, settings, and how-tos. Try one of
-                    these:
+                    Hi! I can help you run your school, learning centre or coaching institute on
+                    Vidhyaan — workflows, settings, live numbers, and how-tos. Try one of these:
                   </p>
                   <div className="space-y-2">
                     {suggestions.map((s) => (
@@ -166,7 +175,7 @@ export function AiSidebar({
                 </div>
               )}
               {chat.messages.map((m) => (
-                <div key={m.id} className={m.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+                <div key={m.id} className={m.role === 'user' ? 'flex justify-end' : 'flex flex-col items-start'}>
                   <div
                     className={
                       m.role === 'user'
@@ -199,6 +208,35 @@ export function AiSidebar({
                       </div>
                     )}
                   </div>
+                  {/* action row — assistant messages only, after streaming */}
+                  {m.role === 'assistant' && !m.streaming && m.text && (
+                    <div className="mt-1 flex items-center gap-0.5 pl-1">
+                      <button
+                        onClick={() => copyMessage(m)}
+                        title="Copy"
+                        aria-label="Copy answer"
+                        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      >
+                        {copiedId === m.id ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                      </button>
+                      <button
+                        onClick={() => chat.sendFeedback(m, 1)}
+                        title="Good answer"
+                        aria-label="Thumbs up"
+                        className={`rounded-md p-1.5 hover:bg-slate-100 ${m.feedback === 1 ? 'text-emerald-500' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
+                        <ThumbsUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setFeedbackFor(m)}
+                        title="Bad answer — tell us why"
+                        aria-label="Thumbs down"
+                        className={`rounded-md p-1.5 hover:bg-slate-100 ${m.feedback === -1 ? 'text-red-500' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
+                        <ThumbsDown className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
               {chat.error && (
@@ -213,15 +251,21 @@ export function AiSidebar({
                   ref={inputRef}
                   rows={1}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => {
+                    setInput(e.target.value)
+                    // auto-grow with content, capped by max-h — no inner scroll jump
+                    e.currentTarget.style.height = 'auto'
+                    e.currentTarget.style.height = `${Math.min(e.currentTarget.scrollHeight, 128)}px`
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
                       submit()
+                      e.currentTarget.style.height = 'auto'
                     }
                   }}
                   placeholder="Ask about Vidhyaan…"
-                  className="max-h-32 flex-1 resize-none bg-transparent text-sm font-normal text-slate-800 outline-none placeholder:text-slate-400"
+                  className="max-h-32 flex-1 resize-none bg-transparent text-sm font-normal leading-relaxed text-slate-800 outline-none placeholder:text-slate-400"
                 />
                 {chat.status === 'streaming' ? (
                   <button
@@ -247,6 +291,16 @@ export function AiSidebar({
               </p>
             </div>
           </>
+        )}
+
+        {/* negative-feedback dialog (bottom sheet inside the drawer) */}
+        {feedbackFor && (
+          <AiFeedbackDialog
+            onClose={() => setFeedbackFor(null)}
+            onSubmit={(categories: FeedbackCategory[], comment: string) =>
+              chat.sendFeedback(feedbackFor, -1, categories, comment || undefined)
+            }
+          />
         )}
       </div>
     </div>,

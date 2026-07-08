@@ -13,7 +13,11 @@ export type AiMessage = {
   text: string
   streaming?: boolean
   citations?: AiCitation[]
+  serverMessageId?: string // gateway message id — feedback targets this
+  feedback?: 1 | -1
 }
+
+export type FeedbackCategory = 'didnt_answer' | 'inaccurate' | 'irrelevant_citations' | 'other'
 
 export type AiChatState = {
   messages: AiMessage[]
@@ -153,6 +157,14 @@ export function useAiChat() {
             if (evt.type === 'usage') {
               setState((s) => ({ ...s, remainingToday: evt.creditsRemaining }))
             }
+            if (evt.type === 'done') {
+              setState((s) => ({
+                ...s,
+                messages: s.messages.map((m) =>
+                  m.id === assistantMsg.id ? { ...m, serverMessageId: evt.messageId } : m
+                )
+              }))
+            }
             if (evt.type === 'error') throw new Error(evt.message)
           }
         }
@@ -176,6 +188,28 @@ export function useAiChat() {
 
   const stop = useCallback(() => abortRef.current?.abort(), [])
 
+  const sendFeedback = useCallback(
+    async (msg: AiMessage, rating: 1 | -1, categories: FeedbackCategory[] = [], comment?: string) => {
+      if (!msg.serverMessageId) return
+      setState((s) => ({
+        ...s,
+        messages: s.messages.map((m) => (m.id === msg.id ? { ...m, feedback: rating } : m))
+      }))
+      try {
+        const token = await getToken()
+        if (!token) return
+        await fetch(`${GATEWAY}/v1/ai/feedback`, {
+          method: 'POST',
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+          body: JSON.stringify({ messageId: msg.serverMessageId, rating, categories, comment })
+        })
+      } catch {
+        // feedback is best-effort; never surface an error for it
+      }
+    },
+    [getToken]
+  )
+
   const newConversation = useCallback(() => {
     sessionRef.current = null
     setState((s) => ({ ...s, messages: [], status: 'idle', error: null }))
@@ -189,5 +223,5 @@ export function useAiChat() {
     }
   }, [getToken])
 
-  return { ...state, send, stop, newConversation, checkEntitlement }
+  return { ...state, send, stop, newConversation, checkEntitlement, sendFeedback }
 }

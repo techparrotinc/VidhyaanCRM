@@ -35,6 +35,8 @@ function isPublicRoute(pathname: string): boolean {
     '/register',
     '/claim-profile',
     '/forgot-pin',
+    '/impersonate', // token-gated: page only works with a valid single-use Redis token
+
     '/_next',
     '/fonts',
     '/images',

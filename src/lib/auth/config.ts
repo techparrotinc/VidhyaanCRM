@@ -14,9 +14,73 @@ const authConfig: NextAuthConfig = {
         phone: { label: 'Phone' },
         pin: { label: 'PIN' },
         token: { label: 'Token' },
-        assignmentId: { label: 'Role Assignment' }
+        assignmentId: { label: 'Role Assignment' },
+        impersonateToken: { label: 'Impersonation Token' }
       },
       async authorize(credentials) {
+        // 0. SUPER_ADMIN impersonation — redeems the single-use token minted
+        // by /api/admin/impersonate. Session is issued as the target org user
+        // with impersonatorId stamped and a hard 30-minute expiry.
+        if (credentials?.impersonateToken) {
+          try {
+            const { redis } = await import('@/lib/redis')
+            const key = `impersonate_token:${credentials.impersonateToken as string}`
+            const raw = await redis.get(key)
+            if (!raw) return null
+            await redis.del(key) // single-use
+
+            const payload = JSON.parse(raw) as {
+              impersonatorId: string
+              targetUserId: string
+              targetOrgId: string
+            }
+
+            // Impersonator must still be an ACTIVE SUPER_ADMIN
+            const impersonatorAssignment = await prisma.userRoleAssignment.findFirst({
+              where: {
+                userId: payload.impersonatorId,
+                role: 'SUPER_ADMIN',
+                status: 'ACTIVE'
+              },
+              include: { user: { select: { status: true } } }
+            })
+            if (!impersonatorAssignment || impersonatorAssignment.user.status !== 'ACTIVE') return null
+
+            const target = await prisma.user.findFirst({
+              where: {
+                id: payload.targetUserId,
+                orgId: payload.targetOrgId,
+                status: 'ACTIVE',
+                deletedAt: null
+              }
+            })
+            if (!target) return null
+
+            const targetAssignment = await prisma.userRoleAssignment.findFirst({
+              where: {
+                userId: target.id,
+                orgId: payload.targetOrgId,
+                status: 'ACTIVE'
+              }
+            })
+            if (!targetAssignment) return null
+
+            return {
+              id: target.id,
+              name: target.name,
+              email: target.email,
+              role: targetAssignment.role,
+              orgId: payload.targetOrgId,
+              activeRoleAssignmentId: targetAssignment.id,
+              impersonatorId: payload.impersonatorId,
+              impersonationExpiresAt: Date.now() + 30 * 60 * 1000
+            }
+          } catch (e) {
+            console.error('NextAuth impersonation authorize error:', e)
+            return null
+          }
+        }
+
         // 1. Temp token authentication
         if (credentials?.token) {
           try {
@@ -191,6 +255,8 @@ const authConfig: NextAuthConfig = {
         token.phone = (user as any).phone ?? ''
         token.email = user.email ?? ''
         token.activeRoleAssignmentId = (user as any).activeRoleAssignmentId ?? null
+        token.impersonatorId = (user as any).impersonatorId ?? null
+        token.impersonationExpiresAt = (user as any).impersonationExpiresAt ?? null
 
         // Resolve onboarding status once at login so edge middleware can gate
         // CRM routes without a per-navigation DB query / self-fetch.
@@ -215,6 +281,15 @@ const authConfig: NextAuthConfig = {
         token.onboardingComplete = true
       }
 
+      // Impersonation sessions hard-expire after 30 minutes: strip the role so
+      // every role-gated route and API rejects the stale session.
+      if (
+        token.impersonationExpiresAt &&
+        Date.now() > Number(token.impersonationExpiresAt)
+      ) {
+        token.role = ''
+      }
+
       return token
     },
 
@@ -228,6 +303,8 @@ const authConfig: NextAuthConfig = {
         session.user.email = token.email as string
         session.user.activeRoleAssignmentId = token.activeRoleAssignmentId as string | null
         session.user.onboardingComplete = !!token.onboardingComplete
+        session.user.impersonatorId = (token.impersonatorId as string | null) ?? null
+        session.user.impersonationExpiresAt = (token.impersonationExpiresAt as number | null) ?? null
       }
       return session
     }

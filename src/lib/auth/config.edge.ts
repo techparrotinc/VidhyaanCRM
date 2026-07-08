@@ -12,7 +12,18 @@ export const configEdge: NextAuthConfig = {
         token.phone = (user as any).phone ?? ''
         token.email = user.email ?? ''
         token.activeRoleAssignmentId = (user as any).activeRoleAssignmentId ?? null
+        token.impersonatorId = (user as any).impersonatorId ?? null
+        token.impersonationExpiresAt = (user as any).impersonationExpiresAt ?? null
       }
+
+      // Impersonation sessions hard-expire after 30 minutes (mirrors node config)
+      if (
+        (token as any).impersonationExpiresAt &&
+        Date.now() > Number((token as any).impersonationExpiresAt)
+      ) {
+        token.role = ''
+      }
+
       return token
     },
 
@@ -26,6 +37,8 @@ export const configEdge: NextAuthConfig = {
         session.user.email = token.email as string
         session.user.activeRoleAssignmentId = token.activeRoleAssignmentId as string | null
         session.user.onboardingComplete = !!(token as any).onboardingComplete
+        session.user.impersonatorId = ((token as any).impersonatorId as string | null) ?? null
+        session.user.impersonationExpiresAt = ((token as any).impersonationExpiresAt as number | null) ?? null
       }
       return session
     }

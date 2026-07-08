@@ -11,6 +11,8 @@ declare module 'next-auth' {
       email: string
       activeRoleAssignmentId: string | null
       onboardingComplete: boolean
+      impersonatorId: string | null
+      impersonationExpiresAt: number | null
     } & DefaultSession['user']
   }
 
@@ -22,6 +24,8 @@ declare module 'next-auth' {
     email: string
     activeRoleAssignmentId: string | null
     onboardingComplete: boolean
+    impersonatorId: string | null
+    impersonationExpiresAt: number | null
   }
 }
 
@@ -34,5 +38,7 @@ declare module 'next-auth/jwt' {
     email: string
     activeRoleAssignmentId: string | null
     onboardingComplete: boolean
+    impersonatorId: string | null
+    impersonationExpiresAt: number | null
   }
 }

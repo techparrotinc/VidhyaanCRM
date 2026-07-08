@@ -30,7 +30,7 @@ export default function PricingPage() {
       metaDesc.setAttribute('name', 'description');
       document.head.appendChild(metaDesc);
     }
-    metaDesc.setAttribute('content', 'Vidhyaan is free forever for school discovery listings. Explore our premium admissions CRM Starter and Growth plans. Streamline lead tracking, fee invoicing, and campaigns today.');
+    metaDesc.setAttribute('content', 'Vidhyaan is free forever for school discovery listings. Upgrade to CRM Package, Fee Management, or Enterprise with AI — pricing tailored to your student count. Start a 7-day free trial.');
   }, []);
 
   const toggleFaq = (idx: number) => {
@@ -51,8 +51,12 @@ export default function PricingPage() {
       a: "No — trial starts without any payment details."
     },
     {
+      q: "How is pricing determined?",
+      a: "Plans are priced by your active student count — small institutions pay less, large ones scale up. Exact pricing for your institution is shown inside the app after you sign in, with monthly and yearly billing options."
+    },
+    {
       q: "What is the WhatsApp addon?",
-      a: "DLT-compliant WhatsApp campaign sending, available as a paid addon on CRM plans — contact us to enable."
+      a: "DLT-compliant WhatsApp campaign sending, available as a paid addon on CRM plans — buy credit packs from Settings → Add-ons."
     },
     {
       q: "Can I cancel anytime?",
@@ -60,19 +64,20 @@ export default function PricingPage() {
     }
   ]
 
-  // Compare Table Features definition
+  // Compare Table Features definition — columns: Free Listing / CRM Package / Fee Management / Enterprise
   const comparisonFeatures = [
-    { name: "Free School Profile", free: "Check", starter: "Check", growth: "Check" },
-    { name: "Parent Enquiries", free: "Check", starter: "Check", growth: "Check" },
-    { name: "Lead Management", free: "Dash", starter: "Check", growth: "Check" },
-    { name: "Admission Management", free: "Dash", starter: "Check", growth: "Check" },
-    { name: "Student Management", free: "Dash", starter: "Check", growth: "Check" },
-    { name: "Fee Management", free: "Dash", starter: "Check", growth: "Check" },
-    { name: "Online Payments (Razorpay)", free: "Dash", starter: "Check", growth: "Check" },
-    { name: "Campaign Management", free: "Dash", starter: "500 / mo", growth: "5,000 / mo" },
-    { name: "Reports & Analytics", free: "Dash", starter: "Check", growth: "Check" },
-    { name: "Parent Portal", free: "Dash", starter: "Check", growth: "Check" },
-    { name: "WhatsApp Addon", free: "Dash", starter: "Add-on", growth: "Add-on" }
+    { name: "Public School Profile & Enquiries", free: "Check", starter: "Check", growth: "Check", enterprise: "Check" },
+    { name: "Lead Capture & Pipeline", free: "10 leads", starter: "Unlimited", growth: "Dash", enterprise: "Unlimited" },
+    { name: "Admission CRM (list, grid, kanban)", free: "Dash", starter: "Check", growth: "Dash", enterprise: "Check" },
+    { name: "Campaigns & Event Management", free: "Dash", starter: "Check", growth: "Dash", enterprise: "Check" },
+    { name: "Student Management & Promotions", free: "Dash", starter: "Dash", growth: "Check", enterprise: "Check" },
+    { name: "Fee Structures & Invoicing", free: "Dash", starter: "Dash", growth: "Check", enterprise: "Check" },
+    { name: "Online Fee Collection (Razorpay)", free: "Dash", starter: "Dash", growth: "Check", enterprise: "Check" },
+    { name: "Parent Portal with Events & RSVP", free: "Dash", starter: "Dash", growth: "Dash", enterprise: "Check" },
+    { name: "AI Assistant, Reports & Insights", free: "Dash", starter: "Dash", growth: "Dash", enterprise: "Check" },
+    { name: "Advanced Reports & Dashboards", free: "Dash", starter: "Core", growth: "Core", enterprise: "Check" },
+    { name: "WhatsApp / SMS Credit Packs", free: "Dash", starter: "Add-on", growth: "Add-on", enterprise: "Add-on" },
+    { name: "Support", free: "Community", starter: "Email", growth: "Email", enterprise: "Priority" }
   ]
 
   return (
@@ -123,9 +128,9 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* 2. TIER CARDS */}
-        <section className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-16">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch pt-6">
+        {/* 2. TIER CARDS — pricing revealed in-app only (by student count) */}
+        <section className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch pt-6">
             
             {/* CARD 1 — Free Listing */}
             <div className="bg-white rounded-3xl border border-slate-200 p-8 flex flex-col justify-between shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left relative overflow-hidden">
@@ -169,37 +174,32 @@ export default function PricingPage() {
               </div>
             </div>
 
-            {/* CARD 2 — Starter */}
-            {/* TODO: real Starter price */}
+            {/* CARD 2 — CRM Package */}
             <div className="bg-white rounded-3xl border border-slate-200 p-8 flex flex-col justify-between shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left relative overflow-hidden">
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 font-poppins">Starter</h3>
+                  <h3 className="text-lg font-black text-slate-900 font-poppins">CRM Package</h3>
                   <p className="text-[11px] text-slate-450 font-bold mt-1 leading-relaxed">
-                    Full CRM for growing institutions
+                    Lead, Admission &amp; Campaign Management
                   </p>
                 </div>
-                
+
                 <div className="pt-2">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-black tracking-tight text-slate-900 font-poppins">₹—</span>
-                    <span className="text-xs text-slate-400 font-bold">/ month</span>
-                  </div>
-                  <p className="text-[10px] text-[#1565D8] font-bold mt-1">Launch pricing coming soon</p>
+                  <span className="text-xl font-black tracking-tight text-slate-900 font-poppins">Sized to your institution</span>
+                  <p className="text-[10px] text-[#1565D8] font-bold mt-1">Pricing by student count — view inside the app</p>
                 </div>
 
                 <div className="border-t border-slate-100 pt-6 space-y-4">
                   <div className="flex gap-2.5 items-start text-xs font-bold text-slate-800">
                     <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                    <span>Everything in Free</span>
+                    <span>Everything in Free Listing</span>
                   </div>
                   {[
-                    "Lead Management",
-                    "Admission Management",
-                    "Student Management",
-                    "Fee Management & online payments",
-                    "Campaigns (500 recipients/mo)",
-                    "Reports & Analytics"
+                    "Lead capture & pipeline (unlimited)",
+                    "Admission CRM — list, grid & kanban",
+                    "Counsellor & follow-up management",
+                    "Campaigns & event management",
+                    "Dashboard & core reports"
                   ].map((feat, idx) => (
                     <div key={idx} className="flex gap-2.5 items-start text-xs font-semibold text-slate-650">
                       <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
@@ -218,37 +218,32 @@ export default function PricingPage() {
               </div>
             </div>
 
-            {/* CARD 3 — Growth (HIGHLIGHTED) */}
-            {/* TODO: real Growth price */}
-            <div className="bg-white rounded-3xl border-2 border-[#1565D8] p-8 flex flex-col justify-between shadow-xl hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 text-left relative overflow-hidden scale-105 z-10 ring-8 ring-blue-50/50">
-              <div className="absolute top-4 right-4 bg-amber-500 text-white text-[8px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full select-none shadow-sm">
-                Most Popular
-              </div>
+            {/* CARD 3 — Fee Management */}
+            <div className="bg-white rounded-3xl border border-slate-200 p-8 flex flex-col justify-between shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left relative overflow-hidden">
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 font-poppins mt-2">Growth</h3>
+                  <h3 className="text-lg font-black text-slate-900 font-poppins">Fee Management</h3>
                   <p className="text-[11px] text-slate-450 font-bold mt-1 leading-relaxed">
-                    Multi-branch and high-volume admissions
+                    Student &amp; Fee Management with online payments
                   </p>
                 </div>
-                
+
                 <div className="pt-2">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-black tracking-tight text-slate-900 font-poppins">₹—</span>
-                    <span className="text-xs text-slate-400 font-bold">/ month</span>
-                  </div>
-                  <p className="text-[10px] text-amber-600 font-bold mt-1">Launch pricing coming soon</p>
+                  <span className="text-xl font-black tracking-tight text-slate-900 font-poppins">Sized to your institution</span>
+                  <p className="text-[10px] text-[#1565D8] font-bold mt-1">Pricing by student count — view inside the app</p>
                 </div>
 
                 <div className="border-t border-slate-100 pt-6 space-y-4">
                   <div className="flex gap-2.5 items-start text-xs font-bold text-slate-800">
                     <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                    <span>Everything in Starter</span>
+                    <span>Everything in Free Listing</span>
                   </div>
                   {[
-                    "Campaigns (5,000 recipients/mo)",
-                    "Priority CRM support",
-                    "WhatsApp addon eligible"
+                    "Student management & promotions",
+                    "Fee structures & invoice automation",
+                    "Online fee collection (Razorpay)",
+                    "Receipts, dues & payment reports",
+                    "Financial dashboard"
                   ].map((feat, idx) => (
                     <div key={idx} className="flex gap-2.5 items-start text-xs font-semibold text-slate-650">
                       <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
@@ -260,6 +255,55 @@ export default function PricingPage() {
 
               <div className="mt-8">
                 <Link href="/register-school?plan=growth">
+                  <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3.5 rounded-full h-auto shadow-md">
+                    Start 7-Day Free Trial
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* CARD 4 — Enterprise (HIGHLIGHTED) */}
+            <div className="bg-white rounded-3xl border-2 border-[#1565D8] p-8 flex flex-col justify-between shadow-xl hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 text-left relative overflow-hidden z-10 ring-8 ring-blue-50/50">
+              <div className="absolute top-4 right-4 bg-amber-500 text-white text-[8px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full select-none shadow-sm">
+                Recommended
+              </div>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 font-poppins mt-2 flex items-center gap-1.5">
+                    Enterprise <Sparkles className="w-4 h-4 text-amber-500" />
+                  </h3>
+                  <p className="text-[11px] text-slate-450 font-bold mt-1 leading-relaxed">
+                    Everything + AI, Parent Portal &amp; advanced analytics
+                  </p>
+                </div>
+
+                <div className="pt-2">
+                  <span className="text-xl font-black tracking-tight text-slate-900 font-poppins">Sized to your institution</span>
+                  <p className="text-[10px] text-amber-600 font-bold mt-1">Launch offers live — view inside the app</p>
+                </div>
+
+                <div className="border-t border-slate-100 pt-6 space-y-4">
+                  <div className="flex gap-2.5 items-start text-xs font-bold text-slate-800">
+                    <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                    <span>Everything in CRM + Fee Management</span>
+                  </div>
+                  {[
+                    "AI assistant, reports, insights & search",
+                    "Monthly AI credits included",
+                    "Parent portal with events & RSVP",
+                    "Advanced reports & role dashboards",
+                    "Priority support"
+                  ].map((feat, idx) => (
+                    <div key={idx} className="flex gap-2.5 items-start text-xs font-semibold text-slate-650">
+                      <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <Link href="/register-school?plan=enterprise">
                   <Button className="w-full bg-[#FFC107] hover:bg-yellow-500 text-slate-950 font-black text-xs py-3.5 rounded-full h-auto shadow-md">
                     Start 7-Day Free Trial
                   </Button>
@@ -268,6 +312,11 @@ export default function PricingPage() {
             </div>
 
           </div>
+
+          <p className="text-center text-[11px] font-semibold text-slate-400 mt-8 max-w-2xl mx-auto">
+            Plans are priced by your active student count with monthly and yearly billing (yearly = 2 months free).
+            Sign in to see the exact price for your institution, or <Link href="/contact" className="text-[#1565D8] font-bold hover:underline">talk to us</Link> for 1,000+ students.
+          </p>
         </section>
 
         {/* 3. COMPARISON TABLE */}
@@ -288,9 +337,10 @@ export default function PricingPage() {
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200 sticky top-0 backdrop-blur z-20">
                   <th className="py-4.5 px-6 font-bold text-slate-900 w-1/3">Feature</th>
-                  <th className="py-4.5 px-6 font-bold text-slate-900 text-center w-2/9">Free</th>
-                  <th className="py-4.5 px-6 font-bold text-[#1565D8] text-center w-2/9">Starter</th>
-                  <th className="py-4.5 px-6 font-bold text-slate-900 text-center w-2/9">Growth</th>
+                  <th className="py-4.5 px-6 font-bold text-slate-900 text-center">Free Listing</th>
+                  <th className="py-4.5 px-6 font-bold text-slate-900 text-center">CRM Package</th>
+                  <th className="py-4.5 px-6 font-bold text-slate-900 text-center">Fee Management</th>
+                  <th className="py-4.5 px-6 font-bold text-[#1565D8] text-center">Enterprise</th>
                 </tr>
               </thead>
 
@@ -299,38 +349,17 @@ export default function PricingPage() {
                 {comparisonFeatures.map((row, idx) => (
                   <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors odd:bg-slate-50/20">
                     <td className="py-4 px-6 font-bold text-slate-800">{row.name}</td>
-                    
-                    {/* Free Column */}
-                    <td className="py-4 px-6 text-center">
-                      {row.free === "Check" ? (
-                        <Check className="w-4 h-4 text-green-500 mx-auto" />
-                      ) : (
-                        <Minus className="w-4 h-4 text-slate-300 mx-auto" />
-                      )}
-                    </td>
-
-                    {/* Starter Column */}
-                    <td className="py-4 px-6 text-center font-bold text-slate-950">
-                      {row.starter === "Check" ? (
-                        <Check className="w-4 h-4 text-green-500 mx-auto" />
-                      ) : row.starter === "Dash" ? (
-                        <Minus className="w-4 h-4 text-slate-300 mx-auto" />
-                      ) : (
-                        <span>{row.starter}</span>
-                      )}
-                    </td>
-
-                    {/* Growth Column */}
-                    <td className="py-4 px-6 text-center font-bold text-slate-950">
-                      {row.growth === "Check" ? (
-                        <Check className="w-4 h-4 text-green-500 mx-auto" />
-                      ) : row.growth === "Dash" ? (
-                        <Minus className="w-4 h-4 text-slate-300 mx-auto" />
-                      ) : (
-                        <span>{row.growth}</span>
-                      )}
-                    </td>
-
+                    {[row.free, row.starter, row.growth, row.enterprise].map((cell, cIdx) => (
+                      <td key={cIdx} className="py-4 px-6 text-center font-bold text-slate-950">
+                        {cell === "Check" ? (
+                          <Check className="w-4 h-4 text-green-500 mx-auto" />
+                        ) : cell === "Dash" ? (
+                          <Minus className="w-4 h-4 text-slate-300 mx-auto" />
+                        ) : (
+                          <span>{cell}</span>
+                        )}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>

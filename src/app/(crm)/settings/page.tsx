@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ChevronRight, Lock } from 'lucide-react'
+import { ChevronRight, Lock, Search } from 'lucide-react'
 import ProfileCompletionWidget from '@/components/shared/ProfileCompletionWidget'
 import { buildSettingsNav } from '@/components/settings/settingsNav'
 
 export default function SettingsLandingPage() {
   const [institutionType, setInstitutionType] = useState<'SCHOOL' | 'LEARNING_CENTER'>('SCHOOL')
   const [isWhatsappActive, setIsWhatsappActive] = useState(false)
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     fetch('/api/v1/settings/org-type')
@@ -22,21 +23,54 @@ export default function SettingsLandingPage() {
       .catch(err => console.error('Failed to fetch org type:', err))
   }, [])
 
-  const sections = buildSettingsNav({
+  const allSections = buildSettingsNav({
     isLearningCenter: institutionType === 'LEARNING_CENTER',
     isWhatsappActive
   })
 
+  // Search filters across name + description; empty sections drop out
+  const q = query.trim().toLowerCase()
+  const sections = q
+    ? allSections
+        .map(section => ({
+          ...section,
+          items: section.items.filter(
+            item =>
+              item.name.toLowerCase().includes(q) ||
+              (item.description || '').toLowerCase().includes(q)
+          )
+        }))
+        .filter(section => section.items.length > 0)
+    : allSections
+
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in max-w-6xl mx-auto">
       <ProfileCompletionWidget />
 
-      <div>
-        <h3 className="text-lg font-bold text-slate-950">Settings</h3>
-        <p className="text-sm text-slate-500">
-          Everything that configures your workspace, grouped by area.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <h3 className="text-2xl font-bold tracking-tight text-slate-950">Settings</h3>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Everything that configures your workspace, grouped by area.
+          </p>
+        </div>
+        <div className="relative sm:w-72">
+          <Search className="absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search settings…"
+            className="w-full rounded-full border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm font-medium text-slate-700 outline-none focus:border-[#1565D8] focus:ring-1 focus:ring-[#1565D8] transition shadow-sm"
+          />
+        </div>
       </div>
+
+      {sections.length === 0 && (
+        <div className="text-center py-16 text-sm font-medium text-slate-400">
+          No settings match &ldquo;{query}&rdquo;
+        </div>
+      )}
 
       {sections.map(section => (
         <div key={section.label} className="space-y-3">

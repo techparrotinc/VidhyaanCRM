@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Lock } from 'lucide-react'
+import { Lock, ChevronLeft } from 'lucide-react'
 import { buildSettingsNav } from '@/components/settings/settingsNav'
 
 export default function SettingsLayout({
@@ -41,19 +41,22 @@ export default function SettingsLayout({
     return pathname === path || pathname.startsWith(path + '/')
   }
 
+  // The settings index is itself the navigation (card grid + search) — the
+  // sidebar would duplicate it item-for-item, so it only renders on subpages.
+  if (pathname === '/settings') {
+    return <div className="w-full p-6 select-none">{children}</div>
+  }
+
   return (
     <div className="w-full p-6 flex flex-col md:flex-row gap-6 items-start select-none">
       {/* Settings Left Navigation Sidebar */}
       <aside className="w-full md:w-[230px] shrink-0 sticky top-24 h-fit flex flex-col bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <Link
           href="/settings"
-          className={`px-3 py-2 mb-2 rounded-lg text-sm font-semibold transition-all ${
-            pathname === '/settings'
-              ? 'bg-blue-50 text-[#1565D8]'
-              : 'text-slate-800 hover:bg-slate-50'
-          }`}
+          className="flex items-center gap-1.5 px-3 py-2 mb-2 rounded-lg text-sm font-semibold text-slate-800 hover:bg-slate-50 transition-all"
         >
-          Settings
+          <ChevronLeft className="w-4 h-4 text-slate-400" />
+          All Settings
         </Link>
 
         {sections.map(section => (

@@ -10,6 +10,7 @@ import {
   BookOpen,
   MessageCircle,
   Mail,
+  Network,
   Puzzle,
   Wallet
 } from 'lucide-react'
@@ -46,6 +47,12 @@ export function buildSettingsNav(opts: {
           path: '/settings/school-profile',
           icon: Building2,
           description: 'Public profile, contact details, facilities and gallery'
+        },
+        {
+          name: 'Branches',
+          path: '/settings/branches',
+          icon: Network,
+          description: 'Campuses under your organization and the default branch'
         },
         {
           name: 'Academic Year',

@@ -107,8 +107,8 @@ export function AiSidebar({
             <div>
               <div className="text-sm font-semibold text-slate-900">Vidhyaan AI</div>
               <div className="text-xs font-normal text-slate-400">
-                {chat.remainingToday !== null
-                  ? `${chat.remainingToday} messages left today`
+                {chat.creditsLeft !== null
+                  ? `${chat.creditsLeft} AI credit${chat.creditsLeft === 1 ? '' : 's'} left`
                   : 'Your Vidhyaan copilot'}
               </div>
             </div>
@@ -242,6 +242,14 @@ export function AiSidebar({
               ))}
               {chat.error && (
                 <p className="text-center text-xs font-normal text-red-500">{chat.error}</p>
+              )}
+              {chat.creditsLeft === 0 && (
+                <a
+                  href="/settings/addons"
+                  className="mx-auto block w-fit rounded-lg bg-[#1565D8] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1255b8]"
+                >
+                  Top up AI credits →
+                </a>
               )}
             </div>
 

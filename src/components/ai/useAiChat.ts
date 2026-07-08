@@ -25,6 +25,7 @@ export type AiChatState = {
   error: string | null
   entitled: boolean | null // null = unknown yet
   remainingToday: number | null
+  creditsLeft: number | null // AI credit wallet balance (free + purchased)
 }
 
 type TokenCache = { token: string; expiresAt: number }
@@ -39,7 +40,8 @@ export function useAiChat() {
     status: 'idle',
     error: null,
     entitled: null,
-    remainingToday: null
+    remainingToday: null,
+    creditsLeft: null
   })
   const tokenRef = useRef<TokenCache | null>(null)
   const sessionRef = useRef<string | null>(null)
@@ -60,7 +62,11 @@ export function useAiChat() {
       token: json.data.token,
       expiresAt: Date.now() + json.data.expiresIn * 1000
     }
-    setState((s) => ({ ...s, entitled: true }))
+    setState((s) => ({
+      ...s,
+      entitled: true,
+      creditsLeft: typeof json.data.creditsRemaining === 'number' ? json.data.creditsRemaining : s.creditsLeft
+    }))
     return json.data.token
   }, [])
 
@@ -115,6 +121,15 @@ export function useAiChat() {
             }
           })
         })
+        if (res.status === 402) {
+          setState((s) => ({ ...s, creditsLeft: 0 }))
+          patchAssistant({
+            text: 'Your AI credits are used up for now. Top up in Settings → Add-ons to keep chatting.',
+            streaming: false
+          })
+          setState((s) => ({ ...s, status: 'idle' }))
+          return
+        }
         if (res.status === 429) {
           const err = await res.json().catch(() => null)
           throw new Error(err?.message ?? 'Daily AI limit reached.')
@@ -155,7 +170,10 @@ export function useAiChat() {
               patchAssistant({ text: acc })
             }
             if (evt.type === 'usage') {
-              setState((s) => ({ ...s, remainingToday: evt.creditsRemaining }))
+              setState((s) => ({
+                ...s,
+                creditsLeft: typeof evt.creditsRemaining === 'number' ? evt.creditsRemaining : s.creditsLeft
+              }))
             }
             if (evt.type === 'done') {
               setState((s) => ({

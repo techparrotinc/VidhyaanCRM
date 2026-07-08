@@ -1,6 +1,6 @@
 // Credit pack catalog — placeholder prices, edit here when pricing is final.
 
-export type CreditChannel = 'SMS' | 'WHATSAPP'
+export type CreditChannel = 'SMS' | 'WHATSAPP' | 'AI'
 
 export interface CreditPack {
   id: string
@@ -15,7 +15,10 @@ export const CREDIT_PACKS: CreditPack[] = [
   { id: 'sms_1000', channel: 'SMS', credits: 1000, priceInr: 180 },
   { id: 'wa_100', channel: 'WHATSAPP', credits: 100, priceInr: 75 },
   { id: 'wa_500', channel: 'WHATSAPP', credits: 500, priceInr: 350 },
-  { id: 'wa_1000', channel: 'WHATSAPP', credits: 1000, priceInr: 650 }
+  { id: 'wa_1000', channel: 'WHATSAPP', credits: 1000, priceInr: 650 },
+  { id: 'ai_100', channel: 'AI', credits: 100, priceInr: 99 },
+  { id: 'ai_500', channel: 'AI', credits: 500, priceInr: 399 },
+  { id: 'ai_1000', channel: 'AI', credits: 1000, priceInr: 699 }
 ]
 
 export const DEFAULT_FREE_ALLOWANCE = 25

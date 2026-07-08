@@ -3,12 +3,13 @@
 import Link from 'next/link'
 import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
-import { ChevronRight, MessageSquare, MessageCircle, Puzzle, CheckCircle2 } from 'lucide-react'
+import { ChevronRight, MessageSquare, MessageCircle, Sparkles, Puzzle, CheckCircle2 } from 'lucide-react'
 import type { AddonsResponse } from '@/components/settings/addons/types'
 
 const CHANNEL_ICON: Record<string, typeof MessageSquare> = {
   SMS: MessageSquare,
-  WHATSAPP: MessageCircle
+  WHATSAPP: MessageCircle,
+  AI: Sparkles
 }
 
 export default function AddonsPage() {

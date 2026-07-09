@@ -49,8 +49,9 @@ export async function GET(req: NextRequest) {
       const response = await fetch(url, {
         headers: {
           'X-Goog-Api-Key': apiKey,
-          // NB: websiteUri / phone fall in the paid "Pro/Enterprise" details SKU.
-          'X-Goog-FieldMask': 'id,formattedAddress,addressComponents,location,websiteUri,googleMapsUri,nationalPhoneNumber'
+          // Address-only fields keep this on the cheapest details tier. (Adding
+          // websiteUri/phone would bump every lookup to the pricier Contact SKU.)
+          'X-Goog-FieldMask': 'id,formattedAddress,addressComponents,location'
         }
       })
       if (!response.ok) {

@@ -192,16 +192,8 @@ export default function OnboardingStep2() {
             setLatitude(place.location.latitude || null)
             setLongitude(place.location.longitude || null)
           }
-
-          // Contact details from the place (when Google has them)
-          if (place.websiteUri) setWebsite(place.websiteUri)
-          if (place.googleMapsUri) setMapsLink(place.googleMapsUri)
-          // Only fill phone if the field is still empty — don't clobber the
-          // number the user registered with.
-          if (place.nationalPhoneNumber) {
-            const digits = place.nationalPhoneNumber.replace(/\D/g, '').slice(-10)
-            if (digits.length === 10) setPhone((prev) => prev || digits)
-          }
+          // Website / phone are intentionally NOT auto-filled — requesting them
+          // from Google bumps every lookup to the pricier Contact billing tier.
         }
       }
     } catch (err) {

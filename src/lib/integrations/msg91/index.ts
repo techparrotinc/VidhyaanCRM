@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getMsg91Config, getFeatureFlags } from '@/lib/platform-config'
 
 /**
  * sendOtpSms
@@ -9,7 +10,7 @@ export async function sendOtpSms(
   otp: string,
   templateId: string
 ): Promise<{ success: boolean }> {
-  const authKey = process.env.MSG91_AUTH_KEY
+  const { authKey } = await getMsg91Config()
   if (!authKey) {
     throw new Error('MSG91_AUTH_KEY is not configured')
   }
@@ -67,15 +68,19 @@ export async function sendOtpWhatsApp(
   phone: string,
   otp: string
 ): Promise<{ success: boolean }> {
-  const isEnabled = process.env.ENABLE_WHATSAPP === 'true'
-  const whatsappNumber = process.env.MSG91_WHATSAPP_NUMBER
+  const flags = await getFeatureFlags()
+  const cfg = await getMsg91Config()
+  // Enabled if either the admin flag OR the env kill-switch says so — never
+  // disables what env already enables.
+  const isEnabled = flags.enableWhatsapp || process.env.ENABLE_WHATSAPP === 'true'
+  const whatsappNumber = cfg.whatsappNumber
 
   if (!isEnabled || !whatsappNumber) {
     console.log('Skipping WhatsApp OTP: WhatsApp integration is disabled or number is not set')
     return { success: false }
   }
 
-  const authKey = process.env.MSG91_AUTH_KEY
+  const { authKey } = await getMsg91Config()
   if (!authKey) {
     throw new Error('MSG91_AUTH_KEY is not configured')
   }
@@ -134,7 +139,7 @@ export async function sendTransactionalSms(
   message: string,
   senderId = 'VIDHYN'
 ): Promise<any> {
-  const authKey = process.env.MSG91_AUTH_KEY
+  const { authKey } = await getMsg91Config()
   if (!authKey) {
     throw new Error('MSG91_AUTH_KEY is not configured')
   }
@@ -176,7 +181,7 @@ export async function verifyOtpMsg91(
   phone: string,
   otp: string
 ): Promise<any> {
-  const authKey = process.env.MSG91_AUTH_KEY
+  const { authKey } = await getMsg91Config()
   if (!authKey) {
     throw new Error('MSG91_AUTH_KEY is not configured')
   }
@@ -207,7 +212,7 @@ export async function resendOtp(
   phone: string,
   retryType = 'text'
 ): Promise<any> {
-  const authKey = process.env.MSG91_AUTH_KEY
+  const { authKey } = await getMsg91Config()
   if (!authKey) {
     throw new Error('MSG91_AUTH_KEY is not configured')
   }

@@ -5,6 +5,7 @@ import { createNotification } from '@/lib/services/notifications'
 import { applyPendingPlanChange, reconcilePendingSubscriptions } from '@/lib/billing/reconcile'
 import { downgradeOrgToFree, SLAB_CAPACITY } from '@/lib/billing/lifecycle'
 import { ensureRenewalInvoice } from '@/lib/billing/renewal'
+import { postSlackAlert } from '@/lib/alerts/slack'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -333,6 +334,7 @@ export async function GET(req: NextRequest) {
                 textBody: `${org.name} crossed 1,000 students — custom-quote opportunity.`
               }).catch((e) => console.error('custom-quote ops alert failed:', e))
             }
+            postSlackAlert(`💰 Custom-quote opportunity: ${org.name} crossed 1,000 students (${studentCount.toLocaleString('en-IN')}).`)
             await prisma.organization.update({
               where: { id: org.id },
               data: { settings: { ...settings, customQuoteAlertedAt: now.toISOString() } }

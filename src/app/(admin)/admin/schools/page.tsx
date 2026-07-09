@@ -258,16 +258,16 @@ export default function SchoolVerificationsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 font-sans">School Verifications</h2>
-          <p className="text-xs text-slate-400 mt-0.5">Manage claims and verify school listings for marketplace placement</p>
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 font-sans">Institution Listings</h2>
+          <p className="text-xs text-slate-400 mt-0.5">Manage claims and verify school &amp; learning-centre listings for marketplace placement</p>
         </div>
-        
+
         {/* Search */}
         <div className="relative w-full max-w-xs self-start">
           <Search className="absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search schools..."
+            placeholder="Search listings..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-4 text-xs font-semibold text-slate-700 outline-hidden hover:border-slate-350 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-150"
@@ -305,8 +305,8 @@ export default function SchoolVerificationsPage() {
       ) : schools.length === 0 ? (
         <div className="flex flex-col h-64 items-center justify-center text-center p-6 bg-white border border-slate-200 rounded-xl shadow-sm">
           <School className="w-10 h-10 text-slate-300 mb-3" />
-          <h4 className="text-sm font-bold text-slate-700">No Schools Found</h4>
-          <p className="text-xs text-slate-400 mt-1 max-w-sm">No schools are matching your current selection.</p>
+          <h4 className="text-sm font-bold text-slate-700">No Listings Found</h4>
+          <p className="text-xs text-slate-400 mt-1 max-w-sm">No institution listings match your current selection.</p>
         </div>
       ) : activeTab === 'PENDING' ? (
         // Pending Verification Cards List
@@ -372,7 +372,7 @@ export default function SchoolVerificationsPage() {
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/70 text-[10px] font-bold uppercase tracking-wider text-slate-400 select-none">
-                <th className="py-3 px-6">School Name</th>
+                <th className="py-3 px-6">Listing Name</th>
                 <th className="py-3 px-4">City</th>
                 <th className="py-3 px-4">Status</th>
                 {activeTab === 'REJECTED' ? <th className="py-3 px-4">Rejection Reason</th> : <th className="py-3 px-4">Verified Date</th>}

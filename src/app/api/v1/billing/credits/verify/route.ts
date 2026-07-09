@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     // Signature when present; else authenticated API fetch (invoice-backed
     // Checkout callbacks may omit the order signature)
-    let isValid = orderId && signature ? verifyPayment(orderId, paymentId, signature) : false
+    let isValid = orderId && signature ? await verifyPayment(orderId, paymentId, signature) : false
     if (!isValid) {
       const payment = await fetchPayment(paymentId)
       if (payment && ['captured', 'authorized'].includes(payment.status)) {

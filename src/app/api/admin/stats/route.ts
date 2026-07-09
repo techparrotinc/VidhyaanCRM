@@ -14,6 +14,11 @@ export async function GET(req: NextRequest) {
     const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
+    const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1)
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+    // Measure data-layer round-trip for the platform-health panel.
+    const dbT0 = Date.now()
 
     // Run parallel queries
     const [
@@ -47,7 +52,10 @@ export async function GET(req: NextRequest) {
 
       last10Orgs,
       last10Parents,
-      last10Verifications
+      last10Verifications,
+
+      revenueTrendRaw,
+      failedPaymentsThisWeek
     ] = await Promise.all([
       // Organization stats
       prisma.organization.count({ where: { deletedAt: null } }),
@@ -129,8 +137,31 @@ export async function GET(req: NextRequest) {
         take: 10,
         where: { verificationStatus: 'VERIFIED', deletedAt: null },
         orderBy: { verifiedAt: 'desc' }
-      })
+      }),
+
+      // Real monthly revenue for the last 12 months (successful transactions)
+      prisma.$queryRaw<Array<{ m: Date; s: number }>>`
+        SELECT date_trunc('month', "paid_at") AS m, sum("amount")::float AS s
+        FROM "billing"."transactions"
+        WHERE "status" = 'SUCCESS' AND "paid_at" >= ${twelveMonthsAgo}
+        GROUP BY 1 ORDER BY 1`,
+      // Failed payments in the last 7 days
+      prisma.transaction.count({ where: { status: 'FAILED', createdAt: { gte: sevenDaysAgo } } })
     ])
+
+    const dbLatencyMs = Date.now() - dbT0
+
+    // Build a dense 6-month trend (zero-fill missing months)
+    const trendMap = new Map(revenueTrendRaw.map((r) => [r.m.toISOString().slice(0, 7), Number(r.s)]))
+    const revenueTrend = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      return {
+        label: d.toLocaleString('en-US', { month: 'short', year: '2-digit' }),
+        month: key,
+        value: trendMap.get(key) || 0,
+      }
+    })
 
     // Calculate growth percentages
     const orgGrowth = newOrgsLastMonth > 0 
@@ -175,7 +206,13 @@ export async function GET(req: NextRequest) {
         arr: Number(arr.toFixed(2)),
         thisMonth: revThisMonth,
         lastMonth: revLastMonth,
-        growthPct: Number(revGrowth.toFixed(2))
+        growthPct: Number(revGrowth.toFixed(2)),
+        trend: revenueTrend
+      },
+      ops: {
+        failedPaymentsThisWeek,
+        dbLatencyMs,
+        activeOrgs
       },
       marketplace: {
         totalSchools,

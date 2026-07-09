@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
-import { OrgStatus, AuditAction, UserStatus } from '@prisma/client'
+import { OrgStatus, AuditAction, UserStatus, InstitutionType } from '@prisma/client'
 
 const orgUpdateSchema = z.object({
+  // Core profile fields
+  name: z.string().trim().min(2).max(200).optional(),
+  email: z.string().trim().email().max(200).optional(),
+  phone: z.string().trim().max(30).optional(),
+  institutionType: z.nativeEnum(InstitutionType).optional(),
+  // Ops / billing fields
   status: z.nativeEnum(OrgStatus).optional(),
   planId: z.string().max(60).nullable().optional(),
   leadCap: z.coerce.number().int().min(0).max(1_000_000).nullable().optional(),
@@ -137,7 +143,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         { status: 400 }
       )
     }
-    const { status, planId, leadCap, trialEndsAt, notes, billingDiscountPct } = parsed.data
+    const { name, email, phone, institutionType, status, planId, leadCap, trialEndsAt, notes, billingDiscountPct } = parsed.data
 
     // Find existing organization
     const org = await prisma.organization.findUnique({
@@ -150,6 +156,24 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const updateData: any = {}
     const auditLogsToCreate: any[] = []
+
+    // 0. Core profile fields (name / email / phone / institutionType)
+    if (name !== undefined && name !== org.name) {
+      updateData.name = name
+      auditLogsToCreate.push({ field: 'name', before: org.name, after: name })
+    }
+    if (email !== undefined && email !== org.email) {
+      updateData.email = email
+      auditLogsToCreate.push({ field: 'email', before: org.email, after: email })
+    }
+    if (phone !== undefined && phone !== org.phone) {
+      updateData.phone = phone
+      auditLogsToCreate.push({ field: 'phone', before: org.phone, after: phone })
+    }
+    if (institutionType !== undefined && institutionType !== org.institutionType) {
+      updateData.institutionType = institutionType
+      auditLogsToCreate.push({ field: 'institutionType', before: org.institutionType, after: institutionType })
+    }
 
     // 1. Status changes verification
     if (status !== undefined && status !== org.status) {

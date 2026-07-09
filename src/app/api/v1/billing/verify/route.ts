@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     let verified = false
     let fetchedPayment: Awaited<ReturnType<typeof fetchPayment>> = null
     if (orderId && signature) {
-      verified = verifyPayment(orderId, paymentId, signature)
+      verified = await verifyPayment(orderId, paymentId, signature)
     }
     if (!verified) {
       fetchedPayment = await fetchPayment(paymentId)

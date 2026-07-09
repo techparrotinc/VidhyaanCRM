@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { USAGE_MODULES, LICENSABLE_MODULE_SLUGS, DEFAULT_MINUTES_PER_ACTION, DEFAULT_HOURLY_RATE } from '@/lib/usage/modules'
 
 export default function AdminSettingsPage() {
   // Settings State
@@ -57,6 +58,8 @@ export default function AdminSettingsPage() {
 
   // Razorpay
   const [razorpayLiveKey, setRazorpayLiveKey] = useState('')
+  const [razorpayKeyId, setRazorpayKeyId] = useState('')
+  const [razorpayKeySecret, setRazorpayKeySecret] = useState('')
   const [razorpayWebhookSecret, setRazorpayWebhookSecret] = useState('')
   const [showRazorpayKey, setShowRazorpayKey] = useState(false)
 
@@ -64,6 +67,30 @@ export default function AdminSettingsPage() {
   const [doSpacesEndpoint, setDoSpacesEndpoint] = useState('')
   const [doSpacesBucket, setDoSpacesBucket] = useState('')
   const [doSpacesCdnUrl, setDoSpacesCdnUrl] = useState('')
+  const [s3Region, setS3Region] = useState('')
+  const [s3AccessKeyId, setS3AccessKeyId] = useState('')
+  const [s3SecretKey, setS3SecretKey] = useState('')
+
+  // ZeptoMail
+  const [zeptoToken, setZeptoToken] = useState('')
+
+  // MSG91 / WhatsApp
+  const [msg91AuthKey, setMsg91AuthKey] = useState('')
+  const [msg91WhatsappNumber, setMsg91WhatsappNumber] = useState('')
+  const [msg91SenderId, setMsg91SenderId] = useState('')
+
+  // Usage & ROI model
+  const [usageHourlyRate, setUsageHourlyRate] = useState(DEFAULT_HOURLY_RATE)
+  const [usageMinutes, setUsageMinutes] = useState<Record<string, number>>({ ...DEFAULT_MINUTES_PER_ACTION })
+
+  // "Configured" indicators for masked secrets (server never returns values)
+  const [configured, setConfigured] = useState({
+    razorpayKeySecret: false,
+    razorpayWebhookSecret: false,
+    s3SecretKey: false,
+    zeptoToken: false,
+    msg91AuthKey: false,
+  })
 
   const fetchSettings = async () => {
     try {
@@ -95,11 +122,31 @@ export default function AdminSettingsPage() {
       setSlackWebhookUrl(data.slackWebhookUrl || '')
 
       setRazorpayLiveKey(data.razorpayLiveKey || '')
-      setRazorpayWebhookSecret(data.razorpayWebhookSecret || '')
+      setRazorpayKeyId(data.razorpayKeyId || data.razorpayLiveKey || '')
 
       setDoSpacesEndpoint(data.doSpacesEndpoint || '')
       setDoSpacesBucket(data.doSpacesBucket || '')
       setDoSpacesCdnUrl(data.doSpacesCdnUrl || '')
+      setS3Region(data.s3Region || '')
+      setS3AccessKeyId(data.s3AccessKeyId || '')
+      setMsg91WhatsappNumber(data.msg91WhatsappNumber || '')
+      setMsg91SenderId(data.msg91SenderId || '')
+      setUsageHourlyRate(data.usageHourlyRate ?? DEFAULT_HOURLY_RATE)
+      setUsageMinutes({ ...DEFAULT_MINUTES_PER_ACTION, ...(data.usageMinutesPerAction || {}) })
+
+      // Secrets are never returned; reset editable fields + read configured flags.
+      setRazorpayKeySecret('')
+      setRazorpayWebhookSecret('')
+      setS3SecretKey('')
+      setZeptoToken('')
+      setMsg91AuthKey('')
+      setConfigured({
+        razorpayKeySecret: !!data.hasRazorpayKeySecret,
+        razorpayWebhookSecret: !!data.hasRazorpayWebhookSecret,
+        s3SecretKey: !!data.hasS3SecretKey,
+        zeptoToken: !!data.hasZeptoToken,
+        msg91AuthKey: !!data.hasMsg91AuthKey,
+      })
 
       setError(null)
     } catch (err: any) {
@@ -140,7 +187,7 @@ export default function AdminSettingsPage() {
     e.preventDefault()
     try {
       setSaving(true)
-      const payload = {
+      const payload: Record<string, any> = {
         freePlanLeadCap,
         trialDurationDays,
         defaultOtpTtlMinutes,
@@ -149,15 +196,28 @@ export default function AdminSettingsPage() {
         fromName,
         opsAlertEmail,
         slackWebhookUrl,
-        razorpayLiveKey,
-        razorpayWebhookSecret,
+        razorpayLiveKey: razorpayKeyId,
+        razorpayKeyId,
         doSpacesEndpoint,
         doSpacesBucket,
         doSpacesCdnUrl,
+        s3Region,
+        s3AccessKeyId,
+        msg91WhatsappNumber,
+        msg91SenderId,
         businessName,
         businessAddress,
-        businessGstin
+        businessGstin,
+        usageHourlyRate,
+        usageMinutesPerAction: usageMinutes
       }
+      // Secrets: only send when the admin typed a new value; blank leaves the
+      // stored (encrypted) value untouched.
+      if (razorpayKeySecret) payload.razorpayKeySecret = razorpayKeySecret
+      if (razorpayWebhookSecret) payload.razorpayWebhookSecret = razorpayWebhookSecret
+      if (s3SecretKey) payload.s3SecretKey = s3SecretKey
+      if (zeptoToken) payload.zeptoToken = zeptoToken
+      if (msg91AuthKey) payload.msg91AuthKey = msg91AuthKey
 
       const res = await fetch('/api/admin/settings', {
         method: 'PUT',
@@ -365,6 +425,18 @@ export default function AdminSettingsPage() {
                   className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
                 />
               </div>
+              <div className="sm:col-span-3">
+                <label className="block text-slate-450 mb-1.5">
+                  ZeptoMail API Token {configured.zeptoToken && <span className="text-green-600 font-bold">• set</span>}
+                </label>
+                <input
+                  type="password"
+                  value={zeptoToken}
+                  onChange={(e) => setZeptoToken(e.target.value)}
+                  placeholder={configured.zeptoToken ? '•••••••• (leave blank to keep)' : 'Zoho-enczapikey ...'}
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
             </div>
           </Card>
 
@@ -373,31 +445,52 @@ export default function AdminSettingsPage() {
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
               <Key className="w-4 h-4 text-blue-650" /> Razorpay Integrations
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold text-slate-700">
+            <p className="text-[10px] font-semibold text-slate-400 -mt-2">
+              API keys only. Seller / business profile printed on invoices is managed once under
+              <span className="font-bold text-slate-500"> Business / Invoice Details</span> above — not here.
+            </p>
+            <p className="text-[10px] font-semibold text-amber-600 -mt-2 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5">
+              Leave a secret blank to keep the stored value. Saving new keys switches live billing to them — test in staging first.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold text-slate-700">
               <div className="relative">
-                <label className="block text-slate-450 mb-1.5">Razorpay Live API Key</label>
-                <div className="relative">
-                  <input
-                    type={showRazorpayKey ? 'text' : 'password'}
-                    value={razorpayLiveKey}
-                    onChange={(e) => setRazorpayLiveKey(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 p-2.5 pr-10 font-medium outline-hidden focus:border-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowRazorpayKey(!showRazorpayKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showRazorpayKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+                <label className="block text-slate-450 mb-1.5">Key ID (key_id)</label>
+                <input
+                  type={showRazorpayKey ? 'text' : 'password'}
+                  value={razorpayKeyId}
+                  onChange={(e) => setRazorpayKeyId(e.target.value)}
+                  placeholder="rzp_live_xxxxxxxx"
+                  className="w-full rounded-lg border border-slate-200 p-2.5 pr-10 font-medium outline-hidden focus:border-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowRazorpayKey(!showRazorpayKey)}
+                  className="absolute right-3 top-[34px] text-slate-400 hover:text-slate-600"
+                >
+                  {showRazorpayKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
               <div>
-                <label className="block text-slate-450 mb-1.5">Webhook Secret Key</label>
+                <label className="block text-slate-450 mb-1.5">
+                  Key Secret {configured.razorpayKeySecret && <span className="text-green-600 font-bold">• set</span>}
+                </label>
+                <input
+                  type="password"
+                  value={razorpayKeySecret}
+                  onChange={(e) => setRazorpayKeySecret(e.target.value)}
+                  placeholder={configured.razorpayKeySecret ? '•••••••• (leave blank to keep)' : 'key_secret'}
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-450 mb-1.5">
+                  Webhook Secret {configured.razorpayWebhookSecret && <span className="text-green-600 font-bold">• set</span>}
+                </label>
                 <input
                   type="password"
                   value={razorpayWebhookSecret}
                   onChange={(e) => setRazorpayWebhookSecret(e.target.value)}
+                  placeholder={configured.razorpayWebhookSecret ? '•••••••• (leave blank to keep)' : 'whsec_...'}
                   className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
                 />
               </div>
@@ -441,8 +534,121 @@ export default function AdminSettingsPage() {
                 />
               </div>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold text-slate-700 border-t border-slate-100 pt-4">
+              <div>
+                <label className="block text-slate-450 mb-1.5">Region</label>
+                <input
+                  type="text"
+                  value={s3Region}
+                  onChange={(e) => setS3Region(e.target.value)}
+                  placeholder="ap-south-1"
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-450 mb-1.5">Access Key ID</label>
+                <input
+                  type="text"
+                  value={s3AccessKeyId}
+                  onChange={(e) => setS3AccessKeyId(e.target.value)}
+                  placeholder="AKIA... / DO..."
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-450 mb-1.5">
+                  Secret Key {configured.s3SecretKey && <span className="text-green-600 font-bold">• set</span>}
+                </label>
+                <input
+                  type="password"
+                  value={s3SecretKey}
+                  onChange={(e) => setS3SecretKey(e.target.value)}
+                  placeholder={configured.s3SecretKey ? '•••••••• (leave blank to keep)' : 'secret access key'}
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+            </div>
             <div className="text-[10px] font-bold text-slate-400 flex justify-between items-center pt-2">
-              <span>Estimated Storage Used: 4.86 GB (0.4% of total)</span>
+              <span>Endpoint blank = AWS S3. Set an endpoint for DigitalOcean Spaces. Blank credentials fall back to the server IAM role / env.</span>
+            </div>
+          </Card>
+
+          {/* MSG91 / WhatsApp API */}
+          <Card className="p-5 bg-white border-slate-200 shadow-sm space-y-4">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <Key className="w-4 h-4 text-blue-650" /> Messaging (MSG91 / WhatsApp)
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold text-slate-700">
+              <div>
+                <label className="block text-slate-450 mb-1.5">
+                  MSG91 Auth Key {configured.msg91AuthKey && <span className="text-green-600 font-bold">• set</span>}
+                </label>
+                <input
+                  type="password"
+                  value={msg91AuthKey}
+                  onChange={(e) => setMsg91AuthKey(e.target.value)}
+                  placeholder={configured.msg91AuthKey ? '•••••••• (leave blank to keep)' : 'MSG91 auth key'}
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-450 mb-1.5">WhatsApp Number</label>
+                <input
+                  type="text"
+                  value={msg91WhatsappNumber}
+                  onChange={(e) => setMsg91WhatsappNumber(e.target.value)}
+                  placeholder="Integrated WhatsApp number"
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-450 mb-1.5">SMS Sender ID</label>
+                <input
+                  type="text"
+                  value={msg91SenderId}
+                  onChange={(e) => setMsg91SenderId(e.target.value)}
+                  placeholder="VIDHYN"
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+            </div>
+            <p className="text-[10px] font-semibold text-slate-400">
+              WhatsApp send also requires the <span className="font-bold text-slate-500">WhatsApp Notifications</span> flag (or env <code>ENABLE_WHATSAPP</code>) enabled.
+            </p>
+          </Card>
+
+          {/* Usage & ROI Model */}
+          <Card className="p-5 bg-white border-slate-200 shadow-sm space-y-4">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <Settings className="w-4 h-4 text-blue-650" /> Usage &amp; ROI Model
+            </h3>
+            <p className="text-[10px] font-semibold text-slate-400 -mt-2">
+              Drives the cost-savings &amp; ROI figures on each org&apos;s Usage Metrics page. Savings = actions × minutes-saved × hourly rate.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs font-semibold text-slate-700">
+              <div>
+                <label className="block text-slate-450 mb-1.5">Blended Rate (₹/hour)</label>
+                <input
+                  type="number"
+                  value={usageHourlyRate}
+                  onChange={(e) => setUsageHourlyRate(parseInt(e.target.value) || 0)}
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-semibold text-slate-700">
+              {USAGE_MODULES.filter((m) => LICENSABLE_MODULE_SLUGS.has(m.slug)).map((m) => (
+                <div key={m.slug}>
+                  <label className="block text-slate-450 mb-1.5 truncate" title={m.label}>{m.label} <span className="text-slate-300">(min/action)</span></label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={usageMinutes[m.slug] ?? 0}
+                    onChange={(e) => setUsageMinutes((prev) => ({ ...prev, [m.slug]: parseInt(e.target.value) || 0 }))}
+                    className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                  />
+                </div>
+              ))}
             </div>
           </Card>
         </form>
@@ -466,7 +672,7 @@ export default function AdminSettingsPage() {
                   type="button"
                   onClick={() => handleToggleFlag('enableWhatsapp', enableWhatsapp)}
                   className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                    enableWhatsapp ? 'bg-blue-600' : 'bg-slate-250'
+                    enableWhatsapp ? 'bg-blue-600' : 'bg-slate-300'
                   }`}
                 >
                   <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ${
@@ -485,7 +691,7 @@ export default function AdminSettingsPage() {
                   type="button"
                   onClick={() => handleToggleFlag('enableCampaignModule', enableCampaignModule)}
                   className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                    enableCampaignModule ? 'bg-blue-600' : 'bg-slate-250'
+                    enableCampaignModule ? 'bg-blue-600' : 'bg-slate-300'
                   }`}
                 >
                   <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ${
@@ -504,7 +710,7 @@ export default function AdminSettingsPage() {
                   type="button"
                   onClick={() => handleToggleFlag('enableAiFeatures', enableAiFeatures)}
                   className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                    enableAiFeatures ? 'bg-blue-600' : 'bg-slate-250'
+                    enableAiFeatures ? 'bg-blue-600' : 'bg-slate-300'
                   }`}
                 >
                   <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ${
@@ -523,7 +729,7 @@ export default function AdminSettingsPage() {
                   type="button"
                   onClick={() => handleToggleFlag('enablePublicApiAccess', enablePublicApiAccess)}
                   className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                    enablePublicApiAccess ? 'bg-blue-600' : 'bg-slate-250'
+                    enablePublicApiAccess ? 'bg-blue-600' : 'bg-slate-300'
                   }`}
                 >
                   <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ${
@@ -542,7 +748,7 @@ export default function AdminSettingsPage() {
                   type="button"
                   onClick={() => handleToggleFlag('maintenanceMode', maintenanceMode)}
                   className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                    maintenanceMode ? 'bg-red-650 animate-pulse' : 'bg-slate-250'
+                    maintenanceMode ? 'bg-red-650 animate-pulse' : 'bg-slate-300'
                   }`}
                 >
                   <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ${
@@ -593,7 +799,7 @@ export default function AdminSettingsPage() {
                         else alert('Failed to update billing cycles')
                       }}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                        enabled ? 'bg-blue-600' : 'bg-slate-250'
+                        enabled ? 'bg-blue-600' : 'bg-slate-300'
                       }`}
                     >
                       <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ${
@@ -625,7 +831,7 @@ export default function AdminSettingsPage() {
                     else alert('Failed to update GST pricing mode')
                   }}
                   className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                    pricesIncludeGst ? 'bg-blue-600' : 'bg-slate-250'
+                    pricesIncludeGst ? 'bg-blue-600' : 'bg-slate-300'
                   }`}
                 >
                   <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ${
@@ -641,6 +847,10 @@ export default function AdminSettingsPage() {
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
               <Bell className="w-4 h-4 text-blue-650" /> Alerts Channels
             </h3>
+            <p className="text-[10px] font-semibold text-slate-400 -mt-2 leading-relaxed">
+              Platform ops alerts — Razorpay refunds and custom-quote opportunities (1,000+ students) — are sent to
+              this email, and also posted to Slack when a webhook is set. Both channels fire together; leave either blank to disable it.
+            </p>
             <div className="space-y-4 text-xs font-semibold text-slate-700">
               <div>
                 <label className="block text-slate-450 mb-1.5">Ops Email for Alerts</label>

@@ -2956,9 +2956,12 @@ model PlatformSettings {
   trialDurationDays     Int            @default(7) @map("trial_duration_days")
   defaultOtpTtlMinutes  Int            @default(10) @map("default_otp_ttl_minutes")
   enableWhatsapp        Boolean        @default(false) @map("enable_whatsapp")
-  enableCampaignModule  Boolean        @default(false) @map("enable_campaign_module")
-  enableAiFeatures      Boolean        @default(false) @map("enable_ai_features")
-  enablePublicApiAccess Boolean        @default(false) @map("enable_public_api_access")
+  // These three default ON: they are platform-wide kill-switches, so the safe
+  // default is "feature available" (matches pre-flag behaviour). Turning one
+  // off disables that capability across every org.
+  enableCampaignModule  Boolean        @default(true) @map("enable_campaign_module")
+  enableAiFeatures      Boolean        @default(true) @map("enable_ai_features")
+  enablePublicApiAccess Boolean        @default(true) @map("enable_public_api_access")
   maintenanceMode       Boolean        @default(false) @map("maintenance_mode")
   // Billing cycles orgs may subscribe with (any combination, min 1)
   enabledBillingCycles  BillingCycle[] @default([MONTHLY, ANNUAL]) @map("enabled_billing_cycles")
@@ -2979,9 +2982,68 @@ model PlatformSettings {
   doSpacesEndpoint      String?        @map("do_spaces_endpoint")
   doSpacesBucket        String?        @map("do_spaces_bucket")
   doSpacesCdnUrl        String?        @map("do_spaces_cdn_url")
+
+  // --- Admin-managed integration credentials (Phase 3) ---
+  // Secrets stored as vault ciphertext (see src/lib/payments/vault.ts).
+  // All optional: when null the platform-config resolver falls back to the
+  // corresponding process.env value, so an empty row = today's env behaviour.
+  razorpayKeyId          String? @map("razorpay_key_id")           // key_id (semi-public)
+  razorpayKeySecretEnc   String? @map("razorpay_key_secret_enc")   // key_secret (encrypted)
+  razorpayWebhookSecretEnc String? @map("razorpay_webhook_secret_enc") // webhook secret (encrypted)
+  s3Region               String? @map("s3_region")
+  s3AccessKeyId          String? @map("s3_access_key_id")
+  s3SecretKeyEnc         String? @map("s3_secret_key_enc")         // encrypted
+  zeptoTokenEnc          String? @map("zepto_token_enc")           // encrypted
+  zeptoFromEmail         String? @map("zepto_from_email")
+  zeptoCampaignEmail     String? @map("zepto_campaign_email")
+  msg91AuthKeyEnc        String? @map("msg91_auth_key_enc")        // encrypted
+  msg91WhatsappNumber    String? @map("msg91_whatsapp_number")
+  msg91SenderId          String? @map("msg91_sender_id")
+
+  // Usage & ROI model (admin-configurable) for the org usage dashboard.
+  // usageHourlyRate: blended staff cost (₹/hour). usageMinutesPerAction:
+  // JSON map of module-slug → minutes saved per tracked action.
+  usageHourlyRate       Int?    @default(300) @map("usage_hourly_rate")
+  usageMinutesPerAction Json?   @map("usage_minutes_per_action")
+
   updatedAt             DateTime       @updatedAt @map("updated_at")
 
   @@map("platform_settings")
+  @@schema("platform")
+}
+
+// Append-only feature-usage event log. Written fire-and-forget from the API
+// composer (one row per meaningful org action) to power the per-org usage
+// dashboard in the admin portal. No FK to Organization on purpose — keeps the
+// write cheap and the table independent of tenant cascades.
+model FeatureUsageEvent {
+  id        String   @id @default(cuid())
+  orgId     String   @map("org_id")
+  userId    String?  @map("user_id")
+  feature   String
+  action    String
+  path      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([orgId, feature, createdAt])
+  @@index([orgId, createdAt])
+  @@map("feature_usage_events")
+  @@schema("platform")
+}
+
+// Active-time signal for the org usage dashboard. One row per ~60s heartbeat
+// emitted by the CRM client while a tab is visible/focused. Active minutes are
+// derived by counting distinct per-minute buckets (dedupes bursts/retries).
+model UsageHeartbeat {
+  id        String   @id @default(cuid())
+  orgId     String   @map("org_id")
+  userId    String   @map("user_id")
+  feature   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([orgId, createdAt])
+  @@index([orgId, userId, feature, createdAt])
+  @@map("usage_heartbeats")
   @@schema("platform")
 }
 

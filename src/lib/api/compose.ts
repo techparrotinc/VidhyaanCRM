@@ -6,8 +6,20 @@ import { Errors } from './errors'
 import { errorResponse } from './respond'
 import { redis } from '@/lib/redis'
 import { isUserRevoked, isAssignmentRevoked } from '@/lib/auth/roleRevocation'
+import { trackFeatureUsage } from '@/lib/usage/track'
+import { getFeatureFlags } from '@/lib/platform-config'
+
+const PLATFORM_ROLES = new Set(['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN'])
 
 const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
+
+// Feature key for usage analytics: prefer the route's declared module, else the
+// entity segment of the path (/api/v1/leads/123 → "leads").
+function usageFeatureFor(module: string | undefined, pathname: string): string {
+  if (module) return module
+  const parts = pathname.split('/').filter(Boolean) // ["api","v1","leads",...]
+  return parts[2] || 'other'
+}
 
 type RouteConfig = {
   module?: string
@@ -162,6 +174,32 @@ export function route(config: RouteConfig) {
         throw Errors.forbidden('Your account has been suspended')
       }
 
+      // STEP 3.5: Platform-wide feature gates (60s-cached resolver). Platform
+      // roles are exempt so ops keep working during maintenance. Campaign/AI
+      // are global kill-switches (default ON); turning one off disables that
+      // capability for every org on top of per-org module licensing.
+      if (!PLATFORM_ROLES.has(user.role)) {
+        const flags = await getFeatureFlags()
+        if (flags.maintenanceMode) {
+          return NextResponse.json(
+            { success: false, error: 'The platform is undergoing scheduled maintenance. Please try again shortly.' },
+            { status: 503 }
+          )
+        }
+        if (config.module === 'campaign_management' && !flags.enableCampaignModule) {
+          return NextResponse.json(
+            { success: false, error: 'The campaigns module is currently disabled by the platform administrator.' },
+            { status: 403 }
+          )
+        }
+        if (req.nextUrl.pathname.startsWith('/api/v1/ai') && !flags.enableAiFeatures) {
+          return NextResponse.json(
+            { success: false, error: 'AI features are currently disabled by the platform administrator.' },
+            { status: 403 }
+          )
+        }
+      }
+
       // STEP 4: Check module access
       if (config.module && moduleCacheKey) {
         let moduleAccess = moduleCached ? JSON.parse(moduleCached) : null
@@ -311,7 +349,22 @@ export function route(config: RouteConfig) {
         params: context?.params && typeof context.params.then === 'function' ? await context.params : context?.params
       }
 
-      return await config.handler(ctx)
+      const response = await config.handler(ctx)
+
+      // Feature-usage analytics (fire-and-forget). Track meaningful actions —
+      // mutating requests that ran without throwing — for the admin usage
+      // dashboard. Never awaited; failures are swallowed inside the helper.
+      if (MUTATING_METHODS.includes(req.method)) {
+        trackFeatureUsage({
+          orgId: user.orgId,
+          userId: user.id,
+          feature: usageFeatureFor(config.module, req.nextUrl.pathname),
+          action: req.method,
+          path: req.nextUrl.pathname,
+        })
+      }
+
+      return response
     } catch (error) {
       return errorResponse(error)
     }

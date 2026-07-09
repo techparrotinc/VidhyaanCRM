@@ -2,6 +2,7 @@ import Razorpay from 'razorpay'
 import crypto from 'crypto'
 import { prisma } from '@/lib/db'
 import { gstBreakupPaise } from '@/lib/billing/money'
+import { getRazorpayCredentials } from '@/lib/platform-config'
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET || 'fallback_secret_32_characters_long_!!'
 
@@ -26,10 +27,19 @@ export function decrypt(encryptedText: string): string {
   return decrypted
 }
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'mock_key',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'mock_secret'
-})
+// Platform Razorpay client, resolved from admin-managed config with env
+// fallback (see src/lib/platform-config). Built lazily and cached by key_id so
+// an admin credential change takes effect without a restart. When nothing is
+// configured the resolver returns mock_key/mock_secret → same mock behaviour
+// as before.
+let rzCache: { keyId: string; client: Razorpay } | null = null
+async function getRazorpay(): Promise<{ client: Razorpay; keyId: string; keySecret: string; isMock: boolean }> {
+  const creds = await getRazorpayCredentials()
+  if (!rzCache || rzCache.keyId !== creds.keyId) {
+    rzCache = { keyId: creds.keyId, client: new Razorpay({ key_id: creds.keyId, key_secret: creds.keySecret }) }
+  }
+  return { client: rzCache.client, keyId: creds.keyId, keySecret: creds.keySecret, isMock: creds.keyId === 'mock_key' }
+}
 
 /**
  * Creates a subscription on the platform gateway
@@ -40,7 +50,7 @@ export async function createSubscription(
   notes: any
 ): Promise<any> {
   const isDev = process.env.NODE_ENV === 'development'
-  const isMock = !process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID === 'mock_key'
+  const { client: razorpay, isMock } = await getRazorpay()
 
   if (isMock && isDev) {
     console.log('[Razorpay Mock] Creating mock subscription for plan:', planId)
@@ -86,7 +96,7 @@ export async function createOrder(
   notes: any
 ): Promise<any> {
   const isDev = process.env.NODE_ENV === 'development'
-  const isMock = !process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID === 'mock_key'
+  const { client: razorpay, isMock } = await getRazorpay()
 
   if (isMock && isDev) {
     console.log('[Razorpay Mock] Creating mock order for amount:', amount)
@@ -160,7 +170,7 @@ export async function createGstInvoice(params: {
   billToText?: string
 }): Promise<{ id: string; order_id: string; short_url: string; amount: number }> {
   const isDev = process.env.NODE_ENV === 'development'
-  const isMock = !process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID === 'mock_key'
+  const { client: razorpay, isMock } = await getRazorpay()
 
   const { basePaise: baseInPaise, gstPaise: gstInPaise, totalPaise: totalInPaise } =
     gstBreakupPaise(params.amountInPaise, !!params.gstInclusive)
@@ -247,6 +257,7 @@ export async function fetchPayment(paymentId: string): Promise<{
     return { id: paymentId, status: 'captured', order_id: null, invoice_id: null, amount: 0 }
   }
   try {
+    const { client: razorpay } = await getRazorpay()
     const payment: any = await razorpay.payments.fetch(paymentId)
     return {
       id: payment.id,
@@ -270,6 +281,7 @@ export async function fetchOrderPayments(orderId: string): Promise<
 > {
   if (orderId?.startsWith('order_mock_')) return []
   try {
+    const { client: razorpay } = await getRazorpay()
     const res: any = await razorpay.orders.fetchPayments(orderId)
     return (res.items || []).map((p: any) => ({
       id: p.id,
@@ -285,22 +297,22 @@ export async function fetchOrderPayments(orderId: string): Promise<
 /**
  * Verifies the signature of a transaction response
  */
-export function verifyPayment(
+export async function verifyPayment(
   orderId: string,
   paymentId: string,
   signature: string
-): boolean {
+): Promise<boolean> {
   if (orderId?.startsWith('order_mock_') && process.env.NODE_ENV === 'development') {
     console.log('[Razorpay Mock] Automatically verifying mock payment:', paymentId)
     return true
   }
 
   try {
-    const secret = process.env.RAZORPAY_KEY_SECRET
-    if (!secret) {
-      // Fail closed: without the real key secret every signature would be
+    const { keySecret: secret, isMock } = await getRazorpay()
+    if (!secret || isMock) {
+      // Fail closed: without a real key secret every signature would be
       // verifiable against a known fallback string.
-      console.error('[Razorpay] RAZORPAY_KEY_SECRET not configured; rejecting payment verification')
+      console.error('[Razorpay] key secret not configured; rejecting payment verification')
       return false
     }
     const generatedSignature = crypto
@@ -409,6 +421,7 @@ export async function cancelSubscription(
   }
 
   try {
+    const { client: razorpay } = await getRazorpay()
     return await razorpay.subscriptions.cancel(subscriptionId, cancelAtEnd)
   } catch (error: any) {
     if (isDev && (error.statusCode === 401 || error.message?.includes('auth') || error.description?.includes('Authentication'))) {

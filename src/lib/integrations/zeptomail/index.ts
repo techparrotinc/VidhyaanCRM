@@ -1,21 +1,18 @@
 import { SendMailClient } from 'zeptomail'
-
-const client = new SendMailClient({
-  url: 'api.zeptomail.in/',
-  token: process.env.ZEPTOMAIL_API_TOKEN ?? '',
-})
-
-const FROM_EMAIL =
-  process.env.ZEPTOMAIL_FROM_EMAIL
-  ?? 'noreply@vidhyaan.com'
+import { getZeptoConfig } from '@/lib/platform-config'
 
 const FROM_NAME = 'Vidhyaan'
-
-const CAMPAIGN_EMAIL =
-  process.env.ZEPTOMAIL_CAMPAIGN_EMAIL
-  ?? 'campaigns@vidhyaan.com'
-
 const CAMPAIGN_NAME = 'Vidhyaan Campaigns'
+
+// Client built lazily from resolved config (admin DB value → env fallback) and
+// cached by token so admin credential changes take effect without a restart.
+let cachedClient: { token: string; client: SendMailClient } | null = null
+function clientForToken(token: string): SendMailClient {
+  if (cachedClient && cachedClient.token === token) return cachedClient.client
+  const client = new SendMailClient({ url: 'api.zeptomail.in/', token })
+  cachedClient = { token, client }
+  return client
+}
 
 export async function sendTransactionalEmail({
   to,
@@ -31,9 +28,10 @@ export async function sendTransactionalEmail({
   textBody?: string
 }): Promise<{ success: boolean }> {
   try {
-    await client.sendMail({
+    const cfg = await getZeptoConfig()
+    await clientForToken(cfg.token).sendMail({
       from: {
-        address: FROM_EMAIL,
+        address: cfg.fromEmail,
         name: FROM_NAME,
       },
       to: [
@@ -74,9 +72,10 @@ export async function sendCampaignEmail({
   textBody?: string
 }): Promise<{ success: boolean }> {
   try {
-    await client.sendMail({
+    const cfg = await getZeptoConfig()
+    await clientForToken(cfg.token).sendMail({
       from: {
-        address: CAMPAIGN_EMAIL,
+        address: cfg.campaignEmail,
         name: CAMPAIGN_NAME,
       },
       to: [

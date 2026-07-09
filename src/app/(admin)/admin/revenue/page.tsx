@@ -24,6 +24,7 @@ interface RevenueStats {
   thisMonth: number
   lastMonth: number
   growthPct: number
+  trend?: { label: string; month: string; value: number }[]
 }
 
 interface PlanItem {
@@ -106,22 +107,9 @@ export default function RevenuePage() {
     }).format(amount)
   }
 
-  // Simulated 12 months historical data for line chart
-  const getLineChartData = () => {
-    const baseMrr = stats?.mrr || 120000
-    const months = ['Jul 25', 'Aug 25', 'Sep 25', 'Oct 25', 'Nov 25', 'Dec 25', 'Jan 26', 'Feb 26', 'Mar 26', 'Apr 26', 'May 26', 'Jun 26']
-    return months.map((m, idx) => {
-      const multiplier = 0.65 + (idx * 0.035) + (Math.sin(idx) * 0.02)
-      return {
-        month: m,
-        mrr: baseMrr * multiplier,
-        newRevenue: baseMrr * 0.12 * (1 + Math.cos(idx) * 0.3)
-      }
-    })
-  }
-
-  const chartData = getLineChartData()
-  const maxChartVal = Math.max(...chartData.map(d => Math.max(d.mrr, d.newRevenue)), 1000)
+  // Real monthly revenue (successful transactions), last 12 months from /api/admin/stats.
+  const chartData = (stats?.trend ?? []).map((t) => ({ month: t.label, mrr: t.value }))
+  const maxChartVal = Math.max(...chartData.map(d => d.mrr), 1000)
 
   // Sum of subscribers
   const totalSubscribers = plans.reduce((sum, p) => sum + p.subscriberCount, 0)
@@ -272,22 +260,6 @@ export default function RevenuePage() {
               )
             })()}
 
-            {/* New Revenue line */}
-            {(() => {
-              const points = chartData.map((d, index) => {
-                const spacing = 800 / (chartData.length - 1)
-                const x = index * spacing
-                const y = 210 - (d.newRevenue / maxChartVal) * 180
-                return `${x},${y}`
-              }).join(' ')
-
-              return (
-                <>
-                  <polyline fill="none" stroke="#10b981" strokeWidth="2" strokeDasharray="3 3" points={points} />
-                </>
-              )
-            })()}
-
             {/* Labels on X Axis */}
             {chartData.map((d, index) => {
               const spacing = 800 / (chartData.length - 1)
@@ -311,8 +283,7 @@ export default function RevenuePage() {
             >
               <div className="text-slate-400 text-[10px] uppercase font-bold">{chartData[hoveredPoint].month}</div>
               <div className="mt-1 flex flex-col gap-0.5">
-                <span className="text-blue-400">MRR: {formatCurrency(chartData[hoveredPoint].mrr)}</span>
-                <span className="text-emerald-400">New: {formatCurrency(chartData[hoveredPoint].newRevenue)}</span>
+                <span className="text-blue-400">Revenue: {formatCurrency(chartData[hoveredPoint].mrr)}</span>
               </div>
             </div>
           )}
@@ -320,8 +291,7 @@ export default function RevenuePage() {
 
         {/* Legend */}
         <div className="flex gap-4 pt-2 justify-center text-xs font-bold text-slate-500">
-          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-blue-500 inline-block" /> Monthly Recurring Revenue (MRR)</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 border-t-2 border-emerald-500 border-dashed inline-block" /> New transactional revenue</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-blue-500 inline-block" /> Monthly revenue (successful payments)</span>
         </div>
       </Card>
 

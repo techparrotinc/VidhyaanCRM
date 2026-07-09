@@ -81,6 +81,66 @@ export default function AdminOrgsPage() {
   const [impersonatingId, setImpersonatingId] = useState<string | null>(null)
   const [impersonationToken, setImpersonationToken] = useState<string | null>(null)
 
+  // Create Organization modal
+  const [showCreate, setShowCreate] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    schoolName: '',
+    institutionType: 'SCHOOL',
+    adminName: '',
+    email: '',
+    phone: '',
+    role: 'Administrator',
+  })
+
+  // Seed filters from URL (?status=TRIAL, ?search=...) — used by dashboard cards + global search
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search)
+    const s = sp.get('status')
+    const q = sp.get('search')
+    if (s) setStatusFilter(s)
+    if (q) setSearch(q)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleCreateOrg = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!createForm.schoolName.trim() || !createForm.adminName.trim() || !createForm.email.trim() || !createForm.phone.trim()) {
+      alert('Institution name, admin name, email and phone are required')
+      return
+    }
+    try {
+      setCreating(true)
+      // Reuse the tested self-signup flow: creates org + branch + academic year +
+      // default admission stages + marketplace listing + admin user (sends welcome/OTP).
+      const res = await fetch('/api/auth/school/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: createForm.adminName,
+          phone: createForm.phone,
+          email: createForm.email,
+          role: createForm.role,
+          schoolName: createForm.schoolName,
+          institutionType: createForm.institutionType,
+        }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || json.success === false) {
+        throw new Error(json.error || 'Failed to create organization')
+      }
+      setShowCreate(false)
+      setCreateForm({ schoolName: '', institutionType: 'SCHOOL', adminName: '', email: '', phone: '', role: 'Administrator' })
+      alert('Organization created. The admin has been sent a verification/welcome message to complete login.')
+      setPage(1)
+      await fetchOrgs()
+    } catch (err: any) {
+      alert(err.message || 'Failed to create organization')
+    } finally {
+      setCreating(false)
+    }
+  }
+
   const fetchOrgs = async () => {
     try {
       setLoading(true)
@@ -252,6 +312,100 @@ export default function AdminOrgsPage() {
 
   return (
     <div className="p-6 md:p-8 space-y-6 select-none bg-slate-50 min-h-screen">
+      {/* Create Organization Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <Card className="p-6 max-w-lg w-full bg-white space-y-4 shadow-2xl border-slate-200 animate-scale-in">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Building2 className="w-5 h-5" />
+              </div>
+              <h3 className="text-lg font-black tracking-tight text-slate-900">Add Organization</h3>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed -mt-1">
+              Creates a new institution with a 7-day trial, default pipeline and marketplace listing. The admin
+              receives a verification/welcome message to complete login.
+            </p>
+            <form onSubmit={handleCreateOrg} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Institution Name</label>
+                <input
+                  type="text"
+                  value={createForm.schoolName}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, schoolName: e.target.value }))}
+                  placeholder="Greenfield Public School"
+                  className="w-full rounded-lg border border-slate-200 p-2.5 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Institution Type</label>
+                  <select
+                    value={createForm.institutionType}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, institutionType: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-200 p-2.5 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500"
+                  >
+                    <option value="SCHOOL">School</option>
+                    <option value="LEARNING_CENTER">Learning Center</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Admin Role</label>
+                  <input
+                    type="text"
+                    value={createForm.role}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value }))}
+                    placeholder="Administrator"
+                    className="w-full rounded-lg border border-slate-200 p-2.5 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Admin Full Name</label>
+                <input
+                  type="text"
+                  value={createForm.adminName}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, adminName: e.target.value }))}
+                  placeholder="Priya Sharma"
+                  className="w-full rounded-lg border border-slate-200 p-2.5 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Admin Email</label>
+                  <input
+                    type="email"
+                    value={createForm.email}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
+                    placeholder="admin@institution.com"
+                    className="w-full rounded-lg border border-slate-200 p-2.5 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Admin Phone</label>
+                  <input
+                    type="text"
+                    value={createForm.phone}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, phone: e.target.value }))}
+                    placeholder="+91 98765 43210"
+                    className="w-full rounded-lg border border-slate-200 p-2.5 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                <Button type="button" onClick={() => setShowCreate(false)} className="bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold px-4 py-2 text-xs">
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={creating} className="bg-blue-600 text-white hover:bg-blue-700 font-bold px-4 py-2 text-xs flex items-center gap-1.5 disabled:opacity-50">
+                  {creating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Create Organization
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
       {/* Impersonation Modal */}
       {impersonationToken && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
@@ -287,7 +441,7 @@ export default function AdminOrgsPage() {
           <Button onClick={handleExportCSV} className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold py-2 px-3.5 flex items-center gap-2 shadow-xs">
             <Download className="w-4 h-4" /> Export CSV
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-3.5 flex items-center gap-1.5 shadow-md shadow-blue-500/10">
+          <Button onClick={() => setShowCreate(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-3.5 flex items-center gap-1.5 shadow-md shadow-blue-500/10">
             <Plus className="w-4 h-4" /> Add Organization
           </Button>
         </div>

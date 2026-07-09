@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db'
 import { sendPaymentFailedEmail } from '@/lib/services/billing'
 import { SubscriptionStatus, TransactionType, TransactionStatus, OrgStatus, type MessageChannel } from '@prisma/client'
 import { grantPurchasedCredits } from '@/lib/credits/engine'
+import { getRazorpayWebhookSecret } from '@/lib/platform-config'
+import { postSlackAlert } from '@/lib/alerts/slack'
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,10 +16,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing webhook signature' }, { status: 400 })
     }
 
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET
+    const secret = await getRazorpayWebhookSecret()
     if (!secret) {
       // Fail closed: an unverifiable webhook must never mutate billing state.
-      console.error('[Razorpay Webhook] RAZORPAY_WEBHOOK_SECRET not configured; rejecting webhook.')
+      console.error('[Razorpay Webhook] webhook secret not configured; rejecting webhook.')
       return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 })
     }
 
@@ -166,6 +168,7 @@ export async function POST(req: NextRequest) {
           } catch (e) {
             console.error('[Razorpay Webhook] refund ops alert failed:', e)
           }
+          postSlackAlert(`⚠ Razorpay refund ${refundEntity.id} — ₹${(refundEntity.amount / 100).toLocaleString('en-IN')} (org ${transaction.orgId}). Transaction marked REFUNDED.`)
         }
         break
       }

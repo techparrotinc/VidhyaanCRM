@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Building2,
   TrendingUp,
@@ -42,6 +43,12 @@ interface Stats {
     thisMonth: number
     lastMonth: number
     growthPct: number
+    trend: { label: string; month: string; value: number }[]
+  }
+  ops: {
+    failedPaymentsThisWeek: number
+    dbLatencyMs: number
+    activeOrgs: number
   }
   marketplace: {
     totalSchools: number
@@ -68,11 +75,11 @@ interface Stats {
 }
 
 export default function AdminDashboard() {
+  const router = useRouter()
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
-  const [chartToggle, setChartToggle] = useState<'month' | 'quarter' | 'year'>('month')
   const [hoveredBar, setHoveredBar] = useState<number | null>(null)
 
   const fetchData = async () => {
@@ -118,37 +125,8 @@ export default function AdminDashboard() {
     return `${diffDays}d ago`
   }
 
-  // Simulated chart data based on toggled interval
-  const getChartData = () => {
-    const mrr = stats?.revenue.mrr || 120000
-    if (chartToggle === 'year') {
-      return [
-        { label: '2023', val: mrr * 7.5 },
-        { label: '2024', val: mrr * 9.2 },
-        { label: '2025', val: mrr * 11.0 },
-        { label: '2026 (YTD)', val: mrr * 12.0 }
-      ]
-    }
-    if (chartToggle === 'quarter') {
-      return [
-        { label: 'Q3-25', val: mrr * 0.8 },
-        { label: 'Q4-25', val: mrr * 0.9 },
-        { label: 'Q1-26', val: mrr * 0.95 },
-        { label: 'Q2-26', val: mrr }
-      ]
-    }
-    // Monthly data
-    return [
-      { label: 'Jan', val: mrr * 0.72 },
-      { label: 'Feb', val: mrr * 0.78 },
-      { label: 'Mar', val: mrr * 0.81 },
-      { label: 'Apr', val: mrr * 0.88 },
-      { label: 'May', val: mrr * 0.94 },
-      { label: 'Jun', val: mrr }
-    ]
-  }
-
-  const chartData = getChartData()
+  // Real monthly revenue (successful transactions), last 6 months.
+  const chartData = (stats?.revenue.trend ?? []).slice(-6).map((t) => ({ label: t.label, val: t.value }))
   const maxVal = Math.max(...chartData.map((d) => d.val), 1)
 
   // Requires Action list calculation
@@ -176,25 +154,19 @@ export default function AdminDashboard() {
     })
   }
 
-  // Failed payments and support tickets mock actions
-  actionItems.push(
-    {
+  // Failed payments (real, last 7 days) — only surface when there are any
+  const failedPayments = stats?.ops.failedPaymentsThisWeek ?? 0
+  if (failedPayments > 0) {
+    actionItems.push({
       type: 'failed_payments',
-      desc: `0 failed payments this week`,
+      desc: `${failedPayments} failed payment${failedPayments === 1 ? '' : 's'} this week`,
       btnText: 'View →',
       link: '/admin/revenue',
-      color: 'bg-emerald-500'
-    },
-    {
-      type: 'support_tickets',
-      desc: `2 support tickets open`,
-      btnText: 'Zoho Desk →',
-      link: 'https://desk.zoho.com',
-      color: 'bg-indigo-500'
-    }
-  )
+      color: 'bg-red-500'
+    })
+  }
 
-  const activeActionsCount = pendingSchools + (trialOrgsCount > 0 ? 1 : 0) + 1 // at least 1 ticket
+  const activeActionsCount = actionItems.length
 
   if (loading) {
     return (
@@ -253,7 +225,7 @@ export default function AdminDashboard() {
       {/* KPI Cards Row 1 */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Organizations */}
-        <Card className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md transition duration-200 shadow-sm relative group cursor-pointer">
+        <Card onClick={() => router.push('/admin/orgs')} className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md hover:border-blue-200 transition duration-200 shadow-sm relative group cursor-pointer">
           <div className="flex justify-between items-start">
             <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 shrink-0">
               <Building2 className="w-5 h-5" strokeWidth={1.5} />
@@ -278,7 +250,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* MRR */}
-        <Card className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md transition duration-200 shadow-sm relative group cursor-pointer">
+        <Card onClick={() => router.push('/admin/revenue')} className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md hover:border-emerald-200 transition duration-200 shadow-sm relative group cursor-pointer">
           <div className="flex justify-between items-start">
             <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 shrink-0">
               <TrendingUp className="w-5 h-5" strokeWidth={1.5} />
@@ -303,7 +275,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Active Schools */}
-        <Card className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md transition duration-200 shadow-sm relative group cursor-pointer">
+        <Card onClick={() => router.push('/admin/schools')} className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md hover:border-blue-200 transition duration-200 shadow-sm relative group cursor-pointer">
           <div className="flex justify-between items-start">
             <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 shrink-0">
               <School className="w-5 h-5" strokeWidth={1.5} />
@@ -323,7 +295,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Total Parents */}
-        <Card className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md transition duration-200 shadow-sm relative group cursor-pointer">
+        <Card onClick={() => router.push('/admin/parents')} className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md hover:border-purple-200 transition duration-200 shadow-sm relative group cursor-pointer">
           <div className="flex justify-between items-start">
             <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600 shrink-0">
               <Users className="w-5 h-5" strokeWidth={1.5} />
@@ -346,7 +318,7 @@ export default function AdminDashboard() {
       {/* KPI Cards Row 2 */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Trial Orgs */}
-        <Card className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md transition duration-200 shadow-sm relative border-l-4 border-l-amber-500">
+        <Card onClick={() => router.push('/admin/orgs?status=TRIAL')} className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md transition duration-200 shadow-sm relative border-l-4 border-l-amber-500 cursor-pointer">
           <div className="flex justify-between items-start">
             <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
               <Clock className="w-4 h-4" />
@@ -361,12 +333,12 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Pending Verification */}
-        <Card className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md transition duration-200 shadow-sm relative border-l-4 border-l-orange-500">
+        <Card onClick={() => router.push('/admin/schools')} className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md transition duration-200 shadow-sm relative border-l-4 border-l-orange-500 cursor-pointer">
           <div className="flex justify-between items-start">
             <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
               <ShieldAlert className="w-4 h-4" />
             </div>
-            <Link href="/admin/schools" className="text-[10px] font-bold text-orange-600 hover:underline">
+            <Link href="/admin/schools" onClick={(e) => e.stopPropagation()} className="text-[10px] font-bold text-orange-600 hover:underline">
               Review Now
             </Link>
           </div>
@@ -378,7 +350,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Platform Leads */}
-        <Card className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md transition duration-200 shadow-sm relative border-l-4 border-l-blue-500">
+        <Card onClick={() => router.push('/admin/orgs')} className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md transition duration-200 shadow-sm relative border-l-4 border-l-blue-500 cursor-pointer">
           <div className="flex justify-between items-start">
             <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
               <GraduationCap className="w-4 h-4" />
@@ -392,7 +364,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Total Admissions */}
-        <Card className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md transition duration-200 shadow-sm relative border-l-4 border-l-emerald-500">
+        <Card onClick={() => router.push('/admin/orgs')} className="p-5 flex flex-col justify-between min-h-36 bg-white border-slate-200 hover:shadow-md transition duration-200 shadow-sm relative border-l-4 border-l-emerald-500 cursor-pointer">
           <div className="flex justify-between items-start">
             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
               <Sparkles className="w-4 h-4" />
@@ -414,21 +386,7 @@ export default function AdminDashboard() {
               <TrendingUp className="w-4.5 h-4.5 text-blue-600" />
               Revenue Trend
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">Recurring subscription inflows</p>
-          </div>
-          {/* Chart interval selectors */}
-          <div className="flex bg-slate-100 p-1 rounded-lg self-start">
-            {(['month', 'quarter', 'year'] as const).map((type) => (
-              <button
-                key={type}
-                onClick={() => setChartToggle(type)}
-                className={`px-3 py-1 text-xs font-bold rounded-md transition capitalize ${
-                  chartToggle === type ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                {type}
-              </button>
-            ))}
+            <p className="text-xs text-slate-400 mt-0.5">Successful payments — last 6 months</p>
           </div>
         </div>
 
@@ -595,24 +553,24 @@ export default function AdminDashboard() {
         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Platform Health</h4>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+            <Clock className={`w-5 h-5 ${(stats?.ops.dbLatencyMs ?? 0) < 800 ? 'text-green-500' : 'text-amber-500'}`} />
+            <div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase">Data Response Time</div>
+              <div className="text-sm font-bold text-slate-900">{stats?.ops.dbLatencyMs ?? 0}ms</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
             <Activity className="w-5 h-5 text-green-500" />
             <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase">Uptime</div>
-              <div className="text-sm font-bold text-slate-900">99.99%</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase">Active Organizations</div>
+              <div className="text-sm font-bold text-slate-900">{stats?.ops.activeOrgs ?? 0}</div>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-            <Clock className="w-5 h-5 text-green-500" />
+            <AlertTriangle className={`w-5 h-5 ${(stats?.ops.failedPaymentsThisWeek ?? 0) === 0 ? 'text-green-500' : 'text-red-500'}`} />
             <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase">Avg Response Time</div>
-              <div className="text-sm font-bold text-slate-900">245ms</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-            <AlertTriangle className="w-5 h-5 text-green-500" />
-            <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase">Error Rate</div>
-              <div className="text-sm font-bold text-slate-900">0.001%</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase">Failed Payments (7d)</div>
+              <div className="text-sm font-bold text-slate-900">{stats?.ops.failedPaymentsThisWeek ?? 0}</div>
             </div>
           </div>
         </div>

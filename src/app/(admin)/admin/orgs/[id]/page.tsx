@@ -22,12 +22,14 @@ import {
   Check,
   Plus,
   Compass,
-  Bell
+  Bell,
+  Download
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import MessagingAllowanceCard from '@/components/admin/MessagingAllowanceCard'
 import OrgRevenueMetrics from '@/components/admin/OrgRevenueMetrics'
+import OrgUsageMetrics from '@/components/admin/OrgUsageMetrics'
 
 interface Module {
   id: string
@@ -58,6 +60,10 @@ export default function OrgDetailPage() {
   
   // UI Edit States
   const [showEditModal, setShowEditModal] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editInstitutionType, setEditInstitutionType] = useState('')
   const [editStatus, setEditStatus] = useState('')
   const [editPlanId, setEditPlanId] = useState('')
   const [editLeadCap, setEditLeadCap] = useState('')
@@ -105,6 +111,10 @@ export default function OrgDetailPage() {
       }
 
       // Initialize edit fields
+      setEditName(orgJson.organization.name || '')
+      setEditEmail(orgJson.organization.email || '')
+      setEditPhone(orgJson.organization.phone || '')
+      setEditInstitutionType(orgJson.organization.institutionType || '')
       setEditStatus(orgJson.organization.status)
       setEditPlanId(orgJson.organization.planId || '')
       setEditLeadCap(orgJson.organization.leadCap?.toString() || '')
@@ -258,6 +268,10 @@ export default function OrgDetailPage() {
     e.preventDefault()
     try {
       const payload: any = {
+        name: editName.trim(),
+        email: editEmail.trim(),
+        phone: editPhone.trim(),
+        institutionType: editInstitutionType,
         status: editStatus,
         planId: editPlanId || null,
         leadCap: editLeadCap ? parseInt(editLeadCap) : null,
@@ -486,7 +500,56 @@ export default function OrgDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <Card className="p-6 max-w-md w-full bg-white space-y-4 shadow-2xl border-slate-200 animate-scale-in">
             <h3 className="text-base font-bold text-slate-900 tracking-tight">Edit Organization</h3>
-            <form onSubmit={handleUpdateOrg} className="space-y-4">
+            <form onSubmit={handleUpdateOrg} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+              {/* Name */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Organization Name</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Organization name"
+                  className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500"
+                />
+              </div>
+
+              {/* Email + Phone */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Primary Email</label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    placeholder="admin@org.com"
+                    className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Primary Phone</label>
+                  <input
+                    type="text"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="+91..."
+                    className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Institution Type */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Institution Type</label>
+                <select
+                  value={editInstitutionType}
+                  onChange={(e) => setEditInstitutionType(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden hover:border-slate-350 focus:border-blue-500"
+                >
+                  <option value="SCHOOL">School</option>
+                  <option value="LEARNING_CENTER">Learning Center</option>
+                </select>
+              </div>
+
               {/* Status */}
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Status</label>
@@ -595,6 +658,13 @@ export default function OrgDetailPage() {
         <div className="flex items-center gap-3">
           <Button onClick={() => setShowNotificationModal(true)} className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2 px-3.5 flex items-center gap-1.5 shadow-sm">
             <Bell className="w-4 h-4" /> Send Notification
+          </Button>
+          <Button
+            onClick={() => { window.location.href = `/api/admin/organizations/${id}/export` }}
+            className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold py-2 px-3.5 flex items-center gap-1.5 shadow-xs"
+            title="Download all of this organization's data as an Excel workbook"
+          >
+            <Download className="w-4 h-4" /> Export Data
           </Button>
           <Button onClick={() => setShowEditModal(true)} className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold py-2 px-3.5 flex items-center gap-1.5 shadow-xs">
             <Edit3 className="w-4 h-4" /> Edit Details
@@ -708,7 +778,7 @@ export default function OrgDetailPage() {
                   <button
                     onClick={() => handleToggleModule(mod.slug, mod.enabled)}
                     className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-hidden ${
-                      mod.enabled ? 'bg-blue-600' : 'bg-slate-250'
+                      mod.enabled ? 'bg-blue-600' : 'bg-slate-300'
                     }`}
                   >
                     <span
@@ -721,6 +791,9 @@ export default function OrgDetailPage() {
               ))}
             </div>
           </Card>
+
+          {/* Feature Usage Card */}
+          <OrgUsageMetrics orgId={id} />
 
           {/* Revenue Metrics Card */}
           <OrgRevenueMetrics orgId={id} />

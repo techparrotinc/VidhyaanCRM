@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
+import { encryptSecret } from '@/lib/payments/vault'
+import { invalidatePlatformConfigCache } from '@/lib/platform-config'
 
 const intLike = z.union([z.string().max(20), z.number()]).transform((v) => String(v))
 const strOpt = (max: number) => z.string().max(max).optional()
@@ -25,6 +27,22 @@ const platformSettingsSchema = z.object({
   doSpacesEndpoint: strOpt(300),
   doSpacesBucket: strOpt(100),
   doSpacesCdnUrl: strOpt(300),
+  // Admin-managed integration credentials (Phase 3). Secrets arrive as
+  // plaintext and are encrypted at rest; '' clears a stored value.
+  razorpayKeyId: strOpt(200),
+  razorpayKeySecret: strOpt(200),
+  s3Region: strOpt(60),
+  s3AccessKeyId: strOpt(200),
+  s3SecretKey: strOpt(400),
+  zeptoToken: strOpt(600),
+  zeptoFromEmail: strOpt(200),
+  zeptoCampaignEmail: strOpt(200),
+  msg91AuthKey: strOpt(200),
+  msg91WhatsappNumber: strOpt(40),
+  msg91SenderId: strOpt(40),
+  // Usage & ROI model
+  usageHourlyRate: intLike.optional(),
+  usageMinutesPerAction: z.record(z.string().max(40), z.number().min(0).max(600)).optional(),
   enabledBillingCycles: z
     .array(z.enum(['MONTHLY', 'QUARTERLY', 'ANNUAL']))
     .min(1, 'At least one billing cycle must stay enabled')
@@ -34,6 +52,29 @@ const platformSettingsSchema = z.object({
   businessAddress: strOpt(500),
   businessGstin: strOpt(20)
 })
+
+// Never send secret ciphertext to the client. Strip the *Enc columns + the
+// legacy plaintext webhook secret and expose boolean "is configured" flags so
+// the UI can show a set/not-set state without revealing values.
+function maskSettings(s: any) {
+  const {
+    razorpayKeySecretEnc,
+    razorpayWebhookSecretEnc,
+    razorpayWebhookSecret,
+    s3SecretKeyEnc,
+    zeptoTokenEnc,
+    msg91AuthKeyEnc,
+    ...rest
+  } = s
+  return {
+    ...rest,
+    hasRazorpayKeySecret: !!razorpayKeySecretEnc,
+    hasRazorpayWebhookSecret: !!(razorpayWebhookSecretEnc || razorpayWebhookSecret),
+    hasS3SecretKey: !!s3SecretKeyEnc,
+    hasZeptoToken: !!zeptoTokenEnc,
+    hasMsg91AuthKey: !!msg91AuthKeyEnc,
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -49,7 +90,7 @@ export async function GET(req: NextRequest) {
       create: { id: 'default' }
     })
 
-    return NextResponse.json(settings)
+    return NextResponse.json(maskSettings(settings))
 
   } catch (error: any) {
     console.error('Get Platform Settings API error:', error)
@@ -97,9 +138,35 @@ export async function PUT(req: NextRequest) {
       }
     }
 
+    // Encrypt a secret for storage; undefined = leave as-is, '' = clear (null).
+    const encField = (v: string | undefined): string | null | undefined => {
+      if (v === undefined) return undefined
+      if (v === '') return null
+      return encryptSecret(v)
+    }
+    const plainOrClear = (v: string | undefined): string | null | undefined => {
+      if (v === undefined) return undefined
+      return v === '' ? null : v
+    }
+
     const settings = await prisma.platformSettings.update({
       where: { id: 'default' },
       data: {
+        // Integration credentials (Phase 3)
+        razorpayKeyId: plainOrClear(body.razorpayKeyId),
+        razorpayKeySecretEnc: encField(body.razorpayKeySecret),
+        razorpayWebhookSecretEnc: encField(body.razorpayWebhookSecret),
+        s3Region: plainOrClear(body.s3Region),
+        s3AccessKeyId: plainOrClear(body.s3AccessKeyId),
+        s3SecretKeyEnc: encField(body.s3SecretKey),
+        zeptoTokenEnc: encField(body.zeptoToken),
+        zeptoFromEmail: plainOrClear(body.zeptoFromEmail),
+        zeptoCampaignEmail: plainOrClear(body.zeptoCampaignEmail),
+        msg91AuthKeyEnc: encField(body.msg91AuthKey),
+        msg91WhatsappNumber: plainOrClear(body.msg91WhatsappNumber),
+        msg91SenderId: plainOrClear(body.msg91SenderId),
+        usageHourlyRate: body.usageHourlyRate !== undefined ? parseInt(body.usageHourlyRate) : undefined,
+        usageMinutesPerAction: body.usageMinutesPerAction !== undefined ? body.usageMinutesPerAction : undefined,
         freePlanLeadCap: body.freePlanLeadCap !== undefined ? parseInt(body.freePlanLeadCap) : undefined,
         trialDurationDays: body.trialDurationDays !== undefined ? parseInt(body.trialDurationDays) : undefined,
         defaultOtpTtlMinutes: body.defaultOtpTtlMinutes !== undefined ? parseInt(body.defaultOtpTtlMinutes) : undefined,
@@ -114,7 +181,7 @@ export async function PUT(req: NextRequest) {
         opsAlertEmail: body.opsAlertEmail !== undefined ? body.opsAlertEmail : undefined,
         slackWebhookUrl: body.slackWebhookUrl !== undefined ? body.slackWebhookUrl : undefined,
         razorpayLiveKey: body.razorpayLiveKey !== undefined ? body.razorpayLiveKey : undefined,
-        razorpayWebhookSecret: body.razorpayWebhookSecret !== undefined ? body.razorpayWebhookSecret : undefined,
+        // razorpayWebhookSecret is now stored encrypted via razorpayWebhookSecretEnc above.
         doSpacesEndpoint: body.doSpacesEndpoint !== undefined ? body.doSpacesEndpoint : undefined,
         doSpacesBucket: body.doSpacesBucket !== undefined ? body.doSpacesBucket : undefined,
         doSpacesCdnUrl: body.doSpacesCdnUrl !== undefined ? body.doSpacesCdnUrl : undefined,
@@ -126,7 +193,10 @@ export async function PUT(req: NextRequest) {
       }
     })
 
-    return NextResponse.json(settings)
+    // Drop the resolver's cached settings so new credentials/flags take effect.
+    invalidatePlatformConfigCache()
+
+    return NextResponse.json(maskSettings(settings))
 
   } catch (error: any) {
     console.error('Update Platform Settings API error:', error)

@@ -10,6 +10,7 @@ import NotificationBell from '@/components/NotificationBell'
 import { RouteLoader } from '@/components/shared/RouteLoader'
 import { ConfirmProvider } from '@/components/ui/confirm-dialog'
 import { AiLauncher } from '@/components/ai/AiLauncher'
+import UsageHeartbeat from '@/components/usage/UsageHeartbeat'
 import { useUIStore } from '@/stores/ui.store'
 import { useAcademicYearStore } from '@/stores/academic-year.store'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
@@ -119,6 +120,9 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex relative font-sans antialiased">
       <RouteLoader />
+      {/* Active-time tracking for the org usage dashboard (skipped while a
+          platform admin is impersonating, so it doesn't inflate org metrics). */}
+      {!user?.impersonatorId && <UsageHeartbeat />}
       {/* Dark overlay behind sidebar on mobile */}
       {mobileSidebarOpen && (
         <div 

@@ -14,6 +14,7 @@ function replaceVariables(
     .replace(/\{\{schoolName\}\}/g, variables.schoolName ?? '')
     .replace(/\{\{date\}\}/g, variables.date ?? '')
     .replace(/\{\{amount\}\}/g, variables.amount ?? '')
+    .replace(/\{\{link\}\}/g, variables.link ?? '')
 }
 
 export async function sendCampaignMessage(
@@ -31,6 +32,8 @@ export async function sendCampaignMessage(
     name: string
     phone: string | null
     email: string | null
+    /** per-recipient digital-form link, substituted for {{link}} (EMAIL/SMS) */
+    formLink?: string | null
   },
   /** Org's own MSG91 credentials (BYO); undefined = Vidhyaan account. */
   providerCreds?: {
@@ -47,7 +50,8 @@ export async function sendCampaignMessage(
       kidName: '',
       schoolName: campaign.organization.name,
       date: format(new Date(), 'd MMM yyyy'),
-      amount: ''
+      amount: '',
+      link: recipient.formLink ?? ''
     }
 
     let bodyText = template

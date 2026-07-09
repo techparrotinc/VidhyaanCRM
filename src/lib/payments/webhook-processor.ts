@@ -182,7 +182,23 @@ export async function applyGatewayEvent(
       const order = await prisma.gatewayOrder.findFirst({
         where: { provider: 'RAZORPAY', providerOrderId: event.providerOrderId }
       })
-      if (!order) return { applied: false, reason: 'unknown order' }
+      if (!order) {
+        // Not an invoice checkout — may be a digital-form application fee,
+        // whose order id lives on FormInstance.gatewayRef. Settle it here as a
+        // fallback to the browser confirm (idempotent).
+        const inst = await prisma.formInstance.findFirst({
+          where: { orgId, gatewayRef: event.providerOrderId }
+        })
+        if (inst) {
+          if (inst.paymentStatus !== 'PAID') {
+            await prisma.formInstance.update({ where: { id: inst.id }, data: { paymentStatus: 'PAID' } })
+            const { finalizeFeePaidSubmission } = await import('@/lib/forms/finalize')
+            await finalizeFeePaidSubmission(inst.id)
+          }
+          return { applied: true }
+        }
+        return { applied: false, reason: 'unknown order' }
+      }
       // Cross-tenant guard: the path org must own the order.
       if (order.orgId !== orgId) return { applied: false, reason: 'org mismatch' }
       if (!event.providerPaymentId) return { applied: false, reason: 'no payment id in payload' }

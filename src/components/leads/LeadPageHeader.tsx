@@ -95,9 +95,23 @@ export default function LeadPageHeader({
   }
 
   const handleExport = () => {
-    if (showToast) {
-      showToast("Lead exported", "success")
-    }
+    if (!lead) return
+    // Real client-side CSV of the lead's core fields (was a no-op toast).
+    const rows: [string, string][] = [
+      ['Lead Code', lead.leadCode ?? ''],
+      ['Name', lead.parentName ?? lead.studentName ?? ''],
+      ['Status', lead.status ?? ''],
+      ['Priority', lead.priority ?? ''],
+    ]
+    const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`
+    const csv = ['Field,Value', ...rows.map(([k, v]) => `${esc(k)},${esc(v)}`)].join('\n')
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${lead.leadCode || 'lead'}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    if (showToast) showToast('Lead exported', 'success')
   }
 
   const handleDelete = async () => {
@@ -186,7 +200,7 @@ export default function LeadPageHeader({
             type="button"
             onClick={() => {
               if (onCancel) onCancel()
-              else router.back()
+              else router.push(lead?.id ? `/lead-management/${lead.id}` : '/lead-management')
             }}
             className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition shrink-0"
           >
@@ -207,7 +221,7 @@ export default function LeadPageHeader({
             type="button"
             onClick={() => {
               if (onCancel) onCancel()
-              else router.back()
+              else router.push(lead?.id ? `/lead-management/${lead.id}` : '/lead-management')
             }}
             className="border border-slate-200 bg-white text-slate-600 text-xs font-semibold h-8 px-4 rounded-lg hover:bg-slate-50 transition flex items-center justify-center cursor-pointer"
           >
@@ -242,8 +256,9 @@ export default function LeadPageHeader({
       <div className="flex items-center gap-3 min-w-0">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => router.push('/lead-management')}
           className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition shrink-0"
+          title="Back to leads"
         >
           <ChevronLeft size={16} className="text-slate-600" />
         </button>

@@ -67,7 +67,7 @@ export const POST = route({
     const body = z.object({
       name: z.string().min(1),
       phone: z.preprocess(cleanPhoneNumber, z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number')),
-      email: z.string().email().optional().or(z.literal('')),
+      email: z.string().email('A valid email is required'),
       role: z.enum([
         'BRANCH_ADMIN',
         'COUNSELLOR',

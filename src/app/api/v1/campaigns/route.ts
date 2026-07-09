@@ -21,6 +21,7 @@ const campaignSchema = z.object({
   }).optional().nullable(),
   templateBody: z.string().max(2000).optional().nullable(),
   whatsappTemplateId: z.string().max(50).optional().nullable(),
+  formTemplateId: z.string().optional().nullable(),
   scheduledAt: z.string().optional().nullable()
 })
 
@@ -142,6 +143,7 @@ export const POST = route({
         audienceFilter: data.audienceFilter as Prisma.InputJsonValue,
         templateBody: data.templateBody,
         whatsappTemplateId,
+        formTemplateId: data.formTemplateId ?? null,
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
         createdById: user.id
       }

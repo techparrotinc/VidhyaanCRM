@@ -8,6 +8,7 @@ import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db/client'
 import { forOrg } from '@/lib/db'
 import { sendCampaignMessage } from '@/lib/campaign/sendCampaignMessage'
+import { mintCampaignInstance } from '@/lib/forms/send'
 import { spendCredits, refundCredits, InsufficientCreditsError } from '@/lib/credits/engine'
 import { getActiveProviderConfig } from '@/lib/credits/provider'
 import type { MessageChannel } from '@prisma/client'
@@ -311,6 +312,25 @@ async function handleSendCampaign({
     where: { campaignId: campaign.id, orgId }
   })
 
+  // STEP 7.5 — Resolve an attached digital form. EMAIL/SMS inject the link via
+  // {{link}} in the body; WhatsApp needs a template whose variable mapping
+  // includes the `link` token. Skip minting if the message can't carry a link
+  // (avoids orphan instances + a "sent" funnel count with no link delivered).
+  let attachedFormId: string | null = null
+  if (campaign.formTemplateId) {
+    const bodyHasLink =
+      campaign.channel === CampaignChannel.WHATSAPP
+        ? true // resolved per-template in sendCampaignMessage
+        : (campaign.templateBody ?? '').includes('{{link}}')
+    if (bodyHasLink) {
+      const form = await db.form.findFirst({
+        where: { id: campaign.formTemplateId, orgId, status: 'PUBLISHED' },
+        select: { id: true }
+      })
+      attachedFormId = form?.id ?? null
+    }
+  }
+
   // STEP 8 — Update campaign status to SENDING
   await db.campaign.update({
     where: { id: campaign.id },
@@ -324,6 +344,28 @@ async function handleSendCampaign({
     await Promise.allSettled(
       batch.map(async (record) => {
         try {
+          // Per-recipient form link (unique token feeding the campaign funnel).
+          let formLink: string | null = null
+          if (attachedFormId) {
+            try {
+              formLink = await mintCampaignInstance(db, {
+                orgId,
+                formId: attachedFormId,
+                campaignId: campaign.id,
+                channel:
+                  campaign.channel === CampaignChannel.EMAIL ? 'EMAIL'
+                  : campaign.channel === CampaignChannel.WHATSAPP ? 'WHATSAPP'
+                  : 'SMS',
+                recipientType: record.recipientType,
+                recipientId: record.recipientId,
+                email: record.email,
+                phone: record.phone
+              })
+            } catch (err) {
+              console.error('Form instance mint failed:', err)
+            }
+          }
+
           const result = await sendCampaignMessage(
             {
               id: campaign.id,
@@ -338,7 +380,8 @@ async function handleSendCampaign({
             {
               name: record.name || '',
               phone: record.phone,
-              email: record.email
+              email: record.email,
+              formLink
             },
             providerCreds ?? undefined
           )

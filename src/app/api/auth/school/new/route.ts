@@ -137,7 +137,9 @@ export async function POST(req: NextRequest) {
         centerCategory: mappedInstType === 'LEARNING_CENTER' || mappedInstType === 'COACHING_CENTER' ? centerCategory : null,
         email,
         phone,
-        status: 'ACTIVE',
+        // 7-day premium trial — must be TRIAL (not ACTIVE) so the trial UI,
+        // billing label and expiry cron recognise it.
+        status: 'TRIAL',
         trialEndsAt,
         planId: freePlan?.id || null,
         settings: {

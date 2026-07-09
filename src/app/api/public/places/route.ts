@@ -42,16 +42,21 @@ export async function GET(req: NextRequest) {
     }
 
     if (placeId) {
-      // Place Details (New)
-      const url = `https://places.googleapis.com/v1/places/${placeId}?sessionToken=${sessionToken}`
+      // Place Details (New). Autocomplete returns the full resource name
+      // ("places/ChIJ..."); accept both that and a bare id without doubling it.
+      const resource = placeId.startsWith('places/') ? placeId : `places/${placeId}`
+      const url = `https://places.googleapis.com/v1/${resource}?sessionToken=${sessionToken}`
       const response = await fetch(url, {
         headers: {
           'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'id,formattedAddress,addressComponents,location'
+          // NB: websiteUri / phone fall in the paid "Pro/Enterprise" details SKU.
+          'X-Goog-FieldMask': 'id,formattedAddress,addressComponents,location,websiteUri,googleMapsUri,nationalPhoneNumber'
         }
       })
       if (!response.ok) {
-        throw new Error('Place details failed')
+        const detail = await response.text().catch(() => '')
+        console.error('Place details failed:', response.status, detail)
+        return NextResponse.json({ success: false, error: 'Place details failed' }, { status: 200 })
       }
       const data = await response.json()
       return NextResponse.json({
@@ -76,7 +81,11 @@ export async function GET(req: NextRequest) {
         })
       })
       if (!response.ok) {
-        throw new Error('Autocomplete failed')
+        // Surface Google's real reason (e.g. "Places API (New) not enabled")
+        // in logs, but degrade gracefully instead of 500-ing the address box.
+        const detail = await response.text().catch(() => '')
+        console.error('Places autocomplete failed:', response.status, detail)
+        return NextResponse.json({ success: true, predictions: [] })
       }
       const data = await response.json()
       const predictions = (data.suggestions || []).map((s: any) => ({

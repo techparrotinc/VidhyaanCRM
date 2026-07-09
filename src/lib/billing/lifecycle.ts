@@ -77,7 +77,14 @@ export async function downgradeOrgToFree(orgId: string, reason: string): Promise
   }
   await prisma.organization.update({
     where: { id: orgId },
-    data: { planId: freePlan.id, leadCap: freePlan.leadCap ?? 10 }
+    // Back to a plain free-listing org: full access to free features, no
+    // lingering TRIAL/GRACE status or trial dates.
+    data: {
+      planId: freePlan.id,
+      leadCap: freePlan.leadCap ?? 10,
+      status: 'ACTIVE',
+      trialEndsAt: null,
+    }
   })
   await remapOrgModulesToPlan(orgId, freePlan.id)
   // Bundled AI allowance ends with the paid plan

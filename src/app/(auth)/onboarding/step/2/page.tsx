@@ -131,20 +131,22 @@ export default function OnboardingStep2() {
 
     for (const comp of components) {
       const types = comp.types || []
+      // Places API (New) uses longText; fall back to legacy longName just in case.
+      const value = comp.longText ?? comp.longName ?? comp.shortText ?? ''
       if (types.includes('street_number')) {
-        streetNumber = comp.longName
+        streetNumber = value
       } else if (types.includes('route')) {
-        route = comp.longName
+        route = value
       } else if (types.includes('sublocality_level_1') || types.includes('sublocality')) {
-        sublocality1 = comp.longName
+        sublocality1 = value
       } else if (types.includes('sublocality_level_2')) {
-        sublocality2 = comp.longName
+        sublocality2 = value
       } else if (types.includes('locality')) {
-        locCity = comp.longName
+        locCity = value
       } else if (types.includes('administrative_area_level_1')) {
-        locState = comp.longName
+        locState = value
       } else if (types.includes('postal_code')) {
-        locPincode = comp.longName
+        locPincode = value
       }
     }
 
@@ -167,7 +169,7 @@ export default function OnboardingStep2() {
     setLoading(true)
 
     try {
-      const res = await fetch(`/api/public/places?placeId=${pred.placeId}&sessionToken=${token}`)
+      const res = await fetch(`/api/public/places?placeId=${encodeURIComponent(pred.placeId)}&sessionToken=${token}`)
       if (res.ok) {
         const json = await res.json()
         if (json.success && json.place) {
@@ -189,6 +191,16 @@ export default function OnboardingStep2() {
           if (place.location) {
             setLatitude(place.location.latitude || null)
             setLongitude(place.location.longitude || null)
+          }
+
+          // Contact details from the place (when Google has them)
+          if (place.websiteUri) setWebsite(place.websiteUri)
+          if (place.googleMapsUri) setMapsLink(place.googleMapsUri)
+          // Only fill phone if the field is still empty — don't clobber the
+          // number the user registered with.
+          if (place.nationalPhoneNumber) {
+            const digits = place.nationalPhoneNumber.replace(/\D/g, '').slice(-10)
+            if (digits.length === 10) setPhone((prev) => prev || digits)
           }
         }
       }

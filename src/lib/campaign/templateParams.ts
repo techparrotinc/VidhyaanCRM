@@ -9,7 +9,8 @@ export const TEMPLATE_TOKENS = [
   'kidName',
   'schoolName',
   'date',
-  'amount'
+  'amount',
+  'link' // per-recipient digital-form URL (campaign with an attached form)
 ] as const
 
 export type TemplateVariableValues = Record<string, string>

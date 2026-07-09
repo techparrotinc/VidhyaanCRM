@@ -40,6 +40,8 @@ export async function POST(
       where: { id },
       data: {
         verificationStatus: VerificationStatus.REJECTED,
+        // Rejected listings must not stay publicly reachable (incl. direct URL).
+        isPublished: false,
         rejectionReason: reason
       }
     })

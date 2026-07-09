@@ -103,7 +103,8 @@ export async function POST(req: NextRequest) {
           institutionType: mappedInstType,
           email,
           phone,
-          status: 'ACTIVE',
+          // 7-day premium trial — TRIAL (not ACTIVE) drives the trial UI + expiry cron.
+          status: 'TRIAL',
           trialEndsAt,
           planId: freePlan?.id || null,
           settings: {

@@ -48,6 +48,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
+import { SendFormButton } from "@/components/forms/SendFormButton"
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 import { Skeleton } from "@/components/ui/skeleton"
 import RecordSkeleton from "@/components/shared/RecordSkeleton"
@@ -754,6 +755,14 @@ export default function AdmissionDetailPage() {
                 <Pencil size={14} className="text-slate-500" />
                 <span className="hidden sm:inline">Edit Admission</span>
               </button>
+
+              {/* Send digital application form */}
+              <SendFormButton
+                targetType="ADMISSION"
+                targetId={admission.id}
+                hasEmail={!!admission.email}
+                hasPhone={!!admission.phone}
+              />
 
               {/* ⋮ three dot button */}
               <div className="relative">

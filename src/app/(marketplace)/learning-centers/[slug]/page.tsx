@@ -611,10 +611,15 @@ export default function LearningCenterDetailPage() {
                 {center.name}
               </h1>
               <div className="flex flex-wrap items-center gap-3 text-xs text-white/80 font-semibold mt-0.5">
-                {center.isVerified && (
+                {center.isVerified ? (
                   <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/35 font-black text-[9px] uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3" />
                     Verified Academy
+                  </Badge>
+                ) : (
+                  <Badge className="bg-amber-400/20 text-amber-200 border border-amber-400/40 font-black text-[9px] uppercase tracking-wider px-2 py-0.5 rounded flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" />
+                    Verification pending
                   </Badge>
                 )}
                 <Badge className="bg-white/10 text-white border border-white/20 font-black text-[9px] uppercase tracking-wider px-2 py-0.5 rounded">

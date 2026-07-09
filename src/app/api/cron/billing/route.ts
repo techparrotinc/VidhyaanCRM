@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date()
-  const stats = { reconciled: 0, scheduledChanges: 0, reminders: 0, graceEntered: 0, expired: 0, cancelled: 0, slabWarnings: 0 }
+  const stats = { reconciled: 0, scheduledChanges: 0, reminders: 0, trialReminders: 0, trialGrace: 0, graceEntered: 0, expired: 0, cancelled: 0, slabWarnings: 0 }
   const errors: string[] = []
 
   // ---- 0. Reconcile paid-but-unactivated orders ---------------------------
@@ -120,6 +120,64 @@ export async function GET(req: NextRequest) {
     }
   } catch (e: any) {
     errors.push(`scheduledChanges: ${e.message}`)
+  }
+
+  // ---- 1.5. Trial lifecycle ----------------------------------------------
+  // Trials must expire, or premium modules granted at signup stay enabled
+  // forever. Reminder near the end → then TRIAL → GRACE_PERIOD; the grace
+  // handler below downgrades to the free listing if still unpaid.
+  try {
+    // (a) Trial ending soon (within 2 days) — one reminder, once.
+    const soon = new Date(now.getTime() + 2 * 86400000)
+    const endingSoon = await prisma.organization.findMany({
+      where: {
+        deletedAt: null, isDummy: false, status: 'TRIAL',
+        trialEndsAt: { gt: now, lte: soon }, trialReminderSent: null
+      },
+      select: { id: true, name: true, email: true }
+    })
+    for (const org of endingSoon) {
+      await notifyOrgAdmin(
+        org.id, org.email, 'Your Vidhyaan premium trial ends soon',
+        simpleEmail(
+          'Trial Ending Soon',
+          `<p>Hi ${org.name},</p><p>Your premium trial ends in the next couple of days. Upgrade now to keep campaigns, reports, online payments and more without interruption.</p>`,
+          'Upgrade Now', `${appUrl()}/settings/billing/upgrade`
+        ),
+        { title: 'Trial ending soon', body: 'Upgrade to keep premium features when your trial ends.' }
+      )
+      await prisma.organization.update({ where: { id: org.id }, data: { trialReminderSent: now } })
+      stats.trialReminders++
+    }
+
+    // (b) Trial ended → enter grace (full access retained, nudge to pay).
+    const endedTrials = await prisma.organization.findMany({
+      where: { deletedAt: null, isDummy: false, status: 'TRIAL', trialEndsAt: { lt: now } },
+      include: { subscriptions: { where: { deletedAt: null }, orderBy: { createdAt: 'desc' }, take: 1 } }
+    })
+    for (const org of endedTrials) {
+      const graceEndsAt = new Date((org.trialEndsAt ?? now).getTime() + GRACE_DAYS * 86400000)
+      await prisma.organization.update({ where: { id: org.id }, data: { status: 'GRACE_PERIOD' } })
+      const sub = org.subscriptions[0]
+      if (sub) {
+        await prisma.subscription.update({
+          where: { id: sub.id },
+          data: { status: 'GRACE_PERIOD', graceEndsAt, currentPeriodEnd: graceEndsAt }
+        })
+      }
+      await notifyOrgAdmin(
+        org.id, org.email, 'Your premium trial has ended',
+        simpleEmail(
+          'Trial Ended — Grace Period',
+          `<p>Hi ${org.name},</p><p>Your premium trial has ended. You have a ${GRACE_DAYS}-day grace period (until <strong>${graceEndsAt.toLocaleDateString('en-IN')}</strong>) with full access. Upgrade before then to keep premium features — otherwise your account moves to the free listing.</p>`,
+          'Upgrade Now', `${appUrl()}/settings/billing/upgrade`
+        ),
+        { title: 'Trial ended', body: `Grace period until ${graceEndsAt.toLocaleDateString('en-IN')}. Upgrade to keep premium.` }
+      )
+      stats.trialGrace++
+    }
+  } catch (e: any) {
+    errors.push(`trialLifecycle: ${e.message}`)
   }
 
   // ---- 2–4. Subscription lifecycle ----------------------------------------

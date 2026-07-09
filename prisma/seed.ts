@@ -87,7 +87,7 @@ async function main() {
   console.log('Creating plans...')
   const freePlan = await prisma.plan.create({
     data: {
-      name: 'School / LC Listing',
+      name: 'Free Listing',
       description: 'Free public listing on the Vidhyaan directory with basic lead capture (up to 10 leads).',
       slug: 'free',
       monthlyPrice: 0,

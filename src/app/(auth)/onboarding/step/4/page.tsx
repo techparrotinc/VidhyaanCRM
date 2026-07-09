@@ -59,14 +59,19 @@ export default function OnboardingStep4() {
     if (!file) return
 
     // Validation
-    const maxSize = target === 'logo' ? 2 * 1024 * 1024 : 5 * 1024 * 1024 // 2MB or 5MB
+    const maxSize = 5 * 1024 * 1024 // 5MB for logo, cover and gallery
     if (file.size > maxSize) {
       setError(`File is too large. Max size allowed is ${maxSize / (1024 * 1024)}MB.`)
       return
     }
 
-    if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(file.type)) {
-      setError('Please select an image file (JPG, PNG, WEBP).')
+    // Accept any raster image the picker allows (accept="image/*"). The upload
+    // API is the final gatekeeper (jpg/jpeg/png/webp/gif). SVG isn't supported.
+    const ext = (file.name.split('.').pop() || '').toLowerCase()
+    const okType = file.type.startsWith('image/') && file.type !== 'image/svg+xml'
+    const okExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)
+    if (!okType || !okExt) {
+      setError('Please select a JPG, PNG, WEBP or GIF image (SVG is not supported).')
       return
     }
 
@@ -135,11 +140,8 @@ export default function OnboardingStep4() {
     if (e) e.preventDefault()
     setError(null)
 
-    if (!logoUrl) {
-      setError('Profile Logo is required to complete the onboarding setup.')
-      return
-    }
-
+    // Logo is required for Go Live (enforced on step 5's checklist), not to
+    // move past this step — otherwise uploaded cover/gallery photos get stuck.
     setSaving(true)
 
     try {
@@ -204,7 +206,7 @@ export default function OnboardingStep4() {
             {/* SCHOOL LOGO UPLOAD */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                {config.nameLabel} Logo <span className="text-red-500">*</span> <span className="text-[10px] font-normal text-slate-400 font-sans">(Max 2MB)</span>
+                {config.nameLabel} Logo <span className="text-red-500">*</span> <span className="text-[10px] font-normal text-slate-400 font-sans">(Max 5MB)</span>
               </label>
               
               <div className="flex items-center gap-4">

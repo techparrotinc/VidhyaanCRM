@@ -55,8 +55,12 @@ export default function UsersPage() {
   const [inviteBranchIds, setInviteBranchIds] = useState<string[]>([])
   const [inviting, setInviting] = useState(false)
 
-  // Edit Role Form State
+  // Edit User Form State
   const [editRoleValue, setEditRoleValue] = useState('')
+  const [editName, setEditName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editError, setEditError] = useState<string | null>(null)
   const [editingRole, setEditingRole] = useState(false)
 
   // Branch assignment (transfer) modal state
@@ -146,25 +150,45 @@ export default function UsersPage() {
     }
   }
 
+  const openEditModal = (u: User) => {
+    setEditRoleValue(u.role)
+    setEditName(u.name ?? '')
+    setEditEmail(u.email ?? '')
+    setEditPhone(u.phone ?? '')
+    setEditError(null)
+    setShowRoleEditModal(u)
+  }
+
   const handleUpdateRole = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!showRoleEditModal || !editRoleValue) return
+    if (!showRoleEditModal) return
+    setEditError(null)
+
+    if (!editName.trim()) { setEditError('Name is required'); return }
+    if (!editEmail.trim()) { setEditError('Email is required'); return }
 
     setEditingRole(true)
     try {
       const res = await fetch(`/api/v1/users/${showRoleEditModal.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: editRoleValue })
+        body: JSON.stringify({
+          name: editName.trim(),
+          email: editEmail.trim(),
+          phone: editPhone.trim(),
+          // ORG_ADMIN role isn't reassignable via this endpoint — omit it.
+          ...(editRoleValue && editRoleValue !== 'ORG_ADMIN' ? { role: editRoleValue } : {}),
+        })
       })
 
-      if (!res.ok) throw new Error('Failed to update user role')
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Failed to update user')
 
-      triggerToast(`Role updated for ${showRoleEditModal.name}`)
+      triggerToast(`${editName.trim()} updated`)
       setShowRoleEditModal(null)
       await fetchUsers()
     } catch (err: any) {
-      alert(err.message || 'Could not update user role')
+      setEditError(err.message || 'Could not update user')
     } finally {
       setEditingRole(false)
     }
@@ -362,14 +386,11 @@ export default function UsersPage() {
                       {activeMenuId === u.id && (
                         <div className="absolute right-6 top-10 bg-white border border-slate-200 rounded-xl shadow-xl py-1.5 w-44 z-40 text-left">
                           <button
-                            onClick={() => {
-                              setEditRoleValue(u.role)
-                              setShowRoleEditModal(u)
-                            }}
+                            onClick={() => { openEditModal(u); setActiveMenuId(null) }}
                             className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                           >
                             <Edit2 className="w-3.5 h-3.5 text-slate-400" />
-                            Edit Role
+                            Edit User
                           </button>
                           {isOrgAdmin && u.role !== 'ORG_ADMIN' && (
                             <button
@@ -529,7 +550,7 @@ export default function UsersPage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-              <span className="font-extrabold text-slate-800 text-sm">Update User Role</span>
+              <span className="font-extrabold text-slate-800 text-sm">Edit User</span>
               <button
                 onClick={() => setShowRoleEditModal(null)}
                 className="p-1 rounded-md text-slate-400 hover:bg-slate-200 transition cursor-pointer"
@@ -538,23 +559,56 @@ export default function UsersPage() {
               </button>
             </div>
             <form onSubmit={handleUpdateRole} className="p-6 space-y-4 text-left">
-              <p className="text-xs text-slate-500 font-medium">
-                Changing role permissions will immediately affect workspace access parameters for **{showRoleEditModal.name}**.
-              </p>
+              {editError && (
+                <div className="text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {editError}
+                </div>
+              )}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Select Role</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Full Name <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#1565D8]"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Email <span className="text-red-500">*</span></label>
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#1565D8]"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Phone</label>
+                <input
+                  type="tel"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#1565D8]"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Role</label>
                 <select
                   value={editRoleValue}
                   onChange={(e) => setEditRoleValue(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none"
+                  disabled={editRoleValue === 'ORG_ADMIN'}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none disabled:opacity-60"
                 >
-                  <option value="ORG_ADMIN">Org Admin</option>
+                  {editRoleValue === 'ORG_ADMIN' && <option value="ORG_ADMIN">Org Admin</option>}
                   <option value="BRANCH_ADMIN">Branch Admin</option>
                   <option value="COUNSELLOR">Counsellor</option>
                   <option value="RECEPTIONIST">Receptionist</option>
                   <option value="ACCOUNTANT">Accountant</option>
                   <option value="TEACHER">Teacher</option>
                 </select>
+                {editRoleValue === 'ORG_ADMIN' && (
+                  <p className="text-[10px] text-slate-400">The owner role can&rsquo;t be reassigned here.</p>
+                )}
               </div>
 
               <div className="flex gap-3 justify-end pt-4">
@@ -570,7 +624,7 @@ export default function UsersPage() {
                   disabled={editingRole}
                   className="bg-[#1565D8] hover:bg-blue-700 text-white font-semibold px-4 py-2 h-auto rounded-lg"
                 >
-                  {editingRole ? 'Saving...' : 'Update Role'}
+                  {editingRole ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
             </form>

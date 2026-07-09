@@ -38,6 +38,7 @@ import RecordSkeleton from '@/components/shared/RecordSkeleton'
 import { Card } from "@/components/ui/card"
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 import ConvertToAdmissionModal from '@/components/modals/ConvertToAdmissionModal'
+import { SendFormButton } from '@/components/forms/SendFormButton'
 import DateSelector from '@/components/ui/DateSelector'
 import {
   Dialog,
@@ -50,6 +51,7 @@ import {
 import LeadPageHeader from '@/components/leads/LeadPageHeader'
 import LeadProgressStrip from '@/components/leads/LeadProgressStrip'
 import { mapGradeValue } from '@/lib/utils/gradeMapping'
+import { institutionMode, admissionNoun } from '@/lib/institution'
 
 interface Lead {
   id: string
@@ -337,7 +339,7 @@ export default function LeadDetailPage() {
         if (json.success) {
           if (json.enabledModules) setEnabledModules(json.enabledModules)
           if (json.school?.institutionType) {
-            setInstitutionType(json.school.institutionType.toLowerCase())
+            setInstitutionType(institutionMode(json.school.institutionType))
           }
         }
       } catch (err) {
@@ -847,9 +849,13 @@ export default function LeadDetailPage() {
               <div className="flex items-center gap-3 py-1.5">
                 <GraduationCap size={13} className="text-slate-400 flex-shrink-0" />
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Applying For</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    {institutionType === 'school' ? 'Applying For' : 'Course / Batch'}
+                  </span>
                   <span className="text-sm text-slate-800 font-medium">
-                    {lead.gradeSought ? getGradeLabel(lead.gradeSought) : '—'}
+                    {institutionType === 'school'
+                      ? (lead.gradeSought ? getGradeLabel(lead.gradeSought) : '—')
+                      : ([lead.course, lead.batch].filter(Boolean).join(' · ') || '—')}
                   </span>
                 </div>
               </div>
@@ -1156,7 +1162,7 @@ export default function LeadDetailPage() {
               {isConverted ? (
                 <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-2 flex items-center justify-center gap-2 text-green-700 text-xs font-bold shadow-sm w-full">
                   <Sparkles size={13} className="text-green-500 animate-pulse" />
-                  <span>Converted to Admission</span>
+                  <span>Converted to {admissionNoun(institutionType)}</span>
                 </div>
               ) : (
                 <>
@@ -1165,7 +1171,7 @@ export default function LeadDetailPage() {
                       onClick={() => setShowConvertModal(true)}
                       className="w-full h-9 text-sm font-semibold bg-[#1565D8] text-white rounded-lg flex items-center justify-center gap-1.5 hover:bg-blue-700 transition cursor-pointer"
                     >
-                      <span>Convert to Admission</span>
+                      <span>Convert to {admissionNoun(institutionType)}</span>
                       <ArrowRight size={13} />
                     </button>
                   )}
@@ -1188,6 +1194,15 @@ export default function LeadDetailPage() {
                       <span>Mark as Contacted</span>
                     </button>
                   )}
+
+                  <SendFormButton
+                    targetType="LEAD"
+                    targetId={lead.id}
+                    hasEmail={!!lead.email}
+                    hasPhone={!!lead.phone}
+                    label={`Send ${admissionNoun(institutionType).toLowerCase()} form`}
+                    className="w-full h-9 gap-1.5"
+                  />
                 </>
               )}
             </div>
@@ -1269,10 +1284,11 @@ export default function LeadDetailPage() {
         <ConvertToAdmissionModal
           lead={lead}
           isOpen={showConvertModal}
+          admissionTerm={admissionNoun(institutionType)}
           onClose={() => setShowConvertModal(false)}
           onSuccess={(admissionId) => {
             setCurrentStatus('Converted')
-            showToast("Lead converted to admission!")
+            showToast(`Lead converted to ${admissionNoun(institutionType).toLowerCase()}!`)
             router.push('/admission-management')
           }}
         />

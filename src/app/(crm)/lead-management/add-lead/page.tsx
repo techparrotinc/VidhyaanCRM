@@ -37,8 +37,7 @@ import { Calendar as UiCalendar } from "@/components/ui/calendar"
 import { GRADE_OPTIONS } from '@/constants/grades'
 import { mapGradeValue } from '@/lib/utils/gradeMapping'
 import { DedupDialog, DedupPayload } from "@/components/dedup/DedupDialog"
-
-const institutionType = 'school'
+import { institutionMode } from '@/lib/institution'
 
 const format = (date: Date, formatStr: string): string => {
   const yyyy = date.getFullYear()
@@ -83,7 +82,8 @@ const priorityOptions = [
   { value: 'URGENT', label: 'Urgent', icon: 'Zap', bg: 'bg-red-50', text: 'text-red-650', border: 'border-red-200' },
 ]
 
-const courses = [
+// Fallback only — real courses are fetched from the org's course catalogue.
+const DEFAULT_COURSES = [
   'Bharatanatyam',
   'Hip Hop',
   'Guitar - Beginner',
@@ -139,6 +139,10 @@ export default function AddLeadPage() {
 
   const [dbCounsellors, setDbCounsellors] = useState<{ id: string; name: string }[]>([])
   const [dbAcademicYears, setDbAcademicYears] = useState<{ id: string; name: string }[]>([])
+  // Real institution type drives grade vs course/batch fields (was hardcoded 'school').
+  const [institutionType, setInstitutionType] = useState<'school' | 'learning_center'>('school')
+  // Real course catalogue for learning centres (fallback to the sample list).
+  const [courses, setCourses] = useState<string[]>(DEFAULT_COURSES)
 
   // Fetch counsellors and academic years on mount
   useEffect(() => {
@@ -151,6 +155,29 @@ export default function AddLeadPage() {
         }
       } catch (err) {
         console.error('Failed to fetch counsellors', err)
+      }
+    }
+
+    async function fetchInstitutionType() {
+      try {
+        const res = await fetch('/api/v1/school-profile')
+        const json = await res.json()
+        if (json.success && json.school?.institutionType) {
+          setInstitutionType(institutionMode(json.school.institutionType))
+        }
+      } catch (err) {
+        console.error('Failed to fetch institution type', err)
+      }
+    }
+
+    async function fetchCourses() {
+      try {
+        const res = await fetch('/api/v1/settings/courses')
+        const json = await res.json()
+        const names = (json.data ?? []).map((c: any) => c.name).filter(Boolean)
+        if (names.length > 0) setCourses(names)
+      } catch (err) {
+        console.error('Failed to fetch courses', err)
       }
     }
 
@@ -168,6 +195,8 @@ export default function AddLeadPage() {
 
     fetchCounsellors()
     fetchAcademicYears()
+    fetchInstitutionType()
+    fetchCourses()
   }, [])
 
   // Form states
@@ -380,7 +409,9 @@ export default function AddLeadPage() {
         source: formData.source || 'WALK_IN',
         priority: formData.priority || 'MEDIUM',
         status: 'NEW',
-        gradeSought: formData.gradeSought || null,
+        gradeSought: institutionType === 'school' ? (formData.gradeSought || null) : null,
+        course: institutionType === 'learning_center' ? (formData.course || null) : null,
+        batch: institutionType === 'learning_center' ? (formData.batch || null) : null,
         academicYearId: formData.academicYearId || null,
         assignedToId: formData.assignedToId || null,
         notes: formData.notes?.trim() || null,

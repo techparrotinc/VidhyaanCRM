@@ -7,6 +7,7 @@ import { MODULES } from '@/constants/modules'
 import { ROLES, CRM_ROLES } from '@/constants/roles'
 import { LeadSource, LeadStatus, LeadPriority } from '@prisma/client'
 import { cleanPhoneNumber } from '@/lib/utils'
+import { dedupFields } from '@/lib/dedup'
 
 export const GET = route({
   module: MODULES.LEAD_MANAGEMENT,
@@ -99,6 +100,18 @@ const updateLeadSchema = z.object({
     .transform(v =>
       v === '' ? null : v
     ),
+  course: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
+  batch: z.string()
+    .optional().nullable()
+    .or(z.literal(''))
+    .transform(v =>
+      v === '' ? null : v
+    ),
   academicYearId: z.string()
     .optional().nullable()
     .or(z.literal(''))
@@ -151,8 +164,23 @@ export const PUT = route({
     if (body.parentName !== undefined)
       updateData.parentName = body.parentName
 
-    if (body.phone !== undefined)
+    if (body.phone !== undefined) {
       updateData.phone = body.phone
+      // Keep the dedup join key + household in sync when the phone changes.
+      const identity = await dedupFields(db, {
+        orgId: user.orgId,
+        phone: body.phone,
+        name: body.parentName ?? existing.parentName,
+        email: body.email ?? existing.email,
+      })
+      updateData.phoneNormalized = identity.phoneNormalized
+      // Write household via the relation, not the scalar FK: this payload also
+      // uses relation writes (academicYear/assignedTo), which forces Prisma's
+      // checked update input where the scalar `householdId` is rejected.
+      updateData.household = identity.householdId
+        ? { connect: { id: identity.householdId } }
+        : { disconnect: true }
+    }
 
     if (body.email !== undefined)
       updateData.email = body.email || null
@@ -177,6 +205,12 @@ export const PUT = route({
 
     if (body.gradeSought !== undefined)
       updateData.gradeSought = body.gradeSought || null
+
+    if (body.course !== undefined)
+      updateData.course = body.course || null
+
+    if (body.batch !== undefined)
+      updateData.batch = body.batch || null
 
     if (body.academicYearId !== undefined) {
       updateData.academicYear = body.academicYearId

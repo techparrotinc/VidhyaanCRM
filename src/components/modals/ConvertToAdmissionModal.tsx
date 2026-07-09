@@ -29,6 +29,8 @@ interface ConvertToAdmissionModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: (admissionId: string) => void
+  /** Institution-aware noun — 'Admission' (school) or 'Enrolment' (LC). */
+  admissionTerm?: string
 }
 
 const statusLabels: Record<string, string> = {
@@ -45,6 +47,7 @@ export default function ConvertToAdmissionModal({
   isOpen,
   onClose,
   onSuccess,
+  admissionTerm = 'Admission',
 }: ConvertToAdmissionModalProps) {
   // Form state
   const [form, setForm] = useState(() => ({
@@ -273,7 +276,7 @@ export default function ConvertToAdmissionModal({
               </div>
               <div>
                 <h3 className="text-white font-bold text-base leading-snug">
-                  Convert to Admission
+                  Convert to {admissionTerm}
                 </h3>
                 <p className="text-blue-200 text-xs mt-0.5">
                   Lead #{lead.leadCode} · {lead.parentName}
@@ -434,8 +437,8 @@ export default function ConvertToAdmissionModal({
               )}
               {!loadingOptions && pipelineStages.length === 0 && (
                 <span className="text-xs text-amber-600 block mt-1">
-                  No admission stages found. Ask your admin to configure the
-                  pipeline in Settings → Admission Pipeline.
+                  No {admissionTerm.toLowerCase()} stages found. Ask your admin to configure the
+                  pipeline in Settings → Pipeline.
                 </span>
               )}
             </div>

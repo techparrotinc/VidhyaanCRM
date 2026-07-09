@@ -5,6 +5,7 @@ import {
   CreditCard,
   GitMerge,
   CalendarDays,
+  ClipboardList,
   Key,
   Receipt,
   BookOpen,
@@ -13,6 +14,7 @@ import {
   Network,
   Puzzle,
   ShieldCheck,
+  UserCircle,
   Wallet
 } from 'lucide-react'
 
@@ -40,6 +42,17 @@ export function buildSettingsNav(opts: {
   const { isLearningCenter, isWhatsappActive } = opts
 
   return [
+    {
+      label: 'Account',
+      items: [
+        {
+          name: 'My Account',
+          path: '/settings/account',
+          icon: UserCircle,
+          description: 'Your own name, phone and login email'
+        }
+      ]
+    },
     {
       label: 'General',
       items: [
@@ -84,6 +97,12 @@ export function buildSettingsNav(opts: {
                 description: 'Courses, pricing and billing frequency'
               }
             ]),
+        {
+          name: isLearningCenter ? 'Enrolment Forms' : 'Admission Forms',
+          path: '/settings/admission-forms',
+          icon: ClipboardList,
+          description: 'Digital forms sent to parents for enquiries, admissions and campaigns'
+        },
         {
           name: 'Duplicate Detection',
           path: '/settings/deduplication',

@@ -20,6 +20,7 @@ const campaignSchema = z.object({
   }).optional().nullable(),
   templateBody: z.string().max(2000).optional().nullable(),
   whatsappTemplateId: z.string().max(50).optional().nullable(),
+  formTemplateId: z.string().optional().nullable(),
   scheduledAt: z.string().optional().nullable()
 })
 
@@ -120,6 +121,7 @@ export const PUT = route({
         audienceFilter: data.audienceFilter !== undefined ? (data.audienceFilter as Prisma.InputJsonValue) : undefined,
         templateBody: data.templateBody,
         whatsappTemplateId: data.whatsappTemplateId !== undefined ? data.whatsappTemplateId : undefined,
+        formTemplateId: data.formTemplateId !== undefined ? data.formTemplateId : undefined,
         scheduledAt: data.scheduledAt !== undefined ? (data.scheduledAt ? new Date(data.scheduledAt) : null) : undefined
       }
     })

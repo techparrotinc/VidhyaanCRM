@@ -343,107 +343,93 @@ export default function DashboardPage() {
       ) : (
         <>
           {/* ============ CONTEXT STRIP (single, priority-picked) ============ */}
-          {!contextStripDismissed && (() => {
-            // Priority 1 — profile incomplete: the most actionable next step
-            if (profileCompletion < 100) {
-              return (
-                <Card className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6 border-l-4 border-l-[#1565D8]">
-                  <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 md:gap-8">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base md:text-lg font-bold text-slate-900 tracking-tight">
-                        Finish setting up {displayName}
-                      </h3>
-                      <p className="mt-1 text-sm text-slate-500 leading-relaxed max-w-lg">
-                        Complete your profile to get discovered by parents and unlock your public listing.
-                      </p>
-                    </div>
-                    <div className="w-full md:w-72 shrink-0">
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-xs font-semibold text-slate-500">Profile completion</span>
-                        <span className="text-sm font-bold text-[#1565D8]">{profileCompletion}%</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2">
-                        <div className="bg-[#1565D8] rounded-full h-2 transition-all duration-500" style={{ width: `${profileCompletion}%` }} />
-                      </div>
-                      <Link href="/settings/school-profile" className="text-sm font-semibold text-[#1565D8] mt-2 inline-flex items-center gap-1 hover:underline">
-                        Complete profile <ChevronRight size={14} strokeWidth={2} />
-                      </Link>
-                    </div>
-                  </div>
-                </Card>
-              )
-            }
-            // Priority 2 — active trial: real countdown + upgrade
-            if (isTrial) {
-              return (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3.5 md:px-6 flex flex-col md:flex-row gap-3 md:items-center">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                      <Crown className="w-4 h-4 text-amber-600 fill-amber-500" strokeWidth={1.5} />
-                    </span>
-                    <p className="text-sm text-amber-900 font-medium leading-snug">
-                      Premium trial active.{" "}
-                      <span className="font-bold">
-                        {trialDaysLeft != null
-                          ? (trialDaysLeft === 0 ? 'Ends today.' : `${trialDaysLeft} day${trialDaysLeft > 1 ? 's' : ''} left.`)
-                          : 'Enjoy full access.'}
-                      </span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 md:ml-auto shrink-0">
-                    <Link href="/settings/billing" className="text-sm font-semibold text-[#1565D8] hover:underline whitespace-nowrap">
-                      See plans
-                    </Link>
-                    <Link href="/settings/billing/upgrade">
-                      <Button className="bg-[#1565D8] hover:bg-blue-700 text-white text-sm font-semibold px-4 h-9 rounded-lg whitespace-nowrap">
-                        Upgrade
-                      </Button>
-                    </Link>
-                    <button onClick={() => setContextStripDismissed(true)} className="p-1 rounded text-amber-500 hover:text-amber-700 transition shrink-0" title="Dismiss">
-                      <X className="w-4 h-4" strokeWidth={1.75} />
-                    </button>
-                  </div>
-                </div>
-              )
-            }
-            // Priority 3 — free plan, complete profile: soft upgrade nudge
-            if (!isPaid) {
-              return (
-                <div className="bg-blue-50 border border-blue-100 rounded-2xl px-5 py-3.5 md:px-6 flex flex-col sm:flex-row sm:items-center gap-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <CheckCircle2 className="text-blue-500 shrink-0" size={18} strokeWidth={2} />
-                    <span className="text-sm font-medium text-slate-700">
-                      You&rsquo;re on the <span className="font-semibold">{planName}</span> plan. Upgrade to unlock campaigns, reports &amp; more.
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 sm:ml-auto shrink-0">
-                    <Link href="/settings/billing" className="text-sm font-semibold text-[#1565D8] hover:underline whitespace-nowrap">
-                      View plans →
-                    </Link>
-                    <button onClick={() => setContextStripDismissed(true)} className="p-1 rounded text-slate-400 hover:text-slate-600 transition" title="Dismiss">
-                      <X className="w-4 h-4" strokeWidth={1.75} />
-                    </button>
-                  </div>
-                </div>
-              )
-            }
-            // Priority 4 — paid + complete: slim success confirmation
-            return (
-              <div className="bg-green-50 border border-green-100 rounded-2xl px-5 py-3 md:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  <CheckCircle2 className="text-green-600 shrink-0" size={18} strokeWidth={2} />
-                  <span className="text-sm font-semibold text-slate-700">{displayName}</span>
-                  <span className="text-slate-300 hidden sm:inline">·</span>
-                  <span className="bg-green-100 text-green-700 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                    {planName} plan active
+          {/* Trial countdown — always shown during a trial (time-sensitive, so it
+              is NOT suppressed by the profile-completion strip below). */}
+          {isTrial && !contextStripDismissed && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3.5 md:px-6 flex flex-col md:flex-row gap-3 md:items-center">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                  <Crown className="w-4 h-4 text-amber-600 fill-amber-500" strokeWidth={1.5} />
+                </span>
+                <p className="text-sm text-amber-900 font-medium leading-snug">
+                  Premium trial active.{" "}
+                  <span className="font-bold">
+                    {trialDaysLeft != null
+                      ? (trialDaysLeft === 0 ? 'Ends today.' : `${trialDaysLeft} day${trialDaysLeft > 1 ? 's' : ''} left.`)
+                      : 'Enjoy full access.'}
                   </span>
-                </div>
-                <Link href="/settings/school-profile" className="inline-flex items-center gap-1.5 text-xs font-semibold border border-slate-200 bg-white text-slate-700 px-3 py-1.5 rounded-full hover:bg-slate-50 transition shrink-0">
-                  Manage listing
-                </Link>
+                </p>
               </div>
-            )
-          })()}
+              <div className="flex items-center gap-3 md:ml-auto shrink-0">
+                <Link href="/settings/billing" className="text-sm font-semibold text-[#1565D8] hover:underline whitespace-nowrap">
+                  See plans
+                </Link>
+                <Link href="/settings/billing/upgrade">
+                  <Button className="bg-[#1565D8] hover:bg-blue-700 text-white text-sm font-semibold px-4 h-9 rounded-lg whitespace-nowrap">
+                    Upgrade
+                  </Button>
+                </Link>
+                <button onClick={() => setContextStripDismissed(true)} className="p-1 rounded text-amber-500 hover:text-amber-700 transition shrink-0" title="Dismiss">
+                  <X className="w-4 h-4" strokeWidth={1.75} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Secondary strip — profile completion, else plan status (only when
+              there's no separate trial strip already carrying the plan message). */}
+          {profileCompletion < 100 ? (
+            <Card className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6 border-l-4 border-l-[#1565D8]">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 md:gap-8">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base md:text-lg font-bold text-slate-900 tracking-tight">
+                    Finish setting up {displayName}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500 leading-relaxed max-w-lg">
+                    Complete your profile to get discovered by parents and unlock your public listing.
+                  </p>
+                </div>
+                <div className="w-full md:w-72 shrink-0">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-xs font-semibold text-slate-500">Profile completion</span>
+                    <span className="text-sm font-bold text-[#1565D8]">{profileCompletion}%</span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2">
+                    <div className="bg-[#1565D8] rounded-full h-2 transition-all duration-500" style={{ width: `${profileCompletion}%` }} />
+                  </div>
+                  <Link href="/settings/school-profile" className="text-sm font-semibold text-[#1565D8] mt-2 inline-flex items-center gap-1 hover:underline">
+                    Complete profile <ChevronRight size={14} strokeWidth={2} />
+                  </Link>
+                </div>
+              </div>
+            </Card>
+          ) : isTrial ? null : !isPaid ? (
+            <div className="bg-blue-50 border border-blue-100 rounded-2xl px-5 py-3.5 md:px-6 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <CheckCircle2 className="text-blue-500 shrink-0" size={18} strokeWidth={2} />
+                <span className="text-sm font-medium text-slate-700">
+                  You&rsquo;re on the <span className="font-semibold">{planName}</span> plan. Upgrade to unlock campaigns, reports &amp; more.
+                </span>
+              </div>
+              <Link href="/settings/billing" className="text-sm font-semibold text-[#1565D8] hover:underline whitespace-nowrap sm:ml-auto shrink-0">
+                View plans →
+              </Link>
+            </div>
+          ) : (
+            <div className="bg-green-50 border border-green-100 rounded-2xl px-5 py-3 md:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <CheckCircle2 className="text-green-600 shrink-0" size={18} strokeWidth={2} />
+                <span className="text-sm font-semibold text-slate-700">{displayName}</span>
+                <span className="text-slate-300 hidden sm:inline">·</span>
+                <span className="bg-green-100 text-green-700 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                  {planName} plan active
+                </span>
+              </div>
+              <Link href="/settings/school-profile" className="inline-flex items-center gap-1.5 text-xs font-semibold border border-slate-200 bg-white text-slate-700 px-3 py-1.5 rounded-full hover:bg-slate-50 transition shrink-0">
+                Manage listing
+              </Link>
+            </div>
+          )}
 
           {/* ============ KPI STRIP ============ */}
           <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6 xl:gap-4">

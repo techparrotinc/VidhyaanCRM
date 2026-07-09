@@ -29,6 +29,7 @@ function isPublicRoute(pathname: string): boolean {
     '/api/webhooks',
     '/api/public',
     '/api/location',
+    '/apply', // public digital-form fill page (token-gated)
     '/parent/register',
     '/parent/verify-otp',
     '/parent/login',

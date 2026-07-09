@@ -4,7 +4,8 @@ import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
-import { UserRole, UserStatus } from '@prisma/client'
+import { UserRole, UserStatus, Prisma } from '@prisma/client'
+import { cleanPhoneNumber } from '@/lib/utils'
 import { redis } from '@/lib/redis'
 import { revokeUser, clearUserRevocation, revokeAssignment } from '@/lib/auth/roleRevocation'
 import { resolveTargetUserRole } from '@/lib/auth/resolveTargetUserRole'
@@ -42,6 +43,12 @@ export const PUT = route({
   roles: [ROLES.ORG_ADMIN],
   handler: async ({ req, params, user }) => {
     const body = z.object({
+      name: z.string().min(1).optional(),
+      email: z.string().email('A valid email is required').optional(),
+      phone: z.preprocess(
+        cleanPhoneNumber,
+        z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number')
+      ).optional(),
       role: z.enum([
         'BRANCH_ADMIN',
         'COUNSELLOR',
@@ -72,7 +79,7 @@ export const PUT = route({
 
     let assignmentIdToRevoke: string | null = null
 
-    const updated = await prisma.$transaction(async (tx) => {
+    const runUpdate = () => prisma.$transaction(async (tx) => {
       if (body.role) {
         // Keep branch grants in step with the role: grant rows carry the
         // role, and a freshly-minted BRANCH_ADMIN needs at least the main
@@ -138,17 +145,34 @@ export const PUT = route({
       return await tx.user.update({
         where: { id: params?.id },
         data: {
-          status: body.status === 'INACTIVE' 
+          ...(body.name !== undefined ? { name: body.name } : {}),
+          ...(body.email !== undefined ? { email: body.email } : {}),
+          ...(body.phone !== undefined ? { phone: body.phone as string } : {}),
+          status: body.status === 'INACTIVE'
             ? ('DEACTIVATED' as UserStatus)
             : body.status ? (body.status as UserStatus) : undefined
         },
         select: {
           id: true,
           name: true,
+          email: true,
+          phone: true,
           status: true
         }
       })
     })
+
+    let updated
+    try {
+      updated = await runUpdate()
+    } catch (err) {
+      // email/phone are unique across users — surface a clean conflict.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const field = (err.meta?.target as string[] | undefined)?.includes('email') ? 'email address' : 'phone number'
+        throw Errors.conflict(`That ${field} is already used by another user.`)
+      }
+      throw err
+    }
 
     if (assignmentIdToRevoke) {
       await revokeAssignment(target.id, assignmentIdToRevoke)

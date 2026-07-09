@@ -59,6 +59,9 @@ export async function GET(req: NextRequest) {
 
     if (!claim) {
       where.isPublished = true
+      // Publish-now model: PENDING + VERIFIED listings are public (with a
+      // "verification pending" badge on the profile); REJECTED stay hidden.
+      where.verificationStatus = { not: 'REJECTED' }
     }
 
     if (search) {

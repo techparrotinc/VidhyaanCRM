@@ -171,7 +171,11 @@ export default function BillingSettingsPage() {
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${
                 getStatusBadgeClass(org?.status || 'TRIAL')
               }`}>
-                {org?.status === 'ACTIVE' ? 'Paid Active' : org?.status}
+                {org?.status === 'ACTIVE' ? 'Paid Active'
+                  : org?.status === 'TRIAL' ? 'Free Trial'
+                  : org?.status === 'GRACE_PERIOD' ? 'Grace Period'
+                  : org?.status === 'TRIAL_EXPIRED' ? 'Trial Expired'
+                  : org?.status}
               </span>
             </div>
             

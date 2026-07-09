@@ -157,7 +157,7 @@ export default function LeadManagementPage() {
       kidName: l.kidName || '—',
       phone: l.phone || '—',
       email: l.email ?? '—',
-      applyingFor: l.gradeSought ?? '—',
+      applyingFor: l.gradeSought || l.course || l.batch || '—',
       // Raw value for the convert-to-admission modal's grade pre-fill —
       // applyingFor above is display-only ('—' is not a valid grade)
       gradeSought: l.gradeSought ?? '',
@@ -177,10 +177,11 @@ export default function LeadManagementPage() {
     }))
   }, [data])
 
-  // Real lead-cap usage from the API; null cap = unlimited (premium)
+  // Real lead-cap usage from the API. `unlimited` is plan-aware (paid plans are
+  // never capped), so the upgrade banner never nags a paying org.
   const leadsMax: number | null = data?.leadCap?.cap ?? null
   const leadsUsed: number = data?.leadCap?.used ?? 0
-  const isPremium = leadsMax === null
+  const isPremium = (data?.leadCap?.unlimited ?? (leadsMax === null)) as boolean
 
   // Mutate/refresh function for SWR
   const fetchLeads = useCallback(async () => {

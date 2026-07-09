@@ -364,7 +364,10 @@ export default function OrgDetailPage() {
   }
 
   const primarySchool = org.schools?.[0]
-  const activeSub = org.subscriptions?.find((s: any) => s.status === 'ACTIVE')
+  // Trials + grace/past-due are live subscriptions too — not just ACTIVE.
+  const activeSub = org.subscriptions?.find((s: any) =>
+    ['ACTIVE', 'TRIALING', 'GRACE_PERIOD', 'PAST_DUE'].includes(s.status)
+  )
 
   return (
     <div className="p-6 md:p-8 space-y-6 select-none bg-slate-50 min-h-screen">

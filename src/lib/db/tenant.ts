@@ -17,12 +17,17 @@ const TENANT_MODELS = [
   'DailyRollup', 'ReportSavedView', 'ReportUsage', 'ReportSchedule',
   // Learning-centre course catalog (settings routes already scope manually;
   // this makes it fail-closed for report queries too).
-  'Course', 'CourseEnrollment'
+  'Course', 'CourseEnrollment',
+  // Digital form engine. FormInstance/FormSubmission are ALSO written by the
+  // public /apply/[token] route via the base client (no session, token is the
+  // security boundary); listed here so authenticated builder/counsellor reads
+  // stay org-scoped.
+  'Form', 'FormInstance', 'FormSubmission'
 ]
 
 const SOFT_DELETE_MODELS = [
   'Lead', 'Admission', 'Student', 'Invoice', 'Campaign', 'Event',
-  'PaymentGatewayConfig'
+  'PaymentGatewayConfig', 'Form'
 ]
 
 // Models carrying a nullable branchId column. When a branch context is
@@ -32,7 +37,7 @@ const SOFT_DELETE_MODELS = [
 const BRANCH_MODELS = [
   'Lead', 'LeadActivity', 'Admission', 'AdmissionActivity',
   'AdmissionCapacity', 'Student', 'StudentBatch', 'FeePlan', 'Invoice',
-  'Payment', 'Event', 'Campaign', 'CounsellorTarget', 'DailyRollup'
+  'Payment', 'Event', 'Campaign', 'CounsellorTarget', 'DailyRollup', 'Form'
 ]
 
 const tenantModelSet = new Set(TENANT_MODELS.map(m => m.toLowerCase()))

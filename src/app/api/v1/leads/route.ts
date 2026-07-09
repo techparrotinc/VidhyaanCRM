@@ -12,6 +12,7 @@ import { createLeadWithUniqueCode } from '@/lib/lead-code'
 import { sendOrgTemplateEmail } from '@/lib/mail/org-templates'
 import { findMatches, loadDedupConfig, dedupFields } from '@/lib/dedup'
 import { assertNotDuplicate } from '@/lib/dedup/guard'
+import { isPaidPlan } from '@/lib/billing/plan-status'
 import { parseQuery, paginationShape, enumParam, textParam } from '@/lib/api/query'
 
 export const GET = route({
@@ -64,7 +65,7 @@ export const GET = route({
 
     // Lead-cap usage (totalLeadsInOrg) batched with the list + page count so
     // the free-plan banner costs no extra sequential round-trip.
-    const [leads, total, totalLeadsInOrg] = await Promise.all([
+    const [leads, total, totalLeadsInOrg, orgPlan] = await Promise.all([
       db.lead.findMany({
         where,
         skip,
@@ -81,6 +82,8 @@ export const GET = route({
           priority: true,
           source: true,
           gradeSought: true,
+          course: true,
+          batch: true,
           nextFollowUpAt: true,
           createdAt: true,
           assignedTo: {
@@ -103,8 +106,16 @@ export const GET = route({
         }
       }),
       db.lead.count({ where }),
-      db.lead.count()
+      db.lead.count(),
+      db.organization.findUnique({
+        where: { id: org.id },
+        select: { status: true, plan: { select: { slug: true, monthlyPrice: true } } }
+      })
     ])
+
+    // Paid plans get unlimited leads regardless of a stored numeric cap — so
+    // the upgrade banner must gate on the plan, not on cap === null.
+    const unlimited = isPaidPlan(orgPlan) || org.leadCap === null
 
     const paginatedRes = paginated(leads, total, page, limit)
     const json = await paginatedRes.json()
@@ -114,7 +125,8 @@ export const GET = route({
       leads: json.data,
       leadCap: {
         cap: org.leadCap,
-        used: totalLeadsInOrg
+        used: totalLeadsInOrg,
+        unlimited
       }
     })
   }
@@ -158,6 +170,17 @@ const createLeadSchema = z.object({
   status: z.string()
     .default('NEW'),
   gradeSought: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  // Learning-centre fields
+  course: z.string()
+    .optional().nullable()
+    .or(z.literal('')).transform(
+      v => v === '' ? null : v
+    ),
+  batch: z.string()
     .optional().nullable()
     .or(z.literal('')).transform(
       v => v === '' ? null : v
@@ -215,12 +238,18 @@ export const POST = route({
       orgId: user.orgId, phone: body.phone, name: parentName, email: body.email,
     })
 
-    // 1. Check lead cap
-    const leadCount = await prisma.lead.count({
-      where: { orgId: user.orgId }
-    })
+    // 1. Check lead cap — paid plans are never capped, even if a numeric
+    // leadCap lingers on the org row.
+    const [leadCount, orgPlan] = await Promise.all([
+      prisma.lead.count({ where: { orgId: user.orgId } }),
+      prisma.organization.findUnique({
+        where: { id: user.orgId },
+        select: { status: true, plan: { select: { slug: true, monthlyPrice: true } } }
+      })
+    ])
+    const capped = !isPaidPlan(orgPlan) && org.leadCap !== null
 
-    if (org.leadCap !== null && leadCount >= org.leadCap) {
+    if (capped && leadCount >= (org.leadCap as number)) {
       const lead = await createLeadWithUniqueCode(user.orgId, (leadCode) =>
         db.lead.create({
           data: {
@@ -234,6 +263,8 @@ export const POST = route({
             priority: (body.priority || 'MEDIUM') as LeadPriority,
             status: 'NEW',
             gradeSought: body.gradeSought || null,
+            course: body.course || null,
+            batch: body.batch || null,
             leadCode,
             orgId: user.orgId,
             academicYearId: body.academicYearId || null,
@@ -308,6 +339,8 @@ export const POST = route({
           priority: (body.priority || 'MEDIUM') as LeadPriority,
           status: 'NEW',
           gradeSought: body.gradeSought || null,
+          course: body.course || null,
+          batch: body.batch || null,
           leadCode,
           orgId: user.orgId,
           academicYearId: body.academicYearId || null,

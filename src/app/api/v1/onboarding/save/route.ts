@@ -161,7 +161,9 @@ export async function POST(req: NextRequest) {
           institutionType: data.institutionType ? mapInstitutionType(data.institutionType) : InstitutionType.SCHOOL,
           email: data.email,
           phone: user.phone || '0000000000',
-          status: 'ACTIVE'
+          // 7-day premium trial — TRIAL (not ACTIVE) drives the trial UI + expiry cron.
+          status: 'TRIAL',
+          trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         }
       })
       // Create default active academic year (AY 2026-27)

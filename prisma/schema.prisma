@@ -391,6 +391,61 @@ enum CampaignSendStatus {
   @@schema("crm")
 }
 
+/// Digital form engine — target/purpose of a form and its instances.
+/// STANDALONE mints a Lead (universal entry point for orgs without the
+/// admission module, e.g. learning centres).
+enum FormPurpose {
+  ADMISSION
+  LEAD
+  ENQUIRY
+  STANDALONE
+
+  @@schema("crm")
+}
+
+enum FormStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
+  @@schema("crm")
+}
+
+enum FormInstanceStatus {
+  SENT
+  OPENED
+  SUBMITTED
+  EXPIRED
+
+  @@schema("crm")
+}
+
+enum FormChannel {
+  EMAIL
+  WHATSAPP
+  SMS
+  LINK
+
+  @@schema("crm")
+}
+
+enum FormPaymentStatus {
+  NONE
+  PENDING
+  PAID
+  FAILED
+
+  @@schema("crm")
+}
+
+enum FormReviewStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+
+  @@schema("crm")
+}
+
 enum NotificationChannel {
   IN_APP
   EMAIL
@@ -642,6 +697,7 @@ model Organization {
   ledgerEntries         LedgerEntry[]
   messageWallets        MessageWallet[]
   messagingProviders    MessagingProviderConfig[]
+  forms                 Form[]
 
   @@index([status])
   @@index([institutionType])
@@ -680,6 +736,7 @@ model Branch {
   events              Event[]
   campaigns           Campaign[]
   counsellorTargets   CounsellorTarget[]
+  forms               Form[]
 
   @@index([orgId])
   @@map("branches")
@@ -1549,6 +1606,7 @@ model AcademicYear {
   campaigns           Campaign[]
   counsellorTargets   CounsellorTarget[]
   terms               Term[]
+  forms               Form[]
 
   @@unique([orgId, name])
   @@index([orgId])
@@ -1802,6 +1860,130 @@ model AdmissionCapacity {
   @@index([orgId])
   @@index([academicYearId])
   @@map("admission_capacity")
+  @@schema("crm")
+}
+
+/// Reusable digital form definition (builder output). Entity-agnostic — a
+/// submission is routed to Lead/Admission/Enquiry through target adapters
+/// (src/lib/forms/targets), so the same engine serves schools, learning
+/// centres, coaching centres, junior colleges, etc. `schema` holds the
+/// sections/fields; `mapsTo` on each field is a CANONICAL key resolved by
+/// the adapter, never a raw column.
+model Form {
+  id                   String   @id @default(cuid())
+  orgId                String   @map("org_id")
+  branchId             String?  @map("branch_id")
+  academicYearId       String?  @map("academic_year_id")
+  name                 String
+  description          String?
+  purpose              FormPurpose @default(ADMISSION)
+  status               FormStatus  @default(DRAFT)
+  version              Int      @default(1)
+  isDefault            Boolean  @default(false) @map("is_default")
+  slug                 String?
+  /// sections[] -> fields[]; field { key,label,type,required,options,placeholder,validation,mapsTo }
+  schema               Json
+  /// builder settings: theme, consentText, successMessage, redirectUrl
+  settings             Json?
+  /// targeting — auto-select a form per course/grade (and campaign at send time)
+  courseIds            String[] @map("course_ids")
+  gradeLabels          String[] @map("grade_labels")
+  /// optional in-form application fee
+  applicationFeeAmount Decimal? @map("application_fee_amount") @db.Decimal(10, 2)
+  feeCurrency          String   @default("INR") @map("fee_currency")
+  feeRequired          Boolean  @default(false) @map("fee_required")
+  createdById          String?  @map("created_by_id") // soft reference
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  deletedAt            DateTime? @map("deleted_at")
+
+  organization Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch       Branch?          @relation(fields: [branchId], references: [id])
+  academicYear AcademicYear?    @relation(fields: [academicYearId], references: [id])
+  instances    FormInstance[]
+  submissions  FormSubmission[]
+
+  @@index([orgId, purpose, status])
+  @@index([orgId, createdAt])
+  @@index([branchId])
+  @@index([academicYearId])
+  @@map("forms")
+  @@schema("crm")
+}
+
+/// One sent/shared link. Points at a polymorphic target via targetType +
+/// targetId (soft ref — no FK, so no coupling to optional modules). Written
+/// by the public /apply/[token] route via the base client (no session).
+model FormInstance {
+  id            String             @id @default(cuid())
+  orgId         String             @map("org_id")
+  formId        String             @map("form_id")
+  /// what this instance feeds: ADMISSION | LEAD | ENQUIRY | STANDALONE
+  targetType    FormPurpose        @map("target_type")
+  targetId      String?            @map("target_id")
+  campaignId    String?            @map("campaign_id")
+  token         String             @unique
+  status        FormInstanceStatus @default(SENT)
+  channel       FormChannel        @default(LINK)
+  sentToEmail   String?            @map("sent_to_email")
+  sentToPhone   String?            @map("sent_to_phone")
+  /// whitelisted prefill values keyed by field key
+  prefill       Json?
+  paymentStatus FormPaymentStatus  @default(NONE) @map("payment_status")
+  /// gateway order id — never overwritten on payment.failed (billing invariant)
+  gatewayRef    String?            @map("gateway_ref")
+  expiresAt     DateTime?          @map("expires_at")
+  openedAt      DateTime?          @map("opened_at")
+  submittedAt   DateTime?          @map("submitted_at")
+  createdById   String?            @map("created_by_id")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  form        Form             @relation(fields: [formId], references: [id], onDelete: Cascade)
+  submissions FormSubmission[]
+
+  @@index([orgId])
+  @@index([formId])
+  @@index([orgId, targetType, targetId])
+  @@index([campaignId])
+  @@map("form_instances")
+  @@schema("crm")
+}
+
+/// Captured answers for one instance. Snapshots schemaVersion so later
+/// template edits never corrupt historical submissions. Written by the
+/// public route via the base client.
+model FormSubmission {
+  id            String            @id @default(cuid())
+  orgId         String            @map("org_id")
+  instanceId    String            @map("instance_id")
+  formId        String            @map("form_id")
+  targetType    FormPurpose       @map("target_type")
+  targetId      String?           @map("target_id")
+  campaignId    String?           @map("campaign_id")
+  schemaVersion Int               @map("schema_version")
+  /// answers keyed by field key
+  data          Json
+  /// uploaded document refs (post-scan)
+  files         Json?
+  /// per-field hybrid-apply state: applied vs pending counsellor accept
+  fieldStates   Json?             @map("field_states")
+  reviewStatus  FormReviewStatus  @default(PENDING) @map("review_status")
+  paymentStatus FormPaymentStatus @default(NONE) @map("payment_status")
+  reviewedById  String?           @map("reviewed_by_id")
+  reviewedAt    DateTime?         @map("reviewed_at")
+  submitterIp   String?           @map("submitter_ip")
+  submittedAt   DateTime          @default(now()) @map("submitted_at")
+
+  instance FormInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  form     Form         @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([instanceId])
+  @@index([formId])
+  @@index([orgId, reviewStatus])
+  @@index([campaignId])
+  @@map("form_submissions")
   @@schema("crm")
 }
 
@@ -2259,6 +2441,9 @@ model Campaign {
   /// Soft ref to crm.whatsapp_templates — chosen approved template for
   /// WHATSAPP campaigns (send builds positional params from it)
   whatsappTemplateId String?         @map("whatsapp_template_id")
+  /// Soft ref to crm.forms — when set, each recipient gets a unique digital
+  /// form link (per-recipient FormInstance token) injected as {{link}}.
+  formTemplateId     String?         @map("form_template_id")
   scheduledAt        DateTime?       @map("scheduled_at")
   sentAt             DateTime?       @map("sent_at")
   audienceFilter     Json?           @map("audience_filter")

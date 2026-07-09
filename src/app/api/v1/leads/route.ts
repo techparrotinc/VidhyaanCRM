@@ -10,6 +10,8 @@ import { createNotification } from '@/lib/services/notifications'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
 import { sendOrgTemplateEmail } from '@/lib/mail/org-templates'
+import { findMatches, loadDedupConfig, dedupFields } from '@/lib/dedup'
+import { assertNotDuplicate } from '@/lib/dedup/guard'
 import { parseQuery, paginationShape, enumParam, textParam } from '@/lib/api/query'
 
 export const GET = route({
@@ -180,6 +182,8 @@ const createLeadSchema = z.object({
     .or(z.literal('')).transform(
       v => v === '' ? null : v
     ),
+  // "Create anyway" override for soft dedup matches
+  force: z.boolean().optional(),
 })
 
 export const POST = route({
@@ -194,6 +198,22 @@ export const POST = route({
     const body = createLeadSchema.parse(await req.json())
 
     const parentName = body.parentName
+    const resolvedYear = body.academicYearId || null
+
+    // Dedup: block hard (and unconfirmed soft) matches; resolve household identity.
+    const dedupConfig = await loadDedupConfig(db, user.orgId)
+    const dedup = await findMatches(db, {
+      orgId: user.orgId,
+      phone: body.phone,
+      email: body.email,
+      childName: body.kidName,
+      grade: body.gradeSought,
+      academicYearId: resolvedYear,
+    }, dedupConfig)
+    assertNotDuplicate(dedup, { force: body.force })
+    const identity = await dedupFields(db, {
+      orgId: user.orgId, phone: body.phone, name: parentName, email: body.email,
+    })
 
     // 1. Check lead cap
     const leadCount = await prisma.lead.count({
@@ -217,6 +237,8 @@ export const POST = route({
             leadCode,
             orgId: user.orgId,
             academicYearId: body.academicYearId || null,
+            phoneNormalized: identity.phoneNormalized,
+            householdId: identity.householdId,
             nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
             expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
           }
@@ -229,15 +251,6 @@ export const POST = route({
         message: 'Lead cap reached. Lead saved to queue. Upgrade to access queued leads.'
       }, undefined, 201)
     }
-
-    // 2. Check for duplicate
-    const duplicate = await prisma.lead.findFirst({
-      where: {
-        phone: body.phone,
-        orgId: user.orgId,
-        deletedAt: null
-      }
-    })
 
     // 3. Resolve assignedToId safely
     let finalAssignedToId: string | null = null
@@ -298,6 +311,8 @@ export const POST = route({
           leadCode,
           orgId: user.orgId,
           academicYearId: body.academicYearId || null,
+          phoneNormalized: identity.phoneNormalized,
+          householdId: identity.householdId,
           nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
           expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
           ...(finalAssignedToId && {
@@ -351,8 +366,9 @@ export const POST = route({
 
     return created({
       ...lead,
-      isDuplicate: !!duplicate,
-      duplicateOf: duplicate ?? null
+      // Non-blocking soft matches the user chose to create through (force),
+      // surfaced so the UI can still show a "possible duplicate" note.
+      dedup: dedup.matches.length > 0 ? { action: dedup.action, matches: dedup.matches } : null
     })
   }
 })

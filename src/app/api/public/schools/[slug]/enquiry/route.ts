@@ -5,6 +5,7 @@ import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 import { enquiryNotificationTemplate, enquiryConfirmationTemplate } from '@/lib/mail/templates'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
+import { dedupFields } from '@/lib/dedup'
 import { resolveOrgEmail } from '@/lib/mail/org-templates'
 
 export async function POST(
@@ -170,24 +171,62 @@ export async function POST(
         where: { orgId: school.orgId, status: 'ACTIVE' }
       })
 
-      const lead = await createLeadWithUniqueCode(orgId, (leadCode) =>
-        prisma.lead.create({
+      // Normalized phone + household identity (the dedup join key).
+      const identity = await dedupFields(prisma, { orgId, phone, name: parentName, email })
+
+      // Merge instead of leaking a fresh lead per re-enquiry: if this parent
+      // already has an OPEN lead for this child, reattach the enquiry to it.
+      const existingLead = await prisma.lead.findFirst({
+        where: {
+          orgId,
+          deletedAt: null,
+          phoneNormalized: identity.phoneNormalized ?? undefined,
+          status: { notIn: ['CONVERTED', 'NOT_INTERESTED'] },
+          ...(childName ? { kidName: { equals: childName.trim(), mode: 'insensitive' } } : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      let lead
+      if (existingLead && identity.phoneNormalized) {
+        lead = await prisma.lead.update({
+          where: { id: existingLead.id },
           data: {
-            orgId,
-            branchId: branch?.id || null,
-            academicYearId: academicYear?.id || null,
-            leadCode,
-            parentName,
-            phone,
-            email: email || null,
-            kidName: childName || null,
-            gradeSought: gradeSought || null,
-            source: 'VIDHYAAN',
-            status: 'NEW',
-            priority: 'MEDIUM'
-          }
+            householdId: identity.householdId ?? undefined,
+            phoneNormalized: identity.phoneNormalized,
+            email: email || existingLead.email,
+            gradeSought: gradeSought || existingLead.gradeSought,
+            nextFollowUpAt: new Date(),
+          },
         })
-      )
+        await prisma.leadActivity.create({
+          data: {
+            orgId, leadId: lead.id, type: 'SYSTEM',
+            summary: `Repeat enquiry received via Vidhyaan${gradeSought ? ` for ${gradeSought}` : ''}`,
+          },
+        }).catch(e => console.error('Error logging repeat-enquiry activity:', e))
+      } else {
+        lead = await createLeadWithUniqueCode(orgId, (leadCode) =>
+          prisma.lead.create({
+            data: {
+              orgId,
+              branchId: branch?.id || null,
+              academicYearId: academicYear?.id || null,
+              leadCode,
+              parentName,
+              phone,
+              email: email || null,
+              kidName: childName || null,
+              gradeSought: gradeSought || null,
+              phoneNormalized: identity.phoneNormalized,
+              householdId: identity.householdId,
+              source: 'VIDHYAAN',
+              status: 'NEW',
+              priority: 'MEDIUM'
+            }
+          })
+        )
+      }
 
       // Link lead back to the enquiry
       await prisma.parentEnquiry.update({

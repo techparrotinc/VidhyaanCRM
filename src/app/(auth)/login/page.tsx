@@ -6,7 +6,7 @@ import { Shield, Loader2, ArrowLeft, CheckCircle2, Lock, AlertCircle, Users, Bui
 import { signIn } from 'next-auth/react'
 import PinInput from '@/components/ui/PinInput'
 
-type LoginState = 'phone' | 'workspace' | 'pin' | 'otp'
+type LoginState = 'phone' | 'workspace' | 'pin' | 'otp' | 'twofa'
 
 type RoleAssignment = {
   id: string
@@ -50,6 +50,13 @@ export default function LoginPage() {
   const [otpSecondsLeft, setOtpSecondsLeft] = useState(600) // 10 mins expiry
   const [resendCooldown, setResendCooldown] = useState(30) // 30s resend cooldown
   const otpRefs = useRef<(HTMLInputElement | null)[]>([])
+
+  // Step 4: Second factor (2FA) challenge
+  const [challengeToken, setChallengeToken] = useState<string | null>(null)
+  const [twofaMethod, setTwofaMethod] = useState<'TOTP' | 'SMS' | null>(null)
+  const [twofaMaskedPhone, setTwofaMaskedPhone] = useState<string | undefined>(undefined)
+  const [twofaCode, setTwofaCode] = useState('')
+  const [twofaError, setTwofaError] = useState<string | null>(null)
 
   // Inline PIN Setup (For no-pin users after OTP verify)
   const [showInlinePinSetup, setShowInlinePinSetup] = useState(false)
@@ -107,6 +114,73 @@ export default function LoginPage() {
       window.location.href = '/admin'
     } else {
       window.location.href = '/dashboard'
+    }
+  }
+
+  // Runs the primary-factor gate, then either finalizes the session (no 2FA)
+  // or transitions to the second-factor step. `primary` carries whichever
+  // primary credential was just verified. Returns true on full success.
+  const runChallenge = async (
+    primary: { phone?: string; pin?: string; contact?: string; code?: string }
+  ): Promise<'done' | '2fa' | 'error'> => {
+    const res = await fetch('/api/auth/2fa/challenge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...primary,
+        ...(selectedAssignment ? { assignmentId: selectedAssignment.id } : {})
+      })
+    })
+    const data = await res.json()
+    if (!res.ok || !data.success) {
+      setApiError(data.message || 'Verification failed.')
+      return 'error'
+    }
+
+    if (!data.requires2fa) {
+      const ok = await finalizeSignIn(data.challengeToken)
+      return ok ? 'done' : 'error'
+    }
+
+    // Second factor required — hand off to the 2FA step.
+    setChallengeToken(data.challengeToken)
+    setTwofaMethod(data.method)
+    setTwofaMaskedPhone(data.maskedPhone)
+    setTwofaCode('')
+    setTwofaError(null)
+    setState('twofa')
+    return '2fa'
+  }
+
+  // The single session-minting call. Uses the challenge token (+ optional
+  // second factor); NextAuth issues a JWT only when both factors pass.
+  const finalizeSignIn = async (token: string, secondFactor?: string): Promise<boolean> => {
+    const authRes = await signIn('credentials', {
+      challengeToken: token,
+      ...(secondFactor ? { secondFactor } : {}),
+      redirect: false
+    })
+    if (authRes?.error) return false
+    return true
+  }
+
+  const handleTwofaSubmit = async () => {
+    if (!challengeToken || twofaCode.trim().length < 4) return
+    setLoading(true)
+    setTwofaError(null)
+    try {
+      const ok = await finalizeSignIn(challengeToken, twofaCode.trim())
+      if (!ok) {
+        setTwofaError('Incorrect or expired code. Try again.')
+        setTwofaCode('')
+        return
+      }
+      handleRoleRedirect(selectedAssignment?.role ?? userRole)
+    } catch (err) {
+      console.error(err)
+      setTwofaError('Verification failed. Try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -221,22 +295,17 @@ export default function LoginPage() {
 
       setPinSuccess(true)
 
-      // 2. Perform NextAuth Sign In
-      const authRes = await signIn('credentials', {
-        phone,
-        pin,
-        ...(selectedAssignment ? { assignmentId: selectedAssignment.id } : {}),
-        redirect: false
-      })
-
-      if (authRes?.error) {
+      // 2. Primary factor verified — run the 2FA gate, then finalize.
+      const outcome = await runChallenge({ phone, pin })
+      if (outcome === 'error') {
         setPinSuccess(false)
         setPinKey((prev) => prev + 1)
-        setApiError('Session creation failed. Try again.')
+        setApiError((prev) => prev || 'Session creation failed. Try again.')
         return
       }
+      if (outcome === '2fa') return // 2FA step now drives redirect
 
-      // Success -> Redirect based on role
+      // No 2FA -> Redirect based on role
       handleRoleRedirect(userRole)
 
     } catch (err) {
@@ -320,23 +389,20 @@ export default function LoginPage() {
     setOtpError(false)
 
     try {
-      // Direct NextAuth credentials provider call which also verifies OTP code
-      const authRes = await signIn('credentials', {
-        contact: phone,
-        code,
-        ...(selectedAssignment ? { assignmentId: selectedAssignment.id } : {}),
-        redirect: false
-      })
+      // Verify OTP + run the 2FA gate via the challenge endpoint. The OTP is
+      // consumed here; the session is minted from the returned challenge token.
+      const outcome = await runChallenge({ contact: phone, code })
 
-      if (authRes?.error) {
+      if (outcome === 'error') {
         setOtpError(true)
         setOtp(['', '', '', ''])
         setTimeout(() => otpRefs.current[0]?.focus(), 50)
-        setApiError('Incorrect OTP or session expired.')
+        setApiError((prev) => prev || 'Incorrect OTP or session expired.')
         return
       }
+      if (outcome === '2fa') return // 2FA step now drives redirect
 
-      // Success
+      // Success (no 2FA)
       if (!hasPin) {
         // Prompt to set a PIN
         setShowInlinePinSetup(true)
@@ -952,6 +1018,78 @@ export default function LoginPage() {
                     </div>
                   </>
                 )}
+              </div>
+            )}
+
+            {state === 'twofa' && (
+              <div className="space-y-6 animate-fade-slide-up">
+                <button
+                  onClick={() => {
+                    setState(hasPin ? 'pin' : 'otp')
+                    setChallengeToken(null)
+                    setTwofaError(null)
+                    setApiError(null)
+                  }}
+                  className="p-2 -ml-1 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-50 transition-all cursor-pointer"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+
+                <div className="space-y-1.5">
+                  <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center border border-blue-100 mb-2">
+                    <Shield className="w-6 h-6 text-[#1565D8]" />
+                  </div>
+                  <h2 className="text-2xl font-bold tracking-tight text-slate-800">
+                    Two-factor authentication
+                  </h2>
+                  <p className="text-sm text-slate-500">
+                    {twofaMethod === 'SMS'
+                      ? `Enter the code sent to ${twofaMaskedPhone ?? 'your phone'}`
+                      : 'Enter the 6-digit code from your authenticator app'}
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoFocus
+                    maxLength={11}
+                    value={twofaCode}
+                    onChange={(e) => {
+                      // digits for TOTP/SMS; allow hyphen for backup codes
+                      setTwofaCode(e.target.value.replace(/[^0-9A-Za-z-]/g, '').toUpperCase())
+                      setTwofaError(null)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleTwofaSubmit()
+                    }}
+                    placeholder="000000"
+                    className={`w-full h-14 text-center text-2xl font-extrabold tracking-[0.3em] bg-slate-50 border-2 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-50/60 focus:bg-white transition-all text-slate-800 ${
+                      twofaError ? 'border-red-300 animate-shake' : 'border-slate-200 focus:border-[#1565D8]'
+                    }`}
+                  />
+
+                  {twofaError && (
+                    <div className="flex items-center gap-2 text-xs font-medium text-red-500">
+                      <AlertCircle className="w-4 h-4" />
+                      {twofaError}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleTwofaSubmit}
+                    disabled={loading || twofaCode.trim().length < 4}
+                    className="w-full flex items-center justify-center h-[48px] bg-gradient-to-r from-[#1565D8] to-[#1E88E5] hover:from-[#1150ad] hover:to-[#1565D8] disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white font-bold rounded-2xl shadow-lg shadow-blue-200/40 disabled:shadow-none transition-all cursor-pointer text-sm"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    Verify
+                  </button>
+
+                  <p className="text-center text-xs text-slate-400">
+                    Lost your device? Use one of your backup codes.
+                  </p>
+                </div>
               </div>
             )}
 

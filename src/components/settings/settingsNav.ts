@@ -12,6 +12,7 @@ import {
   Mail,
   Network,
   Puzzle,
+  ShieldCheck,
   Wallet
 } from 'lucide-react'
 
@@ -82,7 +83,13 @@ export function buildSettingsNav(opts: {
                 icon: BookOpen,
                 description: 'Courses, pricing and billing frequency'
               }
-            ])
+            ]),
+        {
+          name: 'Duplicate Detection',
+          path: '/settings/deduplication',
+          icon: ShieldCheck,
+          description: 'Rules for catching duplicate leads, admissions and students'
+        }
       ]
     },
     {
@@ -129,6 +136,17 @@ export function buildSettingsNav(opts: {
           icon: MessageCircle,
           description: 'Approved message templates for campaigns',
           locked: !isWhatsappActive
+        }
+      ]
+    },
+    {
+      label: 'Security',
+      items: [
+        {
+          name: 'Two-Factor Auth',
+          path: '/settings/security',
+          icon: ShieldCheck,
+          description: 'Authenticator app or SMS second factor, backup codes'
         }
       ]
     },

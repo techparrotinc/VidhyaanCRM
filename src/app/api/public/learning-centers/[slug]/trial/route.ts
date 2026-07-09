@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
+import { dedupFields } from '@/lib/dedup'
 
 const trialBookingSchema = z.object({
   parentName: z.string().max(150).optional().nullable(),
@@ -177,31 +178,66 @@ export async function POST(
         where: { orgId: lc.orgId, status: 'ACTIVE' }
       })
 
-      await createLeadWithUniqueCode(orgId, (leadCode) =>
-        prisma.lead.create({
+      const identity = await dedupFields(prisma, { orgId, phone, name: parentName, email })
+
+      // Merge into an existing open lead for this child instead of leaking a new one.
+      const existingLead = await prisma.lead.findFirst({
+        where: {
+          orgId,
+          deletedAt: null,
+          phoneNormalized: identity.phoneNormalized ?? undefined,
+          status: { notIn: ['CONVERTED', 'NOT_INTERESTED'] },
+          ...(childName ? { kidName: { equals: childName.trim(), mode: 'insensitive' } } : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      if (existingLead && identity.phoneNormalized) {
+        await prisma.lead.update({
+          where: { id: existingLead.id },
           data: {
-            orgId,
-            branchId: branch?.id || null,
-            academicYearId: academicYear?.id || null,
-            leadCode,
-            parentName,
-            phone,
-            email: email || null,
-            kidName: childName,
-            gradeSought: activityType || 'Learning Center',
-            source: 'VIDHYAAN',
-            status: 'NEW',
-            priority: 'MEDIUM',
+            householdId: identity.householdId ?? undefined,
+            phoneNormalized: identity.phoneNormalized,
+            email: email || existingLead.email,
+            nextFollowUpAt: new Date(),
             activities: {
               create: {
                 orgId,
                 type: 'NOTE',
-                summary: `Trial class booking request for ${activityType || 'Learning Center'}.`
+                summary: `Repeat trial class booking for ${activityType || 'Learning Center'}.`,
+              },
+            },
+          },
+        })
+      } else {
+        await createLeadWithUniqueCode(orgId, (leadCode) =>
+          prisma.lead.create({
+            data: {
+              orgId,
+              branchId: branch?.id || null,
+              academicYearId: academicYear?.id || null,
+              leadCode,
+              parentName,
+              phone,
+              email: email || null,
+              kidName: childName,
+              gradeSought: activityType || 'Learning Center',
+              phoneNormalized: identity.phoneNormalized,
+              householdId: identity.householdId,
+              source: 'VIDHYAAN',
+              status: 'NEW',
+              priority: 'MEDIUM',
+              activities: {
+                create: {
+                  orgId,
+                  type: 'NOTE',
+                  summary: `Trial class booking request for ${activityType || 'Learning Center'}.`
+                }
               }
             }
-          }
-        })
-      )
+          })
+        )
+      }
     }
 
     // 7. Increment LC enquiryCount asynchronously

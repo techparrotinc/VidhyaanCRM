@@ -5,6 +5,7 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
 import { Gender, StudentStatus } from '@prisma/client'
+import { findMatches, loadDedupConfig, dedupFields } from '@/lib/dedup'
 
 export const POST = route({
   module: MODULES.STUDENT_MANAGEMENT,
@@ -20,7 +21,9 @@ export const POST = route({
         rollNumber: z.string().optional(),
         dateOfBirth: z.string().optional(),
         gender: z.string().optional()
-      })).min(1).max(500)
+      })).min(1).max(500),
+      // Import every row even when a duplicate is detected
+      force: z.boolean().optional()
     }).parse(await req.json())
 
     const year = new Date().getFullYear()
@@ -28,29 +31,60 @@ export const POST = route({
       where: { orgId: user.orgId }
     })
 
-    const studentsData = body.students.map((s, i) => ({
-      orgId: user.orgId,
-      studentCode: 'STU-' + year + '-' + String(baseCount + i + 1).padStart(5, '0'),
-      status: 'ACTIVE' as StudentStatus,
-      academicYearId: academicYearId ?? null,
-      name: s.name,
-      guardianPhone: s.phone ?? null,
-      guardianEmail: s.email ?? null,
-      gradeLabel: s.currentClass ?? null,
-      rollNumber: s.rollNumber ?? null,
-      dateOfBirth: s.dateOfBirth ? new Date(s.dateOfBirth) : null,
-      gender: s.gender ? (s.gender.toUpperCase() as Gender) : null
-    }))
+    // Real dedup: skipDuplicates on createMany was a no-op (no DB unique key on
+    // name/phone). Evaluate each row against the org rules AND against rows
+    // already imported in this same batch.
+    const config = await loadDedupConfig(prisma, user.orgId)
+    const skipped: { name: string; reason: string; match: string | null }[] = []
+    let seq = baseCount
+    let imported = 0
 
-    const result = await prisma.student.createMany({
-      data: studentsData,
-      skipDuplicates: true
-    })
+    for (const s of body.students) {
+      if (!body.force) {
+        const dedup = await findMatches(prisma, {
+          orgId: user.orgId,
+          phone: s.phone,
+          email: s.email,
+          childName: s.name,
+          grade: s.currentClass,
+          academicYearId: academicYearId ?? null,
+        }, config)
+        if (dedup.action === 'hard' || dedup.action === 'soft') {
+          skipped.push({ name: s.name, reason: dedup.action, match: dedup.matches[0]?.code ?? null })
+          continue
+        }
+      }
+
+      const identity = await dedupFields(prisma, {
+        orgId: user.orgId, phone: s.phone, name: s.name, email: s.email,
+      })
+      seq += 1
+      await prisma.student.create({
+        data: {
+          orgId: user.orgId,
+          studentCode: 'STU-' + year + '-' + String(seq).padStart(5, '0'),
+          status: 'ACTIVE' as StudentStatus,
+          academicYearId: academicYearId ?? null,
+          name: s.name,
+          guardianPhone: s.phone ?? null,
+          guardianEmail: s.email ?? null,
+          phoneNormalized: identity.phoneNormalized,
+          householdId: identity.householdId,
+          gradeLabel: s.currentClass ?? null,
+          rollNumber: s.rollNumber ?? null,
+          dateOfBirth: s.dateOfBirth ? new Date(s.dateOfBirth) : null,
+          gender: s.gender ? (s.gender.toUpperCase() as Gender) : null,
+        }
+      })
+      imported++
+    }
 
     return created({
-      imported: result.count,
+      imported,
+      skipped: skipped.length,
+      skippedRows: skipped,
       total: body.students.length,
-      message: result.count + ' students imported successfully'
+      message: `${imported} imported${skipped.length ? `, ${skipped.length} skipped as duplicates` : ''}`
     })
   }
 })

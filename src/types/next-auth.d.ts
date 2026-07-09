@@ -13,6 +13,7 @@ declare module 'next-auth' {
       onboardingComplete: boolean
       impersonatorId: string | null
       impersonationExpiresAt: number | null
+      mustEnrol2fa: boolean
     } & DefaultSession['user']
   }
 
@@ -26,6 +27,7 @@ declare module 'next-auth' {
     onboardingComplete: boolean
     impersonatorId: string | null
     impersonationExpiresAt: number | null
+    mustEnrol2fa: boolean
   }
 }
 
@@ -40,5 +42,6 @@ declare module 'next-auth/jwt' {
     onboardingComplete: boolean
     impersonatorId: string | null
     impersonationExpiresAt: number | null
+    mustEnrol2fa: boolean
   }
 }

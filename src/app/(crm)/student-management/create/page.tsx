@@ -8,6 +8,7 @@ import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { GRADE_OPTIONS } from '@/constants/grades'
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
+import { DedupDialog, DedupPayload } from "@/components/dedup/DedupDialog"
 
 const format = (date: Date, formatStr: string): string => {
   const yyyy = date.getFullYear()
@@ -29,6 +30,7 @@ export default function CreateStudentPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [dedup, setDedup] = useState<DedupPayload | null>(null)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -48,14 +50,7 @@ export default function CreateStudentPage() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!formData.name.trim()) {
-      setErrorMessage('Student Name is required')
-      return
-    }
-
+  const submit = async (force = false) => {
     setIsSubmitting(true)
     setErrorMessage('')
 
@@ -74,16 +69,23 @@ export default function CreateStudentPage() {
           academicYearId: formData.academicYearId || undefined,
           guardianName: formData.guardianName.trim() || undefined,
           guardianPhone: formData.guardianPhone.trim() || undefined,
-          guardianEmail: formData.guardianEmail.trim() || undefined
+          guardianEmail: formData.guardianEmail.trim() || undefined,
+          ...(force ? { force: true } : {}),
         }),
       })
 
       const json = await res.json()
 
       if (!res.ok) {
+        // Duplicate detected — surface the match picker instead of a raw error.
+        if (json.code === 'CONFLICT' && json.details?.dedup) {
+          setDedup(json.details.dedup)
+          return
+        }
         throw new Error(json.error || json.message || 'Failed to create student')
       }
 
+      setDedup(null)
       // Invalidate student list cache
       await mutate(
         (key: string) =>
@@ -102,10 +104,25 @@ export default function CreateStudentPage() {
     }
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.name.trim()) {
+      setErrorMessage('Student Name is required')
+      return
+    }
+    submit(false)
+  }
+
   const isFormValid = Boolean(formData.name.trim())
 
   return (
     <div className="p-3 sm:p-4 lg:p-6 pb-28 lg:pb-6 space-y-4 sm:space-y-6 max-w-4xl mx-auto w-full text-left">
+      <DedupDialog
+        payload={dedup}
+        onClose={() => setDedup(null)}
+        onForce={() => submit(true)}
+        busy={isSubmitting}
+      />
       {/* PAGE TITLE ROW */}
       <div className="flex items-center justify-between gap-3 mb-2 w-full">
         <div className="flex items-center gap-3">

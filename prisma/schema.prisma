@@ -132,6 +132,7 @@ enum OtpPurpose {
   LOGIN
   VERIFY_PHONE
   VERIFY_EMAIL
+  MFA
 
   @@schema("platform")
 }
@@ -615,6 +616,7 @@ model Organization {
   admissionStages       AdmissionStage[]
   admissionCapacities   AdmissionCapacity[]
   students              Student[]
+  households            Household[]
   studentBatches        StudentBatch[]
   siblingLinks          SiblingLink[]
   feePlans              FeePlan[]
@@ -709,6 +711,7 @@ model User {
   notificationPrefs  NotificationPreference[]
   parent             Parent?
   studentActivities  StudentActivity[]        @relation("StudentActivityPerformedBy")
+  twoFactor          UserTwoFactor?
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -851,6 +854,34 @@ model OtpCode {
   @@index([identifier])
   @@index([expiresAt])
   @@map("otp_codes")
+  @@schema("platform")
+}
+
+// Second-factor enrolment, one row per user. Primary factor (PIN/OTP) is
+// verified first; this gates issuing the session. TOTP secret is stored
+// encrypted via the payment vault (AES-256-GCM); SMS fallback rides the
+// existing OtpCode table with purpose = MFA.
+model UserTwoFactor {
+  id           String          @id @default(cuid())
+  userId       String          @unique @map("user_id")
+  method       TwoFactorMethod @default(TOTP)
+  secretEnc    String?         @map("secret_enc") // encrypted TOTP secret; null for SMS-only
+  enabledAt    DateTime?       @map("enabled_at") // null until enrolment confirmed
+  backupCodes  Json            @default("[]") // bcrypt hashes, single-use
+  lastUsedStep Int?            @map("last_used_step") // anti-replay: reject reused TOTP window
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_two_factor")
+  @@schema("platform")
+}
+
+enum TwoFactorMethod {
+  TOTP
+  SMS
+
   @@schema("platform")
 }
 
@@ -1560,10 +1591,15 @@ model Lead {
   studentAge       String?   @map("student_age")
   startDate        DateTime? @map("start_date")
 
+  // Dedup / household identity
+  phoneNormalized String? @map("phone_normalized") // cleanPhoneNumber(phone) — the dedup join key
+  householdId     String? @map("household_id")
+
   organization Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch       Branch?        @relation(fields: [branchId], references: [id])
   academicYear AcademicYear?  @relation(fields: [academicYearId], references: [id])
   assignedTo   User?          @relation("LeadCounsellor", fields: [assignedToId], references: [id])
+  household    Household?     @relation(fields: [householdId], references: [id])
   activities   LeadActivity[]
   admissions   Admission[]
 
@@ -1572,8 +1608,10 @@ model Lead {
   @@index([orgId, status])
   @@index([orgId, assignedToId])
   @@index([orgId, phone])
+  @@index([orgId, phoneNormalized])
   @@index([orgId, source, status])
   @@index([orgId, nextFollowUpAt])
+  @@index([householdId])
   @@index([branchId])
   @@index([academicYearId])
   @@map("leads")
@@ -1646,12 +1684,17 @@ model Admission {
   /// reporting); archiving hides them from active views instead.
   archivedAt      DateTime?       @map("archived_at")
 
+  // Dedup / household identity
+  phoneNormalized String? @map("phone_normalized") // cleanPhoneNumber(phone) — the dedup join key
+  householdId     String? @map("household_id")
+
   organization Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch       Branch?             @relation(fields: [branchId], references: [id])
   academicYear AcademicYear?       @relation(fields: [academicYearId], references: [id])
   lead         Lead?               @relation(fields: [leadId], references: [id])
   stage        AdmissionStage?     @relation(fields: [stageId], references: [id])
   assignedTo   User?               @relation("AdmissionCounsellor", fields: [assignedToId], references: [id])
+  household    Household?          @relation(fields: [householdId], references: [id])
   activities   AdmissionActivity[]
   documents    AdmissionDocument[]
   student      Student?
@@ -1661,6 +1704,8 @@ model Admission {
   @@index([orgId, status])
   @@index([orgId, stageId])
   @@index([orgId, assignedToId])
+  @@index([orgId, phoneNormalized])
+  @@index([householdId])
   @@index([branchId])
   @@index([academicYearId])
   @@map("admissions")
@@ -1785,11 +1830,16 @@ model Student {
   updatedAt             DateTime      @updatedAt @map("updated_at")
   deletedAt             DateTime?     @map("deleted_at")
 
+  // Dedup / household identity (keyed on guardianPhone)
+  phoneNormalized String? @map("phone_normalized") // cleanPhoneNumber(guardianPhone)
+  householdId     String? @map("household_id")
+
   organization      Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch            Branch?               @relation(fields: [branchId], references: [id])
   academicYear      AcademicYear?         @relation(fields: [academicYearId], references: [id])
   admission         Admission?            @relation(fields: [admissionId], references: [id])
   batch             StudentBatch?         @relation(fields: [batchId], references: [id])
+  household         Household?            @relation(fields: [householdId], references: [id])
   invoices          Invoice[]
   payments          Payment[]
   concessions       Concession[]
@@ -1805,10 +1855,34 @@ model Student {
   @@index([orgId, status])
   @@index([orgId, gradeLabel])
   @@index([orgId, gradeLabel, section])
+  @@index([orgId, phoneNormalized])
+  @@index([householdId])
   @@index([branchId])
   @@index([academicYearId])
   @@index([batchId])
   @@map("students")
+  @@schema("crm")
+}
+
+/// Family/household identity — groups Leads, Admissions and Students that share
+/// a guardian (keyed on the normalized phone). Powers dedup + sibling grouping.
+model Household {
+  id              String   @id @default(cuid())
+  orgId           String   @map("org_id")
+  phoneNormalized String   @map("phone_normalized") // cleanPhoneNumber() of the guardian phone
+  primaryName     String?  @map("primary_name")
+  primaryEmail    String?  @map("primary_email")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  leads        Lead[]
+  admissions   Admission[]
+  students     Student[]
+
+  @@unique([orgId, phoneNormalized])
+  @@index([orgId])
+  @@map("households")
   @@schema("crm")
 }
 

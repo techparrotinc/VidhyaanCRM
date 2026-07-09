@@ -36,6 +36,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
 import { GRADE_OPTIONS } from '@/constants/grades'
 import { mapGradeValue } from '@/lib/utils/gradeMapping'
+import { DedupDialog, DedupPayload } from "@/components/dedup/DedupDialog"
 
 const institutionType = 'school'
 
@@ -203,6 +204,7 @@ export default function AddLeadPage() {
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [dedup, setDedup] = useState<DedupPayload | null>(null)
 
   const [noteType, setNoteType] = useState('General')
   const noteTypes = [
@@ -351,6 +353,10 @@ export default function AddLeadPage() {
       return
     }
 
+    submit(false)
+  }
+
+  const submit = async (force = false) => {
     setIsSubmitting(true)
 
     try {
@@ -380,9 +386,8 @@ export default function AddLeadPage() {
         notes: formData.notes?.trim() || null,
         nextFollowUpAt,
         expectedJoinDate: expectedJoinDate ? expectedJoinDate.toISOString() : null,
+        ...(force ? { force: true } : {}),
       }
-
-      console.log('Sending payload:', payload)
 
       const res = await fetch(
         '/api/v1/leads',
@@ -395,10 +400,13 @@ export default function AddLeadPage() {
         }
       )
 
-      console.log('Response status:', res.status)
-
       if (!res.ok) {
         const errorData = await res.json()
+        // Duplicate detected — show the match picker instead of a toast.
+        if (errorData.code === 'CONFLICT' && errorData.details?.dedup) {
+          setDedup(errorData.details.dedup)
+          return
+        }
         console.error('API error:', errorData)
         throw new Error(
           errorData.message || 'Failed to create lead'
@@ -407,6 +415,7 @@ export default function AddLeadPage() {
 
       const created = await res.json()
 
+      setDedup(null)
       showToast('Lead created successfully')
 
       // API envelope is { success, data: lead }
@@ -449,6 +458,12 @@ export default function AddLeadPage() {
 
   return (
     <>
+      <DedupDialog
+        payload={dedup}
+        onClose={() => setDedup(null)}
+        onForce={() => submit(true)}
+        busy={isSubmitting}
+      />
       <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="p-4 md:p-6 lg:p-8 pb-28 space-y-6 max-w-7xl mx-auto w-full">
           
           {/* PAGE TITLE ROW */}

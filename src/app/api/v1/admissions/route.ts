@@ -9,9 +9,11 @@ import { redis } from '@/lib/redis'
 import { AdmissionStatus, LeadPriority } from '@prisma/client'
 import { asEnum } from '@/lib/api/query'
 import { Errors } from '@/lib/api/errors'
-import { Prisma } from '@prisma/client'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
+import { createAdmissionWithUniqueCode } from '@/lib/admission-code'
 import { createNotification } from '@/lib/services/notifications'
+import { findMatches, loadDedupConfig, dedupFields } from '@/lib/dedup'
+import { assertNotDuplicate } from '@/lib/dedup/guard'
 
 export const GET = route({
   module: MODULES.ADMISSION_MANAGEMENT,
@@ -231,6 +233,8 @@ const createAdmissionSchema = z.object({
     .transform(v =>
       v === '' ? null : v
     ),
+  // "Create anyway" override for soft dedup matches
+  force: z.boolean().optional(),
 })
 
 export const POST = route({
@@ -255,6 +259,22 @@ export const POST = route({
     }
 
     const year = new Date().getFullYear()
+    const resolvedYear = body.academicYearId || academicYearId || null
+
+    // Dedup + household identity. Run the scan for context in both paths;
+    // only *block* on a direct create (converting an existing lead is legit).
+    const dedupConfig = await loadDedupConfig(db, user.orgId)
+    const dedup = await findMatches(db, {
+      orgId: user.orgId,
+      phone: body.phone,
+      email: body.email,
+      childName: body.applicantName,
+      grade: body.gradeSought,
+      academicYearId: resolvedYear,
+    }, dedupConfig)
+    const identity = await dedupFields(db, {
+      orgId: user.orgId, phone: body.phone, name: body.parentName, email: body.email,
+    })
 
     let leadId = body.leadId
     if (leadId) {
@@ -271,26 +291,53 @@ export const POST = route({
     }
 
     if (!leadId) {
-      const newLead = await createLeadWithUniqueCode(user.orgId, (leadCode) =>
-        db.lead.create({
+      // Block hard / unconfirmed-soft duplicates on direct entry.
+      assertNotDuplicate(dedup, { force: body.force })
+
+      // Don't spawn a duplicate lead: if this person already has a lead, reuse
+      // it instead of minting a fresh one for every admission.
+      const leadMatch = dedup.matches.find(m => m.type === 'lead')
+      if (leadMatch) {
+        leadId = leadMatch.id
+        await db.lead.update({
+          where: { id: leadId },
           data: {
-            orgId: user.orgId,
-            branchId: null,
-            academicYearId: body.academicYearId || academicYearId || null,
-            leadCode,
-            kidName: body.applicantName,
-            parentName: body.parentName ?? "",
-            phone: body.phone ?? "",
-            email: body.email ?? null,
             status: 'CONVERTED',
-            expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
-            currentSchool: body.currentSchool ?? null,
-            priority: (body.priority ?? 'MEDIUM') as any,
-            gradeSought: body.gradeSought ?? null
-          }
+            householdId: identity.householdId ?? undefined,
+            phoneNormalized: identity.phoneNormalized ?? undefined,
+          },
         })
-      )
-      leadId = newLead.id
+        await db.leadActivity.create({
+          data: {
+            orgId: user.orgId, leadId, type: 'STATUS_CHANGE',
+            summary: 'Lead converted to admission (matched existing lead)',
+            performedById: user.id,
+          },
+        }).catch(err => console.error('Lead conversion activity log failed:', err))
+      } else {
+        const newLead = await createLeadWithUniqueCode(user.orgId, (leadCode) =>
+          db.lead.create({
+            data: {
+              orgId: user.orgId,
+              branchId: null,
+              academicYearId: resolvedYear,
+              leadCode,
+              kidName: body.applicantName,
+              parentName: body.parentName ?? "",
+              phone: body.phone ?? "",
+              email: body.email ?? null,
+              phoneNormalized: identity.phoneNormalized,
+              householdId: identity.householdId,
+              status: 'CONVERTED',
+              expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+              currentSchool: body.currentSchool ?? null,
+              priority: (body.priority ?? 'MEDIUM') as any,
+              gradeSought: body.gradeSought ?? null
+            }
+          })
+        )
+        leadId = newLead.id
+      }
     } else {
       await db.lead.update({
         where: { id: leadId },
@@ -332,47 +379,32 @@ export const POST = route({
       }
     }
 
-    // Create admission — the code derives from count()+1 against a unique
-    // [orgId, admissionCode] constraint, so concurrent converts can collide;
-    // retry with a re-count instead of surfacing a 500.
-    const institutionType = 'SCHOOL'
-    const prefix = institutionType === 'SCHOOL' ? 'AT' : 'EN'
-
-    let admission
-    for (let attempt = 0; ; attempt++) {
-      const count = await prisma.admission.count({
-        where: { orgId: user.orgId }
+    // Admission code from the numeric max (never count()+1 — soft-deleted rows
+    // keep their code under the unique constraint). Prefix kept as 'AT-YYYY-'.
+    const prefix = `AT-${year}-`
+    const admission = await createAdmissionWithUniqueCode(user.orgId, prefix, (admissionCode) =>
+      db.admission.create({
+        data: {
+          applicantName: body.applicantName,
+          parentName: body.parentName ?? null,
+          phone: body.phone ?? null,
+          email: body.email ?? null,
+          gradeSought: body.gradeSought ?? null,
+          orgId: user.orgId,
+          admissionCode,
+          phoneNormalized: identity.phoneNormalized,
+          householdId: identity.householdId,
+          stageId: stageId ?? null,
+          assignedToId: body.assignedToId ?? null,
+          academicYearId: resolvedYear,
+          leadId,
+          status: 'IN_PROGRESS'
+        },
+        include: {
+          stage: true
+        }
       })
-      const admissionCode =
-        prefix + '-' + year + '-' + String(count + 1 + attempt).padStart(5, '0')
-
-      try {
-        admission = await db.admission.create({
-          data: {
-            applicantName: body.applicantName,
-            parentName: body.parentName ?? null,
-            phone: body.phone ?? null,
-            email: body.email ?? null,
-            gradeSought: body.gradeSought ?? null,
-            orgId: user.orgId,
-            admissionCode,
-            stageId: stageId ?? null,
-            assignedToId: body.assignedToId ?? null,
-            academicYearId: body.academicYearId ?? academicYearId ?? null,
-            leadId,
-            status: 'IN_PROGRESS'
-          },
-          include: {
-            stage: true
-          }
-        })
-        break
-      } catch (err) {
-        const isCodeCollision =
-          err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002'
-        if (!isCodeCollision || attempt >= 2) throw err
-      }
-    }
+    )
 
     // Log activity
     await db.admissionActivity.create({
@@ -397,6 +429,9 @@ export const POST = route({
       console.error('Failed to invalidate pipeline cache:', err)
     }
 
-    return created(admission)
+    return created({
+      ...admission,
+      dedup: dedup.matches.length > 0 ? { action: dedup.action, matches: dedup.matches } : null
+    })
   }
 })

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
 import { GRADE_OPTIONS } from '@/constants/grades'
+import { DedupDialog, DedupPayload } from "@/components/dedup/DedupDialog"
 
 const format = (date: Date, formatStr: string): string => {
   const yyyy = date.getFullYear()
@@ -42,6 +43,7 @@ export default function CreateAdmissionPage() {
   const [loadingOptions, setLoadingOptions] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [dedup, setDedup] = useState<DedupPayload | null>(null)
 
   // Form states
   const [formData, setFormData] = useState({
@@ -146,6 +148,10 @@ export default function CreateAdmissionPage() {
       return
     }
 
+    submit(false)
+  }
+
+  const submit = async (force = false) => {
     setIsSubmitting(true)
     setErrorMessage('')
 
@@ -162,7 +168,8 @@ export default function CreateAdmissionPage() {
         priority: formData.priority,
         notes: formData.notes.trim() || null,
         expectedJoinDate: expectedJoinDate ? expectedJoinDate.toISOString() : null,
-        currentSchool: formData.currentSchool.trim() || null
+        currentSchool: formData.currentSchool.trim() || null,
+        ...(force ? { force: true } : {}),
       }
 
       const res = await fetch('/api/v1/admissions', {
@@ -176,9 +183,14 @@ export default function CreateAdmissionPage() {
       const json = await res.json()
 
       if (!res.ok) {
+        if (json.code === 'CONFLICT' && json.details?.dedup) {
+          setDedup(json.details.dedup)
+          return
+        }
         throw new Error(json.error || json.message || 'Failed to create admission record')
       }
 
+      setDedup(null)
       router.push('/admission-management?success=created')
     } catch (err: any) {
       console.error('Submit error:', err)
@@ -199,6 +211,12 @@ export default function CreateAdmissionPage() {
 
   return (
     <div className="p-3 sm:p-4 lg:p-6 pb-28 lg:pb-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto w-full select-none text-left">
+      <DedupDialog
+        payload={dedup}
+        onClose={() => setDedup(null)}
+        onForce={() => submit(true)}
+        busy={isSubmitting}
+      />
       {/* PAGE TITLE ROW */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2 w-full">
         <div className="flex items-center gap-3 w-full sm:w-auto">

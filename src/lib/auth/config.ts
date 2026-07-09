@@ -15,9 +15,83 @@ const authConfig: NextAuthConfig = {
         pin: { label: 'PIN' },
         token: { label: 'Token' },
         assignmentId: { label: 'Role Assignment' },
-        impersonateToken: { label: 'Impersonation Token' }
+        impersonateToken: { label: 'Impersonation Token' },
+        challengeToken: { label: '2FA Challenge Token' },
+        secondFactor: { label: 'Second Factor Code' }
       },
       async authorize(credentials) {
+        // -1. Challenge-token redemption — the ONLY session-minting path once
+        // 2FA is in play. The primary factor was already verified by
+        // /api/auth/2fa/challenge, which stashed { userId, assignmentId,
+        // requires2fa } in Redis. If a second factor is required it must be
+        // supplied and verified here before a JWT is issued.
+        if (credentials?.challengeToken) {
+          try {
+            const { redis } = await import('@/lib/redis')
+            const key = `mfa_challenge:${credentials.challengeToken as string}`
+            const raw = await redis.get(key)
+            if (!raw) return null
+
+            const payload = JSON.parse(raw) as {
+              userId: string
+              assignmentId: string
+              requires2fa: boolean
+            }
+
+            if (payload.requires2fa) {
+              const code = (credentials.secondFactor as string | undefined)?.trim()
+              if (!code) return null
+
+              // Brute-force cap on the challenge itself.
+              const attemptKey = `mfa_attempts:${credentials.challengeToken as string}`
+              const attempts = await redis.incr(attemptKey)
+              await redis.expire(attemptKey, 300)
+              if (attempts > 5) {
+                await redis.del(key)
+                return null
+              }
+
+              const { verifySecondFactor } = await import('@/lib/auth/twofactor')
+              const ok = await verifySecondFactor(payload.userId, code)
+              if (!ok) return null
+            }
+
+            // Both factors satisfied — consume the challenge (single-use).
+            await redis.del(key)
+
+            const user = await prisma.user.findUnique({
+              where: { id: payload.userId, status: 'ACTIVE' }
+            })
+            if (!user) return null
+
+            const assignment = await prisma.userRoleAssignment.findFirst({
+              where: { id: payload.assignmentId, userId: user.id, status: 'ACTIVE' }
+            })
+            if (!assignment) return null
+
+            // If org policy mandates 2FA but the user is not enrolled
+            // (requires2fa was false), flag a forced enrolment for middleware.
+            let mustEnrol2fa = false
+            if (!payload.requires2fa) {
+              const { orgPolicyRequires } = await import('@/lib/auth/twofactor')
+              mustEnrol2fa = await orgPolicyRequires(assignment.orgId ?? null, assignment.role)
+            }
+
+            return {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              role: assignment.role,
+              orgId: assignment.orgId ?? '',
+              activeRoleAssignmentId: assignment.id,
+              mustEnrol2fa
+            }
+          } catch (e) {
+            console.error('NextAuth challengeToken authorize error:', e)
+            return null
+          }
+        }
+
         // 0. SUPER_ADMIN impersonation — redeems the single-use token minted
         // by /api/admin/impersonate. Session is issued as the target org user
         // with impersonatorId stamped and a hard 30-minute expiry.
@@ -257,6 +331,7 @@ const authConfig: NextAuthConfig = {
         token.activeRoleAssignmentId = (user as any).activeRoleAssignmentId ?? null
         token.impersonatorId = (user as any).impersonatorId ?? null
         token.impersonationExpiresAt = (user as any).impersonationExpiresAt ?? null
+        token.mustEnrol2fa = (user as any).mustEnrol2fa ?? false
 
         // Resolve onboarding status once at login so edge middleware can gate
         // CRM routes without a per-navigation DB query / self-fetch.
@@ -279,6 +354,12 @@ const authConfig: NextAuthConfig = {
       // finishes, without forcing a re-login.
       if (trigger === 'update' && (session as any)?.onboardingComplete === true) {
         token.onboardingComplete = true
+      }
+
+      // Client flips this the moment 2FA enrolment completes, lifting the
+      // middleware force-enrol gate without a re-login.
+      if (trigger === 'update' && (session as any)?.mustEnrol2fa === false) {
+        token.mustEnrol2fa = false
       }
 
       // Impersonation sessions hard-expire after 30 minutes: strip the role so
@@ -305,6 +386,7 @@ const authConfig: NextAuthConfig = {
         session.user.onboardingComplete = !!token.onboardingComplete
         session.user.impersonatorId = (token.impersonatorId as string | null) ?? null
         session.user.impersonationExpiresAt = (token.impersonationExpiresAt as number | null) ?? null
+        session.user.mustEnrol2fa = !!token.mustEnrol2fa
       }
       return session
     }

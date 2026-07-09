@@ -198,6 +198,17 @@ export default async function middleware(request: NextRequest) {
     }
   }
 
+  // 3.6. Forced 2FA enrolment: org policy requires a second factor but the
+  // user has not enrolled. Corral every CRM route to the security page until
+  // they do (the page + its APIs are exempt so enrolment can complete).
+  if (
+    (session.user as any).mustEnrol2fa &&
+    isCRMRoute(pathname) &&
+    !pathname.startsWith('/settings/security')
+  ) {
+    return NextResponse.redirect(new URL('/settings/security?enrol=required', request.url))
+  }
+
   // 4. Admin routes → platform roles only
   if (pathname.startsWith('/admin')) {
     if (!isPlatformRole(role)) {

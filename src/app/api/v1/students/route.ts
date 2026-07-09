@@ -7,6 +7,8 @@ import { ROLES } from '@/constants/roles'
 import { Gender, StudentStatus } from '@prisma/client'
 import { parseQuery, paginationShape, enumParam } from '@/lib/api/query'
 import { assertFreeTierLimit } from '@/lib/billing/limits'
+import { findMatches, loadDedupConfig, dedupFields } from '@/lib/dedup'
+import { assertNotDuplicate } from '@/lib/dedup/guard'
 
 export const GET = route({
   module: MODULES.STUDENT_MANAGEMENT,
@@ -144,7 +146,9 @@ const createStudentSchema = z.object({
     'SUSPENDED',
     'DROPPED_OUT'
   ]).optional().default('ACTIVE'),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  // "Create anyway" override for soft dedup matches
+  force: z.boolean().optional()
 })
 
 export const POST = route({
@@ -157,6 +161,23 @@ export const POST = route({
     const body = createStudentSchema.parse(await req.json())
 
     await assertFreeTierLimit(user.orgId, 'STUDENT')
+
+    const resolvedYear = body.academicYearId ?? academicYearId ?? null
+
+    // Dedup guard + household identity (keyed on the guardian phone).
+    const dedupConfig = await loadDedupConfig(db, user.orgId)
+    const dedup = await findMatches(db, {
+      orgId: user.orgId,
+      phone: body.guardianPhone,
+      email: body.guardianEmail,
+      childName: body.name,
+      grade: body.gradeLabel,
+      academicYearId: resolvedYear,
+    }, dedupConfig)
+    assertNotDuplicate(dedup, { force: body.force })
+    const identity = await dedupFields(db, {
+      orgId: user.orgId, phone: body.guardianPhone, name: body.guardianName, email: body.guardianEmail,
+    })
 
     const year = new Date().getFullYear()
     const count = await db.student.count()
@@ -171,6 +192,8 @@ export const POST = route({
         guardianName: body.guardianName ?? null,
         guardianPhone: body.guardianPhone ?? null,
         guardianEmail: body.guardianEmail ?? null,
+        phoneNormalized: identity.phoneNormalized,
+        householdId: identity.householdId,
         gradeLabel: body.gradeLabel ?? null,
         rollNumber: body.rollNumber ?? null,
         dateOfBirth: body.dateOfBirth
@@ -180,12 +203,14 @@ export const POST = route({
           ? (body.gender.toUpperCase() as Gender)
           : null,
         admissionId: body.admissionId ?? null,
-        academicYearId: body.academicYearId
-          ?? academicYearId ?? null,
+        academicYearId: resolvedYear,
         status: (body.status ?? 'ACTIVE') as StudentStatus,
       }
     })
 
-    return created(student)
+    return created({
+      ...student,
+      dedup: dedup.matches.length > 0 ? { action: dedup.action, matches: dedup.matches } : null
+    })
   }
 })

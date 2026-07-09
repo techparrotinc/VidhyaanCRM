@@ -27,6 +27,7 @@ function isPublicRoute(pathname: string): boolean {
     '/blog',
     '/api/auth',
     '/api/webhooks',
+    '/api/cron', // self-authenticated via Bearer CRON_SECRET in each route
     '/api/public',
     '/api/location',
     '/apply', // public digital-form fill page (token-gated)

@@ -155,6 +155,12 @@ export async function getFeatureFlags(): Promise<PlatformFeatureFlags> {
   }
 }
 
+/** Optional external uptime monitor key (UptimeRobot). */
+export async function getUptimeRobotKey(): Promise<string | null> {
+  const row = await loadRow()
+  return dec(row?.uptimeRobotApiKeyEnc) ?? process.env.UPTIMEROBOT_API_KEY ?? null
+}
+
 /** Alerts channels — ops email + optional Slack webhook. */
 export async function getAlertChannels(): Promise<{ opsAlertEmail: string | null; slackWebhookUrl: string | null }> {
   const row = await loadRow()

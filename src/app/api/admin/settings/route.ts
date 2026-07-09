@@ -43,6 +43,8 @@ const platformSettingsSchema = z.object({
   // Usage & ROI model
   usageHourlyRate: intLike.optional(),
   usageMinutesPerAction: z.record(z.string().max(40), z.number().min(0).max(600)).optional(),
+  // External uptime monitor
+  uptimeRobotApiKey: strOpt(200),
   enabledBillingCycles: z
     .array(z.enum(['MONTHLY', 'QUARTERLY', 'ANNUAL']))
     .min(1, 'At least one billing cycle must stay enabled')
@@ -64,6 +66,7 @@ function maskSettings(s: any) {
     s3SecretKeyEnc,
     zeptoTokenEnc,
     msg91AuthKeyEnc,
+    uptimeRobotApiKeyEnc,
     ...rest
   } = s
   return {
@@ -73,6 +76,7 @@ function maskSettings(s: any) {
     hasS3SecretKey: !!s3SecretKeyEnc,
     hasZeptoToken: !!zeptoTokenEnc,
     hasMsg91AuthKey: !!msg91AuthKeyEnc,
+    hasUptimeRobotKey: !!uptimeRobotApiKeyEnc,
   }
 }
 
@@ -167,6 +171,7 @@ export async function PUT(req: NextRequest) {
         msg91SenderId: plainOrClear(body.msg91SenderId),
         usageHourlyRate: body.usageHourlyRate !== undefined ? parseInt(body.usageHourlyRate) : undefined,
         usageMinutesPerAction: body.usageMinutesPerAction !== undefined ? body.usageMinutesPerAction : undefined,
+        uptimeRobotApiKeyEnc: encField(body.uptimeRobotApiKey),
         freePlanLeadCap: body.freePlanLeadCap !== undefined ? parseInt(body.freePlanLeadCap) : undefined,
         trialDurationDays: body.trialDurationDays !== undefined ? parseInt(body.trialDurationDays) : undefined,
         defaultOtpTtlMinutes: body.defaultOtpTtlMinutes !== undefined ? parseInt(body.defaultOtpTtlMinutes) : undefined,

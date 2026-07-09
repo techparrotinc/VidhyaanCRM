@@ -77,10 +77,6 @@ export async function POST(req: NextRequest) {
       const from = `${fromName} <${fromEmail}>`
 
       const sendEmail = async (to: string) => {
-        if (!process.env.ZEPTOMAIL_API_TOKEN) {
-          console.warn('Skipping email send: ZEPTOMAIL_API_TOKEN is not configured')
-          return false
-        }
         try {
           await sendTransactionalEmail({
             to,

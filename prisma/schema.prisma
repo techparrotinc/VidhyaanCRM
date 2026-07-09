@@ -3006,6 +3006,10 @@ model PlatformSettings {
   usageHourlyRate       Int?    @default(300) @map("usage_hourly_rate")
   usageMinutesPerAction Json?   @map("usage_minutes_per_action")
 
+  // Optional external uptime monitor (UptimeRobot read-only API key, encrypted).
+  // When set, the admin dashboard shows a real uptime %.
+  uptimeRobotApiKeyEnc  String? @map("uptime_robot_api_key_enc")
+
   updatedAt             DateTime       @updatedAt @map("updated_at")
 
   @@map("platform_settings")
@@ -3028,6 +3032,26 @@ model FeatureUsageEvent {
   @@index([orgId, feature, createdAt])
   @@index([orgId, createdAt])
   @@map("feature_usage_events")
+  @@schema("platform")
+}
+
+// Pre-aggregated daily usage per org+feature. Populated by the usage-rollup
+// cron so raw events/heartbeats can be pruned on a retention window while
+// long-range history is preserved. One row per (org, day, feature).
+model UsageDailyRollup {
+  id           String   @id @default(cuid())
+  orgId        String   @map("org_id")
+  day          DateTime @db.Date
+  feature      String
+  actions      Int      @default(0)
+  activeUsers  Int      @default(0) @map("active_users")
+  activeMinutes Int     @default(0) @map("active_minutes")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@unique([orgId, day, feature])
+  @@index([orgId, day])
+  @@map("usage_daily_rollups")
   @@schema("platform")
 }
 

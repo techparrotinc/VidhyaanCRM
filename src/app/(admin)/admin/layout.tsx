@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ShieldAlert,
   MessageCircle,
+  Megaphone,
   Gauge,
   PanelLeftClose,
   PanelLeftOpen,
@@ -177,6 +178,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Pricing', href: '/admin/pricing', icon: BadgeIndianRupee },
     { label: 'AI Copilot', href: '/admin/ai', icon: Sparkles },
     { label: 'WhatsApp Templates', href: '/admin/whatsapp-templates', icon: MessageCircle },
+    { label: 'Announcements', href: '/admin/announcements', icon: Megaphone },
     { label: 'Audit Logs', href: '/admin/audit-logs', icon: History },
     { label: 'Settings', href: '/admin/settings', icon: Settings },
   ]

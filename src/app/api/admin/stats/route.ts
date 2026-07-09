@@ -1,6 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
+import { getUptimeRobotKey } from '@/lib/platform-config'
+
+// Average uptime % from UptimeRobot (last 7 days) when a key is configured.
+// Fail-safe: returns null on any error/timeout so the dashboard degrades.
+async function fetchUptimePct(): Promise<number | null> {
+  try {
+    const key = await getUptimeRobotKey()
+    if (!key) return null
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), 3000)
+    const res = await fetch('https://api.uptimerobot.com/v2/getMonitors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cache-Control': 'no-cache' },
+      body: `api_key=${encodeURIComponent(key)}&format=json&custom_uptime_ratios=7`,
+      signal: ctrl.signal,
+    })
+    clearTimeout(t)
+    if (!res.ok) return null
+    const data = await res.json()
+    const monitors: any[] = data?.monitors || []
+    if (monitors.length === 0) return null
+    const ratios = monitors.map((m) => parseFloat(m.custom_uptime_ratio)).filter((n) => Number.isFinite(n))
+    if (ratios.length === 0) return null
+    return Math.round((ratios.reduce((s, r) => s + r, 0) / ratios.length) * 100) / 100
+  } catch {
+    return null
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -150,6 +178,7 @@ export async function GET(req: NextRequest) {
     ])
 
     const dbLatencyMs = Date.now() - dbT0
+    const uptimePct = await fetchUptimePct()
 
     // Build a dense 6-month trend (zero-fill missing months)
     const trendMap = new Map(revenueTrendRaw.map((r) => [r.m.toISOString().slice(0, 7), Number(r.s)]))
@@ -212,7 +241,8 @@ export async function GET(req: NextRequest) {
       ops: {
         failedPaymentsThisWeek,
         dbLatencyMs,
-        activeOrgs
+        activeOrgs,
+        uptimePct
       },
       marketplace: {
         totalSchools,

@@ -55,6 +55,7 @@ export default function AdminSettingsPage() {
   // Notifications
   const [opsAlertEmail, setOpsAlertEmail] = useState('')
   const [slackWebhookUrl, setSlackWebhookUrl] = useState('')
+  const [uptimeRobotApiKey, setUptimeRobotApiKey] = useState('')
 
   // Razorpay
   const [razorpayLiveKey, setRazorpayLiveKey] = useState('')
@@ -90,6 +91,7 @@ export default function AdminSettingsPage() {
     s3SecretKey: false,
     zeptoToken: false,
     msg91AuthKey: false,
+    uptimeRobotKey: false,
   })
 
   const fetchSettings = async () => {
@@ -140,12 +142,14 @@ export default function AdminSettingsPage() {
       setS3SecretKey('')
       setZeptoToken('')
       setMsg91AuthKey('')
+      setUptimeRobotApiKey('')
       setConfigured({
         razorpayKeySecret: !!data.hasRazorpayKeySecret,
         razorpayWebhookSecret: !!data.hasRazorpayWebhookSecret,
         s3SecretKey: !!data.hasS3SecretKey,
         zeptoToken: !!data.hasZeptoToken,
         msg91AuthKey: !!data.hasMsg91AuthKey,
+        uptimeRobotKey: !!data.hasUptimeRobotKey,
       })
 
       setError(null)
@@ -218,6 +222,7 @@ export default function AdminSettingsPage() {
       if (s3SecretKey) payload.s3SecretKey = s3SecretKey
       if (zeptoToken) payload.zeptoToken = zeptoToken
       if (msg91AuthKey) payload.msg91AuthKey = msg91AuthKey
+      if (uptimeRobotApiKey) payload.uptimeRobotApiKey = uptimeRobotApiKey
 
       const res = await fetch('/api/admin/settings', {
         method: 'PUT',
@@ -869,6 +874,18 @@ export default function AdminSettingsPage() {
                   value={slackWebhookUrl}
                   onChange={(e) => setSlackWebhookUrl(e.target.value)}
                   placeholder="https://hooks.slack.com/services/..."
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-450 mb-1.5">
+                  UptimeRobot API Key {configured.uptimeRobotKey && <span className="text-green-600 font-bold">• set</span>}
+                </label>
+                <input
+                  type="password"
+                  value={uptimeRobotApiKey}
+                  onChange={(e) => setUptimeRobotApiKey(e.target.value)}
+                  placeholder={configured.uptimeRobotKey ? '•••••••• (leave blank to keep)' : 'Read-only monitor key → real uptime %'}
                   className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
                 />
               </div>

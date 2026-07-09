@@ -7,6 +7,19 @@ Record of a review + hardening + performance session. Production branch is
 
 ## ✅ Done
 
+### Reports made a universal feature — all orgs (2026-07-08)
+- `advanced_reports` was plan-gated to growth/enterprise (2 of 18 orgs saw Reports).
+  Made it universal: added the module to **every** plan (`free`/`starter` now included,
+  in `prisma/seed.ts` + prod `billing.plan_modules`) so the billing reconcile/lifecycle
+  jobs — which remap each org's modules to exactly its plan's set — never disable it again.
+- Added `advanced_reports` to the hardcoded core-module lists in all org-creation paths
+  (`onboarding/save`, `auth/school/{register,new,claim}`) so a brand-new org gets Reports
+  immediately, before its first billing sync.
+- One-off `scripts/enable-reports-all-orgs.ts`: added the missing plan-module rows and
+  enabled the `OrganizationModule` for all 18 existing orgs (cache busted). Verified
+  18/18 orgs, 4/4 plans.
+
+
 ### Reports & Analytics — schedules, trial conversion, widget customization (2026-07-08)
 - **Scheduled email reports live** (14 reports total): `/api/v1/reports/schedules` CRUD
   (cadence tokens daily/weekly_*/monthly_1|15, ≤5 recipients, ≤10 schedules/user,

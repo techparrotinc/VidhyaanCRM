@@ -118,6 +118,7 @@ export async function POST(req: NextRequest) {
           'fee_management',
           'campaign_management',
           'event_management',
+          'advanced_reports',
           ...(isSchool ? ['admission_management'] : [])
         ]
         const dbModules = await prisma.module.findMany({
@@ -276,6 +277,7 @@ export async function POST(req: NextRequest) {
           'fee_management',
           'campaign_management',
           'event_management',
+          'advanced_reports',
           ...(isSchool ? ['admission_management'] : [])
         ]
         const dbModules = await prisma.module.findMany({

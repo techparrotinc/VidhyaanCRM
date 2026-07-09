@@ -135,10 +135,12 @@ async function main() {
 
   // STEP 4: Create PlanModules
   console.log('Creating plan modules...')
-  // Free plan gets only lead_management
+  // Free plan gets lead_management + reports (reports are a universal feature
+  // on every plan — see /reports Reports & Analytics module).
   await prisma.planModule.createMany({
     data: [
-      { planId: freePlan.id, moduleSlug: 'lead_management' }
+      { planId: freePlan.id, moduleSlug: 'lead_management' },
+      { planId: freePlan.id, moduleSlug: 'advanced_reports' }
     ]
   })
 
@@ -151,7 +153,8 @@ async function main() {
       'campaign_management',
       'event_management',
       'forms_requests',
-      'whatsapp_sms_notifications'
+      'whatsapp_sms_notifications',
+      'advanced_reports'
     ].map(slug => ({ planId: starterPlan.id, moduleSlug: slug }))
   })
 

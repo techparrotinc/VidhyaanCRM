@@ -7,6 +7,35 @@ Record of a review + hardening + performance session. Production branch is
 
 ## ✅ Done
 
+### Reports — pre-sign-off bug fixes + feature gaps (2026-07-09)
+**Bugs**
+- **Defaulter Ageing dropped rows in pagination** (high — financial data loss). The rows
+  query over-fetched `limit*3`, filtered by computed balance, sliced to `limit`, but
+  advanced the cursor by `limit*3` — so ~⅔ of defaulters were silently skipped from
+  "load more" AND from CSV/XLSX exports (the accountant's chase list). Fixed: fetch
+  `limit`, advance cursor by raw fetch count; no rows skipped. Regression test drains all
+  pages and asserts every defaulter appears exactly once.
+- **Silent export truncation at 10k rows.** The export route ignored `drainRows`'
+  `truncated` flag. Now marks the filename `_partial`, appends a TRUNCATED note to the
+  rendered meta line (xlsx/pdf), sets `X-Report-Truncated`/`X-Report-Row-Count` headers,
+  and records `truncated` in the export audit log.
+
+**Feature gaps closed**
+- **Branch filter for ORG_ADMIN.** New `effectiveBranchIds` resolver folds an optional
+  `branch` selection into the role restriction (ORG_ADMIN narrows to the chosen branch;
+  BRANCH_ADMIN can only narrow within branches they hold — never widens). Wired into
+  `reportRequest` (as a scope selector, stripped from the filter bag) so all 9
+  branch-aware reports honour it with zero per-module changes; also threaded through the
+  executive + finance dashboards. New `branches` options source (platform-schema Branch,
+  explicitly org-scoped). Filter bar + dashboard selector hide themselves for
+  single-branch orgs.
+- **Scheduled reports: test-send + delivery feedback.** Delivery logic extracted to
+  `src/lib/reports/deliver.ts` (shared by cron + a new `POST /schedules/[id]/test` that
+  sends an immediate `[TEST]` email to the owner's recipients). Added `lastRunAt`/
+  `lastStatus`/`lastError` to `ReportSchedule` (migration); the Schedule popover shows
+  last-run status per schedule and a "Send test" button with inline success/error.
+
+
 ### Reports made a universal feature — all orgs (2026-07-08)
 - `advanced_reports` was plan-gated to growth/enterprise (2 of 18 orgs saw Reports).
   Made it universal: added the module to **every** plan (`free`/`starter` now included,

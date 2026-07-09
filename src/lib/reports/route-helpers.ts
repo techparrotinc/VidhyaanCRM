@@ -2,7 +2,7 @@ import { Errors } from '@/lib/api/errors'
 import type { OrgScopedClient } from '@/lib/db/tenant'
 import { getReport, type ReportDefinition } from './registry'
 import { REPORT_QUERIES } from './queries'
-import { branchIdsFor } from './queries/scope'
+import { branchIdsFor, effectiveBranchIds } from './queries/scope'
 import type { Filters, ReportCtx, ReportQuery } from './queries/types'
 
 // Shared plumbing for the generic /r/[reportKey]/* routes: validates the
@@ -38,12 +38,19 @@ export async function reportRequest(input: {
     if (allowed.has(k) && value !== '') filters[k] = value
   })
 
+  // `branch` is a scope selector, not a row filter: fold it into branchIds so
+  // every branchScope-using query honours it, then drop it from the filter bag
+  // (no query module reads filters.branch).
+  const selectedBranch = filters.branch
+  delete filters.branch
+  const roleBranchIds = await branchIdsFor(input.user.id, input.user.role)
+
   const ctx: ReportCtx = {
     db: input.db,
     orgId: input.user.orgId,
     userId: input.user.id,
     role: input.user.role,
-    branchIds: await branchIdsFor(input.user.id, input.user.role),
+    branchIds: effectiveBranchIds(roleBranchIds, selectedBranch),
     academicYearId: searchParams.get('academicYearId') ?? undefined
   }
 

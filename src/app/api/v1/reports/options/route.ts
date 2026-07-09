@@ -3,6 +3,7 @@ import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { prisma } from '@/lib/db/client'
 import { REPORTS_MODULE_SLUG } from '@/lib/reports/registry'
+import { branchIdsFor } from '@/lib/reports/queries/scope'
 
 const REPORT_VIEWER_ROLES = [
   'ORG_ADMIN', 'BRANCH_ADMIN', 'COUNSELLOR', 'RECEPTIONIST', 'ACCOUNTANT'
@@ -37,6 +38,22 @@ export const GET = route({
       return ok(stages.map(s => ({ value: s.id, label: s.name })))
     }
 
+    if (source === 'branches') {
+      // Branch lives in the platform schema (not tenant-scoped by forOrg),
+      // so scope orgId explicitly. BRANCH_ADMIN only sees their own branches.
+      const allowed = await branchIdsFor(user.id, user.role)
+      const branches = await prisma.branch.findMany({
+        where: {
+          orgId: user.orgId,
+          deletedAt: null,
+          ...(allowed ? { id: { in: allowed } } : {})
+        },
+        orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
+        select: { id: true, name: true }
+      })
+      return ok(branches.map(b => ({ value: b.id, label: b.name })))
+    }
+
     if (source === 'grades') {
       // Union of grades seen on students and leads — covers schools mid-setup.
       const [studentGrades, leadGrades] = await Promise.all([
@@ -53,6 +70,6 @@ export const GET = route({
       )
     }
 
-    throw Errors.validation({ source: ['Expected counsellors | stages | grades'] })
+    throw Errors.validation({ source: ['Expected counsellors | stages | grades | branches'] })
   }
 })

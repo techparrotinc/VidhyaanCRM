@@ -43,6 +43,11 @@ function EntitySelect({
     fetcher,
     { revalidateOnFocus: false }
   )
+  const options = data?.data ?? []
+  // A selector with 0–1 choices is noise (e.g. branch filter on a
+  // single-branch org). Hide it once loaded — but never hide a filter the
+  // user has already applied.
+  if (data && options.length <= 1 && !value) return null
   return (
     <select
       value={value}
@@ -50,7 +55,7 @@ function EntitySelect({
       className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-medium text-slate-700"
     >
       <option value="">{config.label}: All</option>
-      {(data?.data ?? []).map(o => (
+      {options.map(o => (
         <option key={o.value} value={o.value}>{o.label}</option>
       ))}
     </select>

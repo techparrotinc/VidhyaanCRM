@@ -9,6 +9,8 @@ import { ChartCard, ChartCardSkeleton, WidgetError } from '@/components/reports/
 import { FeeTrendChart, FunnelChart, SourceBars, CapacityBars, MethodDonut, SimpleBars } from '@/components/reports/charts'
 import { Users, Target, GraduationCap, Wallet, AlertCircle } from 'lucide-react'
 import { WidgetCustomizer, useWidgetPrefs, WidgetDef } from '@/components/reports/WidgetCustomizer'
+import { BranchFilter } from '@/components/reports/BranchFilter'
+import { useState } from 'react'
 import { formatINR, formatPct, deltaPct } from '@/components/reports/format'
 
 type ExecutiveData = {
@@ -44,8 +46,9 @@ const WIDGET_DEFS: WidgetDef[] = [
 export default function ExecutiveDashboard() {
   const { selectedYearId } = useAcademicYearStore()
   const { order, hidden, persist } = useWidgetPrefs('vidhyaan:widgets:executive', WIDGET_DEFS)
+  const [branch, setBranch] = useState('')
   const { data, error, isLoading, mutate } = useSWR<{ data: ExecutiveData }>(
-    `/api/v1/reports/dashboards/executive${selectedYearId ? `?academicYearId=${selectedYearId}` : ''}`,
+    `/api/v1/reports/dashboards/executive?${new URLSearchParams({ ...(selectedYearId ? { academicYearId: selectedYearId } : {}), ...(branch ? { branch } : {}) })}`,
     fetcher,
     { revalidateOnFocus: false }
   )
@@ -71,6 +74,7 @@ export default function ExecutiveDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <BranchFilter value={branch} onChange={setBranch} />
           <WidgetCustomizer defs={WIDGET_DEFS} order={order} hidden={hidden} onChange={persist} />
           <a href="/reports/library" className="inline-flex items-center h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-slate-300">
             Report Library

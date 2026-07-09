@@ -2689,35 +2689,35 @@ model Referral {
 }
 
 model PlatformSettings {
-  id                    String   @id @default("default")
-  freePlanLeadCap       Int      @default(10) @map("free_plan_lead_cap")
-  trialDurationDays     Int      @default(7) @map("trial_duration_days")
-  defaultOtpTtlMinutes  Int      @default(10) @map("default_otp_ttl_minutes")
-  enableWhatsapp        Boolean  @default(false) @map("enable_whatsapp")
-  enableCampaignModule  Boolean  @default(false) @map("enable_campaign_module")
-  enableAiFeatures      Boolean  @default(false) @map("enable_ai_features")
-  enablePublicApiAccess Boolean  @default(false) @map("enable_public_api_access")
-  maintenanceMode       Boolean  @default(false) @map("maintenance_mode")
+  id                    String         @id @default("default")
+  freePlanLeadCap       Int            @default(10) @map("free_plan_lead_cap")
+  trialDurationDays     Int            @default(7) @map("trial_duration_days")
+  defaultOtpTtlMinutes  Int            @default(10) @map("default_otp_ttl_minutes")
+  enableWhatsapp        Boolean        @default(false) @map("enable_whatsapp")
+  enableCampaignModule  Boolean        @default(false) @map("enable_campaign_module")
+  enableAiFeatures      Boolean        @default(false) @map("enable_ai_features")
+  enablePublicApiAccess Boolean        @default(false) @map("enable_public_api_access")
+  maintenanceMode       Boolean        @default(false) @map("maintenance_mode")
   // Billing cycles orgs may subscribe with (any combination, min 1)
   enabledBillingCycles  BillingCycle[] @default([MONTHLY, ANNUAL]) @map("enabled_billing_cycles")
   // true → catalog prices are the final amount (GST carved out on the invoice);
   // false → 18% GST is added on top at checkout
-  pricesIncludeGst      Boolean  @default(false) @map("prices_include_gst")
+  pricesIncludeGst      Boolean        @default(false) @map("prices_include_gst")
   // Seller details printed on subscription GST invoices
-  businessName          String?  @map("business_name")
-  businessAddress       String?  @map("business_address")
-  businessGstin         String?  @map("business_gstin")
-  fromEmailAddress      String?  @map("from_email_address")
-  supportEmail          String?  @map("support_email")
-  fromName              String?  @map("from_name")
-  opsAlertEmail         String?  @map("ops_alert_email")
-  slackWebhookUrl       String?  @map("slack_webhook_url")
-  razorpayLiveKey       String?  @map("razorpay_live_key")
-  razorpayWebhookSecret String?  @map("razorpay_webhook_secret")
-  doSpacesEndpoint      String?  @map("do_spaces_endpoint")
-  doSpacesBucket        String?  @map("do_spaces_bucket")
-  doSpacesCdnUrl        String?  @map("do_spaces_cdn_url")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  businessName          String?        @map("business_name")
+  businessAddress       String?        @map("business_address")
+  businessGstin         String?        @map("business_gstin")
+  fromEmailAddress      String?        @map("from_email_address")
+  supportEmail          String?        @map("support_email")
+  fromName              String?        @map("from_name")
+  opsAlertEmail         String?        @map("ops_alert_email")
+  slackWebhookUrl       String?        @map("slack_webhook_url")
+  razorpayLiveKey       String?        @map("razorpay_live_key")
+  razorpayWebhookSecret String?        @map("razorpay_webhook_secret")
+  doSpacesEndpoint      String?        @map("do_spaces_endpoint")
+  doSpacesBucket        String?        @map("do_spaces_bucket")
+  doSpacesCdnUrl        String?        @map("do_spaces_cdn_url")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
 
   @@map("platform_settings")
   @@schema("platform")
@@ -3128,16 +3128,20 @@ model ReportUsage {
 
 /// Phase 2 — scheduled report delivery. Table shipped now, feature later.
 model ReportSchedule {
-  id          String   @id @default(cuid())
-  orgId       String   @map("org_id")
-  userId      String   @map("user_id")
-  reportKey   String   @map("report_key")
-  savedViewId String?  @map("saved_view_id")
+  id          String    @id @default(cuid())
+  orgId       String    @map("org_id")
+  userId      String    @map("user_id")
+  reportKey   String    @map("report_key")
+  savedViewId String?   @map("saved_view_id")
   cadence     String // validated token e.g. 'weekly_mon_08', not raw cron
-  channel     String   @default("email")
+  channel     String    @default("email")
   recipients  Json
-  enabled     Boolean  @default(false)
-  createdAt   DateTime @default(now()) @map("created_at")
+  enabled     Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  // Delivery feedback: last attempt outcome, surfaced in the Schedule popover.
+  lastRunAt   DateTime? @map("last_run_at")
+  lastStatus  String?   @map("last_status") // 'sent' | 'skipped' | 'error'
+  lastError   String?   @map("last_error")
 
   @@index([orgId, enabled])
   @@map("report_schedules")

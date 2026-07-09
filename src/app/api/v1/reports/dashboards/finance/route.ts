@@ -3,7 +3,11 @@ import { ok } from '@/lib/api/respond'
 import { redis } from '@/lib/redis'
 import { REPORTS_MODULE_SLUG } from '@/lib/reports/registry'
 import { buildFinanceAttention } from '@/lib/reports/insights'
-import { monthWindow, OPEN_INVOICE_STATUSES } from '@/lib/reports/queries/scope'
+import { parseQuery, textParam } from '@/lib/api/query'
+import {
+  monthWindow, OPEN_INVOICE_STATUSES,
+  branchIdsFor, branchScope, effectiveBranchIds
+} from '@/lib/reports/queries/scope'
 
 const AGEING_BUCKETS = ['0-30', '31-60', '61-90', '90+'] as const
 
@@ -19,8 +23,12 @@ function bucketFor(daysOverdue: number): (typeof AGEING_BUCKETS)[number] {
 export const GET = route({
   module: REPORTS_MODULE_SLUG,
   roles: ['ORG_ADMIN', 'ACCOUNTANT'],
-  handler: async ({ user, db }) => {
-    const cacheKey = `rpt:dash:finance:${user.orgId}`
+  handler: async ({ req, user, db }) => {
+    const { branch } = parseQuery(req.url, { branch: textParam })
+    const branchIds = effectiveBranchIds(await branchIdsFor(user.id, user.role), branch)
+    const br = branchScope(branchIds)
+
+    const cacheKey = `rpt:dash:finance:${user.orgId}:${branchIds?.join(',') ?? 'all'}`
     const cached = await redis.get(cacheKey).catch(() => null)
     if (cached) return ok(JSON.parse(cached))
 
@@ -37,28 +45,28 @@ export const GET = route({
       rollups
     ] = await Promise.all([
       db.invoice.aggregate({
-        where: { createdAt: monthWindow(0) },
+        where: { ...br, createdAt: monthWindow(0) },
         _sum: { totalAmount: true },
         _count: { _all: true }
       }),
       db.payment.aggregate({
-        where: { status: 'SUCCESS', paidAt: monthWindow(0) },
+        where: { ...br, status: 'SUCCESS', paidAt: monthWindow(0) },
         _sum: { amount: true },
         _count: { _all: true }
       }),
       db.payment.aggregate({
-        where: { status: 'SUCCESS', paidAt: monthWindow(-1) },
+        where: { ...br, status: 'SUCCESS', paidAt: monthWindow(-1) },
         _sum: { amount: true }
       }),
       // Ageing needs per-invoice date math — bounded fetch, aggregated here.
       db.invoice.findMany({
-        where: { status: { in: [...OPEN_INVOICE_STATUSES] } },
+        where: { ...br, status: { in: [...OPEN_INVOICE_STATUSES] } },
         select: { dueDate: true, totalAmount: true, paidAmount: true },
         take: 5000
       }),
       db.payment.groupBy({
         by: ['method'],
-        where: { status: 'SUCCESS', paidAt: monthWindow(0) },
+        where: { ...br, status: 'SUCCESS', paidAt: monthWindow(0) },
         _sum: { amount: true },
         _count: { _all: true }
       }),
@@ -68,7 +76,7 @@ export const GET = route({
         _count: { _all: true }
       }),
       db.payment.findMany({
-        where: { status: 'SUCCESS', paidAt: { gte: startOfToday } },
+        where: { ...br, status: 'SUCCESS', paidAt: { gte: startOfToday } },
         select: {
           id: true, receiptNumber: true, amount: true, method: true,
           paidAt: true,
@@ -81,7 +89,8 @@ export const GET = route({
       db.dailyRollup.findMany({
         where: {
           metric: { in: ['invoiced_amount', 'collected_amount'] },
-          date: { gte: monthsAgo12 }
+          date: { gte: monthsAgo12 },
+          ...br
         },
         select: { metric: true, date: true, amount: true }
       })

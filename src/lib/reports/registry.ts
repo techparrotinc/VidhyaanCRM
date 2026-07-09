@@ -78,6 +78,15 @@ const counsellorFilter: ReportFilterConfig = {
   optionsSource: 'counsellors'
 }
 
+// Branch scope selector. Folded into ctx.branchIds in reportRequest (not a
+// row filter). The filter bar hides it when the org has a single branch.
+const branchFilter: ReportFilterConfig = {
+  key: 'branch',
+  label: 'Branch',
+  type: 'entity',
+  optionsSource: 'branches'
+}
+
 export const REPORTS: ReportDefinition[] = [
   {
     key: 'lead-funnel',
@@ -86,7 +95,7 @@ export const REPORTS: ReportDefinition[] = [
     category: 'admissions',
     // COUNSELLOR sees the funnel scoped to their own leads (leadBaseWhere).
     allowedRoles: [...ADMIN_ROLES, 'COUNSELLOR'],
-    filters: [dateRange, sourceFilter, gradeFilter, counsellorFilter,
+    filters: [branchFilter, dateRange, sourceFilter, gradeFilter, counsellorFilter,
       {
         key: 'priority', label: 'Priority', type: 'enum',
         options: ['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map(v => ({ value: v, label: v }))
@@ -99,7 +108,7 @@ export const REPORTS: ReportDefinition[] = [
     decision: 'Decide which channel deserves next term’s marketing budget',
     category: 'admissions',
     allowedRoles: ['ORG_ADMIN'],
-    filters: [dateRange, gradeFilter],
+    filters: [branchFilter, dateRange, gradeFilter],
     exports: ['csv', 'xlsx']
   },
   {
@@ -108,7 +117,7 @@ export const REPORTS: ReportDefinition[] = [
     decision: 'See who needs coaching, who earns the bonus, and whether targets are realistic',
     category: 'team',
     allowedRoles: ADMIN_ROLES,
-    filters: [dateRange],
+    filters: [branchFilter, dateRange],
     exports: ['csv', 'xlsx']
   },
   {
@@ -117,7 +126,7 @@ export const REPORTS: ReportDefinition[] = [
     decision: 'Rescue promised follow-ups that were missed',
     category: 'team',
     allowedRoles: [...ADMIN_ROLES, 'COUNSELLOR', 'RECEPTIONIST'],
-    filters: [counsellorFilter, gradeFilter,
+    filters: [branchFilter, counsellorFilter, gradeFilter,
       {
         key: 'overdue', label: 'Overdue only', type: 'enum',
         options: [{ value: 'true', label: 'Overdue only' }]
@@ -130,7 +139,7 @@ export const REPORTS: ReportDefinition[] = [
     decision: 'Unstick stuck applications and fill seats before the season closes',
     category: 'admissions',
     allowedRoles: ADMIN_ROLES,
-    filters: [dateRange, gradeFilter, counsellorFilter,
+    filters: [branchFilter, dateRange, gradeFilter, counsellorFilter,
       { key: 'stageId', label: 'Stage', type: 'entity', optionsSource: 'stages' }],
     exports: ['csv', 'xlsx']
   },
@@ -140,7 +149,7 @@ export const REPORTS: ReportDefinition[] = [
     decision: 'Check cash-flow health this month vs plan and vs last year',
     category: 'finance',
     allowedRoles: ['ORG_ADMIN', 'ACCOUNTANT'],
-    filters: [dateRange, gradeFilter,
+    filters: [branchFilter, dateRange, gradeFilter,
       {
         key: 'invoiceType', label: 'Invoice type', type: 'enum',
         options: ['TERM', 'ADHOC', 'COURSE'].map(v => ({ value: v, label: v }))
@@ -153,7 +162,7 @@ export const REPORTS: ReportDefinition[] = [
     decision: 'Get today’s collection chase list, oldest and largest first',
     category: 'finance',
     allowedRoles: ['ORG_ADMIN', 'ACCOUNTANT'],
-    filters: [gradeFilter,
+    filters: [branchFilter, gradeFilter,
       {
         key: 'bucket', label: 'Ageing bucket', type: 'enum',
         options: [
@@ -201,7 +210,7 @@ export const REPORTS: ReportDefinition[] = [
     decision: 'Plan staffing, sections and next year from student-base movement',
     category: 'students',
     allowedRoles: ADMIN_ROLES,
-    filters: [gradeFilter,
+    filters: [branchFilter, gradeFilter,
       {
         key: 'status', label: 'Status', type: 'enum',
         options: ['ACTIVE', 'ALUMNI', 'TRANSFERRED', 'SUSPENDED', 'DROPPED_OUT']
@@ -259,7 +268,7 @@ export const REPORTS: ReportDefinition[] = [
     decision: 'Reconcile every rupee received — by day, method and collector',
     category: 'finance',
     allowedRoles: ['ORG_ADMIN', 'ACCOUNTANT'],
-    filters: [dateRange,
+    filters: [branchFilter, dateRange,
       {
         key: 'method', label: 'Method', type: 'enum',
         options: ['RAZORPAY', 'CASH', 'CHEQUE', 'DD', 'NEFT', 'BANK_TRANSFER', 'UPI', 'CARD', 'OTHER']

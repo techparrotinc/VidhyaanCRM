@@ -29,6 +29,22 @@ export function branchScope(branchIds: string[] | null) {
   return branchIds ? { branchId: { in: branchIds } } : {}
 }
 
+/**
+ * Fold an optional `branch` filter selection into the role-derived branch
+ * restriction. ORG_ADMIN (unrestricted) narrows to the chosen branch;
+ * BRANCH_ADMIN can only narrow *within* the branches they already hold.
+ * Tables are orgId-scoped by the tenant client, so a branchId from another
+ * org simply matches no rows — never a leak.
+ */
+export function effectiveBranchIds(
+  roleBranchIds: string[] | null,
+  selected: string | undefined
+): string[] | null {
+  if (!selected) return roleBranchIds
+  if (roleBranchIds === null) return [selected]
+  return roleBranchIds.includes(selected) ? [selected] : roleBranchIds
+}
+
 export function monthWindow(offset = 0): { gte: Date; lt: Date } {
   const now = new Date()
   return {

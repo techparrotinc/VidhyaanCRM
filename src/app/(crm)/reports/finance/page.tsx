@@ -7,6 +7,8 @@ import { AttentionStrip, AttentionItem } from '@/components/reports/AttentionStr
 import { ChartCard, ChartCardSkeleton, WidgetError } from '@/components/reports/ChartCard'
 import { FeeTrendChart, AgeingChart, MethodDonut } from '@/components/reports/charts'
 import { formatINR, formatINRFull, formatPct, deltaPct } from '@/components/reports/format'
+import { BranchFilter } from '@/components/reports/BranchFilter'
+import { useState } from 'react'
 import { Wallet, Receipt, Percent, Hourglass, AlertCircle } from 'lucide-react'
 
 type FinanceData = {
@@ -34,8 +36,9 @@ type FinanceData = {
 }
 
 export default function FinanceDashboard() {
+  const [branch, setBranch] = useState('')
   const { data, error, isLoading, mutate } = useSWR<{ data: FinanceData }>(
-    '/api/v1/reports/dashboards/finance',
+    `/api/v1/reports/dashboards/finance${branch ? `?branch=${branch}` : ''}`,
     fetcher,
     { revalidateOnFocus: false }
   )
@@ -59,9 +62,12 @@ export default function FinanceDashboard() {
             Collections, outstanding dues and today’s receipts
           </p>
         </div>
-        <a href="/reports/library" className="inline-flex items-center h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-slate-300 shrink-0">
-          Report Library
-        </a>
+        <div className="flex items-center gap-2 shrink-0">
+          <BranchFilter value={branch} onChange={setBranch} />
+          <a href="/reports/library" className="inline-flex items-center h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-slate-300">
+            Report Library
+          </a>
+        </div>
       </div>
 
       {d && d.attention.length > 0 && <AttentionStrip items={d.attention} />}

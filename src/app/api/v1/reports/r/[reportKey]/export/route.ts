@@ -31,7 +31,7 @@ export const GET = route({
       throw Errors.validation({ format: [`This report exports: ${report.exports.join(', ')}`] })
     }
 
-    const { columns, rows } = await drainRows(cursor =>
+    const { columns, rows, truncated } = await drainRows(cursor =>
       query.rows(ctx, filters, cursor, 500)
     )
 
@@ -43,13 +43,17 @@ export const GET = route({
         action: 'EXPORT',
         entityType: 'report',
         entityId: report.key,
-        after: { format, rows: rows.length, filters: filters as object }
+        after: { format, rows: rows.length, truncated, filters: filters as object }
       }
     }).catch(err => console.error('Export audit log failed:', err))
 
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-    const filename = `vidhyaan_${report.key.replace(/-/g, '_')}_${date}.${format}`
-    const echo = filtersEcho(filters)
+    // A truncated export is a partial answer — mark it in the filename and the
+    // rendered meta line so the recipient can't mistake it for the whole set.
+    const filename = `vidhyaan_${report.key.replace(/-/g, '_')}_${date}${truncated ? '_partial' : ''}.${format}`
+    const echo = truncated
+      ? `${filtersEcho(filters)} — TRUNCATED to first ${rows.length.toLocaleString('en-IN')} rows; narrow the filters for the full set`
+      : filtersEcho(filters)
 
     let body: Buffer | string
     if (format === 'csv') {
@@ -75,7 +79,9 @@ export const GET = route({
     return new NextResponse(body as never, {
       headers: {
         'Content-Type': CONTENT_TYPES[format as keyof typeof CONTENT_TYPES],
-        'Content-Disposition': `attachment; filename="${filename}"`
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'X-Report-Truncated': truncated ? 'true' : 'false',
+        'X-Report-Row-Count': String(rows.length)
       }
     })
   }

@@ -5,7 +5,7 @@ import { redis } from '@/lib/redis'
 import { REPORTS_MODULE_SLUG } from '@/lib/reports/registry'
 import { buildExecutiveAttention } from '@/lib/reports/insights'
 import {
-  ayScope, branchIdsFor, branchScope, monthWindow,
+  ayScope, branchIdsFor, branchScope, effectiveBranchIds, monthWindow,
   OPEN_LEAD_STATUSES, OPEN_INVOICE_STATUSES
 } from '@/lib/reports/queries/scope'
 
@@ -13,8 +13,13 @@ export const GET = route({
   module: REPORTS_MODULE_SLUG,
   roles: ['ORG_ADMIN', 'BRANCH_ADMIN'],
   handler: async ({ req, user, db }) => {
-    const { academicYearId } = parseQuery(req.url, { academicYearId: textParam })
-    const branchIds = await branchIdsFor(user.id, user.role)
+    const { academicYearId, branch } = parseQuery(req.url, {
+      academicYearId: textParam, branch: textParam
+    })
+    const branchIds = effectiveBranchIds(
+      await branchIdsFor(user.id, user.role),
+      branch
+    )
 
     const cacheKey = `rpt:dash:exec:${user.orgId}:${academicYearId ?? 'all'}:${branchIds?.join(',') ?? 'all'}`
     const cached = await redis.get(cacheKey).catch(() => null)

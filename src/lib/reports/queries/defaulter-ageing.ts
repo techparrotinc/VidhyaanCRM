@@ -87,7 +87,12 @@ export const defaulterAgeing: ReportQuery = {
     const offset = offsetCursor(cursor)
     const minAmount = filters.minAmount ? Number(filters.minAmount) : 0
 
-    // Balance is a computed column — over-fetch, filter, slice.
+    // Balance (total − paid) is a computed column and can't be a SQL filter,
+    // so a page may drop a few zero-balance / below-minAmount rows after
+    // fetch. The cursor MUST advance by the raw fetch size (invoices.length),
+    // never by the post-filter row count — otherwise the skipped invoices are
+    // lost from the next page (and from exports). Pages are thus at most
+    // `limit` rows and occasionally shorter; nothing is skipped.
     const invoices = await ctx.db.invoice.findMany({
       where: whereFor(ctx, filters, startOfToday),
       select: {
@@ -101,7 +106,7 @@ export const defaulterAgeing: ReportQuery = {
       },
       orderBy: { dueDate: 'asc' },
       skip: offset,
-      take: limit * 3
+      take: limit
     })
 
     const rows = invoices
@@ -121,7 +126,6 @@ export const defaulterAgeing: ReportQuery = {
         }
       })
       .filter(r => r.amountDue > 0 && r.amountDue >= minAmount)
-      .slice(0, limit)
 
     return {
       columns: [
@@ -135,7 +139,7 @@ export const defaulterAgeing: ReportQuery = {
         { key: 'amountDue', label: 'Amount Due', format: 'inr' }
       ],
       rows,
-      nextCursor: nextOffsetCursor(offset, limit * 3, invoices.length)
+      nextCursor: nextOffsetCursor(offset, limit, invoices.length)
     }
   }
 }

@@ -189,6 +189,36 @@ describe('defaulter-ageing', () => {
     )
     expect(r.rows).toHaveLength(0)
   })
+
+  it('paginates without skipping any defaulter (regression)', async () => {
+    // 5 overdue invoices in orgB; drain with a tiny page size and assert
+    // every invoice appears exactly once — guards the cursor-advance bug
+    // where over-fetch + slice silently dropped rows between pages.
+    const student = await prisma.student.create({
+      data: { orgId: orgB, studentCode: `${RUN}-PS`, name: 'Payer', status: 'ACTIVE', gradeLabel: 'Grade 2' }
+    })
+    const dueDate = new Date(Date.now() - 40 * 864e5)
+    await prisma.invoice.createMany({
+      data: Array.from({ length: 5 }, (_, i) => ({
+        orgId: orgB, invoiceNumber: `${RUN}-PG${i}`, studentId: student.id,
+        totalAmount: 1000, paidAmount: 100, status: 'PARTIALLY_PAID' as never, dueDate
+      }))
+    })
+
+    const seen = new Set<string>()
+    let cursor: string | undefined
+    let guard = 0
+    do {
+      const page = await REPORT_QUERIES['defaulter-ageing'].rows(ctxFor(orgB), {}, cursor, 2)
+      page.rows.forEach(r => seen.add(r.invoiceNumber as string))
+      cursor = page.nextCursor ?? undefined
+    } while (cursor && ++guard < 20)
+
+    expect(seen.size).toBe(5)
+    expect([...seen].sort()).toEqual(
+      Array.from({ length: 5 }, (_, i) => `${RUN}-PG${i}`).sort()
+    )
+  })
 })
 
 describe('enrollment-strength', () => {

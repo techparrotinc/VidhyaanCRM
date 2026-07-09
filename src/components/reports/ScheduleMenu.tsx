@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CalendarClock, ChevronDown, Trash2 } from 'lucide-react'
+import { CalendarClock, ChevronDown, Trash2, Send, CheckCircle2, AlertCircle } from 'lucide-react'
 
 // Email-schedule popover on report pages. Personal schedules only; sends
 // fire in the daily 08:00 IST window with the creator's role scoping.
@@ -20,6 +20,9 @@ type Schedule = {
   recipients: string[]
   enabled: boolean
   savedViewId?: string | null
+  lastRunAt?: string | null
+  lastStatus?: string | null
+  lastError?: string | null
 }
 
 type SavedView = { id: string; name: string }
@@ -86,6 +89,33 @@ export function ScheduleMenu({ reportKey }: { reportKey: string }) {
     }).catch(() => {})
   }
 
+  const [testing, setTesting] = useState<string | null>(null)
+  const [testResult, setTestResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null)
+
+  const sendTest = async (id: string) => {
+    setTesting(id)
+    setTestResult(null)
+    try {
+      const res = await fetch(`/api/v1/reports/schedules/${id}/test`, { method: 'POST' })
+      const json = await res.json().catch(() => ({}))
+      setTestResult(
+        res.ok
+          ? { id, ok: true, msg: `Sent to ${json.data?.sent ?? 0} recipient(s)` }
+          : { id, ok: false, msg: json.error ?? 'Test send failed' }
+      )
+    } finally {
+      setTesting(null)
+    }
+  }
+
+  const lastRunLabel = (s: Schedule) => {
+    if (!s.lastRunAt) return null
+    const when = new Date(s.lastRunAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+    if (s.lastStatus === 'error') return { ok: false, text: `Failed ${when}` }
+    if (s.lastStatus === 'skipped') return { ok: false, text: `Skipped ${when}` }
+    return { ok: true, text: `Sent ${when}` }
+  }
+
   return (
     <div className="relative">
       <button
@@ -105,27 +135,57 @@ export function ScheduleMenu({ reportKey }: { reportKey: string }) {
         <div className="absolute right-0 top-10 z-20 w-80 rounded-xl border border-slate-200 bg-white shadow-lg p-3 space-y-3">
           {schedules.length > 0 && (
             <div className="space-y-1.5">
-              {schedules.map(s => (
-                <div key={s.id} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-2">
-                  <button
-                    onClick={() => toggleSchedule(s)}
-                    className="text-left flex-1 min-w-0"
-                    title={s.enabled ? 'Click to pause' : 'Click to resume'}
-                  >
-                    <p className={`text-sm font-medium truncate ${s.enabled ? 'text-slate-800' : 'text-slate-400 line-through'}`}>
-                      {CADENCES.find(c => c.value === s.cadence)?.label ?? s.cadence}
-                    </p>
-                    <p className="text-xs text-slate-400 truncate">{s.recipients.join(', ')}</p>
-                  </button>
-                  <button
-                    onClick={() => deleteSchedule(s.id)}
-                    className="p-1 text-slate-300 hover:text-red-500 shrink-0"
-                    aria-label="Delete schedule"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+              {schedules.map(s => {
+                const last = lastRunLabel(s)
+                return (
+                <div key={s.id} className="rounded-lg bg-slate-50 px-2.5 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => toggleSchedule(s)}
+                      className="text-left flex-1 min-w-0"
+                      title={s.enabled ? 'Click to pause' : 'Click to resume'}
+                    >
+                      <p className={`text-sm font-medium truncate ${s.enabled ? 'text-slate-800' : 'text-slate-400 line-through'}`}>
+                        {CADENCES.find(c => c.value === s.cadence)?.label ?? s.cadence}
+                      </p>
+                      <p className="text-xs text-slate-400 truncate">{s.recipients.join(', ')}</p>
+                    </button>
+                    <button
+                      onClick={() => sendTest(s.id)}
+                      disabled={testing === s.id}
+                      className="p-1 text-slate-400 hover:text-[#1565D8] shrink-0 disabled:opacity-40"
+                      title="Send a test email now"
+                      aria-label="Send test"
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => deleteSchedule(s.id)}
+                      className="p-1 text-slate-300 hover:text-red-500 shrink-0"
+                      aria-label="Delete schedule"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {(last || (testResult && testResult.id === s.id)) && (
+                    <div className="mt-1 flex items-center gap-1 text-[11px]">
+                      {testResult && testResult.id === s.id ? (
+                        <span className={`flex items-center gap-1 ${testResult.ok ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {testResult.ok ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                          {testResult.msg}
+                        </span>
+                      ) : last ? (
+                        <span className={`flex items-center gap-1 ${last.ok ? 'text-slate-400' : 'text-red-500'}`}>
+                          {last.ok ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                          {last.text}
+                          {!last.ok && s.lastError ? ` · ${s.lastError.slice(0, 40)}` : ''}
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
 

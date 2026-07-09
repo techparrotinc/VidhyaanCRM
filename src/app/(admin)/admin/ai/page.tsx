@@ -1,8 +1,37 @@
 'use client'
 
+import { useState } from 'react'
 import useSWR from 'swr'
-import { Sparkles, MessageSquare, IndianRupee, ThumbsDown, AlertTriangle } from 'lucide-react'
+import { Sparkles, MessageSquare, IndianRupee, ThumbsDown, AlertTriangle, Gauge, Activity } from 'lucide-react'
 import { fetcher } from '@/lib/fetcher'
+
+type Trace = {
+  traceId: string
+  orgName: string
+  promptRedacted: string
+  retrievedChunkIds: string[]
+  routingDecision: {
+    provider?: string
+    model?: string
+    topScore?: number
+    toolsCalled?: string[]
+    declined?: boolean
+    latencyMs?: number
+    role?: string
+  } | null
+  createdAt: string
+}
+
+type Metrics = {
+  windowDays: number
+  answers: number
+  latencyMs: { p50: number; p95: number; avg: number }
+  feedback: { up: number; down: number; negativeRate: number }
+  declineRate: number
+  gapSignals: number
+  providerMix: { provider: string; count: number }[]
+  recentTraces: Trace[]
+}
 
 type Row = {
   orgId: string
@@ -25,6 +54,8 @@ const inr = (n: number) => `₹${n.toLocaleString('en-IN', { maximumFractionDigi
 
 export default function AdminAiUsagePage() {
   const { data, isLoading } = useSWR<{ rows: Row[] }>('/api/admin/ai-usage', fetcher)
+  const { data: metrics } = useSWR<Metrics>('/api/admin/ai-metrics', fetcher, { refreshInterval: 60_000 })
+  const [openTrace, setOpenTrace] = useState<string | null>(null)
   const rows = data?.rows ?? []
 
   const totals = rows.reduce(
@@ -74,6 +105,82 @@ export default function AdminAiUsagePage() {
           </div>
         ))}
       </div>
+
+      {/* Quality & health (7-day rolling) */}
+      {metrics && (
+        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+          <div className="flex items-center gap-2">
+            <Gauge className="h-4 w-4 text-[#1565D8]" />
+            <h2 className="text-sm font-bold text-slate-900">Answer Quality & Health</h2>
+            <span className="text-xs font-normal text-slate-400">last {metrics.windowDays} days · {metrics.answers} answers</span>
+          </div>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6">
+            <Stat label="Latency P50" value={`${(metrics.latencyMs.p50 / 1000).toFixed(1)}s`} />
+            <Stat label="Latency P95" value={`${(metrics.latencyMs.p95 / 1000).toFixed(1)}s`} warn={metrics.latencyMs.p95 > 8000} />
+            <Stat label="Negative Rate" value={`${(metrics.feedback.negativeRate * 100).toFixed(0)}%`} warn={metrics.feedback.negativeRate > 0.15} />
+            <Stat label="Decline Rate" value={`${(metrics.declineRate * 100).toFixed(0)}%`} warn={metrics.declineRate > 0.25} />
+            <Stat label="Gap Signals" value={String(metrics.gapSignals)} />
+            <Stat
+              label="Provider Mix"
+              value={metrics.providerMix.map((p) => `${p.provider}:${p.count}`).join(' ') || '—'}
+              small
+            />
+          </div>
+
+          {/* recent traces */}
+          <div className="mt-2">
+            <div className="flex items-center gap-2 pb-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+              <Activity className="h-3.5 w-3.5" /> Recent traces
+            </div>
+            <div className="max-h-80 overflow-y-auto rounded-lg border border-slate-100">
+              {metrics.recentTraces.length === 0 && (
+                <p className="p-4 text-sm text-slate-400">No traces yet.</p>
+              )}
+              {metrics.recentTraces.map((t) => {
+                const r = t.routingDecision ?? {}
+                const open = openTrace === t.traceId
+                return (
+                  <div key={t.traceId} className="border-b border-slate-50 last:border-0">
+                    <button
+                      onClick={() => setOpenTrace(open ? null : t.traceId)}
+                      className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-slate-50"
+                    >
+                      <span className="w-14 shrink-0 text-xs font-mono text-slate-400">
+                        {r.provider?.slice(0, 6) ?? '—'}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-sm text-slate-700">{t.promptRedacted}</span>
+                      {r.declined && (
+                        <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                          declined
+                        </span>
+                      )}
+                      {r.toolsCalled && r.toolsCalled.length > 0 && (
+                        <span className="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-[#1565D8]">
+                          tools
+                        </span>
+                      )}
+                      <span className="w-12 shrink-0 text-right text-xs text-slate-400">
+                        {r.latencyMs ? `${(r.latencyMs / 1000).toFixed(1)}s` : ''}
+                      </span>
+                    </button>
+                    {open && (
+                      <div className="space-y-1 bg-slate-50/60 px-3 py-2.5 text-xs text-slate-600">
+                        <div><span className="font-semibold text-slate-500">Org:</span> {t.orgName}</div>
+                        <div><span className="font-semibold text-slate-500">Model:</span> {r.model ?? '—'} · role {r.role ?? '—'} · top score {r.topScore ?? '—'}</div>
+                        <div><span className="font-semibold text-slate-500">Retrieved:</span> {t.retrievedChunkIds.join(', ') || 'none'}</div>
+                        {r.toolsCalled && r.toolsCalled.length > 0 && (
+                          <div><span className="font-semibold text-slate-500">Tools:</span> {r.toolsCalled.join(', ')}</div>
+                        )}
+                        <div className="text-slate-400">{new Date(t.createdAt).toLocaleString('en-IN')} · trace {t.traceId.slice(0, 8)}</div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* per-org table */}
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
@@ -131,6 +238,21 @@ export default function AdminAiUsagePage() {
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  )
+}
+
+function Stat({ label, value, warn, small }: { label: string; value: string; warn?: boolean; small?: boolean }) {
+  return (
+    <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3">
+      <div className="text-[10px] font-bold uppercase tracking-widest text-slate-450">{label}</div>
+      <div
+        className={`mt-1 font-bold leading-none tracking-tight ${small ? 'text-xs' : 'text-lg'} ${
+          warn ? 'text-red-500' : 'text-slate-900'
+        }`}
+      >
+        {value}
       </div>
     </div>
   )

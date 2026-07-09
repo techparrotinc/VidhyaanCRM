@@ -57,7 +57,10 @@ export default function CreditLedgerTable({ channel }: { channel: 'SMS' | 'WHATS
         <>
           <div className="divide-y divide-slate-100">
             {entries.map(e => {
-              const reason = REASON_LABEL[e.reason] ?? { label: e.reason, badge: 'bg-slate-100 text-slate-600' }
+              const base = REASON_LABEL[e.reason] ?? { label: e.reason, badge: 'bg-slate-100 text-slate-600' }
+              // AI channel debits are answers, not "messages sent" (don't mutate the shared map)
+              const reason =
+                channel === 'AI' && e.reason === 'SEND' ? { ...base, label: 'AI answers' } : base
               return (
                 <div key={e.id} className="flex items-center justify-between px-4 py-2.5 gap-3">
                   <div className="min-w-0">

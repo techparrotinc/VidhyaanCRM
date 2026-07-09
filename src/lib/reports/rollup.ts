@@ -172,6 +172,36 @@ export async function computeDailyRollups(
     push('students_active', active.map(g => ({
       branchId: g.branchId, academicYearId: g.academicYearId, count: g._count._all
     })))
+
+    // 90+ days overdue snapshot (org-level) — powers the finance dashboard's
+    // month-over-month deterioration insight. Balance is computed, so page the
+    // open book; only the newest day is snapshotted (like students_active).
+    const cutoff90 = new Date(new Date().setHours(0, 0, 0, 0) - 90 * 864e5)
+    let ninetyPlus = 0
+    let ninetyCount = 0
+    let skip = 0
+    for (;;) {
+      const page = await prisma.invoice.findMany({
+        where: {
+          orgId, deletedAt: null,
+          status: { in: ['UNPAID', 'PARTIALLY_PAID', 'OVERDUE'] },
+          dueDate: { lt: cutoff90 }
+        },
+        select: { totalAmount: true, paidAmount: true },
+        orderBy: { id: 'asc' },
+        skip,
+        take: 2000
+      })
+      for (const inv of page) {
+        const due = Number(inv.totalAmount) - Number(inv.paidAmount)
+        if (due > 0) { ninetyPlus += due; ninetyCount++ }
+      }
+      if (page.length < 2000) break
+      skip += 2000
+    }
+    if (ninetyPlus > 0) {
+      push('overdue_90plus_amount', [{ count: ninetyCount, amount: new Prisma.Decimal(ninetyPlus) }])
+    }
   }
 
   return rows

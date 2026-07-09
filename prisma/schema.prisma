@@ -2189,6 +2189,9 @@ model Campaign {
   sentAt             DateTime?       @map("sent_at")
   audienceFilter     Json?           @map("audience_filter")
   stats              Json?
+  /// Optional external spend (ads/print) for ROI reporting — captured on the
+  /// Campaign Effectiveness report, not during send.
+  costAmount         Decimal?        @map("cost_amount") @db.Decimal(12, 2)
   createdById        String?         @map("created_by_id")
   createdAt          DateTime        @default(now()) @map("created_at")
   updatedAt          DateTime        @updatedAt @map("updated_at")

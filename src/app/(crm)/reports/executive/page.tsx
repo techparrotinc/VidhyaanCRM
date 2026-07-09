@@ -7,7 +7,7 @@ import { KpiCard, KpiCardSkeleton } from '@/components/reports/KpiCard'
 import { AttentionStrip, AttentionItem } from '@/components/reports/AttentionStrip'
 import { ChartCard, ChartCardSkeleton, WidgetError } from '@/components/reports/ChartCard'
 import { FeeTrendChart, FunnelChart, SourceBars, CapacityBars, MethodDonut, SimpleBars } from '@/components/reports/charts'
-import { Users, Target, GraduationCap, Wallet, AlertCircle } from 'lucide-react'
+import { Users, Target, GraduationCap, Wallet, AlertCircle, RefreshCw } from 'lucide-react'
 import { WidgetCustomizer, useWidgetPrefs, WidgetDef } from '@/components/reports/WidgetCustomizer'
 import { BranchFilter } from '@/components/reports/BranchFilter'
 import { useState } from 'react'
@@ -47,11 +47,15 @@ export default function ExecutiveDashboard() {
   const { selectedYearId } = useAcademicYearStore()
   const { order, hidden, persist } = useWidgetPrefs('vidhyaan:widgets:executive', WIDGET_DEFS)
   const [branch, setBranch] = useState('')
-  const { data, error, isLoading, mutate } = useSWR<{ data: ExecutiveData }>(
-    `/api/v1/reports/dashboards/executive?${new URLSearchParams({ ...(selectedYearId ? { academicYearId: selectedYearId } : {}), ...(branch ? { branch } : {}) })}`,
-    fetcher,
-    { revalidateOnFocus: false }
-  )
+  const execUrl = `/api/v1/reports/dashboards/executive?${new URLSearchParams({ ...(selectedYearId ? { academicYearId: selectedYearId } : {}), ...(branch ? { branch } : {}) })}`
+  const { data, error, isLoading, mutate } = useSWR<{ data: ExecutiveData }>(execUrl, fetcher, { revalidateOnFocus: false })
+  const [refreshing, setRefreshing] = useState(false)
+  const refresh = async () => {
+    setRefreshing(true)
+    try {
+      await mutate(async () => (await fetch(`${execUrl}&fresh=1`)).json(), { revalidate: false })
+    } finally { setRefreshing(false) }
+  }
 
   const d = data?.data
 
@@ -74,6 +78,9 @@ export default function ExecutiveDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <button onClick={refresh} disabled={refreshing} className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-slate-300 disabled:opacity-50" aria-label="Refresh" title="Refresh (bypass cache)">
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
           <BranchFilter value={branch} onChange={setBranch} />
           <WidgetCustomizer defs={WIDGET_DEFS} order={order} hidden={hidden} onChange={persist} />
           <a href="/reports/library" className="inline-flex items-center h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-slate-300">

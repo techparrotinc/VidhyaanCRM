@@ -8,6 +8,7 @@ import { ChartCard, ChartCardSkeleton, WidgetError } from '@/components/reports/
 import { FeeTrendChart, AgeingChart, MethodDonut } from '@/components/reports/charts'
 import { formatINR, formatINRFull, formatPct, deltaPct } from '@/components/reports/format'
 import { BranchFilter } from '@/components/reports/BranchFilter'
+import { RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { Wallet, Receipt, Percent, Hourglass, AlertCircle } from 'lucide-react'
 
@@ -37,11 +38,15 @@ type FinanceData = {
 
 export default function FinanceDashboard() {
   const [branch, setBranch] = useState('')
-  const { data, error, isLoading, mutate } = useSWR<{ data: FinanceData }>(
-    `/api/v1/reports/dashboards/finance${branch ? `?branch=${branch}` : ''}`,
-    fetcher,
-    { revalidateOnFocus: false }
-  )
+  const finUrl = `/api/v1/reports/dashboards/finance${branch ? `?branch=${branch}` : ''}`
+  const { data, error, isLoading, mutate } = useSWR<{ data: FinanceData }>(finUrl, fetcher, { revalidateOnFocus: false })
+  const [refreshing, setRefreshing] = useState(false)
+  const refresh = async () => {
+    setRefreshing(true)
+    try {
+      await mutate(async () => (await fetch(`${finUrl}${branch ? '&' : '?'}fresh=1`)).json(), { revalidate: false })
+    } finally { setRefreshing(false) }
+  }
 
   const d = data?.data
 
@@ -63,6 +68,9 @@ export default function FinanceDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <button onClick={refresh} disabled={refreshing} className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-slate-300 disabled:opacity-50" aria-label="Refresh" title="Refresh (bypass cache)">
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
           <BranchFilter value={branch} onChange={setBranch} />
           <a href="/reports/library" className="inline-flex items-center h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-slate-300">
             Report Library

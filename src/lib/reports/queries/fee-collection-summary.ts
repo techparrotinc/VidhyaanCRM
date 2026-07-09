@@ -1,14 +1,17 @@
-import { branchScope } from './scope'
+import { branchScope, ayScope } from './scope'
 import { ReportQuery, ReportCtx, Filters, rangeFilter, listFilter } from './types'
 
 // Trend rows come from reporting.daily_rollups (fast, edit-proof history);
-// headline KPIs run live so invoiceType/grade filters apply to them.
+// headline KPIs run live so invoiceType/grade filters apply to them. Both
+// respect the Academic Year switcher (invoices + rollups are AY-stamped;
+// legacy null-AY rows show under every year, matching the list routes).
 
 function invoiceWhere(ctx: ReportCtx, filters: Filters) {
   const range = rangeFilter(filters)
   const grades = listFilter(filters.grade)
   return {
     ...branchScope(ctx.branchIds),
+    ...ayScope(ctx.academicYearId),
     ...(range ? { createdAt: range } : {}),
     ...(filters.invoiceType ? { invoiceType: filters.invoiceType as never } : {}),
     ...(grades ? { student: { gradeLabel: { in: grades } } } : {})
@@ -24,7 +27,8 @@ async function monthlyRows(ctx: ReportCtx, filters: Filters) {
     where: {
       metric: { in: ['invoiced_amount', 'collected_amount', 'concession_amount'] },
       date: { gte: from, lt: to },
-      ...branchScope(ctx.branchIds)
+      ...branchScope(ctx.branchIds),
+      ...ayScope(ctx.academicYearId)
     },
     select: { metric: true, date: true, amount: true }
   })

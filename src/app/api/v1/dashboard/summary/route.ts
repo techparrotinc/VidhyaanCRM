@@ -84,7 +84,9 @@ export const GET = route({
       totalCollectedAgg,
       lastPaymentRow,
       overdueOutstandingAgg,
-      eventsThisMonthCount
+      eventsThisMonthCount,
+      orgMeta,
+      orgModuleRows
     ] = await Promise.all([
 
       // Total leads
@@ -256,7 +258,7 @@ export const GET = route({
       // models — filter by orgId explicitly)
       db.school.findFirst({
         where: { orgId, deletedAt: null },
-        select: { viewCount: true }
+        select: { viewCount: true, institutionType: true }
       }),
       db.schoolView.count({
         where: {
@@ -403,6 +405,29 @@ export const GET = route({
           deletedAt: null,
           startsAt: { gte: now, lte: endOfMonth }
         }
+      }),
+
+      // Org meta — plan + trial state (drives plan-aware upsell + real countdown)
+      db.organization.findUnique({
+        where: { id: orgId },
+        select: {
+          status: true,
+          trialEndsAt: true,
+          plan: {
+            select: {
+              slug: true,
+              name: true,
+              monthlyPrice: true,
+              planModules: { select: { moduleSlug: true } }
+            }
+          }
+        }
+      }),
+
+      // Explicitly enabled modules — gate premium badges by real entitlement
+      db.organizationModule.findMany({
+        where: { orgId, enabled: true },
+        select: { module: { select: { slug: true } } }
       })
     ])
 
@@ -519,6 +544,32 @@ export const GET = route({
         views: school?.viewCount ?? 0,
         viewsThisWeek
       },
+      meta: (() => {
+        const enabled = new Set<string>()
+        orgMeta?.plan?.planModules?.forEach(pm => enabled.add(pm.moduleSlug))
+        orgModuleRows.forEach(r => { if (r.module?.slug) enabled.add(r.module.slug) })
+        const planSlug = orgMeta?.plan?.slug ?? 'free'
+        const status = (orgMeta?.status as string) ?? 'TRIAL'
+        const isPaid =
+          status === 'ACTIVE' &&
+          planSlug !== 'free' &&
+          Number(orgMeta?.plan?.monthlyPrice ?? 0) > 0
+        const trialEndsAt = orgMeta?.trialEndsAt ?? null
+        const trialDaysLeft = trialEndsAt
+          ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - now.getTime()) / 86400000))
+          : null
+        return {
+          institutionType: school?.institutionType ?? 'SCHOOL',
+          orgStatus: status,
+          planSlug,
+          planName: orgMeta?.plan?.name ?? 'Free',
+          isPaid,
+          isTrial: status === 'TRIAL',
+          trialEndsAt,
+          trialDaysLeft,
+          enabledModules: Array.from(enabled)
+        }
+      })(),
       upcomingEvents,
       eventsThisMonth: eventsThisMonthCount,
       recentActivity: recentActivities,

@@ -1,12 +1,64 @@
 'use client'
 
+import { useState } from 'react'
 import { formatINRFull, formatPct } from './format'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Pencil } from 'lucide-react'
 
 export type Column = {
   key: string
   label: string
   format?: 'text' | 'int' | 'inr' | 'pct' | 'hours' | 'date' | 'badge'
+  editable?: 'cost'
+}
+
+// Inline-editable numeric cell (currently campaign spend). Commits on blur /
+// Enter; empty clears the value.
+function EditableCell({
+  value, onSave
+}: {
+  value: unknown
+  onSave: (v: number | null) => Promise<void>
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const commit = async () => {
+    setEditing(false)
+    const trimmed = draft.trim()
+    const next = trimmed === '' ? null : Number(trimmed)
+    if (next !== null && (isNaN(next) || next < 0)) return
+    const current = typeof value === 'number' ? value : null
+    if (next === current) return
+    setSaving(true)
+    try { await onSave(next) } finally { setSaving(false) }
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type="number"
+        defaultValue={typeof value === 'number' ? value : ''}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+        className="w-24 h-7 rounded border border-[#1565D8] px-1.5 text-sm"
+        placeholder="₹"
+      />
+    )
+  }
+  return (
+    <button
+      onClick={() => { setDraft(''); setEditing(true) }}
+      disabled={saving}
+      className="inline-flex items-center gap-1 text-sm text-slate-700 hover:text-[#1565D8] disabled:opacity-50 group/edit"
+    >
+      {typeof value === 'number' ? formatINRFull(value) : <span className="text-slate-300">Add spend</span>}
+      <Pencil className="h-3 w-3 opacity-0 group-hover/edit:opacity-60" />
+    </button>
+  )
 }
 
 function renderCell(value: unknown, format?: Column['format']) {
@@ -43,7 +95,8 @@ export function ReportTable({
   loading,
   onLoadMore,
   hasMore,
-  loadingMore
+  loadingMore,
+  onEdit
 }: {
   columns: Column[]
   rows: Record<string, unknown>[]
@@ -51,6 +104,8 @@ export function ReportTable({
   onLoadMore?: () => void
   hasMore?: boolean
   loadingMore?: boolean
+  /** Commit an inline edit; rowId comes from row.__rowId. */
+  onEdit?: (rowId: string, action: 'cost', value: number | null) => Promise<void>
 }) {
   if (loading) {
     return (
@@ -93,7 +148,14 @@ export function ReportTable({
                     key={c.key}
                     className="text-sm font-normal leading-relaxed text-slate-700 px-4 py-3 whitespace-nowrap first:sticky first:left-0 first:bg-white group-hover:first:bg-slate-50"
                   >
-                    {renderCell(row[c.key], c.format)}
+                    {c.editable && onEdit && typeof row.__rowId === 'string' ? (
+                      <EditableCell
+                        value={row[c.key]}
+                        onSave={v => onEdit(row.__rowId as string, c.editable!, v)}
+                      />
+                    ) : (
+                      renderCell(row[c.key], c.format)
+                    )}
                   </td>
                 ))}
               </tr>

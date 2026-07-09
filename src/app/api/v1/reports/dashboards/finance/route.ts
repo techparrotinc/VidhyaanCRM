@@ -8,15 +8,7 @@ import {
   monthWindow, OPEN_INVOICE_STATUSES,
   branchIdsFor, branchScope, effectiveBranchIds
 } from '@/lib/reports/queries/scope'
-
-const AGEING_BUCKETS = ['0-30', '31-60', '61-90', '90+'] as const
-
-function bucketFor(daysOverdue: number): (typeof AGEING_BUCKETS)[number] {
-  if (daysOverdue <= 30) return '0-30'
-  if (daysOverdue <= 60) return '31-60'
-  if (daysOverdue <= 90) return '61-90'
-  return '90+'
-}
+import { computeAgeing } from '@/lib/reports/queries/ageing'
 
 // Accountant's morning screen: who pays today, who is slipping.
 // Month windows are calendar-based (finance thinks in months, not AY).
@@ -24,13 +16,15 @@ export const GET = route({
   module: REPORTS_MODULE_SLUG,
   roles: ['ORG_ADMIN', 'ACCOUNTANT'],
   handler: async ({ req, user, db }) => {
-    const { branch } = parseQuery(req.url, { branch: textParam })
+    const { branch, fresh } = parseQuery(req.url, { branch: textParam, fresh: textParam })
     const branchIds = effectiveBranchIds(await branchIdsFor(user.id, user.role), branch)
     const br = branchScope(branchIds)
 
     const cacheKey = `rpt:dash:finance:${user.orgId}:${branchIds?.join(',') ?? 'all'}`
-    const cached = await redis.get(cacheKey).catch(() => null)
-    if (cached) return ok(JSON.parse(cached))
+    if (!fresh) {
+      const cached = await redis.get(cacheKey).catch(() => null)
+      if (cached) return ok(JSON.parse(cached))
+    }
 
     const now = new Date()
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -38,7 +32,8 @@ export const GET = route({
 
     const [
       billedMTD, collectedMTD, collectedLastMonth,
-      openInvoices,
+      ageing,
+      lastMonth90,
       methodMix,
       concessionsMTD,
       todaysReceipts,
@@ -58,11 +53,21 @@ export const GET = route({
         where: { ...br, status: 'SUCCESS', paidAt: monthWindow(-1) },
         _sum: { amount: true }
       }),
-      // Ageing needs per-invoice date math — bounded fetch, aggregated here.
-      db.invoice.findMany({
-        where: { ...br, status: { in: [...OPEN_INVOICE_STATUSES] } },
-        select: { dueDate: true, totalAmount: true, paidAmount: true },
-        take: 5000
+      // Whole open book (no row cap): paged balance aggregation.
+      computeAgeing(
+        db,
+        { ...br, status: { in: [...OPEN_INVOICE_STATUSES] } },
+        startOfToday
+      ),
+      // Last month's 90+ snapshot (nightly rollup) for the MoM insight.
+      db.dailyRollup.findFirst({
+        where: {
+          metric: 'overdue_90plus_amount',
+          date: { gte: monthWindow(-1).gte, lt: monthWindow(-1).lt },
+          ...br
+        },
+        orderBy: { date: 'desc' },
+        select: { amount: true }
       }),
       db.payment.groupBy({
         by: ['method'],
@@ -96,20 +101,16 @@ export const GET = route({
       })
     ])
 
-    const ageing = AGEING_BUCKETS.map(bucket => ({ bucket, count: 0, amount: 0 }))
-    let outstanding = 0
-    let overdueTotal = 0
-    for (const inv of openInvoices) {
-      const due = Number(inv.totalAmount) - Number(inv.paidAmount)
-      if (due <= 0) continue
-      outstanding += due
-      if (!inv.dueDate || inv.dueDate >= startOfToday) continue
-      overdueTotal += due
-      const days = Math.floor((startOfToday.getTime() - inv.dueDate.getTime()) / 864e5)
-      const slot = ageing.find(b => b.bucket === bucketFor(days))!
-      slot.count++
-      slot.amount += due
-    }
+    const outstanding = ageing.outstanding
+    const overdueTotal = ageing.overdue
+
+    // 90+ month-over-month deterioration (needs last month's snapshot; blank
+    // until the nightly rollup has accrued ~a month of history).
+    const prev90 = lastMonth90?.amount != null ? Number(lastMonth90.amount) : null
+    const ninetyPlusGrowthPct =
+      prev90 !== null && prev90 > 0
+        ? ((ageing.ninetyPlus - prev90) / prev90) * 100
+        : null
 
     const trendMap = new Map<string, { billed: number; collected: number }>()
     for (const r of rollups) {
@@ -129,9 +130,7 @@ export const GET = route({
 
     const attention = buildFinanceAttention({
       collectionRateMTD: billed > 0 ? collected / billed : null,
-      // MoM 90+ growth needs a stored snapshot of last month's buckets —
-      // Phase 2 (needs ageing metric in rollups). Rule stays dormant.
-      ninetyPlusGrowthPct: null,
+      ninetyPlusGrowthPct,
       concessionPctMTD: billed > 0 ? concessionSum / billed : null
     })
 
@@ -147,7 +146,7 @@ export const GET = route({
         outstanding: { value: outstanding },
         overdue: { value: overdueTotal }
       },
-      ageing,
+      ageing: ageing.buckets,
       trend,
       methodMix: methodMix
         .map(m => ({

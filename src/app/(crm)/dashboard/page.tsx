@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import Sidebar from '@/components/Sidebar'
+import Link from 'next/link'
 import {
   Globe,
   TrendingUp,
@@ -9,12 +9,7 @@ import {
   ClipboardList,
   Users,
   CreditCard,
-  Shield,
-  ChevronDown,
   ChevronRight,
-  Search,
-  Bell,
-  Menu,
   Crown,
   X,
   Eye,
@@ -33,8 +28,6 @@ import {
   GitBranch,
   Calendar,
   CalendarDays,
-  CalendarOff,
-  LayoutList,
   Info,
   XCircle
 } from 'lucide-react'
@@ -47,11 +40,20 @@ import { SetupBanner } from "@/components/dashboard/SetupBanner"
 import { useAcademicYearStore } from "@/stores/academic-year.store"
 
 // ===================================================================
-// INSTITUTION TYPE CONTEXT VARIABLE & CONSTANTS
+// INSTITUTION-TYPE ADAPTIVE COPY
 // ===================================================================
-const institutionConfig = {
-  type: 'school', // options: 'school' | 'institute' | 'learning_center'
-  name: 'Prince Matriculation School',
+type InstKey = 'school' | 'institute' | 'learning_center'
+
+const LC_TYPES = ['LEARNING_CENTER', 'COACHING_CENTER', 'SKILL_DEVELOPMENT', 'SPORTS_ACADEMY']
+
+// Map the DB InstitutionType enum → the copy variant used across this page
+const toInstKey = (t?: string): InstKey => {
+  if (!t) return 'school'
+  if (LC_TYPES.includes(t)) return 'learning_center'
+  return 'school'
+}
+
+const COPY = {
   pipelineTitle: {
     school: 'Admission Pipeline',
     institute: 'Enrolment Pipeline',
@@ -62,20 +64,12 @@ const institutionConfig = {
     institute: 'Enrolment Management',
     learning_center: 'Enquiry Management',
   },
-  pipelineStages: {
-    school: [
-      'Enquiry', 'Contacted', 'Application',
-      'Docs', 'Interview', 'Payment', 'Enrolled',
-      'Rejected'
-    ],
-    institute: [
-      'Enquiry', 'Contacted', 'Enrolled', 'Rejected'
-    ],
-    learning_center: [
-      'Enquiry', 'Trial Class', 'Enrolled', 'Rejected'
-    ],
+  createLabel: {
+    school: 'Admission',
+    institute: 'Enrolment',
+    learning_center: 'Enquiry',
   },
-}
+} as const
 
 const formatINR = (amount: number) =>
   new Intl.NumberFormat('en-IN', {
@@ -84,26 +78,33 @@ const formatINR = (amount: number) =>
     maximumFractionDigits: 0
   }).format(amount)
 
-import Link from 'next/link'
-
 export default function DashboardPage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [trialBannerVisible, setTrialBannerVisible] = useState(true)
-  const [welcomeBannerVisible, setWelcomeBannerVisible] = useState(false)
-  const [profileCompletePct, setProfileCompletePct] = useState(0)
-  const [schoolSlug, setSchoolSlug] = useState('')
-  const [isLC, setIsLC] = useState(false)
+  const [contextStripDismissed, setContextStripDismissed] = useState(false)
   const [dashData, setDashData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [schoolName, setSchoolName] = useState('Prince Matriculation School')
+  const [schoolName, setSchoolName] = useState('')
   // Same field the School Profile Manager shows — never hardcode this
   const [profileCompletion, setProfileCompletion] = useState<number>(100)
   const selectedYearId = useAcademicYearStore((s) => s.selectedYearId)
   const selectedYearName = useAcademicYearStore((s) => s.selectedYearName)
 
+  // ---- Plan / institution meta (real, from summary API) --------------
+  const meta = dashData?.meta
+  const instType = toInstKey(meta?.institutionType)
+  const isPaid: boolean = meta?.isPaid ?? false
+  const isTrial: boolean = meta?.isTrial ?? false
+  const trialDaysLeft: number | null = meta?.trialDaysLeft ?? null
+  const planName: string = meta?.planName ?? 'Free'
+  const enabledModules: string[] = meta?.enabledModules ?? []
+  const hasModule = (slug: string) => enabledModules.includes(slug)
+  // Show premium framing only when the org is NOT on a paid plan
+  const showUpsell = !isPaid
+  const moduleTitle = COPY.moduleTitle[instType]
+  const pipelineTitle = COPY.pipelineTitle[instType]
+  const createLabel = COPY.createLabel[instType]
+
   // Fee overview card data — real per-year numbers from the summary API
-  // (this block was hardcoded demo data until 2026-07)
   const fo = dashData?.feeOverview
   const feeData = {
     overdue: fo?.overdueOutstanding ?? 0,
@@ -134,34 +135,12 @@ export default function DashboardPage() {
     fetch('/api/v1/school-profile')
       .then((res) => res.json())
       .then((data) => {
-        if (data.success && data.school?.name) {
-          setSchoolName(data.school.name)
-        }
+        if (data.success && data.school?.name) setSchoolName(data.school.name)
         if (data.success && typeof data.school?.profileCompletion === 'number') {
           setProfileCompletion(data.school.profileCompletion)
         }
       })
       .catch((err) => console.error('Error fetching school profile in dashboard:', err))
-  }, [])
-
-  useEffect(() => {
-    const bannerDismissed = localStorage.getItem('vidhyaan_welcome_banner_dismissed')
-    const sessionSeen = sessionStorage.getItem('vidhyaan_welcome_banner_seen')
-
-    if (!bannerDismissed && !sessionSeen) {
-      fetch('/api/v1/onboarding/status')
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success && data.isComplete) {
-            setWelcomeBannerVisible(true)
-            setProfileCompletePct(data.profileCompletePct || 0)
-            setSchoolSlug(data.schoolSlug || '')
-            setIsLC(data.school?.institutionType === 'LEARNING_CENTER' || data.school?.institutionType === 'COACHING_CENTER')
-            sessionStorage.setItem('vidhyaan_welcome_banner_seen', 'true')
-          }
-        })
-        .catch((err) => console.error('Error fetching onboarding status in dashboard:', err))
-    }
   }, [])
 
   useEffect(() => {
@@ -194,30 +173,21 @@ export default function DashboardPage() {
     show: boolean
   }>({ message: '', type: 'success', show: false })
 
-  // Helper functions
-  const getCurrentMonth = () => {
-    return new Date().toLocaleString('en-IN', {
-      month: 'long',
-      year: 'numeric',
-    })
-  }
+  const getCurrentMonth = () =>
+    new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' })
+  const getShortMonth = () =>
+    new Date().toLocaleString('en-IN', { month: 'short', year: 'numeric' })
+  const greeting = (() => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Good morning'
+    if (h < 17) return 'Good afternoon'
+    return 'Good evening'
+  })()
 
-  const getShortMonth = () => {
-    return new Date().toLocaleString('en-IN', {
-      month: 'short',
-    })
-  }
-
-  const showToast = (
-    message: string, 
-    type: 'success' | 'error' | 'info' = 'success'
-  ) => {
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type, show: true })
     setTimeout(() => setToast(t => ({ ...t, show: false })), 3000)
   }
-
-  const moduleTitle = institutionConfig.moduleTitle[institutionConfig.type as keyof typeof institutionConfig.moduleTitle]
-  const pipelineTitle = institutionConfig.pipelineTitle[institutionConfig.type as keyof typeof institutionConfig.pipelineTitle]
 
   const getStageColorClass = (colorName: string | null | undefined) => {
     switch (colorName) {
@@ -248,13 +218,7 @@ export default function DashboardPage() {
   const dropOffRate = totalAdmissions > 0 ? Math.round((rejectedAdmissions / totalAdmissions) * 100) : 0
 
   const capPct = dashData?.leads?.cap
-    ? Math.min(
-        100,
-        Math.round(
-          (dashData.leads.capUsed /
-           dashData.leads.cap) * 100
-        )
-      )
+    ? Math.min(100, Math.round((dashData.leads.capUsed / dashData.leads.cap) * 100))
     : 0
   const collectedThisMonth = Number(dashData?.fees?.collectedThisMonth ?? 0)
   const collectedLastMonth = Number(dashData?.fees?.collectedLastMonth ?? 0)
@@ -264,358 +228,299 @@ export default function DashboardPage() {
     : null
 
   const cmp = dashData?.comparisons
-  // % delta vs last month; null when last month had nothing to compare against
   const pctDelta = (current: number, previous: number) =>
     previous > 0 ? Math.round(((current - previous) / previous) * 100) : null
 
-  // KPI configurations
+  // KPI configurations — accent drives the per-metric colour rhythm
   const kpis = [
-    { title: "TOTAL ENQUIRIES", value: String(dashData?.leads?.total ?? 0), icon: Users, trend: `+${dashData?.leads?.createdThisMonth ?? 0} this month`, isPremium: false, link: "/lead-management" },
-    { title: "PROFILE VIEWS", value: String(dashData?.profile?.views ?? 0), icon: Eye, trend: (dashData?.profile?.viewsThisWeek ?? 0) > 0 ? `+${dashData.profile.viewsThisWeek} this week` : "No change", isPremium: false, link: "/settings/school-profile" },
-    { title: "LEADS THIS MONTH", value: String(dashData?.leads?.createdThisMonth ?? 0), icon: TrendingUp, trend: (dashData?.leads?.createdToday ?? 0) > 0 ? `+${dashData.leads.createdToday} today` : "No change today", isPremium: true, link: "/lead-management" },
-    { title: "FEE COLLECTION", value: formatINR(collectedThisMonth), icon: IndianRupee, trend: feePct === null ? "No prior month data" : `${feePct >= 0 ? '+' : ''}${feePct}% vs last month`, isPremium: true, link: "/fee-management" },
-    { title: "CONVERSION RATE", value: `${dashData?.admissions?.conversionRate ?? 0}%`, icon: BarChart2, trend: (cmp?.admittedThisMonth ?? 0) > 0 ? `+${cmp.admittedThisMonth} admitted this month` : "No change", isPremium: true, link: "/reports" },
+    { title: "TOTAL ENQUIRIES", value: String(dashData?.leads?.total ?? 0), icon: Users, trend: `+${dashData?.leads?.createdThisMonth ?? 0} this month`, isPremium: false, link: "/lead-management", accent: "blue" },
+    { title: "PROFILE VIEWS", value: String(dashData?.profile?.views ?? 0), icon: Eye, trend: (dashData?.profile?.viewsThisWeek ?? 0) > 0 ? `+${dashData.profile.viewsThisWeek} this week` : "No change", isPremium: false, link: "/settings/school-profile", accent: "violet" },
+    { title: "LEADS THIS MONTH", value: String(dashData?.leads?.createdThisMonth ?? 0), icon: TrendingUp, trend: (dashData?.leads?.createdToday ?? 0) > 0 ? `+${dashData.leads.createdToday} today` : "No change today", isPremium: true, link: "/lead-management", accent: "cyan" },
+    { title: "FEE COLLECTION", value: formatINR(collectedThisMonth), icon: IndianRupee, trend: feePct === null ? "No prior month data" : `${feePct >= 0 ? '+' : ''}${feePct}% vs last month`, isPremium: true, link: "/fee-management", accent: "emerald" },
+    { title: "CONVERSION RATE", value: `${dashData?.admissions?.conversionRate ?? 0}%`, icon: BarChart2, trend: (cmp?.admittedThisMonth ?? 0) > 0 ? `+${cmp.admittedThisMonth} admitted this month` : "No change", isPremium: true, link: "/reports", accent: "amber" },
     {
-      title: institutionConfig.type === 'institute' ? "ACTIVE ENROLLMENTS" : "ACTIVE STUDENTS",
+      title: instType === 'learning_center' ? "ACTIVE LEARNERS" : "ACTIVE STUDENTS",
       value: String(dashData?.admissions?.admitted ?? 0),
       icon: GraduationCap,
       trend: "No change",
       isPremium: true,
-      link: "/student-management"
+      link: "/student-management",
+      accent: "indigo"
     }
   ]
 
-  // Premium features config
+  const accentMap: Record<string, { icon: string; ring: string }> = {
+    blue: { icon: "bg-blue-50 text-blue-600", ring: "group-hover:border-blue-200" },
+    violet: { icon: "bg-violet-50 text-violet-600", ring: "group-hover:border-violet-200" },
+    cyan: { icon: "bg-cyan-50 text-cyan-600", ring: "group-hover:border-cyan-200" },
+    emerald: { icon: "bg-emerald-50 text-emerald-600", ring: "group-hover:border-emerald-200" },
+    amber: { icon: "bg-amber-50 text-amber-600", ring: "group-hover:border-amber-200" },
+    indigo: { icon: "bg-indigo-50 text-indigo-600", ring: "group-hover:border-indigo-200" },
+  }
+
+  // Premium features config — gated by real module entitlement
   const premiumFeatures = [
-    { title: "Advanced Reports", desc: "In-depth analytics on admissions, fees, and leads", icon: BarChart2 },
-    { title: "Campaign Management", desc: "Send SMS, Email & WhatsApp campaigns to leads and parents", icon: Megaphone },
-    { title: "Student Lifecycle", desc: "Full student history from enquiry to alumni", icon: UserCheck },
-    { title: "Payment Gateway", desc: "Collect fees online via UPI, cards & net banking", icon: CreditCard },
-    { title: "WhatsApp, Email & SMS", desc: "Automated communication templates for leads and admissions", icon: MessageSquare },
-    { title: "Forms & Requests", desc: "Custom admission and enquiry forms with e-signatures", icon: ClipboardList },
+    { title: "Advanced Reports", desc: "In-depth analytics on admissions, fees, and leads", icon: BarChart2, module: "advanced_reports", link: "/reports" },
+    { title: "Campaign Management", desc: "Send SMS, Email & WhatsApp campaigns to leads and parents", icon: Megaphone, module: "campaign_management", link: "/campaign-management" },
+    { title: "Student Lifecycle", desc: "Full student history from enquiry to alumni", icon: UserCheck, module: null, link: "/student-management" },
+    { title: "Payment Gateway", desc: "Collect fees online via UPI, cards & net banking", icon: CreditCard, module: null, link: "/settings/billing" },
+    { title: "WhatsApp, Email & SMS", desc: "Automated communication for leads and admissions", icon: MessageSquare, module: "whatsapp_addon", link: "/settings/whatsapp-templates" },
+    { title: "Forms & Requests", desc: "Custom admission and enquiry forms with e-signatures", icon: ClipboardList, module: null, link: "/settings" },
     {
-      title: institutionConfig.type === 'school' ? "Admission Workflow" : (institutionConfig.type === 'institute' ? "Enrolment Workflow" : "Enquiry Workflow"),
+      title: instType === 'learning_center' ? "Enquiry Workflow" : "Admission Workflow",
       desc: "Configurable multi-stage pipeline for admissions",
       icon: GitBranch,
+      module: null,
+      link: "/admission-management",
       isWorkflow: true
     }
   ]
 
-  // Full-page skeleton while summary loads — stops every sub-card flashing
-  // 0 before real values arrive
+  // ------- Full-page skeleton while summary loads -------
   if (loading) {
     return (
-      <div className="flex-1 p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full select-none">
+      <div className="flex-1 p-5 md:p-8 space-y-6 max-w-7xl mx-auto w-full select-none">
         <div className="space-y-2">
-          <Skeleton className="h-6 w-64" />
-          <Skeleton className="h-3 w-80" />
+          <Skeleton className="h-7 w-72" />
+          <Skeleton className="h-3 w-96" />
         </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-6 xl:gap-4">
+        <Skeleton className="h-14 w-full rounded-2xl" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6 xl:gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="min-h-[160px] w-full rounded-xl" />
+            <Skeleton key={i} className="h-[128px] w-full rounded-2xl" />
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          <Skeleton className="h-96 w-full rounded-xl" />
-          <Skeleton className="h-96 w-full rounded-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <Skeleton className="h-96 w-full rounded-2xl" />
+          <Skeleton className="h-96 w-full rounded-2xl" />
         </div>
-        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     )
   }
 
+  const displayName = schoolName || 'your dashboard'
+
   return (
-    <div className="flex-1 p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full select-none">
-      <div className="flex flex-col min-w-0 mb-6">
-        <h1 className="text-xl font-bold text-slate-800 tracking-tight leading-tight">
-          Welcome to {schoolName}!
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          {institutionConfig.type === 'school' && "Here's what's happening at your school today."}
-          {institutionConfig.type === 'institute' && "Here's what's happening at your institute today."}
-          {institutionConfig.type === 'learning_center' && "Here's what's happening today."}
-        </p>
-      </div>
-
-      {/* WELCOME BANNER */}
-      {welcomeBannerVisible && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3.5 md:px-8 flex flex-col md:flex-row gap-3 md:gap-4 items-center w-full mb-6">
-          <div className="flex items-start md:items-center gap-2.5 w-full md:w-auto">
-            <span className="text-xl">🎉</span>
-            <div className="space-y-0.5">
-              <p className="text-xs md:text-sm text-emerald-800 font-bold leading-none">
-                Welcome to Vidhyaan CRM!
-              </p>
-              <p className="text-[11px] md:text-xs text-emerald-600 font-medium">
-                Your school profile is live. Your 7-day free trial has started.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto md:ml-auto shrink-0 mt-2 md:mt-0">
-            {profileCompletePct < 80 && (
-              <Link
-                href="/onboarding/step/1"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition duration-200 text-center"
-              >
-                Complete Your Profile ({profileCompletePct}%)
-              </Link>
-            )}
-            {schoolSlug && (
-              <a
-                href={isLC ? `/learning-centers/${schoolSlug}` : `/schools/${schoolSlug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-bold text-[#1565D8] hover:underline flex items-center gap-0.5 cursor-pointer"
-              >
-                View My Listing
-              </a>
-            )}
-            <button
-              onClick={() => {
-                setWelcomeBannerVisible(false)
-                localStorage.setItem('vidhyaan_welcome_banner_dismissed', 'true')
-              }}
-              className="p-1 rounded text-emerald-500 hover:text-emerald-700 ml-auto md:ml-0 transition shrink-0 cursor-pointer"
-              title="Dismiss Welcome Banner"
-            >
-              <X className="w-4 h-4" strokeWidth={1.5} />
-            </button>
-          </div>
+    <div className="flex-1 p-5 md:p-8 space-y-8 max-w-7xl mx-auto w-full select-none">
+      {/* ============ PAGE HEADER ============ */}
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight leading-tight truncate" style={{ fontFamily: "'Poppins', sans-serif" }}>
+            {greeting}{schoolName ? `, ${schoolName}` : ''}
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            {instType === 'learning_center'
+              ? "Here's what's happening at your centre today."
+              : "Here's what's happening at your institution today."}
+          </p>
         </div>
-      )}
-
-      {/* TRIAL BANNER */}
-      {trialBannerVisible && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 md:px-8 flex flex-col md:flex-row gap-2 md:gap-4 animate-fade-in w-full mb-6">
-          {/* Mobile Row 1 / Desktop Left */}
-          <div className="flex items-start md:items-center gap-2 w-full md:w-auto">
-            <Crown className="w-4 h-4 text-amber-500 shrink-0 mt-0.5 md:mt-0" strokeWidth={1.5} />
-            <p className="text-xs md:text-sm text-amber-800 font-medium leading-relaxed">
-              🎉 7-Day Free Trial of Vidhyaan Premium is active!{" "}
-              <span className="text-[#92400E] font-bold">Trial ends in 7 days.</span>
-            </p>
-            <button
-              onClick={() => setTrialBannerVisible(false)}
-              className="p-1 rounded text-amber-500 hover:text-amber-700 ml-auto md:hidden transition shrink-0"
-            >
-              <X className="w-4 h-4" strokeWidth={1.5} />
-            </button>
-          </div>
-
-          {/* Mobile Row 2 / Desktop Right */}
-          <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto md:ml-auto shrink-0">
-            <Link
-              href="/settings/billing"
-              className="text-xs md:text-sm font-semibold text-[#1565D8] underline cursor-pointer hover:text-blue-700 whitespace-nowrap"
-            >
-              See features
-            </Link>
-            <Link href="/settings/billing" className="flex-1 md:flex-initial">
-              <Button className="bg-[#1565D8] text-white text-xs md:text-sm font-semibold px-4 md:px-5 py-2 h-8 md:h-9 w-full rounded-lg hover:bg-blue-700 transition duration-200 whitespace-nowrap">
-                Activate Premium
-              </Button>
-            </Link>
-            <button
-              onClick={() => setTrialBannerVisible(false)}
-              className="p-1 rounded text-amber-500 hover:text-amber-700 hidden md:block transition"
-            >
-              <X className="w-4 h-4" strokeWidth={1.5} />
-            </button>
-          </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {selectedYearName && (
+            <span className="inline-flex items-center gap-1.5 bg-white border border-slate-200 text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-full">
+              <CalendarDays size={13} className="text-slate-400" strokeWidth={1.75} />
+              {selectedYearName}
+            </span>
+          )}
+          <Link href="/lead-management/add-lead">
+            <Button className="bg-[#1565D8] hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 h-9 rounded-lg flex items-center gap-1.5">
+              <Plus size={15} strokeWidth={2} /> Add Lead
+            </Button>
+          </Link>
         </div>
-      )}
+      </header>
 
-      {/* ONE-TIME SETUP CHECKLIST BANNER (paid orgs, until complete) */}
+      {/* ============ ONE-TIME SETUP CHECKLIST (paid orgs) ============ */}
       <SetupBanner />
 
       {error ? (
         <div className="text-center py-20">
           <p className="text-red-500">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 text-[#1565D8] underline text-sm"
-          >
+          <button onClick={() => window.location.reload()} className="mt-4 text-[#1565D8] underline text-sm">
             Try again
           </button>
         </div>
       ) : (
         <>
-          {/* WELCOME / PROFILE COMPLETION BLOCK — two-state */}
-
-          {/* STATE 1: Onboarding (profileCompletion < 100) */}
-          {profileCompletion < 100 && (
-            <Card className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 border-l-4 border-l-[#1565D8]">
-              <div className="flex flex-col md:flex-row items-stretch md:items-start justify-between gap-4 md:gap-8">
-                {/* LEFT: Heading + Subtext */}
-                <div className="flex-1">
-                  <h3 className="text-lg md:text-xl font-bold text-slate-800 tracking-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                    Welcome to Vidhyaan, {schoolName}!
-                  </h3>
-                  <p className="mt-1.5 text-sm text-slate-500 leading-relaxed max-w-lg">
-                    {"Here's your Premium dashboard. Everything is live during your 7-day trial. Complete your profile to get discovered by parents."}
-                  </p>
-                </div>
-
-                {/* RIGHT: Progress bar */}
-                <div className="w-full md:min-w-[300px] md:w-auto shrink-0">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-semibold text-slate-600">Profile Completion</span>
-                    <span className="text-sm font-bold text-[#1565D8]">{profileCompletion}%</span>
+          {/* ============ CONTEXT STRIP (single, priority-picked) ============ */}
+          {!contextStripDismissed && (() => {
+            // Priority 1 — profile incomplete: the most actionable next step
+            if (profileCompletion < 100) {
+              return (
+                <Card className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6 border-l-4 border-l-[#1565D8]">
+                  <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 md:gap-8">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base md:text-lg font-bold text-slate-900 tracking-tight">
+                        Finish setting up {displayName}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-500 leading-relaxed max-w-lg">
+                        Complete your profile to get discovered by parents and unlock your public listing.
+                      </p>
+                    </div>
+                    <div className="w-full md:w-72 shrink-0">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-xs font-semibold text-slate-500">Profile completion</span>
+                        <span className="text-sm font-bold text-[#1565D8]">{profileCompletion}%</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-2">
+                        <div className="bg-[#1565D8] rounded-full h-2 transition-all duration-500" style={{ width: `${profileCompletion}%` }} />
+                      </div>
+                      <Link href="/settings/school-profile" className="text-sm font-semibold text-[#1565D8] mt-2 inline-flex items-center gap-1 hover:underline">
+                        Complete profile <ChevronRight size={14} strokeWidth={2} />
+                      </Link>
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2">
-                    <div
-                      className="bg-[#1565D8] rounded-full h-2 transition-all duration-500"
-                      style={{ width: `${profileCompletion}%` }}
-                    />
+                </Card>
+              )
+            }
+            // Priority 2 — active trial: real countdown + upgrade
+            if (isTrial) {
+              return (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3.5 md:px-6 flex flex-col md:flex-row gap-3 md:items-center">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                      <Crown className="w-4 h-4 text-amber-600 fill-amber-500" strokeWidth={1.5} />
+                    </span>
+                    <p className="text-sm text-amber-900 font-medium leading-snug">
+                      Premium trial active.{" "}
+                      <span className="font-bold">
+                        {trialDaysLeft != null
+                          ? (trialDaysLeft === 0 ? 'Ends today.' : `${trialDaysLeft} day${trialDaysLeft > 1 ? 's' : ''} left.`)
+                          : 'Enjoy full access.'}
+                      </span>
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1.5">
-                    Listing is {profileCompletion}% complete.
-                  </p>
-                  <Link
-                    href="/settings/school-profile"
-                    className="text-sm font-semibold text-[#1565D8] mt-2 block hover:underline cursor-pointer"
-                  >
-                    Complete profile →
-                  </Link>
+                  <div className="flex items-center gap-3 md:ml-auto shrink-0">
+                    <Link href="/settings/billing" className="text-sm font-semibold text-[#1565D8] hover:underline whitespace-nowrap">
+                      See plans
+                    </Link>
+                    <Link href="/settings/billing/upgrade">
+                      <Button className="bg-[#1565D8] hover:bg-blue-700 text-white text-sm font-semibold px-4 h-9 rounded-lg whitespace-nowrap">
+                        Upgrade
+                      </Button>
+                    </Link>
+                    <button onClick={() => setContextStripDismissed(true)} className="p-1 rounded text-amber-500 hover:text-amber-700 transition shrink-0" title="Dismiss">
+                      <X className="w-4 h-4" strokeWidth={1.75} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          )}
-
-          {/* STATE 2: Operational (profileCompletion === 100) — slim green completion bar */}
-          {profileCompletion === 100 && (
-            <div className="bg-green-50 border border-green-100 rounded-xl px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 sm:h-[52px]">
-              {/* LEFT: icon + school name + divider + badge */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <CheckCircle2
-                  className="text-green-600 flex-shrink-0"
-                  size={18}
-                  strokeWidth={2}
-                />
-                <span className="text-sm font-semibold text-slate-700">
-                  {schoolName}
-                </span>
-                <span className="text-slate-300 mx-1 hidden sm:inline">·</span>
-                <span className="bg-green-100 text-green-700 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                  ✓ Profile 100% Complete
-                </span>
-              </div>
-
-              {/* RIGHT: single Manage Listing button */}
-              <div className="flex items-center gap-2">
-                <Link href="/settings/school-profile" className="flex items-center gap-1.5 text-xs font-semibold border border-[#1565D8] bg-white text-[#1565D8] px-4 py-1.5 rounded-full hover:bg-blue-50 transition cursor-pointer">
-                  <LayoutList size={12} strokeWidth={2} />
-                  Manage Listing
+              )
+            }
+            // Priority 3 — free plan, complete profile: soft upgrade nudge
+            if (!isPaid) {
+              return (
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl px-5 py-3.5 md:px-6 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <CheckCircle2 className="text-blue-500 shrink-0" size={18} strokeWidth={2} />
+                    <span className="text-sm font-medium text-slate-700">
+                      You&rsquo;re on the <span className="font-semibold">{planName}</span> plan. Upgrade to unlock campaigns, reports &amp; more.
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 sm:ml-auto shrink-0">
+                    <Link href="/settings/billing" className="text-sm font-semibold text-[#1565D8] hover:underline whitespace-nowrap">
+                      View plans →
+                    </Link>
+                    <button onClick={() => setContextStripDismissed(true)} className="p-1 rounded text-slate-400 hover:text-slate-600 transition" title="Dismiss">
+                      <X className="w-4 h-4" strokeWidth={1.75} />
+                    </button>
+                  </div>
+                </div>
+              )
+            }
+            // Priority 4 — paid + complete: slim success confirmation
+            return (
+              <div className="bg-green-50 border border-green-100 rounded-2xl px-5 py-3 md:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <CheckCircle2 className="text-green-600 shrink-0" size={18} strokeWidth={2} />
+                  <span className="text-sm font-semibold text-slate-700">{displayName}</span>
+                  <span className="text-slate-300 hidden sm:inline">·</span>
+                  <span className="bg-green-100 text-green-700 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                    {planName} plan active
+                  </span>
+                </div>
+                <Link href="/settings/school-profile" className="inline-flex items-center gap-1.5 text-xs font-semibold border border-slate-200 bg-white text-slate-700 px-3 py-1.5 rounded-full hover:bg-slate-50 transition shrink-0">
+                  Manage listing
                 </Link>
               </div>
-            </div>
-          )}
+            )
+          })()}
 
-          {/* KPI CARDS ROW */}
-          <section className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-6 xl:gap-4">
+          {/* ============ KPI STRIP ============ */}
+          <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6 xl:gap-4">
             {kpis.map((kpi) => {
-                const Icon = kpi.icon
-                return (
-                  <Link
-                    key={kpi.title}
-                    href={kpi.link}
-                    className="min-w-0 w-full min-h-[160px] bg-white rounded-xl border border-slate-200 shadow-sm p-4 lg:p-5 xl:p-6 cursor-pointer hover:border-blue-200 hover:shadow-md transition-all duration-200 relative group flex flex-col justify-between"
-                  >
-                    {/* Icon top-left */}
-                    <div className="text-slate-400 group-hover:text-[#1565D8] transition-colors">
-                      <Icon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={1.5} />
-                    </div>
-
-                    {/* Badge + Arrow co-located top-right */}
-                    <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                      {kpi.isPremium ? (
-                        <div className="bg-amber-100 text-amber-700 text-[9px] md:text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                          <Crown className="w-2.5 h-2.5 fill-amber-500 text-amber-500" strokeWidth={1.5} />
-                          <span>Premium</span>
-                        </div>
-                      ) : (
-                        <span className="bg-slate-100 text-slate-500 text-[9px] md:text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                          Free
-                        </span>
-                      )}
-                      <ArrowUpRight
-                        size={14}
-                        className="text-slate-300 group-hover:text-[#1565D8] transition-colors"
-                        strokeWidth={1.5}
-                      />
-                    </div>
-
-                    <span className="text-[10px] md:text-[11px] font-semibold uppercase tracking-widest text-slate-400 mt-4 block">
-                      {kpi.title}
+              const Icon = kpi.icon
+              const ac = accentMap[kpi.accent] ?? accentMap.blue
+              const showBadge = kpi.isPremium && showUpsell
+              return (
+                <Link
+                  key={kpi.title}
+                  href={kpi.link}
+                  className={`group relative min-w-0 w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-4 lg:p-5 cursor-pointer hover:shadow-md transition-all duration-200 flex flex-col ${ac.ring}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${ac.icon}`}>
+                      <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} />
                     </span>
-
-                    <h3
-                      className="text-xl md:text-2xl xl:text-[32px] font-bold text-slate-800 tracking-tight leading-tight mt-1"
-                      style={{ fontFamily: "'Poppins', sans-serif" }}
-                    >
-                      {kpi.value}
-                    </h3>
-
-                    <p className={`text-xs md:text-sm font-medium mt-2 ${kpi.trend.includes('No') ? 'text-slate-400' : 'text-green-600'}`}>
-                      {kpi.trend}
-                    </p>
-                  </Link>
-                )
-              })}
-          </section>
-
-          {/* COMPACT PIPELINE ROW */}
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {/* LEFT Column: Enquiry & Enrolment Pipeline */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-5 lg:p-6 flex flex-col justify-between h-full">
-              <div>
-                <div className="flex justify-between items-start">
-                  <div className="flex flex-col">
-                    <h3 className="text-sm md:text-base font-bold text-slate-800 tracking-tight">
-                      {pipelineTitle}
-                    </h3>
-                    {institutionConfig.type === 'school' && selectedYearName && (
-                      <span className="text-xs text-slate-400 mt-0.5">{selectedYearName}</span>
+                    {showBadge ? (
+                      <span className="bg-amber-100 text-amber-700 text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                        <Crown className="w-2.5 h-2.5 fill-amber-500 text-amber-500" strokeWidth={1.5} />
+                        Premium
+                      </span>
+                    ) : (
+                      <ArrowUpRight size={15} className="text-slate-300 group-hover:text-slate-500 transition-colors" strokeWidth={1.75} />
                     )}
                   </div>
-                  <div className="bg-amber-100 text-amber-700 text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-0.5 shrink-0">
-                    <Crown className="w-3 h-3 fill-amber-500 text-amber-500" strokeWidth={1.5} />
-                    <span>Premium</span>
-                  </div>
-                </div>
 
-                {/* Grid boxes */}
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3 mt-5">
-                  <div className="bg-slate-50 rounded-lg p-3 text-center">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">Enquiries</span>
-                    <h4 className="text-xl md:text-2xl font-bold text-slate-800 mt-1">{totalAdmissions}</h4>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3 text-center">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-500 block">In Process</span>
-                    <h4 className="text-xl md:text-2xl font-bold text-slate-800 mt-1">{inProcessAdmissions}</h4>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3 text-center">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-green-600 block">Enrolled</span>
-                    <h4 className="text-xl md:text-2xl font-bold text-slate-800 mt-1">{enrolledAdmissions}</h4>
-                    <span className="text-[10px] text-green-600 font-semibold mt-0.5 block">{conversionRate}%</span>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3 text-center">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-red-500 block">Rejected</span>
-                    <h4 className="text-xl md:text-2xl font-bold text-slate-800 mt-1">{rejectedAdmissions}</h4>
-                    <span className="text-[10px] text-red-500 font-semibold mt-0.5 block">{dropOffRate}%</span>
-                  </div>
-                </div>
-
-                <p className="text-[10px] md:text-xs text-slate-400 text-center mt-4">
-                  Conversion Rate: {conversionRate}% · Drop-off: {dropOffRate}% · Active in Pipeline: {inProcessAdmissions}
-                </p>
-
-                {/* SECTION A — PIPELINE STAGES BAR */}
-                <div className="mt-4 px-1">
-                  <p className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-3">
-                    Pipeline Stages
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-4 block truncate">
+                    {kpi.title}
+                  </span>
+                  <h3 className="text-xl lg:text-2xl font-bold text-slate-900 tracking-tight leading-none mt-1.5" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                    {kpi.value}
+                  </h3>
+                  <p className={`text-xs font-medium mt-2 truncate ${kpi.trend.includes('No') ? 'text-slate-400' : 'text-green-600'}`}>
+                    {kpi.trend}
                   </p>
+                </Link>
+              )
+            })}
+          </section>
+
+          {/* ============ PRIMARY ROW: Pipeline + Leads ============ */}
+          <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Pipeline */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col">
+              <div className="flex justify-between items-start">
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-slate-900 tracking-tight">{pipelineTitle}</h3>
+                  {selectedYearName && <span className="text-xs text-slate-400">{selectedYearName}</span>}
+                </div>
+                {showUpsell && (
+                  <span className="bg-amber-100 text-amber-700 text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 shrink-0">
+                    <Crown className="w-3 h-3 fill-amber-500 text-amber-500" strokeWidth={1.5} /> Premium
+                  </span>
+                )}
+              </div>
+
+              {/* Stat quads */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
+                {[
+                  { label: 'Enquiries', value: totalAdmissions, tone: 'text-slate-400', sub: null },
+                  { label: 'In Process', value: inProcessAdmissions, tone: 'text-blue-500', sub: null },
+                  { label: 'Enrolled', value: enrolledAdmissions, tone: 'text-green-600', sub: `${conversionRate}%` },
+                  { label: 'Rejected', value: rejectedAdmissions, tone: 'text-red-500', sub: `${dropOffRate}%` },
+                ].map((s) => (
+                  <div key={s.label} className="bg-slate-50 rounded-xl p-3 text-center">
+                    <span className={`text-[10px] font-semibold uppercase tracking-wider block ${s.tone}`}>{s.label}</span>
+                    <h4 className="text-xl md:text-2xl font-bold text-slate-900 mt-1">{s.value}</h4>
+                    {s.sub && <span className={`text-[10px] font-semibold mt-0.5 block ${s.tone}`}>{s.sub}</span>}
+                  </div>
+                ))}
+              </div>
+
+              {/* Stage funnel */}
+              {(dashData?.admissions?.byStage ?? []).length > 0 && (
+                <div className="mt-5">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-3">Pipeline Stages</p>
                   <div className="flex items-end gap-3 w-full overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden">
                     {(dashData?.admissions?.byStage ?? []).map((item: any, idx: number, arr: any[]) => {
                       const stageName = item.stage?.label ?? 'Unknown'
@@ -624,925 +529,515 @@ export default function DashboardPage() {
                       const maxCount = Math.max(...arr.map((a: any) => a.count ?? 1)) || 1
                       return (
                         <React.Fragment key={item.stageId ?? idx}>
-                          <div className="flex flex-col items-center min-w-[80px] md:min-w-[60px] md:flex-1 shrink-0">
-                            <span className="text-[11px] font-bold text-slate-700 mb-1">
-                              {count}
-                            </span>
-                            <div
-                              className={`w-full rounded-t-sm ${colorClass} opacity-80`}
-                              style={{ height: `${(count / maxCount) * 48}px`, minHeight: '6px' }}
-                            />
-                            <span className="text-[9px] font-medium text-slate-400 mt-1.5 text-center leading-tight w-full truncate px-0.5">
-                              {stageName}
-                            </span>
+                          <div className="flex flex-col items-center min-w-[64px] md:min-w-0 md:flex-1 shrink-0">
+                            <span className="text-[11px] font-bold text-slate-700 mb-1">{count}</span>
+                            <div className={`w-full rounded-t-md ${colorClass} opacity-85`} style={{ height: `${(count / maxCount) * 48}px`, minHeight: '6px' }} />
+                            <span className="text-[9px] font-medium text-slate-400 mt-1.5 text-center leading-tight w-full truncate px-0.5">{stageName}</span>
                           </div>
-                          {idx < arr.length - 1 && (
-                            <ChevronRight size={10} className="text-slate-200 mb-4 shrink-0" strokeWidth={2} />
-                          )}
+                          {idx < arr.length - 1 && <ChevronRight size={10} className="text-slate-200 mb-4 shrink-0" strokeWidth={2} />}
                         </React.Fragment>
                       )
                     })}
                   </div>
                 </div>
+              )}
 
-                {/* SECTION B — MINI COMPARISON ROW */}
-                <div className="mt-4 pt-4 border-t border-slate-200">
-                  <p className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2.5">
-                    This Month vs Last Month
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    {/* Chip 1 — Enquiries */}
-                    <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
-                      <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Enquiries</span>
-                      <div className="ml-auto text-right">
-                        <div className="text-sm font-bold text-slate-800">{cmp?.enquiries?.current ?? 0}</div>
+              {/* MoM comparison chips */}
+              <div className="mt-5 pt-4 border-t border-slate-100">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2.5">This Month vs Last</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {[
+                    { label: 'Enquiries', cur: cmp?.enquiries?.current ?? 0, delta: pctDelta(cmp?.enquiries?.current ?? 0, cmp?.enquiries?.previous ?? 0) },
+                    { label: 'Converted', cur: cmp?.converted?.current ?? 0, delta: pctDelta(cmp?.converted?.current ?? 0, cmp?.converted?.previous ?? 0) },
+                  ].map((c) => (
+                    <div key={c.label} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
+                      <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">{c.label}</span>
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-slate-900">{c.cur}</div>
                         <div className="flex items-center justify-end mt-0.5">
-                          {(() => {
-                            const delta = pctDelta(cmp?.enquiries?.current ?? 0, cmp?.enquiries?.previous ?? 0)
-                            if (delta === null) return (
-                              <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">—</span>
-                            )
-                            return (
-                              <>
-                                {delta >= 0 && <TrendingUp size={10} className="text-green-600 mr-1" />}
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${delta >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                  {delta >= 0 ? '+' : ''}{delta}%
-                                </span>
-                              </>
-                            )
-                          })()}
-                        </div>
-                      </div>
-                    </div>
-                    {/* Chip 2 — Converted */}
-                    <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
-                      <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Converted</span>
-                      <div className="ml-auto text-right">
-                        <div className="text-sm font-bold text-slate-800">{cmp?.converted?.current ?? 0}</div>
-                        <div className="flex items-center justify-end mt-0.5">
-                          {(() => {
-                            const delta = pctDelta(cmp?.converted?.current ?? 0, cmp?.converted?.previous ?? 0)
-                            if (delta === null) return (
-                              <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">—</span>
-                            )
-                            return (
-                              <>
-                                {delta >= 0 && <TrendingUp size={10} className="text-green-600 mr-1" />}
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${delta >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                  {delta >= 0 ? '+' : ''}{delta}%
-                                </span>
-                              </>
-                            )
-                          })()}
-                        </div>
-                      </div>
-                    </div>
-                    {/* Chip 3 — Avg. Convert Time */}
-                    <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
-                      <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Avg. Convert</span>
-                      <div className="ml-auto text-right">
-                        <div className="text-sm font-bold text-slate-800">
-                          {cmp?.avgConvertDays?.current != null ? `${cmp.avgConvertDays.current} days` : '—'}
-                        </div>
-                        <div className="flex items-center justify-end mt-0.5">
-                          {cmp?.avgConvertDays?.current != null && cmp?.avgConvertDays?.previous != null ? (
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                              cmp.avgConvertDays.current <= cmp.avgConvertDays.previous ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
-                            }`}>
-                              {cmp.avgConvertDays.current <= cmp.avgConvertDays.previous ? '↓' : '↑'} {Math.abs(cmp.avgConvertDays.current - cmp.avgConvertDays.previous)} days
-                            </span>
-                          ) : (
+                          {c.delta === null ? (
                             <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">—</span>
+                          ) : (
+                            <>
+                              {c.delta >= 0 && <TrendingUp size={10} className="text-green-600 mr-1" />}
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${c.delta >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {c.delta >= 0 ? '+' : ''}{c.delta}%
+                              </span>
+                            </>
                           )}
                         </div>
                       </div>
                     </div>
+                  ))}
+                  {/* Avg convert */}
+                  <div className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Avg. Convert</span>
+                    <div className="text-right">
+                      <div className="text-sm font-bold text-slate-900">
+                        {cmp?.avgConvertDays?.current != null ? `${cmp.avgConvertDays.current}d` : '—'}
+                      </div>
+                      <div className="flex items-center justify-end mt-0.5">
+                        {cmp?.avgConvertDays?.current != null && cmp?.avgConvertDays?.previous != null ? (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${cmp.avgConvertDays.current <= cmp.avgConvertDays.previous ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                            {cmp.avgConvertDays.current <= cmp.avgConvertDays.previous ? '↓' : '↑'} {Math.abs(cmp.avgConvertDays.current - cmp.avgConvertDays.previous)}d
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">—</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <div className="border-t border-slate-200 mt-4 pt-4 flex justify-between items-center">
-                  <Link
-                    href="/admission-management"
-                    className="text-xs md:text-sm font-semibold text-[#1565D8] hover:underline min-h-[44px] sm:min-h-0 flex items-center cursor-pointer"
-                  >
-                    View {moduleTitle} →
-                  </Link>
-
-                </div>
+              <div className="mt-auto pt-4 border-t border-slate-100">
+                <Link href="/admission-management" className="text-sm font-semibold text-[#1565D8] hover:underline inline-flex items-center gap-1">
+                  View {moduleTitle} <ChevronRight size={14} strokeWidth={2} />
+                </Link>
               </div>
             </div>
 
-            {/* RIGHT Column: Lead Overview */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-5 lg:p-6 flex flex-col justify-between h-full">
-              <div>
-                <div className="flex justify-between items-center">
-                  <h3 className="text-sm md:text-base font-bold text-slate-800 tracking-tight">
-                    Lead Overview
-                  </h3>
-                  <span className="bg-slate-100 text-slate-500 text-[10px] md:text-xs font-semibold px-3 py-1 rounded-full">
-                    Free
-                  </span>
-                </div>
+            {/* Lead Overview */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col">
+              <div className="flex justify-between items-center">
+                <h3 className="text-base font-bold text-slate-900 tracking-tight">Lead Overview</h3>
+                <span className="bg-slate-100 text-slate-500 text-[11px] font-semibold px-2.5 py-1 rounded-full">Free</span>
+              </div>
 
-                {/* Temporal stats */}
-                <div className="grid grid-cols-3 gap-2 mt-4">
-                  <div className="text-center bg-slate-50 rounded-lg p-2 md:p-3">
-                    <h4 className="text-lg md:text-2xl font-bold text-slate-800">{dashData?.leads?.createdToday ?? 0}</h4>
-                    <span className="text-[9px] md:text-[10px] uppercase tracking-wider text-slate-400 mt-1 block">Today</span>
+              <div className="grid grid-cols-3 gap-2 mt-4">
+                {[
+                  { label: 'Today', value: dashData?.leads?.createdToday ?? 0 },
+                  { label: 'This Week', value: dashData?.leads?.createdThisWeek ?? 0 },
+                  { label: 'This Month', value: dashData?.leads?.createdThisMonth ?? 0 },
+                ].map((s) => (
+                  <div key={s.label} className="text-center bg-slate-50 rounded-xl p-3">
+                    <h4 className="text-lg md:text-2xl font-bold text-slate-900">{s.value}</h4>
+                    <span className="text-[10px] uppercase tracking-wider text-slate-400 mt-1 block">{s.label}</span>
                   </div>
-                  <div className="text-center bg-slate-50 rounded-lg p-2 md:p-3">
-                    <h4 className="text-lg md:text-2xl font-bold text-slate-800">{dashData?.leads?.createdThisWeek ?? 0}</h4>
-                    <span className="text-[9px] md:text-[10px] uppercase tracking-wider text-slate-400 mt-1 block">This Week</span>
-                  </div>
-                  <div className="text-center bg-slate-50 rounded-lg p-2 md:p-3">
-                    <h4 className="text-lg md:text-2xl font-bold text-slate-800">{dashData?.leads?.createdThisMonth ?? 0}</h4>
-                    <span className="text-[9px] md:text-[10px] uppercase tracking-wider text-slate-400 mt-1 block">This Month</span>
-                  </div>
-                </div>
+                ))}
+              </div>
 
-                {/* Lead limit cap */}
+              {/* Lead cap (only meaningful when a cap applies — free plans) */}
+              {!isPaid && (
                 <div className="mt-4">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-xs font-semibold text-slate-500">Free Lead Limit</span>
                     <span className="text-xs font-bold text-slate-700">{(dashData?.leads?.capUsed ?? 0)} / {(dashData?.leads?.cap ?? 10)}</span>
                   </div>
                   <Progress value={capPct} className="h-2 w-full bg-slate-100" indicatorClassName="bg-amber-400" />
-
                   {(dashData?.leads?.capUsed ?? 0) >= ((dashData?.leads?.cap ?? 10) - 5) && (dashData?.leads?.capUsed ?? 0) < (dashData?.leads?.cap ?? 10) && (
-                    <p className="text-xs text-amber-700 font-medium mt-1.5 leading-relaxed">
-                      ⚠ {(dashData?.leads?.capUsed ?? 0)} of {(dashData?.leads?.cap ?? 10)} free leads used. Upgrade for unlimited leads.
+                    <p className="text-xs text-amber-700 font-medium mt-1.5">
+                      ⚠ {(dashData?.leads?.capUsed ?? 0)} of {(dashData?.leads?.cap ?? 10)} free leads used. Upgrade for unlimited.
                     </p>
                   )}
                   {(dashData?.leads?.capUsed ?? 0) >= (dashData?.leads?.cap ?? 10) && (
                     <div className="flex justify-between items-center mt-1.5">
-                      <p className="text-xs text-red-600 font-semibold">
-                        🔒 Free lead limit reached. New leads are paused.
-                      </p>
-                      <span className="text-xs text-[#1565D8] font-bold underline cursor-pointer">
-                        Upgrade to Continue →
-                      </span>
+                      <p className="text-xs text-red-600 font-semibold">🔒 Free lead limit reached.</p>
+                      <Link href="/settings/billing" className="text-xs text-[#1565D8] font-bold underline">Upgrade →</Link>
                     </div>
                   )}
                 </div>
+              )}
 
-                {/* Status breakdown list */}
-                <div className="mt-4 space-y-2.5">
-                  {(dashData?.leads?.byStatus ?? []).map((row: any) => {
-                    const total = dashData?.leads?.total || 1
-                    const pct = Math.round((row.count / total) * 100)
-                    let color = "bg-slate-500"
-                    if (row.status === 'NEW') color = "bg-blue-500"
-                    else if (row.status === 'CONTACTED') color = "bg-amber-400"
-                    else if (row.status === 'CONVERTED') color = "bg-green-500"
-                    else if (row.status === 'NOT_INTERESTED') color = "bg-red-400"
-
-                    let label = row.status
-                    if (row.status === 'FOLLOW_UP_PENDING') label = 'Follow Up'
-                    else if (row.status === 'NOT_INTERESTED') label = 'Not Interested'
-                    else if (row.status === 'NEW') label = 'New'
-                    else if (row.status === 'CONTACTED') label = 'Contacted'
-                    else if (row.status === 'CONVERTED') label = 'Converted'
-                    else if (row.status === 'INTERESTED') label = 'Interested'
-
-                    return (
-                      <div key={row.status} className="flex items-center gap-3">
-                        <span className="w-20 text-xs font-medium text-slate-600 shrink-0">{label}</span>
-                        <div className="flex-1 bg-slate-100 rounded-full h-1.5">
-                          <div className={`${color} rounded-full h-full`} style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className="text-xs text-slate-500 w-16 text-right shrink-0">{row.count} ({pct}%)</span>
+              {/* Status breakdown */}
+              <div className="mt-4 space-y-2.5">
+                {(dashData?.leads?.byStatus ?? []).map((row: any) => {
+                  const total = dashData?.leads?.total || 1
+                  const pct = Math.round((row.count / total) * 100)
+                  let color = "bg-slate-500"
+                  if (row.status === 'NEW') color = "bg-blue-500"
+                  else if (row.status === 'CONTACTED') color = "bg-amber-400"
+                  else if (row.status === 'CONVERTED') color = "bg-green-500"
+                  else if (row.status === 'NOT_INTERESTED') color = "bg-red-400"
+                  let label = row.status
+                  if (row.status === 'FOLLOW_UP_PENDING') label = 'Follow Up'
+                  else if (row.status === 'NOT_INTERESTED') label = 'Not Interested'
+                  else if (row.status === 'NEW') label = 'New'
+                  else if (row.status === 'CONTACTED') label = 'Contacted'
+                  else if (row.status === 'CONVERTED') label = 'Converted'
+                  else if (row.status === 'INTERESTED') label = 'Interested'
+                  return (
+                    <div key={row.status} className="flex items-center gap-3">
+                      <span className="w-20 text-xs font-medium text-slate-600 shrink-0">{label}</span>
+                      <div className="flex-1 bg-slate-100 rounded-full h-1.5">
+                        <div className={`${color} rounded-full h-full`} style={{ width: `${pct}%` }} />
                       </div>
+                      <span className="text-xs text-slate-500 w-16 text-right shrink-0">{row.count} ({pct}%)</span>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Source chips */}
+              {(dashData?.leads?.bySource?.length ?? 0) > 0 && (
+                <div className="mt-4 flex gap-1.5 flex-wrap">
+                  {(dashData?.leads?.bySource ?? []).slice(0, 4).map((s: any, i: number) => {
+                    const dotColors = ['bg-blue-500', 'bg-slate-400', 'bg-purple-500', 'bg-amber-400']
+                    const label = String(s.source || 'Other').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())
+                    return (
+                      <span key={s.source} className="text-[10px] font-medium border border-slate-200 bg-slate-50 rounded-full px-3 py-1 flex items-center gap-1.5 text-slate-600">
+                        <span className={`w-1.5 h-1.5 ${dotColors[i]} rounded-full`} /> {label} · {s.count}
+                      </span>
                     )
                   })}
                 </div>
+              )}
 
-                {/* Source chips (top 4 real sources) */}
-                {(dashData?.leads?.bySource?.length ?? 0) > 0 && (
-                  <div className="mt-4 flex gap-1 flex-wrap">
-                    {(dashData?.leads?.bySource ?? []).slice(0, 4).map((s: any, i: number) => {
-                      const dotColors = ['bg-blue-500', 'bg-slate-400', 'bg-purple-500', 'bg-amber-400']
-                      const label = String(s.source || 'Other').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())
-                      return (
-                        <span key={s.source} className="text-[10px] font-medium border border-slate-200 bg-slate-50 rounded-full px-3 py-1 flex items-center gap-1.5 text-slate-600">
-                          <span className={`w-1.5 h-1.5 ${dotColors[i]} rounded-full`} /> {label} · {s.count}
-                        </span>
-                      )
-                    })}
+              {/* Unassigned nudge */}
+              {(dashData?.leads?.unassigned ?? 0) > 0 && (
+                <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
+                  <div className="flex items-center text-amber-800 font-semibold min-w-0">
+                    <TriangleAlert className="w-3.5 h-3.5 text-amber-500 shrink-0 mr-2" strokeWidth={1.5} />
+                    <span className="truncate">{dashData?.leads?.unassigned} leads need assignment</span>
                   </div>
-                )}
+                  <Link href="/lead-management" className="font-bold text-amber-700 shrink-0 hover:underline">Assign now →</Link>
+                </div>
+              )}
 
-                {/* Counsellor nudge */}
-                {(dashData?.leads?.unassigned ?? 0) > 0 && (
-                  <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
-                    <div className="flex items-center text-amber-800 font-semibold min-w-0">
-                      <TriangleAlert className="w-3.5 h-3.5 text-amber-500 shrink-0 mr-2" strokeWidth={1.5} />
-                      <span className="truncate">{dashData?.leads?.unassigned} leads need counsellor assignment</span>
-                    </div>
-                    <span className="font-bold text-amber-700 cursor-pointer shrink-0 hover:underline min-h-[44px] sm:min-h-0 flex items-center justify-center w-full sm:w-auto text-center bg-amber-100/50 sm:bg-transparent py-2 sm:py-0 rounded-md sm:rounded-none">
-                      Assign Now →
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-slate-200 mt-4 pt-4">
-                <Link
-                  href="/lead-management"
-                  className="text-xs md:text-sm font-semibold text-[#1565D8] hover:underline min-h-[44px] sm:min-h-0 flex items-center cursor-pointer"
-                >
-                  Go to Lead Management →
+              <div className="mt-auto pt-4 border-t border-slate-100">
+                <Link href="/lead-management" className="text-sm font-semibold text-[#1565D8] hover:underline inline-flex items-center gap-1">
+                  Go to Lead Management <ChevronRight size={14} strokeWidth={2} />
                 </Link>
               </div>
             </div>
           </section>
 
-          {/* SECTION A — 2-COLUMN ROW */}
-          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[3fr_2fr] gap-4 md:gap-5 lg:gap-6 items-stretch">
-            {/* Column 1: Fee Overview */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 h-full flex flex-col">
-              {/* HEADER ROW */}
+          {/* ============ SECONDARY ROW: Fee Overview + Upcoming Events ============ */}
+          <section className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-5 items-stretch">
+            {/* Fee Overview */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col">
               <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                    FEE OVERVIEW
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">FEE OVERVIEW</span>
+                  <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-500 text-[10px] font-semibold px-2.5 py-1 rounded-full shrink-0">
+                    <CalendarDays size={11} className="text-slate-400" strokeWidth={1.5} />
+                    {getCurrentMonth()}
                   </span>
-                  <div className="w-px h-3.5 bg-slate-200 flex-shrink-0" />
-                  <div className="flex items-center gap-1.5 bg-slate-100 text-slate-500 text-[10px] font-semibold px-2.5 py-1 rounded-full">
-                    <CalendarDays size={11} className="text-slate-400 flex-shrink-0" strokeWidth={1.5} />
-                    <span>{getCurrentMonth()}</span>
-                  </div>
                 </div>
-                <div className="flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-semibold px-2.5 py-1 rounded-full">
-                  <Crown size={12} className="text-amber-500 fill-amber-500 mr-1" strokeWidth={1.5} />
-                  <span>Premium</span>
-                </div>
+                {showUpsell && (
+                  <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-semibold px-2.5 py-1 rounded-full shrink-0">
+                    <Crown size={12} className="text-amber-500 fill-amber-500" strokeWidth={1.5} /> Premium
+                  </span>
+                )}
               </div>
 
-              {/* CONTENT ROW */}
               <div className="flex flex-col gap-4 lg:flex-row lg:gap-0 flex-1">
-                {/* LEFT HALF */}
-                <div className="lg:min-w-[165px] lg:pr-5 grid grid-cols-3 gap-2 md:gap-3 lg:grid-cols-1 lg:gap-0 lg:space-y-4">
-                  {/* STAT 1 — COLLECTED */}
+                {/* Left: 3 stats */}
+                <div className="lg:min-w-[170px] lg:pr-5 grid grid-cols-3 gap-3 lg:grid-cols-1 lg:gap-0 lg:space-y-5">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">
-                      COLLECTED
-                    </span>
-                    <span className="text-[10px] text-slate-400 mb-1.5">
-                      {getShortMonth()} 2026
-                    </span>
-                    <span className="text-lg md:text-2xl font-bold text-slate-800 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">COLLECTED</span>
+                    <span className="text-[10px] text-slate-400 mb-1.5">{getShortMonth()}</span>
+                    <span className="text-lg md:text-2xl font-bold text-slate-900 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
                       {formatINR(dashData?.fees?.collectedThisMonth ?? 0)}
                     </span>
                     <div className="hidden md:flex items-center gap-1 mt-1.5">
                       {collectedTrend === 'down' ? (
-                        <>
-                          <TrendingDown size={12} className="text-red-400 flex-shrink-0" strokeWidth={1.5} />
-                          <span className="text-[10px] text-red-400 font-medium">
-                            vs {formatINR(collectedLastMonth)} last month
-                          </span>
-                        </>
-                      ) : collectedTrend === 'up' && (dashData?.fees?.collectedThisMonth ?? 0) > 0 ? (
-                        <>
-                          <TrendingUp size={12} className="text-green-500 flex-shrink-0" strokeWidth={1.5} />
-                          <span className="text-[10px] text-green-500 font-medium">
-                            vs {formatINR(collectedLastMonth)} last month
-                          </span>
-                        </>
-                      ) : (dashData?.fees?.collectedThisMonth ?? 0) === 0 && collectedLastMonth === 0 ? (
-                        <span className="text-[10px] text-slate-400">
-                          No collections yet
-                        </span>
-                      ) : null}
+                        <><TrendingDown size={12} className="text-red-400 shrink-0" strokeWidth={1.5} /><span className="text-[10px] text-red-400 font-medium">vs {formatINR(collectedLastMonth)} last mo.</span></>
+                      ) : (dashData?.fees?.collectedThisMonth ?? 0) > 0 ? (
+                        <><TrendingUp size={12} className="text-green-500 shrink-0" strokeWidth={1.5} /><span className="text-[10px] text-green-500 font-medium">vs {formatINR(collectedLastMonth)} last mo.</span></>
+                      ) : (
+                        <span className="text-[10px] text-slate-400">No collections yet</span>
+                      )}
                     </div>
                   </div>
-
-                  {/* STAT 2 — OVERDUE */}
                   <div className="flex flex-col">
-                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-red-400 mb-0.5">
-                      OVERDUE
-                    </span>
-                    <div className="flex items-center gap-1 mb-1.5">
-                      <TriangleAlert size={10} className="text-red-400 flex-shrink-0" strokeWidth={1.5} />
-                      <span className="text-[9px] md:text-[10px] text-red-400 font-medium">
-                        Action Needed
-                      </span>
-                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-red-400 mb-0.5">OVERDUE</span>
+                    <span className="text-[10px] text-red-400 font-medium mb-1.5 flex items-center gap-1"><TriangleAlert size={10} strokeWidth={1.5} /> Action needed</span>
                     <span className="text-lg md:text-2xl font-bold text-red-600 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
                       {formatINR(dashData?.fees?.overdue ?? 0)}
                     </span>
-                    <div className="hidden md:block mt-1.5">
-                      <span className="text-[10px] text-red-400 font-medium">
-                        {feeData.overdueOldestDays != null
-                          ? `Accumulated · Oldest: ${feeData.overdueOldestDays} days ago`
-                          : 'No overdue invoices'}
-                      </span>
-                    </div>
+                    <span className="hidden md:block text-[10px] text-red-400 font-medium mt-1.5">
+                      {feeData.overdueOldestDays != null ? `Oldest: ${feeData.overdueOldestDays} days ago` : 'No overdue invoices'}
+                    </span>
                   </div>
-
-                  {/* STAT 3 — UPCOMING */}
                   <div className="flex flex-col">
-                    <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">
-                      UPCOMING
-                    </span>
-                    <span className="text-[9px] md:text-[10px] text-slate-400 mb-1.5">
-                      Next 7 Days
-                    </span>
-                    <span className="text-lg md:text-2xl font-bold text-slate-800 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-0.5">UPCOMING</span>
+                    <span className="text-[10px] text-slate-400 mb-1.5">Next 7 days</span>
+                    <span className="text-lg md:text-2xl font-bold text-slate-900 leading-none" style={{ fontFamily: "'Poppins', sans-serif" }}>
                       {formatINR(dashData?.fees?.upcoming ?? 0)}
                     </span>
-                    <div className="hidden md:flex items-center gap-1 mt-1.5">
-                      <Receipt size={11} className="text-slate-400 flex-shrink-0" strokeWidth={1.5} />
-                      <span className="text-[10px] text-slate-500 font-medium">
-                        {feeData.upcomingInvoiceCount} invoices due
-                      </span>
-                    </div>
+                    <span className="hidden md:flex items-center gap-1 mt-1.5 text-[10px] text-slate-500 font-medium">
+                      <Receipt size={11} className="text-slate-400" strokeWidth={1.5} /> {feeData.upcomingInvoiceCount} invoices due
+                    </span>
                   </div>
                 </div>
 
-                {/* DIVIDER */}
-                <div className="hidden lg:block w-px bg-slate-100 self-stretch mx-0 flex-shrink-0" />
+                <div className="hidden lg:block w-px bg-slate-100 self-stretch shrink-0" />
 
-                {/* RIGHT HALF */}
-                <div className="flex-1 lg:pl-5 flex flex-col justify-between mt-4 lg:mt-0">
+                {/* Right: student fee status */}
+                <div className="flex-1 lg:pl-5 flex flex-col justify-between">
                   <div>
-                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">
-                      STUDENT FEE STATUS
-                    </h4>
-
+                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">STUDENT FEE STATUS</h4>
                     <div className="space-y-3">
-                      {/* ROW 1 — Paid on time */}
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full flex-shrink-0 bg-green-500" />
-                            <span className="text-sm font-medium text-slate-600">Paid on time</span>
+                      {[
+                        { label: 'Paid on time', n: feeData.students.paidOnTime, color: 'bg-green-500' },
+                        { label: 'Overdue', n: feeData.students.overdue, color: 'bg-red-500' },
+                        { label: 'Due in 7 days', n: feeData.students.upcomingDues, color: 'bg-amber-400' },
+                      ].map((r) => (
+                        <div key={r.label} className="flex flex-col gap-1.5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${r.color}`} />
+                              <span className="text-sm font-medium text-slate-600">{r.label}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-bold text-slate-900">{r.n}</span>
+                              <span className="text-xs text-slate-400">students</span>
+                              <span className="text-[11px] text-slate-400 font-medium">({feeStatusPct(r.n)}%)</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-bold text-slate-800">
-                              {feeData.students.paidOnTime}
-                            </span>
-                            <span className="text-xs text-slate-400">
-                              students
-                            </span>
-                            <span className="text-[11px] text-slate-400 font-medium">
-                              ({feeStatusPct(feeData.students.paidOnTime)}%)
-                            </span>
-                          </div>
-                        </div>
-                        <div className="w-full bg-slate-100 rounded-full h-1.5">
-                          <div className="bg-green-500 rounded-full h-1.5 transition-all duration-500" style={{ width: `${feeStatusPct(feeData.students.paidOnTime)}%` }} />
-                        </div>
-                      </div>
-
-                      {/* ROW 2 — Overdue */}
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full flex-shrink-0 bg-red-500" />
-                            <span className="text-sm font-medium text-slate-600">Overdue</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-bold text-slate-800">
-                              {feeData.students.overdue}
-                            </span>
-                            <span className="text-xs text-slate-400">
-                              students
-                            </span>
-                            <span className="text-[11px] text-slate-400 font-medium">
-                              ({feeStatusPct(feeData.students.overdue)}%)
-                            </span>
+                          <div className="w-full bg-slate-100 rounded-full h-1.5">
+                            <div className={`${r.color} rounded-full h-1.5 transition-all duration-500`} style={{ width: `${feeStatusPct(r.n)}%` }} />
                           </div>
                         </div>
-                        <div className="w-full bg-slate-100 rounded-full h-1.5">
-                          <div className="bg-red-500 rounded-full h-1.5 transition-all duration-500" style={{ width: `${feeStatusPct(feeData.students.overdue)}%` }} />
-                        </div>
-                      </div>
-
-                      {/* ROW 3 — Due in 7 days */}
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full flex-shrink-0 bg-amber-400" />
-                            <span className="text-sm font-medium text-slate-600">Due in 7 days</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-bold text-slate-800">
-                              {feeData.students.upcomingDues}
-                            </span>
-                            <span className="text-xs text-slate-400">
-                              students
-                            </span>
-                            <span className="text-[11px] text-slate-400 font-medium">
-                              ({feeStatusPct(feeData.students.upcomingDues)}%)
-                            </span>
-                          </div>
-                        </div>
-                        <div className="w-full bg-slate-100 rounded-full h-1.5">
-                          <div className="bg-amber-400 rounded-full h-1.5 transition-all duration-500" style={{ width: `${feeStatusPct(feeData.students.upcomingDues)}%` }} />
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
 
-                  {/* DIVIDER LINE */}
-                  <div className="border-t border-slate-200 my-3" />
+                  <div className="border-t border-slate-100 my-3" />
 
-                  {/* CONTEXT ROWS */}
                   <div className="space-y-2.5">
-                    {/* ROW A — YTD COLLECTED */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <TrendingUp size={13} className="text-green-500" strokeWidth={1.5} />
-                        <span className="text-xs font-medium text-slate-500">
-                          YTD Collected
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-green-600">
-                          {formatINR(feeData.ytdCollected)}
-                        </span>
-                        <span className="text-[10px] text-slate-400 ml-1.5">
-                          {feeData.academicYear}
-                        </span>
-                      </div>
+                      <span className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                        <TrendingUp size={13} className="text-green-500" strokeWidth={1.5} /> YTD Collected
+                      </span>
+                      <span>
+                        <span className="text-xs font-bold text-green-600">{formatINR(feeData.ytdCollected)}</span>
+                        <span className="text-[10px] text-slate-400 ml-1.5">{feeData.academicYear}</span>
+                      </span>
                     </div>
-
-                    {/* ROW B — LAST PAYMENT */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 size={13} className="text-slate-400" strokeWidth={1.5} />
-                        <span className="text-xs font-medium text-slate-500">
-                          Last Payment
-                        </span>
-                      </div>
+                      <span className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                        <CheckCircle2 size={13} className="text-slate-400" strokeWidth={1.5} /> Last Payment
+                      </span>
                       {feeData.lastPayment ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-semibold text-slate-700">
-                            {feeData.lastPayment.studentName}
-                          </span>
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-xs font-semibold text-slate-700 truncate max-w-[110px]">{feeData.lastPayment.studentName}</span>
                           <span className="text-slate-400 text-xs">·</span>
-                          <span className="text-xs font-bold text-slate-700">
-                            {formatINR(feeData.lastPayment.amount)}
-                          </span>
-                          <span className="text-slate-400 text-xs">·</span>
-                          <span className="text-[10px] text-slate-400">
-                            {feeData.lastPayment.date}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400 font-medium">
-                          No payments this month
+                          <span className="text-xs font-bold text-slate-700">{formatINR(feeData.lastPayment.amount)}</span>
                         </span>
+                      ) : (
+                        <span className="text-xs text-slate-400 font-medium">No payments this month</span>
                       )}
                     </div>
                   </div>
 
-                  {/* NUDGE CARD */}
                   {feeData.students.overdue > 0 ? (
                     <div className="mt-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <TriangleAlert size={15} className="text-red-500 flex-shrink-0" strokeWidth={1.5} />
-                        <div>
-                          <p className="text-sm font-semibold text-red-700">
-                            {feeData.students.overdue} students have overdue fees
-                          </p>
-                          <p className="text-xs text-red-400 font-medium mt-0.5">
-                            Total outstanding: {formatINR(feeData.overdue)}
-                          </p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <TriangleAlert size={15} className="text-red-500 shrink-0" strokeWidth={1.5} />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-red-700">{feeData.students.overdue} students overdue</p>
+                          <p className="text-xs text-red-400 font-medium mt-0.5">Outstanding: {formatINR(feeData.overdue)}</p>
                         </div>
                       </div>
-                      <button
-                        className="text-xs font-bold text-red-600 bg-white border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition cursor-pointer flex-shrink-0"
-                        onClick={() => showToast("Reminders sent to 3 students")}
-                      >
-                        Send Reminder →
-                      </button>
+                      <Link href="/fee-management" className="text-xs font-bold text-red-600 bg-white border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition shrink-0">
+                        Review →
+                      </Link>
                     </div>
                   ) : (
                     <div className="mt-3 bg-green-50 border border-green-100 rounded-xl px-4 py-3 flex items-center gap-2.5">
-                      <CheckCircle2 size={15} className="text-green-500 flex-shrink-0" strokeWidth={1.5} />
-                      <span className="text-sm font-semibold text-green-700">
-                        All student fees are up to date
-                      </span>
+                      <CheckCircle2 size={15} className="text-green-500 shrink-0" strokeWidth={1.5} />
+                      <span className="text-sm font-semibold text-green-700">All student fees are up to date</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* FOOTER */}
-              <div className="mt-auto pt-4 border-t border-slate-200 flex items-center justify-between">
-                <Link
-                  href="/fee-management"
-                  className="text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer"
-                >
-                  Go to Fee Management →
+              <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                <Link href="/fee-management" className="text-sm font-semibold text-[#1565D8] hover:underline inline-flex items-center gap-1">
+                  Go to Fee Management <ChevronRight size={14} strokeWidth={2} />
                 </Link>
-                <span className="text-xs text-slate-400 font-medium">
-                  {feeData.students.total} students enrolled
-                </span>
+                <span className="text-xs text-slate-400 font-medium">{feeData.students.total} students enrolled</span>
               </div>
             </div>
 
-            {/* Column 2: Upcoming Events */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-5 lg:p-6 flex flex-col hover:shadow-md transition-shadow duration-300 h-full">
+            {/* Upcoming Events — REAL data */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                  UPCOMING EVENTS
-                </h3>
-                <div className="flex items-center gap-2">
-                  <span className="bg-slate-100 text-slate-500 text-[10px] font-semibold px-2.5 py-1 rounded-full">
-                    Free
-                  </span>
-                  <Plus
-                    size={16}
-                    className="text-slate-400 hover:text-[#1565D8] cursor-pointer p-1 rounded-md hover:bg-slate-50"
-                  />
-                </div>
+                <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">UPCOMING EVENTS</h3>
+                <Link href="/event-management" className="text-slate-400 hover:text-[#1565D8] transition" title="Add event">
+                  <Plus size={16} />
+                </Link>
               </div>
 
-              <div className="flex-1 space-y-0 divide-y divide-slate-50">
-                {[
-                  { date: "MAY 20", title: "School Holiday", type: "Holiday", color: "bg-slate-100 text-slate-500", icon: CalendarOff },
-                  { date: "MAY 25", title: "Parent-Teacher Meeting", type: "Event", time: "9:00 AM", color: "bg-blue-50 text-blue-600", icon: Calendar },
-                  { date: "MAY 28", title: "Annual Sports Day", type: "Event", color: "bg-blue-50 text-blue-600", icon: Calendar },
-                  { date: "JUN 01", title: "Board Exam Results", type: "Results", color: "bg-purple-50 text-purple-600", icon: Calendar }
-                ].map((ev, idx) => {
-                  return (
-                    <div key={idx} className={`items-center gap-4 py-3 first:pt-0 last:pb-0 ${idx === 3 ? "hidden sm:flex" : "flex"}`}>
-                      <div className="bg-slate-800 rounded-xl w-10 h-10 md:w-12 md:h-12 flex flex-col items-center justify-center flex-shrink-0">
-                        <span className="text-[7px] md:text-[8px] font-bold uppercase tracking-widest text-slate-400">
-                          {ev.date.split(" ")[0]}
-                        </span>
-                        <span className="text-sm md:text-lg font-bold text-white leading-none mt-0.5">
-                          {ev.date.split(" ")[1]}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs md:text-sm font-semibold text-slate-700 truncate leading-tight">
-                          {ev.title}
-                        </h4>
-                        <div className="flex items-center gap-2 mt-1 md:mt-1.5">
-                          <span className={`inline-block text-[9px] md:text-[10px] font-semibold px-2 py-0.5 rounded-full ${ev.color}`}>
-                            {ev.type}
+              {(dashData?.upcomingEvents ?? []).length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center py-10 text-center">
+                  <Calendar className="w-8 h-8 text-slate-200 mb-2" strokeWidth={1.5} />
+                  <p className="text-sm text-slate-400">No upcoming events.</p>
+                  <Link href="/event-management" className="text-sm font-semibold text-[#1565D8] hover:underline mt-1">Schedule one →</Link>
+                </div>
+              ) : (
+                <div className="flex-1 divide-y divide-slate-50">
+                  {(dashData?.upcomingEvents ?? []).map((ev: any) => {
+                    const d = new Date(ev.startsAt)
+                    return (
+                      <Link key={ev.id} href="/event-management" className="flex items-center gap-4 py-3 first:pt-0 group">
+                        <div className="bg-slate-900 rounded-xl w-12 h-12 flex flex-col items-center justify-center shrink-0">
+                          <span className="text-[8px] font-bold uppercase tracking-widest text-slate-400">
+                            {d.toLocaleString('en-IN', { month: 'short' })}
                           </span>
-                          {'time' in ev && ev.time && (
-                            <span className="text-[9px] md:text-[10px] text-slate-400 font-medium">
-                              {ev.time}
-                            </span>
-                          )}
+                          <span className="text-lg font-bold text-white leading-none mt-0.5">{d.getDate()}</span>
                         </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-slate-800 truncate leading-tight group-hover:text-[#1565D8] transition-colors">{ev.title}</h4>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span className="text-[10px] font-medium text-slate-400">
+                              {d.toLocaleString('en-IN', { hour: 'numeric', minute: '2-digit' })}
+                            </span>
+                            {ev.location && <><span className="text-slate-300 text-[10px]">·</span><span className="text-[10px] text-slate-400 truncate">{ev.location}</span></>}
+                            <span className="text-[10px] text-slate-400">· {ev._count?.rsvps ?? 0} RSVPs</span>
+                          </div>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
 
               {(() => {
                 const shown = dashData?.upcomingEvents?.length ?? 0
                 const more = Math.max(0, (dashData?.eventsThisMonth ?? 0) - shown)
                 return more > 0 ? (
-                  <Link href="/event-management" className="text-xs text-slate-400 font-medium text-center mt-3 cursor-pointer hover:text-[#1565D8] block">
+                  <Link href="/event-management" className="text-xs text-slate-400 font-medium text-center mt-3 hover:text-[#1565D8] block">
                     +{more} more event{more > 1 ? 's' : ''} this month
                   </Link>
                 ) : null
               })()}
 
-              <div className="mt-auto pt-4 border-t border-slate-200">
-                <Link
-                  href="/event-management?view=calendar"
-                  className="text-xs md:text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer min-h-[44px] sm:min-h-0 flex items-center"
-                >
-                  View Calendar →
+              <div className="mt-auto pt-4 border-t border-slate-100">
+                <Link href="/event-management?view=calendar" className="text-sm font-semibold text-[#1565D8] hover:underline inline-flex items-center gap-1">
+                  View Calendar <ChevronRight size={14} strokeWidth={2} />
                 </Link>
               </div>
             </div>
           </section>
 
-          {/* DESKTOP / TABLET QUICK ACTIONS SLIM BAR */}
-          <div className="hidden md:flex items-center gap-2 lg:gap-3 px-4 lg:px-6 py-3 mt-6 w-full flex-wrap bg-white rounded-xl border border-slate-200 shadow-sm">
-            <span className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-500 flex-shrink-0 whitespace-nowrap">
-              QUICK ACTIONS
-            </span>
-
-            <div className="w-px h-5 bg-slate-200 mx-1 flex-shrink-0" />
-
-            {/* Button 1 */}
-            <Link href="/lead-management/add-lead" className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
-              <Plus size={13} className="text-slate-500" />
-              <span>Add Lead</span>
-            </Link>
-
-            {/* Button 2 */}
-            <Link href="/admission-management/create" className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
-              <UserPlus size={13} className="text-slate-500" />
-              <span>
-                {institutionConfig.type === 'school' && "Admission"}
-                {institutionConfig.type === 'institute' && "Enrolment"}
-                {institutionConfig.type === 'learning_center' && "Enquiry"}
-              </span>
-            </Link>
-
-            {/* Button 3 */}
-            {institutionConfig.type !== 'learning_center' && (
-              <Link href="/student-management/create" className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
-                <UserCheck size={13} className="text-slate-500" />
-                <span>Student</span>
-              </Link>
-            )}
-
-            {/* Button 4 */}
-            <Link href="/fee-management/create" className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
-              <Receipt size={13} className="text-slate-500" />
-              <span>Invoice</span>
-            </Link>
-
-            {/* Button 5 */}
-            <Link href="/campaign-management/new" className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 text-xs font-bold text-amber-800 hover:bg-amber-100 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
-              <Megaphone size={13} className="text-amber-500" />
-              <span>Campaign</span>
-              <Crown size={11} className="text-amber-500 ml-0.5" />
-            </Link>
-
-            {/* Button 6 */}
-            <Link href="/settings/school-profile" className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition whitespace-nowrap flex-shrink-0 cursor-pointer min-h-[44px] md:min-h-0">
-              <Globe size={13} className="text-slate-500" />
-              <span>Listing</span>
-            </Link>
-
-            <div className="w-px h-5 bg-slate-200 ml-auto mr-3 flex-shrink-0 hidden lg:block" />
-
-            <Link href="/settings" className="text-sm font-semibold text-[#1565D8] hover:underline cursor-pointer whitespace-nowrap flex-shrink-0 ml-auto lg:ml-0 min-h-[44px] md:min-h-0 flex items-center">
-              Manage all actions →
-            </Link>
-          </div>
-
-          {/* MOBILE QUICK ACTIONS GRID */}
-          <div className="md:hidden mt-4">
-            <div className="grid grid-cols-3 gap-2 px-1">
-              {/* Button 1: Add Lead */}
-              <Link href="/lead-management/add-lead" className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
-                <Plus size={18} className="text-slate-500" />
-                <span className="text-center leading-tight">Add Lead</span>
-              </Link>
-
-              {/* Button 2: Admission/Enrolment/Enquiry */}
-              <Link href="/admission-management/create" className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
-                <UserPlus size={18} className="text-slate-500" />
-                <span className="text-center leading-tight">
-                  {institutionConfig.type === 'school' && "Admission"}
-                  {institutionConfig.type === 'institute' && "Enrolment"}
-                  {institutionConfig.type === 'learning_center' && "Enquiry"}
-                </span>
-              </Link>
-
-              {/* Button 3: Student */}
-              <Link href="/student-management/create" className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
-                <UserCheck size={18} className="text-slate-500" />
-                <span className="text-center leading-tight">Student</span>
-              </Link>
-
-              {/* Button 4: Invoice */}
-              <Link href="/fee-management/create" className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
-                <Receipt size={18} className="text-slate-500" />
-                <span className="text-center leading-tight">Invoice</span>
-              </Link>
-
-              {/* Button 5: Campaign */}
-              <Link href="/campaign-management/new" className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-amber-200 bg-amber-50 text-[10px] font-bold text-amber-800 min-h-[80px] active:bg-amber-100 cursor-pointer relative">
-                <Megaphone size={18} className="text-amber-500" />
-                <span className="text-center leading-tight flex items-center justify-center">
-                  Campaign
-                  <Crown size={10} className="text-amber-500 fill-amber-500 ml-0.5 shrink-0" />
-                </span>
-              </Link>
-
-              {/* Button 6: Listing */}
-              <Link href="/settings/school-profile" className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 min-h-[80px] active:bg-slate-50 cursor-pointer">
-                <Globe size={18} className="text-slate-500" />
-                <span className="text-center leading-tight">Listing</span>
-              </Link>
-            </div>
-            
-            <div className="text-center mt-3">
-              <Link href="/settings" className="text-xs font-semibold text-[#1565D8] hover:underline cursor-pointer min-h-[44px] inline-flex items-center justify-center px-4">
-                Manage all actions →
-              </Link>
-            </div>
-          </div>
-
-          {/* PREMIUM FEATURES SECTION */}
-          <section className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6 lg:p-8 space-y-6">
-            <div>
-              <div className="flex items-center gap-2">
-                <Crown className="w-5 h-5 text-amber-500 fill-amber-500" strokeWidth={1.5} />
-                <h3 className="text-lg md:text-xl font-bold text-slate-800 tracking-tight">
-                  Premium Features (Active in 7-Day Trial)
-                </h3>
+          {/* ============ QUICK ACTIONS ============ */}
+          <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:px-6 md:py-4">
+            <div className="flex items-center gap-2 lg:gap-3 flex-wrap">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500 shrink-0 hidden md:inline">QUICK ACTIONS</span>
+              <div className="w-px h-5 bg-slate-200 shrink-0 hidden md:block" />
+              <div className="grid grid-cols-3 gap-2 w-full md:flex md:w-auto md:flex-wrap md:gap-2">
+                <QuickAction href="/lead-management/add-lead" icon={Plus} label="Add Lead" />
+                <QuickAction href="/admission-management/create" icon={UserPlus} label={createLabel} />
+                {instType !== 'learning_center' && (
+                  <QuickAction href="/student-management/create" icon={UserCheck} label="Student" />
+                )}
+                <QuickAction href="/fee-management/create" icon={Receipt} label="Invoice" />
+                <QuickAction href="/campaign-management/new" icon={Megaphone} label="Campaign" premium={showUpsell} />
+                <QuickAction href="/settings/school-profile" icon={Globe} label="Listing" />
               </div>
-              <p className="text-xs md:text-sm text-slate-500 mt-1">
-                Upgrade before your trial expires to maintain uninterrupted access.
-              </p>
+              <Link href="/settings" className="hidden md:inline-flex text-sm font-semibold text-[#1565D8] hover:underline ml-auto shrink-0 items-center">
+                Manage all →
+              </Link>
             </div>
+          </section>
 
-            {/* Grid of features */}
-            <div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-5">
-                {premiumFeatures.filter(feat => {
-                  if (institutionConfig.type === 'learning_center' && feat.isWorkflow) {
-                    return false
-                  }
-                  return true
-                }).map((feat) => {
-                  const FeatIcon = feat.icon
+          {/* ============ RECENT ACTIVITY ============ */}
+          <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">RECENT ACTIVITY</h3>
+              <Link href="/lead-management" className="text-sm font-semibold text-[#1565D8] hover:underline">View all →</Link>
+            </div>
+            {(dashData?.recentActivity ?? []).length === 0 ? (
+              <p className="text-sm text-slate-400 py-6 text-center">No recent activity.</p>
+            ) : (
+              <div className="divide-y divide-slate-50">
+                {(dashData?.recentActivity ?? []).map((act: any, idx: number) => {
+                  const leadName = act.lead?.parentName ?? 'Lead'
+                  const actorName = act.performedBy?.name ?? 'System'
+                  const action = act.summary ?? ''
+                  const time = new Date(act.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                  const letter = actorName.charAt(0) || 'S'
                   return (
-                    <div
-                      key={feat.title}
-                      className="bg-slate-50 rounded-xl border border-slate-200 hover:border-blue-200 hover:shadow-sm transition cursor-pointer relative flex flex-row items-start gap-4 p-4 sm:flex-col sm:p-5 lg:p-6 group"
-                    >
-                      <div className="absolute top-4 right-4 bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                        <Crown className="w-2.5 h-2.5 fill-amber-500 text-amber-500" strokeWidth={1.5} />
-                        <span>Premium</span>
-                      </div>
-
-                      <div className="bg-blue-100 rounded-xl w-10 h-10 flex items-center justify-center flex-shrink-0 sm:mb-2">
-                        <FeatIcon className="w-5 h-5 text-[#1565D8]" strokeWidth={1.5} />
-                      </div>
-
-                      <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
-                        <div>
-                          <h4 className="text-sm lg:text-base font-bold text-slate-800">{feat.title}</h4>
-                          <p className="text-xs lg:text-sm text-slate-500 mt-1 leading-relaxed">{feat.desc}</p>
-                        </div>
-                        <span className="text-xs lg:text-sm font-semibold text-[#1565D8] mt-2 block group-hover:underline">
-                          Explore →
-                        </span>
+                    <div key={act.id ?? idx} className="flex items-start gap-4 py-3 first:pt-0">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center shrink-0">{letter}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-600 leading-relaxed">
+                          <span className="font-semibold text-slate-800">{actorName}</span> {action} <span className="text-slate-400">(Lead: {leadName})</span>
+                        </p>
+                        <span className="text-xs text-slate-400 mt-1 block">{time}</span>
                       </div>
                     </div>
                   )
                 })}
               </div>
-            </div>
-
-            {/* Upgrade Strip banner */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-4 md:px-6 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 text-center sm:text-left">
-              <span className="text-xs md:text-sm font-medium text-slate-700">
-                Upgrade to Premium before your trial ends to keep these features.
-              </span>
-              <Button className="w-full sm:w-auto border border-[#1565D8] text-[#1565D8] text-xs md:text-sm font-semibold px-5 py-2 h-auto rounded-lg bg-transparent hover:bg-blue-50 transition duration-200 min-h-[44px] sm:min-h-0 flex items-center justify-center">
-                View Premium Plans
-              </Button>
-            </div>
+            )}
           </section>
 
-          {/* NOTIFICATIONS + ACTIVITY ROW */}
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {/* LEFT: Upcoming Events */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                    UPCOMING EVENTS
-                  </h3>
-                  <Link href="/event-management" className="text-xs md:text-sm font-semibold text-[#1565D8] cursor-pointer hover:underline min-h-[44px] sm:min-h-0 flex items-center">
-                    View All →
-                  </Link>
-                </div>
-
-                {(dashData?.upcomingEvents ?? []).length === 0 ? (
-                  <div className="py-8 text-center">
-                    <Calendar className="w-8 h-8 text-slate-200 mx-auto mb-2" strokeWidth={1.5} />
-                    <p className="text-xs md:text-sm text-slate-400">No upcoming events.</p>
-                    <Link href="/event-management" className="text-xs md:text-sm font-semibold text-[#1565D8] hover:underline mt-1 inline-block">
-                      Schedule one →
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-slate-50">
-                    {(dashData?.upcomingEvents ?? []).map((ev: any) => (
-                      <Link key={ev.id} href="/event-management" className="flex items-start gap-4 py-3">
-                        <div className="bg-blue-50 rounded-lg w-8 h-8 flex items-center justify-center flex-shrink-0">
-                          <Calendar className="w-4 h-4 text-blue-500" strokeWidth={1.5} />
-                        </div>
-                        <div className="flex-1 min-w-0 pr-4">
-                          <h4 className="text-xs md:text-sm font-semibold text-slate-800 truncate leading-tight">
-                            {ev.title}
-                          </h4>
-                          <p className="text-[11px] md:text-xs text-slate-500 mt-0.5 leading-relaxed">
-                            {new Date(ev.startsAt).toLocaleString('en-IN', {
-                              day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'
-                            })}
-                            {ev.location ? ` · ${ev.location}` : ''}
-                          </p>
-                          <span className="text-[10px] md:text-xs text-slate-400 mt-1 inline-block font-normal">
-                            {ev._count?.rsvps ?? 0} RSVPs
-                          </span>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
+          {/* ============ UPSELL (only when NOT on a paid plan) ============ */}
+          {showUpsell && (
+            <section className="rounded-2xl overflow-hidden bg-gradient-to-br from-[#1565D8] via-[#1E40AF] to-[#1E3A8A] p-6 md:p-8 relative">
+              <div className="hidden sm:block absolute right-6 bottom-0 opacity-10 pointer-events-none translate-y-1/6">
+                <GraduationCap className="w-56 h-56 text-white" strokeWidth={1} />
               </div>
-            </div>
-
-            {/* RIGHT: Recent Activity */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-[9px] md:text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                    RECENT ACTIVITY
-                  </h3>
-                  <span className="text-xs md:text-sm font-semibold text-[#1565D8] cursor-pointer hover:underline min-h-[44px] sm:min-h-0 flex items-center">
-                    View Full Activity →
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 text-amber-300">
+                  <Crown className="w-4 h-4 fill-amber-300 text-amber-300" strokeWidth={1.5} />
+                  <span className="text-xs font-bold uppercase tracking-[0.15em]">
+                    {isTrial && trialDaysLeft != null ? `${trialDaysLeft} DAY${trialDaysLeft === 1 ? '' : 'S'} LEFT IN TRIAL` : 'UPGRADE TO PREMIUM'}
                   </span>
                 </div>
+                <h3 className="text-xl md:text-2xl font-bold text-white tracking-tight leading-snug max-w-lg mt-3">
+                  Unlock everything Vidhyaan offers.
+                </h3>
+                <p className="text-sm text-blue-200 leading-relaxed max-w-lg mt-2">
+                  Campaigns, advanced reports, online payments and more — one plan for your whole team.
+                </p>
 
-                <div className="divide-y divide-slate-50">
-                  {(dashData?.recentActivity ?? []).map((act: any, idx: number) => {
-                    const leadName = act.lead?.parentName ?? 'Lead'
-                    const actorName = act.performedBy?.name ?? 'System'
-                    const action = act.summary ?? ''
-                    const time = new Date(act.createdAt).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })
-                    const letter = actorName.charAt(0) || 'S'
-                    return (
-                      <div key={act.id ?? idx} className="flex items-start gap-4 py-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs md:text-sm font-bold flex items-center justify-center flex-shrink-0">
-                          {letter}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs md:text-sm text-slate-600 leading-relaxed">
-                            <span className="font-semibold text-slate-800">{actorName}</span> {action} (Lead: {leadName})
-                          </p>
-                          <span className="text-[10px] md:text-xs text-slate-400 mt-1 block">
-                            {time}
+                {/* Feature chips — gated by real entitlement */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-6 max-w-4xl">
+                  {premiumFeatures
+                    .filter((f) => !(instType === 'learning_center' && f.isWorkflow))
+                    .map((f) => {
+                      const active = f.module ? hasModule(f.module) : false
+                      const FeatIcon = f.icon
+                      return (
+                        <Link
+                          key={f.title}
+                          href={f.link}
+                          className="bg-white/10 hover:bg-white/15 border border-white/15 rounded-xl p-4 flex items-start gap-3 transition group backdrop-blur-sm"
+                        >
+                          <span className="bg-white/15 rounded-lg w-9 h-9 flex items-center justify-center shrink-0">
+                            <FeatIcon className="w-[18px] h-[18px] text-white" strokeWidth={1.75} />
                           </span>
-                        </div>
-                      </div>
-                    )
-                  })}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <h4 className="text-sm font-bold text-white truncate">{f.title}</h4>
+                              {active && <span className="text-[9px] font-bold bg-green-400/20 text-green-200 px-1.5 py-0.5 rounded-full shrink-0">Active</span>}
+                            </div>
+                            <p className="text-[11px] text-blue-200 mt-0.5 leading-snug line-clamp-2">{f.desc}</p>
+                          </div>
+                        </Link>
+                      )
+                    })}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-7">
+                  <Link href="/settings/billing/upgrade" className="w-full sm:w-auto">
+                    <Button className="w-full bg-white hover:bg-blue-50 text-[#1565D8] text-sm font-bold px-7 h-12 rounded-xl shadow-md border-0 flex items-center justify-center gap-2">
+                      Upgrade to Premium <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={2} />
+                    </Button>
+                  </Link>
+                  <Link href="/settings/billing" className="w-full sm:w-auto">
+                    <button className="w-full bg-transparent hover:bg-white/10 text-white border-2 border-white/40 text-sm font-semibold px-7 h-12 rounded-xl transition flex items-center justify-center">
+                      See Pricing Plans
+                    </button>
+                  </Link>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
-          {/* FOOTER UPGRADE CTA BLOCK */}
-          <section className="rounded-2xl overflow-hidden bg-gradient-to-br from-[#1565D8] via-[#1E40AF] to-[#1E3A8A] p-6 md:p-8 lg:p-10 relative">
-            {/* Decorative Cap Watermark */}
-            <div className="hidden sm:block absolute right-8 bottom-0 opacity-15 pointer-events-none transform translate-y-1/6 translate-x-1/6">
-              <GraduationCap className="w-64 h-64 text-white" strokeWidth={1.0} />
-            </div>
-
-            <div className="relative z-10 max-w-2xl flex flex-col gap-3 sm:gap-4">
-              <div className="flex items-center gap-2 text-amber-400">
-                <Crown className="w-4 h-4 fill-amber-400 text-amber-400" strokeWidth={1.5} />
-                <span className="text-xs font-bold uppercase tracking-[0.15em]">7-DAY FREE TRIAL</span>
-              </div>
-
-              <h3 className="text-lg md:text-xl lg:text-2xl font-bold text-white tracking-tight leading-snug max-w-lg">
-                Premium Trial is Active — Make the most of your 7 days.
-              </h3>
-
-              <p className="text-sm text-blue-200 leading-relaxed max-w-none sm:max-w-lg">
-                Access Campaigns, Advanced Reports, Fee Management, Payment Gateway, and more. Upgrade before your trial ends to maintain full access.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-4">
-                <Link href="/settings/billing" className="w-full sm:w-auto">
-                  <Button className="w-full bg-white hover:bg-blue-50 text-[#1565D8] text-sm font-bold px-7 py-3 h-12 rounded-xl shadow-md border-0 flex items-center justify-center gap-2">
-                    <span>Upgrade to Premium</span>
-                    <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={2.0} />
-                  </Button>
-                </Link>
-                <Link href="/settings/billing" className="w-full sm:w-auto">
-                  <button className="w-full bg-transparent hover:bg-white/10 text-white border-2 border-white/40 text-sm font-semibold px-7 py-3 h-12 rounded-xl transition flex items-center justify-center cursor-pointer">
-                    See Pricing Plans
-                  </button>
-                </Link>
-              </div>
-            </div>
-          </section>
-
-          {/* TOAST NOTIFICATION */}
-          <div 
-            className={`fixed bottom-6 left-1/2 -translate-x-1/2 md:left-auto md:right-6 md:translate-x-0 z-50 transform transition-all duration-300 ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0 pointer-events-none'}`}
-          >
+          {/* ============ TOAST ============ */}
+          <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 md:left-auto md:right-6 md:translate-x-0 z-50 transform transition-all duration-300 ${toast.show ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0 pointer-events-none'}`}>
             <div className="flex items-center gap-3 bg-slate-800 text-white rounded-xl px-5 py-3 shadow-2xl min-w-[280px]">
               {toast.type === 'success' && <CheckCircle2 size={16} className="text-green-400" strokeWidth={1.5} />}
               {toast.type === 'info' && <Info size={16} className="text-blue-400" strokeWidth={1.5} />}
               {toast.type === 'error' && <XCircle size={16} className="text-red-400" strokeWidth={1.5} />}
-              
-              <span className="text-sm font-semibold font-sans">{toast.message}</span>
-              
-              <button 
-                onClick={() => setToast(t => ({ ...t, show: false }))} 
-                className="ml-auto text-slate-400 hover:text-slate-200 cursor-pointer"
-              >
+              <span className="text-sm font-semibold">{toast.message}</span>
+              <button onClick={() => setToast(t => ({ ...t, show: false }))} className="ml-auto text-slate-400 hover:text-slate-200">
                 <X size={14} strokeWidth={1.5} />
               </button>
             </div>
@@ -1550,5 +1045,25 @@ export default function DashboardPage() {
         </>
       )}
     </div>
+  )
+}
+
+// ---- Quick-action button (shared desktop + mobile) ----
+function QuickAction({
+  href, icon: Icon, label, premium = false,
+}: { href: string; icon: React.ComponentType<any>; label: string; premium?: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`flex flex-col md:flex-row items-center justify-center md:justify-start gap-1.5 md:gap-2 px-2 py-3 md:px-3 md:py-2 rounded-xl border text-[11px] md:text-xs font-semibold transition min-h-[68px] md:min-h-0 whitespace-nowrap ${
+        premium
+          ? 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100'
+          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+      }`}
+    >
+      <Icon size={16} className={premium ? 'text-amber-500' : 'text-slate-500'} strokeWidth={1.75} />
+      <span className="text-center leading-tight">{label}</span>
+      {premium && <Crown size={11} className="text-amber-500 fill-amber-500 shrink-0" />}
+    </Link>
   )
 }

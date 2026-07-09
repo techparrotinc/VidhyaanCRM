@@ -13,6 +13,7 @@ import { coursePerformance } from './course-performance'
 import { dailyActivity } from './daily-activity'
 import { paymentRegister } from './payment-register'
 import { trialClassConversion } from './trial-class-conversion'
+import { marketplaceFunnel } from './marketplace-funnel'
 
 // Keyed by registry.ts report keys — the generic routes dispatch here.
 export const REPORT_QUERIES: Record<string, ReportQuery> = {
@@ -29,5 +30,6 @@ export const REPORT_QUERIES: Record<string, ReportQuery> = {
   'course-performance': coursePerformance,
   'daily-activity': dailyActivity,
   'payment-register': paymentRegister,
-  'trial-class-conversion': trialClassConversion
+  'trial-class-conversion': trialClassConversion,
+  'marketplace-funnel': marketplaceFunnel
 }

@@ -1,16 +1,8 @@
 import { branchScope, OPEN_INVOICE_STATUSES } from './scope'
+import { computeAgeing } from './ageing'
 import {
   ReportQuery, ReportCtx, Filters, listFilter, offsetCursor, nextOffsetCursor
 } from './types'
-
-const BUCKETS = ['0-30', '31-60', '61-90', '90+'] as const
-
-function bucketFor(days: number): (typeof BUCKETS)[number] {
-  if (days <= 30) return '0-30'
-  if (days <= 60) return '31-60'
-  if (days <= 90) return '61-90'
-  return '90+'
-}
 
 /** Bucket filter → dueDate window (relative to today). */
 function bucketDueDateRange(bucket: string | undefined, startOfToday: Date) {
@@ -38,47 +30,31 @@ function whereFor(ctx: ReportCtx, filters: Filters, startOfToday: Date) {
 export const defaulterAgeing: ReportQuery = {
   async summary(ctx, filters) {
     const startOfToday = new Date(new Date().setHours(0, 0, 0, 0))
-    // Buckets need per-invoice balance math (total − paid) — bounded fetch.
-    const open = await ctx.db.invoice.findMany({
-      where: {
+    const grades = listFilter(filters.grade)
+    // Whole open book (no row cap): balance math done over paged chunks.
+    const ageing = await computeAgeing(
+      ctx.db,
+      {
         ...branchScope(ctx.branchIds),
-        status: { in: [...OPEN_INVOICE_STATUSES] }
+        status: { in: [...OPEN_INVOICE_STATUSES] },
+        ...(grades ? { student: { gradeLabel: { in: grades } } } : {})
       },
-      select: { dueDate: true, totalAmount: true, paidAmount: true, studentId: true },
-      take: 5000
-    })
-
-    const ageing = BUCKETS.map(bucket => ({ bucket, count: 0, amount: 0 }))
-    let outstanding = 0
-    let overdue = 0
-    const defaulters = new Set<string>()
-    for (const inv of open) {
-      const due = Number(inv.totalAmount) - Number(inv.paidAmount)
-      if (due <= 0) continue
-      outstanding += due
-      if (!inv.dueDate || inv.dueDate >= startOfToday) continue
-      overdue += due
-      defaulters.add(inv.studentId)
-      const days = Math.floor((startOfToday.getTime() - inv.dueDate.getTime()) / 864e5)
-      const slot = ageing.find(b => b.bucket === bucketFor(days))!
-      slot.count++
-      slot.amount += due
-    }
-
-    const ninetyPlus = ageing.find(b => b.bucket === '90+')!
+      startOfToday
+    )
+    const ninetyPlus = ageing.buckets.find(b => b.bucket === '90+')!
 
     return {
       kpis: [
-        { key: 'outstanding', label: 'Outstanding', value: outstanding, format: 'inr' },
-        { key: 'overdue', label: 'Overdue', value: overdue, format: 'inr' },
-        { key: 'defaulters', label: 'Students with Dues', value: defaulters.size, format: 'int' },
+        { key: 'outstanding', label: 'Outstanding', value: ageing.outstanding, format: 'inr' },
+        { key: 'overdue', label: 'Overdue', value: ageing.overdue, format: 'inr' },
+        { key: 'defaulters', label: 'Students with Dues', value: ageing.defaulterCount, format: 'int' },
         { key: 'ninetyPlus', label: '90+ Days', value: ninetyPlus.amount, format: 'inr', caption: `${ninetyPlus.count} invoices` }
       ],
       insight:
-        ninetyPlus.amount > 0 && overdue > 0
-          ? `${Math.round((ninetyPlus.amount / overdue) * 100)}% of overdue money is 90+ days old — chase oldest first.`
+        ninetyPlus.amount > 0 && ageing.overdue > 0
+          ? `${Math.round((ninetyPlus.amount / ageing.overdue) * 100)}% of overdue money is 90+ days old — chase oldest first.`
           : null,
-      charts: { ageing }
+      charts: { ageing: ageing.buckets }
     }
   },
 

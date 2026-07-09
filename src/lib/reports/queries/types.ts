@@ -30,6 +30,9 @@ export type Column = {
   key: string
   label: string
   format?: ValueFormat
+  /** Marks the cell inline-editable; the value is the edit action key the
+   *  frontend routes to (currently only 'cost' → campaign spend). */
+  editable?: 'cost'
 }
 
 export type SummaryResult = {

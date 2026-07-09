@@ -13,8 +13,8 @@ export const GET = route({
   module: REPORTS_MODULE_SLUG,
   roles: ['ORG_ADMIN', 'BRANCH_ADMIN'],
   handler: async ({ req, user, db }) => {
-    const { academicYearId, branch } = parseQuery(req.url, {
-      academicYearId: textParam, branch: textParam
+    const { academicYearId, branch, fresh } = parseQuery(req.url, {
+      academicYearId: textParam, branch: textParam, fresh: textParam
     })
     const branchIds = effectiveBranchIds(
       await branchIdsFor(user.id, user.role),
@@ -22,8 +22,10 @@ export const GET = route({
     )
 
     const cacheKey = `rpt:dash:exec:${user.orgId}:${academicYearId ?? 'all'}:${branchIds?.join(',') ?? 'all'}`
-    const cached = await redis.get(cacheKey).catch(() => null)
-    if (cached) return ok(JSON.parse(cached))
+    if (!fresh) {
+      const cached = await redis.get(cacheKey).catch(() => null)
+      if (cached) return ok(JSON.parse(cached))
+    }
 
     // Resolve selected + previous academic year for YoY comparison, and the
     // institution type — course/batch widgets replace grade capacity for

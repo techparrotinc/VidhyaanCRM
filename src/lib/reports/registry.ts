@@ -205,6 +205,15 @@ export const REPORTS: ReportDefinition[] = [
     exports: ['csv', 'xlsx']
   },
   {
+    key: 'marketplace-funnel',
+    title: 'Marketplace Acquisition Funnel',
+    decision: 'See whether your Vidhyaan profile turns views into admissions',
+    category: 'campaigns',
+    allowedRoles: ['ORG_ADMIN'],
+    filters: [dateRange, gradeFilter],
+    exports: ['csv', 'xlsx']
+  },
+  {
     key: 'enrollment-strength',
     title: 'Enrollment Strength & Movement',
     decision: 'Plan staffing, sections and next year from student-base movement',

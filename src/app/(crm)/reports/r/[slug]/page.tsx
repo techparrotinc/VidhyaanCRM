@@ -15,8 +15,9 @@ import {
   AgeingChart, MethodDonut, SimpleBars, PerfScatter
 } from '@/components/reports/charts'
 import { formatINR, formatPct } from '@/components/reports/format'
-import { ArrowLeft, Star, Download, Lightbulb } from 'lucide-react'
+import { ArrowLeft, Star, Download, Lightbulb, BellRing } from 'lucide-react'
 import { ScheduleMenu } from '@/components/reports/ScheduleMenu'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 type ReportMeta = {
   key: string
@@ -111,6 +112,19 @@ function ReportCharts({ slug, charts }: { slug: string; charts: Record<string, u
           <SimpleBars data={charts.channels as never} xKey="channel" yKey="leads" yLabel="Leads" />
         </ChartCard>
       )
+    case 'marketplace-funnel': {
+      const byStatus = (charts.byStatus as { status: string; count: number }[]) ?? []
+      return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartCard title="Acquisition Funnel" subtitle="Views → enquiries → leads → converted" empty={(charts.funnel as { count: number }[]).every(f => f.count === 0)}>
+            <SimpleBars data={charts.funnel as never} xKey="stage" yKey="count" yLabel="Count" />
+          </ChartCard>
+          <ChartCard title="Enquiries by Status" empty={byStatus.length === 0}>
+            <MethodDonut valueFormat="int" data={byStatus.map(s => ({ method: s.status, amount: s.count, count: s.count }))} />
+          </ChartCard>
+        </div>
+      )
+    }
     case 'course-performance':
       return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -185,11 +199,25 @@ export default function ReportPage({ params }: { params: Promise<{ slug: string 
       fetcher,
       { revalidateOnFocus: false }
     )
-  const { data: rowsData, isLoading: rowsLoading } = useSWR<{ data: Rows }>(
+  const { data: rowsData, isLoading: rowsLoading, mutate: mutateRows } = useSWR<{ data: Rows }>(
     meta ? `/api/v1/reports/r/${slug}/rows?${qs}&limit=50` : null,
     fetcher,
     { revalidateOnFocus: false }
   )
+
+  // Inline edits (currently campaign spend). Persist, then refresh summary +
+  // rows so derived cost-per-lead/admission recompute.
+  const onEdit = async (rowId: string, action: 'cost', value: number | null) => {
+    if (action === 'cost') {
+      await fetch(`/api/v1/reports/campaign-cost/${rowId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cost: value })
+      })
+      setExtraRows([]); setCursor(null)
+      await Promise.all([mutate(), mutateRows()])
+    }
+  }
 
   // Reset pagination when filters change; record the view + favourite state.
   useEffect(() => { setExtraRows([]); setCursor(null) }, [qs])
@@ -213,6 +241,32 @@ export default function ReportPage({ params }: { params: Promise<{ slug: string 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ favourite: !favourite })
     }).catch(() => setFavourite(f => !f))
+  }
+
+  const confirm = useConfirm()
+  const [reminding, setReminding] = useState(false)
+
+  const sendReminders = async () => {
+    const okToSend = await confirm({
+      title: 'Send fee reminders?',
+      message: 'Emails the current filtered defaulters’ guardians (one per student, up to 200). This cannot be undone.',
+      confirmLabel: 'Send reminders'
+    })
+    if (!okToSend) return
+    setReminding(true)
+    try {
+      const res = await fetch(`/api/v1/reports/r/${slug}/remind?${qs}`, { method: 'POST' })
+      const json = await res.json().catch(() => ({}))
+      await confirm({
+        title: res.ok ? 'Reminders sent' : 'Could not send',
+        message: res.ok
+          ? `Sent ${json.data?.sent ?? 0}; skipped ${json.data?.skipped ?? 0} (no guardian email)${json.data?.capped ? '; capped at 200 — narrow the filter and repeat' : ''}.`
+          : json.error ?? 'Reminder send failed',
+        confirmLabel: 'OK'
+      })
+    } finally {
+      setReminding(false)
+    }
   }
 
   const loadMore = async () => {
@@ -272,6 +326,16 @@ export default function ReportPage({ params }: { params: Promise<{ slug: string 
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {slug === 'defaulter-ageing' && (
+            <button
+              onClick={sendReminders}
+              disabled={reminding}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#1565D8] text-white text-sm font-semibold hover:bg-[#1257bd] disabled:opacity-50"
+            >
+              <BellRing className="h-3.5 w-3.5" />
+              {reminding ? 'Sending…' : 'Send reminders'}
+            </button>
+          )}
           <ScheduleMenu reportKey={slug} />
           <button
             onClick={toggleFavourite}
@@ -333,6 +397,7 @@ export default function ReportPage({ params }: { params: Promise<{ slug: string 
         hasMore={!!hasMore}
         onLoadMore={loadMore}
         loadingMore={loadingMore}
+        onEdit={onEdit}
       />
     </div>
   )

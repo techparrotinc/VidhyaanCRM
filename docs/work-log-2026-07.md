@@ -7,6 +7,34 @@ Record of a review + hardening + performance session. Production branch is
 
 ## ✅ Done
 
+### Reports — Phase-2 gaps closed (2026-07-09)
+- **Marketplace Acquisition Funnel report** (15 reports total) — profile views → enquiries
+  → CRM leads → converted, from `SchoolView`/`ParentEnquiry` linked via `School.orgId`;
+  enquiry-status donut; proves whether the Vidhyaan profile sources admissions.
+- **Ageing 5,000-row cap removed** — `computeAgeing` (`queries/ageing.ts`) pages the whole
+  open book in 2k chunks and aggregates in memory (balance is a computed column, can't be
+  a SQL filter). Used by defaulter-ageing summary + finance dashboard; no more silent
+  undercount for large orgs.
+- **90+ ageing MoM insight activated** — nightly rollup now snapshots
+  `overdue_90plus_amount` (org-level, newest-day only, like `students_active`); finance
+  dashboard compares live 90+ vs last month's snapshot and fires the deterioration alert.
+  Accrues forward (needs ~a month of history before it can fire).
+- **Fee Collection report is AY-aware** — invoices + rollups scoped by the Academic Year
+  switcher (legacy null-AY rows show under every year). Defaulter/payment-register/
+  concession stay calendar/current-state by design (current dues are AY-agnostic;
+  concessions carry no AY stamp).
+- **Campaign cost → ₹ ROI** — added `Campaign.costAmount` (migration); Campaign
+  Effectiveness report shows Spend / Cost-per-Lead / Cost-per-Admission with an inline-
+  editable Spend cell (`PATCH /reports/campaign-cost/[id]`); KPIs + insight report true
+  cost per admission once spend is entered.
+- **Bulk fee reminders from the Defaulter report** — "Send reminders" emails the
+  FEE_INVOICE template to every filtered defaulter's guardian (one per student, capped
+  200, audit-logged) via `POST /reports/r/defaulter-ageing/remind`, reusing the report's
+  branch/grade/minAmount filters.
+- **Dashboard refresh** — executive + finance dashboards get a refresh button that
+  bypasses the Redis cache (`?fresh=1`), the pragmatic answer to 120s cache staleness.
+
+
 ### Reports — pre-sign-off bug fixes + feature gaps (2026-07-09)
 **Bugs**
 - **Defaulter Ageing dropped rows in pagination** (high — financial data loss). The rows

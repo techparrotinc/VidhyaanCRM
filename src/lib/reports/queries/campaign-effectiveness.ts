@@ -17,7 +17,8 @@ async function campaignTable(ctx: ReportCtx, filters: Filters) {
       ...(range ? { sentAt: range } : {})
     },
     select: {
-      id: true, name: true, channel: true, status: true, sentAt: true, stats: true
+      id: true, name: true, channel: true, status: true, sentAt: true,
+      stats: true, costAmount: true
     },
     orderBy: { sentAt: 'desc' },
     take: 100
@@ -96,7 +97,9 @@ async function campaignTable(ctx: ReportCtx, filters: Filters) {
     const rec = recipients.get(c.id) ?? { total: 0, delivered: 0 }
     const attr = attribution.get(c.id) ?? { leads: 0, conversions: 0 }
     const credits = creditMap.get(c.id) ?? 0
+    const cost = c.costAmount !== null ? Number(c.costAmount) : null
     return {
+      campaignId: c.id,
       campaign: c.name,
       channel: c.channel as string,
       status: c.status as string,
@@ -104,9 +107,13 @@ async function campaignTable(ctx: ReportCtx, filters: Filters) {
       recipients: rec.total,
       deliveredPct: rec.total > 0 ? rec.delivered / rec.total : null,
       creditsSpent: credits,
+      cost,
       leadsAttributed: attr.leads,
       conversions: attr.conversions,
-      creditsPerLead: attr.leads > 0 && credits > 0 ? Math.round((credits / attr.leads) * 10) / 10 : null
+      creditsPerLead: attr.leads > 0 && credits > 0 ? Math.round((credits / attr.leads) * 10) / 10 : null,
+      // Rupee ROI once a spend is entered on the campaign.
+      costPerLead: cost !== null && attr.leads > 0 ? Math.round(cost / attr.leads) : null,
+      costPerAdmission: cost !== null && attr.conversions > 0 ? Math.round(cost / attr.conversions) : null
     }
   })
 }
@@ -117,6 +124,8 @@ export const campaignEffectiveness: ReportQuery = {
     const totalCredits = table.reduce((s, r) => s + r.creditsSpent, 0)
     const totalLeads = table.reduce((s, r) => s + r.leadsAttributed, 0)
     const totalConversions = table.reduce((s, r) => s + r.conversions, 0)
+    const totalCost = table.reduce((s, r) => s + (r.cost ?? 0), 0)
+    const withCost = table.filter(r => r.cost !== null)
 
     const byChannel = new Map<string, { credits: number; leads: number; campaigns: number }>()
     for (const r of table) {
@@ -134,16 +143,18 @@ export const campaignEffectiveness: ReportQuery = {
     return {
       kpis: [
         { key: 'campaigns', label: 'Campaigns', value: table.length, format: 'int' },
-        { key: 'credits', label: 'Credits Spent', value: totalCredits, format: 'int' },
         { key: 'leads', label: 'Leads Attributed', value: totalLeads, format: 'int', caption: `${ATTRIBUTION_DAYS}-day window` },
         { key: 'conversions', label: 'Conversions', value: totalConversions, format: 'int' },
-        { key: 'cpl', label: 'Credits / Lead', value: totalLeads > 0 && totalCredits > 0 ? Math.round((totalCredits / totalLeads) * 10) / 10 : null, format: 'int' }
+        { key: 'spend', label: 'Spend', value: withCost.length > 0 ? totalCost : null, format: 'inr', caption: withCost.length > 0 ? `${withCost.length} campaign(s) with cost` : 'add cost per row for ROI' },
+        { key: 'cpa', label: 'Cost / Admission', value: totalCost > 0 && totalConversions > 0 ? Math.round(totalCost / totalConversions) : null, format: 'inr' }
       ],
-      insight: best
-        ? `"${best.campaign}" generated the most leads (${best.leadsAttributed}) — its shape is worth repeating.`
-        : totalCredits > 0
-          ? 'Credits spent but no leads attributed yet — check whether campaign leads are being tagged with the CAMPAIGN source.'
-          : null,
+      insight: totalCost > 0 && totalConversions > 0
+        ? `You spent ${'₹' + Math.round(totalCost).toLocaleString('en-IN')} for ${totalConversions} admission${totalConversions === 1 ? '' : 's'} — ₹${Math.round(totalCost / totalConversions).toLocaleString('en-IN')} per admission.`
+        : best
+          ? `"${best.campaign}" generated the most leads (${best.leadsAttributed}) — add its spend to see cost per admission.`
+          : totalCredits > 0
+            ? 'Credits spent but no leads attributed yet — check whether campaign leads are being tagged with the CAMPAIGN source.'
+            : null,
       charts: {
         channels: [...byChannel.entries()].map(([channel, v]) => ({ channel, ...v }))
       }
@@ -159,12 +170,14 @@ export const campaignEffectiveness: ReportQuery = {
         { key: 'sentAt', label: 'Sent', format: 'date' },
         { key: 'recipients', label: 'Recipients', format: 'int' },
         { key: 'deliveredPct', label: 'Delivered %', format: 'pct' },
-        { key: 'creditsSpent', label: 'Credits', format: 'int' },
         { key: 'leadsAttributed', label: 'Leads', format: 'int' },
         { key: 'conversions', label: 'Conversions', format: 'int' },
-        { key: 'creditsPerLead', label: 'Credits / Lead', format: 'int' }
+        { key: 'cost', label: 'Spend', format: 'inr', editable: 'cost' },
+        { key: 'costPerLead', label: 'Cost / Lead', format: 'inr' },
+        { key: 'costPerAdmission', label: 'Cost / Admission', format: 'inr' }
       ],
-      rows: table,
+      // rowId lets the report table target the inline cost editor at a campaign.
+      rows: table.map(r => ({ ...r, __rowId: r.campaignId })),
       nextCursor: null
     }
   }

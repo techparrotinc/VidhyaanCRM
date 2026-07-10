@@ -15,6 +15,10 @@ export type NotificationType =
   | 'PROFILE_APPROVED'
   | 'EVENT_RSVP_RECEIVED'
   | 'EVENT_CANCELLED'
+  | 'REVIEW_RECEIVED'
+  | 'REVIEW_REPLY'
+  | 'REVIEW_MODERATED'
+  | 'ENQUIRY_RECEIVED'
 
 export interface CreateNotificationParams {
   orgId: string
@@ -24,11 +28,13 @@ export interface CreateNotificationParams {
   title: string
   body: string
   data?: any
+  /** In-app only — set when the caller already sends its own richer email. */
+  suppressEmail?: boolean
 }
 
 export async function createNotification(params: CreateNotificationParams) {
   try {
-    const { orgId, recipientType, recipientId, type, title, body, data } = params
+    const { orgId, recipientType, recipientId, type, title, body, data, suppressEmail } = params
 
     // 1. Create Notification record
     const notification = await prisma.notification.create({
@@ -56,6 +62,10 @@ export async function createNotification(params: CreateNotificationParams) {
       category = 'fees'
     } else if (type === 'EVENT_RSVP_RECEIVED' || type === 'EVENT_CANCELLED') {
       category = 'events'
+    } else if (type === 'REVIEW_RECEIVED' || type === 'REVIEW_REPLY' || type === 'REVIEW_MODERATED') {
+      category = 'reviews'
+    } else if (type === 'ENQUIRY_RECEIVED') {
+      category = 'leads'
     }
 
     // 4. Retrieve email address & check notification preferences
@@ -93,7 +103,7 @@ export async function createNotification(params: CreateNotificationParams) {
     }
 
     // 5. Send email via ZeptoMail if enabled and email address exists
-    if (emailEnabled && recipientEmail) {
+    if (emailEnabled && recipientEmail && !suppressEmail) {
       const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
       const relativeHref = data?.href || ''
       const absoluteUrl = relativeHref ? `${baseUrl}${relativeHref}` : baseUrl
@@ -126,5 +136,32 @@ export async function createNotification(params: CreateNotificationParams) {
     return notification
   } catch (error) {
     console.error('Failed to trigger notification:', error)
+  }
+}
+
+/** Notify every active admin (org/branch) of an org. Fire-and-forget safe. */
+export async function notifyOrgAdmins(
+  orgId: string,
+  params: Omit<CreateNotificationParams, 'orgId' | 'recipientType' | 'recipientId'>
+) {
+  try {
+    const admins = await prisma.user.findMany({
+      where: {
+        orgId,
+        roleAssignments: {
+          some: { role: { in: ['ORG_ADMIN', 'BRANCH_ADMIN'] }, status: 'ACTIVE' },
+        },
+        status: 'ACTIVE',
+        deletedAt: null,
+      },
+      select: { id: true },
+    })
+    await Promise.all(
+      admins.map((a) =>
+        createNotification({ ...params, orgId, recipientType: 'USER', recipientId: a.id })
+      )
+    )
+  } catch (error) {
+    console.error('Failed to notify org admins:', error)
   }
 }

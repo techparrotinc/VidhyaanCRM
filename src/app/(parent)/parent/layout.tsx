@@ -10,9 +10,10 @@ import {
   FileText,
   Receipt,
   CalendarDays,
-  Bookmark, 
-  User, 
-  Bell, 
+  Bookmark,
+  Star,
+  User,
+  Bell,
   LogOut, 
   Settings, 
   Menu, 
@@ -94,6 +95,7 @@ function ParentLayout({ children }: ParentLayoutProps) {
     { label: 'Fees', href: '/parent/fees', icon: Receipt },
     { label: 'Events', href: '/parent/events', icon: CalendarDays },
     { label: 'Saved Schools', href: '/parent/bookmarks', icon: Bookmark },
+    { label: 'My Reviews', href: '/parent/reviews', icon: Star },
     { label: 'My Profile', href: '/parent/profile', icon: User }
   ]
 

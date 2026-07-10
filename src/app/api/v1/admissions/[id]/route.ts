@@ -10,6 +10,7 @@ import { createNotification } from '@/lib/services/notifications'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
 import { prisma } from '@/lib/db/client'
 import { sendOrgTemplateEmail } from '@/lib/mail/org-templates'
+import { sendReviewRequestForAdmission } from '@/lib/reviews/request'
 
 // Whitelist of updatable Admission scalars + body-only fields handled separately below
 // (unknown keys are stripped — previously anything not destructured out hit prisma directly)
@@ -303,6 +304,18 @@ export const PUT = route({
           schoolName: org?.name ?? 'Your school'
         })
       ).catch(() => {})
+    }
+
+    // Admission confirmed → nudge the parent to review the school on the
+    // marketplace (PRD incentive; idempotent per admission, fire-and-forget)
+    if (updated.status === 'ADMITTED' && existing.status !== 'ADMITTED') {
+      sendReviewRequestForAdmission(user.orgId, {
+        id: updated.id,
+        applicantName: updated.applicantName,
+        parentName: updated.parentName,
+        phone: updated.phone,
+        email: updated.email
+      }).catch((e) => console.error('Review request failed:', e))
     }
 
     // Log note if provided

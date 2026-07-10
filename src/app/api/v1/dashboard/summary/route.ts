@@ -2,6 +2,7 @@ import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { LeadStatus, PaymentStatus, InvoiceStatus } from '@prisma/client'
 import { redis } from '@/lib/redis'
+import { prisma } from '@/lib/db'
 
 export const GET = route({
   handler: async ({ req, db, user, org }) => {
@@ -462,7 +463,57 @@ export const GET = route({
         )
       : 0
 
+    // Marketplace signals: latest parent reviews + fresh unactioned enquiries
+    // (marketplace tables are org-scoped by orgId, not tenant-proxied)
+    const [latestReviews, reviewsThisWeek, newEnquiries, pendingTrials, recentEnquiries] =
+      await Promise.all([
+        prisma.schoolReview.findMany({
+          where: { orgId, deletedAt: null },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          select: {
+            id: true,
+            rating: true,
+            title: true,
+            status: true,
+            isVerifiedAdmission: true,
+            createdAt: true,
+            parent: { select: { name: true } },
+          },
+        }),
+        prisma.schoolReview.count({
+          where: { orgId, deletedAt: null, createdAt: { gte: last7Days } },
+        }),
+        prisma.parentEnquiry.count({ where: { orgId, status: 'NEW', deletedAt: null } }),
+        prisma.trialClassBooking.count({ where: { orgId, status: 'PENDING' } }),
+        prisma.parentEnquiry.findMany({
+          where: { orgId, deletedAt: null },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          select: {
+            id: true,
+            kidName: true,
+            gradeSought: true,
+            status: true,
+            type: true,
+            createdAt: true,
+            parent: { select: { name: true } },
+          },
+        }),
+      ])
+
     const result = {
+      marketplace: {
+        reviews: {
+          latest: latestReviews,
+          newThisWeek: reviewsThisWeek,
+        },
+        enquiries: {
+          unactioned: newEnquiries,
+          pendingTrials,
+          recent: recentEnquiries,
+        },
+      },
       leads: {
         total: totalLeads,
         new: newLeads,

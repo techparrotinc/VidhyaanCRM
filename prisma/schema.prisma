@@ -1356,7 +1356,8 @@ model KidProfile {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
 
-  parent Parent @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  parent  Parent         @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  reviews SchoolReview[]
 
   @@index([parentId])
   @@map("kids_profiles")
@@ -1462,12 +1463,24 @@ model SchoolReview {
   orgId                String?      @map("org_id")
   parentId             String       @map("parent_id")
   rating               Int // 1-5 overall
-  ratingAcademics      Int?         @map("rating_academics") // 1-5
+  ratingAcademics      Int?         @map("rating_academics") // 1-5 (legacy SCHOOL columns; new reviews use subRatings)
   ratingFaculty        Int?         @map("rating_faculty") // 1-5
   ratingInfrastructure Int?         @map("rating_infrastructure") // 1-5
   ratingSafety         Int?         @map("rating_safety") // 1-5
   ratingActivities     Int?         @map("rating_activities") // 1-5
   ratingValue          Int?         @map("rating_value") // 1-5 value for money
+  /// Institution-type-adaptive sub-ratings, keyed by category slug from
+  /// src/lib/reviews/categories.ts (e.g. { "teaching": 5, "results": 4 }).
+  subRatings           Json?        @map("sub_ratings")
+  pros                 String[]     @default([]) // pros tags
+  cons                 String[]     @default([]) // cons tags
+  /// True when the reviewing parent has a confirmed admission at this school.
+  isVerifiedAdmission  Boolean      @default(false) @map("is_verified_admission")
+  /// Which child this review is about — enables per-kid reviews for the same
+  /// school (Class 2 vs Class 9 are different experiences). Null = legacy.
+  kidId                String?      @map("kid_id")
+  /// Free-text class/course context shown on the card ("Class 2", "Piano").
+  classOrCourse        String?      @map("class_or_course")
   title                String?
   body                 String?
   status               ReviewStatus @default(PUBLISHED)
@@ -1479,12 +1492,32 @@ model SchoolReview {
   school       School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   organization Organization?    @relation(fields: [orgId], references: [id])
   parent       Parent           @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  kid          KidProfile?      @relation(fields: [kidId], references: [id])
   responses    ReviewResponse[]
+  reports      ReviewReport[]
 
   @@index([schoolId])
   @@index([parentId])
   @@index([status])
+  @@index([parentId, schoolId, kidId])
   @@map("school_reviews")
+  @@schema("marketplace")
+}
+
+/// User-submitted report against a review; N distinct reports auto-flag it.
+model ReviewReport {
+  id               String   @id @default(cuid())
+  reviewId         String   @map("review_id")
+  reporterParentId String?  @map("reporter_parent_id") // null for anonymous/public reporter
+  reporterKey      String?  @map("reporter_key") // ip/session hash for anonymous dedup
+  reason           String?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  review SchoolReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, reporterParentId])
+  @@index([reviewId])
+  @@map("review_reports")
   @@schema("marketplace")
 }
 

@@ -159,6 +159,19 @@ export async function POST(
       }
     })
 
+    // In-app bell for org admins (suppressEmail: the detailed enquiry email
+    // below already covers email; this is the dashboard/bell signal)
+    if (school.orgId) {
+      const { notifyOrgAdmins } = await import('@/lib/services/notifications')
+      notifyOrgAdmins(school.orgId, {
+        type: 'ENQUIRY_RECEIVED',
+        title: `New enquiry from ${parentName}`,
+        body: `${childName ? `For ${childName}` : 'Enquiry'}${gradeSought ? ` (${gradeSought})` : ''} via your Vidhyaan profile. Open Lead Management to follow up.`,
+        data: { href: '/lead-management', enquiryId: enquiry.id },
+        suppressEmail: true,
+      }).catch(() => {})
+    }
+
     // 6. If claimed school (has orgId), auto-create Lead in CRM schema
     if (school.orgId) {
       const orgId = school.orgId

@@ -60,9 +60,11 @@ import CompareBar from '@/components/CompareBar'
 import ParentRegisterModal from '@/components/parent-auth/ParentRegisterModal'
 import SchoolGalleryLightbox from '@/components/marketplace/school-profile/SchoolGalleryLightbox'
 import ReviewModal from '@/components/marketplace/school-profile/ReviewModal'
+import { getReviewCategories } from '@/lib/reviews/categories'
 import ScheduleVisitModal from '@/components/marketplace/school-profile/ScheduleVisitModal'
 import LoginPromptModal from '@/components/marketplace/LoginPromptModal'
 import MarketplaceToast from '@/components/marketplace/MarketplaceToast'
+import GatedWrapper from '@/components/marketplace/GatedWrapper'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -135,11 +137,19 @@ interface SchoolReview {
   id: string
   rating: number
   title: string | null
-  content: string
+  body?: string | null
+  content?: string
   createdAt: string
   parent: {
-    name: string
+    name: string | null
   }
+  subRatings?: Record<string, number> | null
+  pros?: string[]
+  cons?: string[]
+  isVerifiedAdmission?: boolean
+  kidId?: string | null
+  classOrCourse?: string | null
+  responses?: { id: string; authorType: string; body: string; createdAt: string }[]
   ratingAcademics?: number | null
   ratingFaculty?: number | null
   ratingInfrastructure?: number | null
@@ -171,62 +181,10 @@ interface SchoolProfile {
   stats: {
     totalReviews: number
     avgRating: number
-    ratingsBreakdown: {
-      academics: number
-      faculty: number
-      infrastructure: number
-      safety: number
-      activities: number
-      value: number
-    }
+    ratingCounts?: Record<number, number>
+    ratingsBreakdown: Record<string, number>
+    ratingsBreakdownLabels?: Record<string, string>
   }
-}
-
-interface GatedWrapperProps {
-  children: React.ReactNode
-  isGated: boolean
-  onRegister: () => void
-  showOverlay?: boolean
-  title?: string
-  subtext?: string
-}
-
-function GatedWrapper({
-  children,
-  isGated,
-  onRegister,
-  showOverlay = true,
-  title = 'Register to view full details',
-  subtext = 'Create a free parent account to see admissions, fees, facilities, and contact this school directly.'
-}: GatedWrapperProps) {
-  if (!isGated) return <>{children}</>
-
-  return (
-    <div className="relative overflow-hidden">
-      <div className="filter blur-sm pointer-events-none select-none opacity-60">
-        {children}
-      </div>
-      {showOverlay && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/10 p-6 text-center">
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-slate-200/50 max-w-sm w-full space-y-4 animate-fade-in sticky top-[150px]">
-            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-[#1565D8] mx-auto shadow-sm">
-              <Shield className="w-5 h-5" />
-            </div>
-            <div className="space-y-1">
-              <h4 className="text-sm font-black text-slate-800 uppercase tracking-wider">{title}</h4>
-              <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">{subtext}</p>
-            </div>
-            <Button
-              onClick={onRegister}
-              className="w-full bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-xl h-auto shadow-md"
-            >
-              Register Now
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
-  )
 }
 
 export default function SchoolProfilePage() {
@@ -260,6 +218,26 @@ export default function SchoolProfilePage() {
         parentEmail: session.user.email || prev.parentEmail
       }))
     }
+  }, [session])
+
+  // Session may not carry the phone — pull the authoritative Parent record
+  // (its phone is the key that links enquiries to review eligibility)
+  useEffect(() => {
+    if (!session?.user || session.user.role !== 'PARENT') return
+    if ((session.user as any).phone) return // session already had it
+    fetch('/api/v1/parent/profile')
+      .then((r) => r.json())
+      .then((json) => {
+        const p = json?.data ?? json?.parent
+        if (!p) return
+        setEnquiryForm(prev => ({
+          ...prev,
+          parentName: prev.parentName || p.name || '',
+          parentPhone: prev.parentPhone || p.phone || '',
+          parentEmail: prev.parentEmail || p.email || ''
+        }))
+      })
+      .catch(() => {})
   }, [session])
 
   // Comparison State
@@ -342,7 +320,51 @@ export default function SchoolProfilePage() {
   const [enquiryLoading, setEnquiryLoading] = useState(false)
   const [enquiryError, setEnquiryError] = useState<string | null>(null)
 
-  const [localReviews, setLocalReviews] = useState<SchoolReview[]>([])
+  const [reportForId, setReportForId] = useState<string | null>(null)
+  const [reportReason, setReportReason] = useState('')
+  const [replyForId, setReplyForId] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
+
+  // Paginated review list ("Show more" + sort) — first page comes embedded
+  // in the profile payload; further pages from /api/public/schools/[slug]/reviews
+  const [reviewItems, setReviewItems] = useState<SchoolReview[] | null>(null)
+  const [reviewSort, setReviewSort] = useState<'recent' | 'highest' | 'lowest'>('recent')
+  const [reviewPage, setReviewPage] = useState(1)
+  const [reviewsLoadingMore, setReviewsLoadingMore] = useState(false)
+
+  const fetchReviewPage = async (sort: string, page: number, append: boolean) => {
+    setReviewsLoadingMore(true)
+    try {
+      const res = await fetch(`/api/public/schools/${slug}/reviews?sort=${sort}&page=${page}&pageSize=10`)
+      const json = await res.json()
+      if (json.success) {
+        setReviewItems((prev) => {
+          if (!append) return json.data.reviews
+          const base = prev ?? school?.reviews ?? [] // first "show more" keeps embedded page 1
+          const seen = new Set(base.map((r) => r.id))
+          return [...base, ...json.data.reviews.filter((r: SchoolReview) => !seen.has(r.id))]
+        })
+        setReviewPage(page)
+      }
+    } catch { /* keep current list */ } finally {
+      setReviewsLoadingMore(false)
+    }
+  }
+
+  const handleSortChange = (sort: 'recent' | 'highest' | 'lowest') => {
+    setReviewSort(sort)
+    fetchReviewPage(sort, 1, false)
+  }
+
+  // Review eligibility (parent must have enquired/applied to this school)
+  const [reviewEligibility, setReviewEligibility] = useState<{
+    loggedIn: boolean
+    eligible: boolean
+    verified: boolean
+    reason: string | null
+    existingReviewId: string | null
+    kids?: { id: string; name: string }[]
+  } | null>(null)
 
   // Tab List definition
   const tabItems = [
@@ -420,6 +442,117 @@ export default function SchoolProfilePage() {
     fetchSchoolDetails()
   }, [slug])
 
+  // Silent re-fetch after a review is submitted/deleted (no loading spinner).
+  // Also resets the paged review list back to the fresh embedded first page.
+  const refreshSchool = async () => {
+    try {
+      const res = await fetch(`/api/public/schools/${slug}`)
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success) {
+          setSchool(json.data)
+          setReviewItems(null)
+          setReviewSort('recent')
+          setReviewPage(1)
+        }
+      }
+    } catch { /* keep stale data on failure */ }
+  }
+
+  // Review eligibility: gate the "Write a Review" button
+  useEffect(() => {
+    if (!school?.id) return
+    const check = async () => {
+      try {
+        const res = await fetch(`/api/v1/reviews/eligibility?schoolId=${school.id}`)
+        const json = await res.json()
+        if (json.success) setReviewEligibility(json.data)
+      } catch { /* leave null → button prompts login */ }
+    }
+    check()
+  }, [school?.id, session?.user?.id])
+
+  const handleWriteReview = async () => {
+    // Re-check live: an enquiry submitted after page load changes eligibility
+    let elig = reviewEligibility
+    if (school?.id) {
+      try {
+        const res = await fetch(`/api/v1/reviews/eligibility?schoolId=${school.id}`)
+        const json = await res.json()
+        if (json.success) {
+          elig = json.data
+          setReviewEligibility(json.data)
+        }
+      } catch { /* fall back to cached state */ }
+    }
+    if (!elig?.loggedIn) {
+      setLoginPromptOpen(true)
+      return
+    }
+    if (!elig.eligible) {
+      setToastMsg(elig.reason || 'Enquire with this school before writing a review.')
+      return
+    }
+    setReviewOpen(true)
+  }
+
+  const handleReplyToReview = async (reviewId: string) => {
+    if (replyText.trim().length === 0) return
+    try {
+      const res = await fetch(`/api/v1/reviews/${reviewId}/responses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: replyText.trim() }),
+      })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        setReplyForId(null)
+        setReplyText('')
+        refreshSchool()
+      } else {
+        setToastMsg(json.error || 'Failed to post reply.')
+      }
+    } catch {
+      setToastMsg('Network error. Please try again.')
+    }
+  }
+
+  const handleReportReview = async (reviewId: string, reason: string) => {
+    try {
+      const res = await fetch(`/api/v1/reviews/${reviewId}/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      })
+      const json = await res.json()
+      setToastMsg(
+        res.ok && json.success
+          ? 'Thanks — this review has been reported for moderation.'
+          : json.error || 'Failed to report review.'
+      )
+      setReportForId(null)
+      setReportReason('')
+    } catch {
+      setToastMsg('Network error. Please try again.')
+    }
+  }
+
+  const handleDeleteOwnReview = async (reviewId: string) => {
+    try {
+      const res = await fetch(`/api/v1/reviews/${reviewId}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        setToastMsg('Your review has been deleted.')
+        setReviewEligibility((prev) => prev ? { ...prev, existingReviewId: null } : prev)
+        refreshSchool()
+      } else {
+        setToastMsg(json.error || 'Failed to delete review.')
+      }
+    } catch {
+      setToastMsg('Network error. Please try again.')
+    }
+  }
+
   // 2. Fetch similar schools matching city & board once school data is loaded
   useEffect(() => {
     if (!school) return
@@ -494,7 +627,7 @@ export default function SchoolProfilePage() {
       ogImg.setAttribute('property', 'og:image')
       document.head.appendChild(ogImg)
     }
-    const imgUrl = school.media?.[0]?.url || ''
+    const imgUrl = school.media?.find((m) => m.caption !== 'logo')?.url || ''
     ogImg.setAttribute('content', imgUrl)
   }, [school])
 
@@ -622,14 +755,13 @@ export default function SchoolProfilePage() {
       setTimeout(() => {
         setEnquiryOpen(false)
         setEnquirySubmitted(false)
-        setEnquiryForm({
-          parentName: '',
-          parentEmail: '',
-          parentPhone: '',
+        // keep parent identity prefill; clear only the per-child fields
+        setEnquiryForm(prev => ({
+          ...prev,
           childName: '',
           gradeSought: 'class_1',
           notes: ''
-        })
+        }))
       }, 3000)
     } catch (err: any) {
       setEnquiryError(err.message || 'Something went wrong')
@@ -682,7 +814,10 @@ export default function SchoolProfilePage() {
     : 'City Not Specified'
 
   const boardBadge = school.affiliations[0]?.board ?? 'CBSE'
-  const coverPhoto = school.media?.[0]?.url
+  // logo is stored as a media row with caption 'logo' — keep it out of cover/gallery
+  const logoUrl = school.media?.find((m) => m.caption === 'logo')?.url
+  const galleryMedia = (school.media || []).filter((m) => m.caption !== 'logo')
+  const coverPhoto = galleryMedia.find((m) => m.caption === 'cover')?.url || galleryMedia[0]?.url
   const initialLetters = school.name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
 
   return (
@@ -710,10 +845,14 @@ export default function SchoolProfilePage() {
         <div className="absolute bottom-4 md:bottom-6 left-0 right-0 max-w-7xl mx-auto px-4 md:px-8 z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 text-white">
           <div className="flex items-center gap-4">
             {/* White bordered logo/avatar circle */}
-            <div className="relative w-[60px] h-[60px] rounded-full border-2 border-white bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700 flex items-center justify-center font-black text-lg shadow shrink-0">
-              <span className={`w-full h-full rounded-full flex items-center justify-center bg-gradient-to-br ${getGradientByInitial(school.name)} text-white`}>
-                {initialLetters}
-              </span>
+            <div className="relative w-[60px] h-[60px] rounded-full border-2 border-white bg-white text-slate-700 flex items-center justify-center font-black text-lg shadow shrink-0 overflow-hidden">
+              {logoUrl ? (
+                <img src={logoUrl} alt={`${school.name} logo`} className="w-full h-full object-cover rounded-full" />
+              ) : (
+                <span className={`w-full h-full rounded-full flex items-center justify-center bg-gradient-to-br ${getGradientByInitial(school.name)} text-white`}>
+                  {initialLetters}
+                </span>
+              )}
             </div>
             
             <div className="space-y-1">
@@ -988,14 +1127,14 @@ export default function SchoolProfilePage() {
             <section id="gallery" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Gallery</h3>
             
-            {school.media && school.media.length > 0 ? (
+            {galleryMedia.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {school.media.map((med, idx) => (
+                {galleryMedia.map((med, idx) => (
                   <div
                     key={med.id}
                     onClick={() => setLightboxIndex(idx)}
                     className={`bg-slate-100 rounded-xl overflow-hidden relative group cursor-pointer aspect-square ${
-                      idx === 0 && school.media.length > 1
+                      idx === 0 && galleryMedia.length > 1
                         ? 'col-span-2 row-span-2 aspect-auto md:h-full'
                         : 'col-span-1'
                     }`}
@@ -1161,14 +1300,14 @@ export default function SchoolProfilePage() {
             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">Parent Reviews</h3>
               <Button
-                onClick={() => setReviewOpen(true)}
+                onClick={handleWriteReview}
                 className="bg-[#1565D8]/10 hover:bg-[#1565D8] text-[#1565D8] hover:text-white font-bold text-xs px-4 py-2 h-auto rounded-xl border border-[#1565D8]/20 transition"
               >
-                Write a Review
+                {reviewEligibility?.existingReviewId ? 'Edit Your Review' : 'Write a Review'}
               </Button>
             </div>
 
-            {/* Aggregate breakdown */}
+            {/* Aggregate: avg + star histogram + category breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50 p-5 rounded-xl border border-slate-150">
               <div className="text-center flex flex-col justify-center items-center border-b md:border-b-0 md:border-r border-slate-250 pb-4 md:pb-0">
                 <span className="text-4xl font-black text-slate-800">
@@ -1191,10 +1330,33 @@ export default function SchoolProfilePage() {
                 </span>
               </div>
 
-              <div className="md:col-span-2 space-y-2">
+              {/* Star distribution histogram */}
+              <div className="space-y-1.5 border-b md:border-b-0 md:border-r border-slate-250 pb-4 md:pb-0 md:pr-6">
+                {[5, 4, 3, 2, 1].map((star) => {
+                  const count = school.stats.ratingCounts?.[star] ?? 0
+                  const pct = school.stats.totalReviews > 0 ? (count / school.stats.totalReviews) * 100 : 0
+                  return (
+                    <div key={star} className="flex items-center gap-2 text-xs">
+                      <span className="font-bold text-slate-500 w-6 shrink-0 flex items-center gap-0.5">
+                        {star}<Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      </span>
+                      <Progress
+                        value={pct}
+                        indicatorClassName="bg-amber-400"
+                        className="h-1.5 flex-1 bg-slate-200"
+                      />
+                      <span className="font-semibold text-slate-400 w-7 text-right shrink-0">{count}</span>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="space-y-2">
                 {Object.entries(school.stats.ratingsBreakdown).map(([category, value]) => (
                   <div key={category} className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-500 capitalize w-20 truncate">{category}</span>
+                    <span className="font-bold text-slate-500 w-28 truncate">
+                      {school.stats.ratingsBreakdownLabels?.[category] ?? category}
+                    </span>
                     <Progress
                       value={value * 20}
                       indicatorClassName="bg-amber-400"
@@ -1206,71 +1368,221 @@ export default function SchoolProfilePage() {
               </div>
             </div>
 
+            {/* Sort control (only useful once there are a few reviews) */}
+            {school.stats.totalReviews > 3 && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Sort by</span>
+                {([['recent', 'Most Recent'], ['highest', 'Highest Rated'], ['lowest', 'Lowest Rated']] as const).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => handleSortChange(key)}
+                    className={`text-[11px] font-bold px-3 py-1 rounded-full border transition cursor-pointer ${
+                      reviewSort === key
+                        ? 'bg-[#1565D8] text-white border-[#1565D8]'
+                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Individual Review Cards */}
             <div className="space-y-4">
-              {[...localReviews, ...school.reviews].length === 0 ? (
+              {school.reviews.length === 0 ? (
                 <div className="text-center py-10 bg-slate-50 rounded-xl border border-slate-100 flex flex-col items-center">
                   <MessageSquare className="w-10 h-10 text-slate-300 mb-2" strokeWidth={1.5} />
                   <p className="text-xs text-slate-405 font-bold uppercase tracking-wider">No reviews yet. Be the first!</p>
-                  <Button onClick={() => setReviewOpen(true)} className="mt-4 bg-[#1565D8] text-white font-bold text-xs py-2 px-4 rounded-xl h-auto">
+                  <Button onClick={handleWriteReview} className="mt-4 bg-[#1565D8] text-white font-bold text-xs py-2 px-4 rounded-xl h-auto">
                     Write a Review
                   </Button>
                 </div>
               ) : (
-                [...localReviews, ...school.reviews].map((rev) => (
+                (reviewItems ?? school.reviews).map((rev) => {
+                  const displayName = rev.parent?.name || 'Parent'
+                  // subRatings JSON first; legacy fixed columns as fallback pills
+                  const pills: { label: string; value: number }[] = rev.subRatings
+                    ? Object.entries(rev.subRatings).map(([slug, value]) => ({
+                        label: school.stats.ratingsBreakdownLabels?.[slug] ?? slug,
+                        value,
+                      }))
+                    : ([
+                        { label: 'Academics', value: rev.ratingAcademics },
+                        { label: 'Infrastructure', value: rev.ratingInfrastructure },
+                        { label: 'Teachers', value: rev.ratingFaculty },
+                      ].filter((p) => p.value) as { label: string; value: number }[])
+                  const isOwn = reviewEligibility?.existingReviewId === rev.id
+                  return (
                   <Card key={rev.id} className="p-5 bg-white border-slate-200 shadow-sm space-y-3.5 rounded-xl">
                     <div className="flex justify-between items-start">
                       <div className="flex gap-3">
                         {/* avatar initials circle */}
                         <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs border border-slate-200">
-                          {rev.parent.name.split(' ').map((w) => w[0]).join('').substring(0, 2).toUpperCase()}
+                          {displayName.split(' ').map((w) => w[0]).join('').substring(0, 2).toUpperCase()}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-800">{rev.parent.name}</span>
-                            <Badge className="bg-emerald-50 text-emerald-600 border border-emerald-200 font-black text-[9px] uppercase tracking-wider px-1.5 py-0">
-                              Verified Parent
-                            </Badge>
+                            <span className="text-xs font-bold text-slate-800">{displayName}</span>
+                            {rev.isVerifiedAdmission && (
+                              <Badge className="bg-emerald-50 text-emerald-600 border border-emerald-200 font-black text-[9px] uppercase tracking-wider px-1.5 py-0">
+                                Verified Parent
+                              </Badge>
+                            )}
+                            {rev.classOrCourse && (
+                              <Badge className="bg-blue-50 text-[#1565D8] border border-blue-100 font-bold text-[9px] uppercase tracking-wider px-1.5 py-0">
+                                {rev.classOrCourse}
+                              </Badge>
+                            )}
                           </div>
                           <span className="text-[10px] text-slate-400 font-medium">
                             {new Date(rev.createdAt).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-0.5 bg-amber-50 border border-amber-250 px-2 py-0.5 rounded text-amber-600 text-xs font-black">
-                        <Star className="w-3.5 h-3.5 fill-current" />
-                        <span>{rev.rating}</span>
+                      <div className="flex items-center gap-2">
+                        {isOwn ? (
+                          <button
+                            onClick={() => handleDeleteOwnReview(rev.id)}
+                            className="text-[10px] font-bold text-red-500 hover:text-red-700 cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => { setReportForId(reportForId === rev.id ? null : rev.id); setReportReason('') }}
+                            className="text-[10px] font-bold text-slate-400 hover:text-slate-600 cursor-pointer"
+                          >
+                            Report
+                          </button>
+                        )}
+                        <div className="flex items-center gap-0.5 bg-amber-50 border border-amber-250 px-2 py-0.5 rounded text-amber-600 text-xs font-black">
+                          <Star className="w-3.5 h-3.5 fill-current" />
+                          <span>{rev.rating}</span>
+                        </div>
                       </div>
                     </div>
 
                     {/* rating breakdown pills */}
-                    <div className="flex flex-wrap gap-2 text-[9px] font-bold text-slate-500">
-                      {rev.ratingAcademics && (
-                        <span className="bg-slate-50 border border-slate-200/50 px-2 py-0.5 rounded-full">
-                          Academics: ⭐{rev.ratingAcademics}
-                        </span>
-                      )}
-                      {rev.ratingInfrastructure && (
-                        <span className="bg-slate-50 border border-slate-200/50 px-2 py-0.5 rounded-full">
-                          Infrastructure: ⭐{rev.ratingInfrastructure}
-                        </span>
-                      )}
-                      {rev.ratingFaculty && (
-                        <span className="bg-slate-50 border border-slate-200/50 px-2 py-0.5 rounded-full">
-                          Teachers: ⭐{rev.ratingFaculty}
-                        </span>
-                      )}
-                    </div>
+                    {pills.length > 0 && (
+                      <div className="flex flex-wrap gap-2 text-[9px] font-bold text-slate-500">
+                        {pills.map((p) => (
+                          <span key={p.label} className="bg-slate-50 border border-slate-200/50 px-2 py-0.5 rounded-full">
+                            {p.label}: ⭐{p.value}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     <h5 className="text-xs font-bold text-slate-800">{rev.title}</h5>
-                    <p className="text-xs leading-relaxed text-slate-500 font-medium">{rev.content}</p>
-                    <Button variant="outline" className="border-slate-200 hover:border-slate-350 text-slate-400 hover:text-slate-600 text-[10px] font-bold px-3 py-1 h-auto rounded-lg">
-                      Helpful (3)
-                    </Button>
+                    <p className="text-xs leading-relaxed text-slate-500 font-medium">{rev.body ?? rev.content}</p>
+
+                    {reportForId === rev.id && (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={reportReason}
+                          onChange={(e) => setReportReason(e.target.value)}
+                          placeholder="Why should this review be moderated?"
+                          maxLength={500}
+                          autoFocus
+                          className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium outline-none focus:border-blue-500"
+                        />
+                        <Button
+                          onClick={() => reportReason.trim().length >= 3 && handleReportReview(rev.id, reportReason.trim())}
+                          disabled={reportReason.trim().length < 3}
+                          className="bg-slate-700 hover:bg-slate-900 text-white text-[10px] font-bold h-auto px-3 py-2 rounded-xl"
+                        >
+                          Submit
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* pros / cons tags */}
+                    {((rev.pros?.length ?? 0) > 0 || (rev.cons?.length ?? 0) > 0) && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {rev.pros?.map((p) => (
+                          <span key={`p-${p}`} className="text-[10px] font-semibold bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">
+                            + {p}
+                          </span>
+                        ))}
+                        {rev.cons?.map((c) => (
+                          <span key={`c-${c}`} className="text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded-full">
+                            − {c}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* response thread (school ↔ parent) */}
+                    {(rev.responses?.length ?? 0) > 0 && (
+                      <div className="space-y-2 border-l-2 border-slate-100 pl-4">
+                        {rev.responses!.map((resp) => (
+                          <div key={resp.id}>
+                            <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">
+                              {resp.authorType === 'SCHOOL' ? `Response from ${school.name}` : resp.authorType === 'PARENT' ? displayName : 'Vidhyaan'}
+                              <span className="font-medium normal-case tracking-normal"> · {new Date(resp.createdAt).toLocaleDateString()}</span>
+                            </p>
+                            <p className="text-xs leading-relaxed text-slate-600 font-medium">{resp.body}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* review owner can continue the thread */}
+                    {isOwn && (
+                      replyForId === rev.id ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleReplyToReview(rev.id) }}
+                            placeholder="Reply to the school…"
+                            maxLength={2000}
+                            autoFocus
+                            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium outline-none focus:border-blue-500"
+                          />
+                          <Button
+                            onClick={() => handleReplyToReview(rev.id)}
+                            disabled={replyText.trim().length === 0}
+                            className="bg-[#1565D8] hover:bg-blue-700 text-white text-[10px] font-bold h-auto px-3 py-2 rounded-xl"
+                          >
+                            Reply
+                          </Button>
+                        </div>
+                      ) : (
+                        (rev.responses?.length ?? 0) > 0 && (
+                          <button
+                            onClick={() => { setReplyForId(rev.id); setReplyText('') }}
+                            className="text-[10px] font-bold text-[#1565D8] cursor-pointer"
+                          >
+                            Reply
+                          </button>
+                        )
+                      )
+                    )}
                   </Card>
-                ))
+                  )
+                })
               )}
             </div>
+
+            {/* Show more (paginate 10 at a time) */}
+            {(reviewItems ?? school.reviews).length < school.stats.totalReviews && (
+              <div className="text-center">
+                <Button
+                  variant="outline"
+                  disabled={reviewsLoadingMore}
+                  onClick={() => fetchReviewPage(reviewSort, reviewItems ? reviewPage + 1 : 2, true)}
+                  className="border-slate-200 text-slate-600 hover:border-slate-300 text-xs font-bold px-6 py-2.5 h-auto rounded-xl"
+                >
+                  {reviewsLoadingMore
+                    ? 'Loading…'
+                    : `Show More Reviews (${school.stats.totalReviews - (reviewItems ?? school.reviews).length} more)`}
+                </Button>
+              </div>
+            )}
           </section>
           </GatedWrapper>
 
@@ -1665,7 +1977,7 @@ export default function SchoolProfilePage() {
       </footer>
 
       <SchoolGalleryLightbox
-        media={school.media || []}
+        media={galleryMedia}
         index={lightboxIndex}
         onClose={() => setLightboxIndex(null)}
         onIndexChange={setLightboxIndex}
@@ -1799,8 +2111,18 @@ export default function SchoolProfilePage() {
       <ReviewModal
         open={reviewOpen}
         onOpenChange={setReviewOpen}
-        makeId={() => Math.random().toString()}
-        onSubmit={(review) => setLocalReviews((prev) => [review, ...prev])}
+        schoolId={school.id}
+        categories={getReviewCategories(school.institutionType as any)}
+        existing={school.reviews.find((r) => r.id === reviewEligibility?.existingReviewId) ?? null}
+        kids={reviewEligibility?.kids ?? []}
+        onSubmitted={() => {
+          refreshSchool()
+          // refresh eligibility so the button flips to "Edit Your Review"
+          fetch(`/api/v1/reviews/eligibility?schoolId=${school.id}`)
+            .then((r) => r.json())
+            .then((j) => { if (j.success) setReviewEligibility(j.data) })
+            .catch(() => {})
+        }}
       />
 
       <ScheduleVisitModal

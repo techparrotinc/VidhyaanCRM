@@ -25,6 +25,7 @@ import {
   Receipt,
   Megaphone,
   MessageSquare,
+  Star,
   GitBranch,
   Calendar,
   CalendarDays,
@@ -687,6 +688,95 @@ export default function DashboardPage() {
               </div>
             </div>
           </section>
+
+          {/* ============ MARKETPLACE ROW: Fresh Enquiries + Latest Reviews ============ */}
+          {(((dashData?.marketplace?.enquiries?.recent?.length ?? 0) > 0) ||
+            ((dashData?.marketplace?.reviews?.latest?.length ?? 0) > 0)) && (
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+              {/* Fresh enquiries from marketplace */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">NEW ENQUIRIES</span>
+                  {((dashData?.marketplace?.enquiries?.unactioned ?? 0) + (dashData?.marketplace?.enquiries?.pendingTrials ?? 0)) > 0 && (
+                    <span className="bg-blue-50 text-[#1565D8] text-[11px] font-semibold px-2.5 py-1 rounded-full border border-blue-100">
+                      {(dashData?.marketplace?.enquiries?.unactioned ?? 0) + (dashData?.marketplace?.enquiries?.pendingTrials ?? 0)} awaiting action
+                    </span>
+                  )}
+                </div>
+                {(dashData?.marketplace?.enquiries?.recent?.length ?? 0) === 0 ? (
+                  <p className="text-sm font-normal text-slate-400 py-6 text-center">No enquiries from your Vidhyaan profile yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {(dashData?.marketplace?.enquiries?.recent ?? []).map((e: any) => (
+                      <div key={e.id} className="flex items-center justify-between gap-3 border-b border-slate-50 pb-2.5 last:border-b-0 last:pb-0">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-700 truncate">
+                            {e.parent?.name || 'Parent'}{e.kidName ? ` — for ${e.kidName}` : ''}
+                          </p>
+                          <p className="text-xs font-normal text-slate-400">
+                            {e.type === 'VISIT_REQUEST' ? 'Visit request' : 'Enquiry'}{e.gradeSought ? ` · ${e.gradeSought}` : ''} · {new Date(e.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${
+                          e.status === 'NEW' ? 'bg-blue-50 text-[#1565D8]' : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {e.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-auto pt-4 border-t border-slate-100">
+                  <Link href="/lead-management" className="text-sm font-semibold text-[#1565D8] hover:underline inline-flex items-center gap-1">
+                    Open Lead Management <ChevronRight size={14} strokeWidth={2} />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Latest parent reviews */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">LATEST PARENT REVIEWS</span>
+                  {(dashData?.marketplace?.reviews?.newThisWeek ?? 0) > 0 && (
+                    <span className="bg-amber-50 text-amber-600 text-[11px] font-semibold px-2.5 py-1 rounded-full border border-amber-100">
+                      +{dashData.marketplace.reviews.newThisWeek} this week
+                    </span>
+                  )}
+                </div>
+                {(dashData?.marketplace?.reviews?.latest?.length ?? 0) === 0 ? (
+                  <p className="text-sm font-normal text-slate-400 py-6 text-center">No parent reviews yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {(dashData?.marketplace?.reviews?.latest ?? []).map((r: any) => (
+                      <div key={r.id} className="flex items-center justify-between gap-3 border-b border-slate-50 pb-2.5 last:border-b-0 last:pb-0">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-700 truncate">
+                            {r.title || 'Review'}{r.parent?.name ? ` — ${r.parent.name}` : ''}
+                          </p>
+                          <p className="text-xs font-normal text-slate-400">
+                            {new Date(r.createdAt).toLocaleDateString()}
+                            {r.status !== 'PUBLISHED' ? ` · ${r.status.toLowerCase()}` : ''}
+                          </p>
+                        </div>
+                        <span className={`flex items-center gap-1 text-xs font-black px-2 py-0.5 rounded shrink-0 border ${
+                          r.rating <= 2
+                            ? 'bg-red-50 text-red-600 border-red-100'
+                            : 'bg-amber-50 text-amber-600 border-amber-100'
+                        }`}>
+                          <Star className="w-3 h-3 fill-current" /> {r.rating}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-auto pt-4 border-t border-slate-100">
+                  <Link href="/settings/reviews" className="text-sm font-semibold text-[#1565D8] hover:underline inline-flex items-center gap-1">
+                    Manage Reviews <ChevronRight size={14} strokeWidth={2} />
+                  </Link>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* ============ SECONDARY ROW: Fee Overview + Upcoming Events ============ */}
           <section className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-5 items-stretch">

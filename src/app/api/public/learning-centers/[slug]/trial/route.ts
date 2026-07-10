@@ -167,6 +167,18 @@ export async function POST(
       }
     })
 
+    // In-app + email for org admins — the trial route had no admin
+    // notification at all (unlike the school enquiry route's email)
+    if (lc.orgId) {
+      const { notifyOrgAdmins } = await import('@/lib/services/notifications')
+      notifyOrgAdmins(lc.orgId, {
+        type: 'ENQUIRY_RECEIVED',
+        title: `New trial class request from ${parentName}`,
+        body: `${childName}${age ? ` (age ${age})` : ''}${activityType ? ` — ${activityType}` : ''} requested a trial class via your Vidhyaan profile.`,
+        data: { href: '/lead-management', bookingId: booking.id },
+      }).catch(() => {})
+    }
+
     // 6. If claimed (has orgId), auto-create Lead in CRM schema with a note
     if (lc.orgId) {
       const orgId = lc.orgId

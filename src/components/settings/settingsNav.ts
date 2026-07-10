@@ -14,6 +14,7 @@ import {
   Network,
   Puzzle,
   ShieldCheck,
+  Star,
   UserCircle,
   Wallet
 } from 'lucide-react'
@@ -61,6 +62,12 @@ export function buildSettingsNav(opts: {
           path: '/settings/school-profile',
           icon: Building2,
           description: 'Public profile, contact details, facilities and gallery'
+        },
+        {
+          name: 'Parent Reviews',
+          path: '/settings/reviews',
+          icon: Star,
+          description: 'Reviews on your marketplace profile — reply or flag for moderation'
         },
         {
           name: 'Branches',

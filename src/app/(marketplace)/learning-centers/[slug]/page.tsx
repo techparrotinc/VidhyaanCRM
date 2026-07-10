@@ -56,6 +56,11 @@ import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
 import LoginPromptModal from '@/components/marketplace/LoginPromptModal'
 import MarketplaceToast from '@/components/marketplace/MarketplaceToast'
+import GatedWrapper from '@/components/marketplace/GatedWrapper'
+import ParentRegisterModal from '@/components/parent-auth/ParentRegisterModal'
+import SchoolGalleryLightbox from '@/components/marketplace/school-profile/SchoolGalleryLightbox'
+import ReviewModal from '@/components/marketplace/school-profile/ReviewModal'
+import { getReviewCategories } from '@/lib/reviews/categories'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -96,9 +101,17 @@ interface LearningCenter {
   foundedYear?: number
   locations?: any[]
   contacts?: any[]
+  media?: { id: string; url: string; caption: string | null; sortOrder: number }[]
   reviews?: any[]
   batchSchedules?: any[]
   instructors?: any[]
+  institutionType?: string
+  stats?: {
+    totalReviews: number
+    avgRating: number
+    ratingsBreakdown: Record<string, number>
+    ratingsBreakdownLabels?: Record<string, string>
+  } | null
 }
 
 // Local mock data list for slug lookup
@@ -259,7 +272,12 @@ export default function LearningCenterDetailPage() {
   const params = useParams()
   const router = useRouter()
   const slug = params?.slug as string
-  const { data: session } = useSession()
+  const { data: session, update } = useSession()
+
+  // Non-parent visitors see gated (blurred) detail sections, same as school profiles
+  const isGated = !session?.user || session.user.role !== 'PARENT'
+  const [registerModalOpen, setRegisterModalOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   // State Management
   const [center, setCenter] = useState<LearningCenter | null>(null)
@@ -274,6 +292,19 @@ export default function LearningCenterDetailPage() {
   const [enquirySubmitted, setEnquirySubmitted] = useState(false)
   const [loginPromptOpen, setLoginPromptOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [reviewItems, setReviewItems] = useState<any[] | null>(null)
+  const [reviewSort, setReviewSort] = useState<'recent' | 'highest' | 'lowest'>('recent')
+  const [reviewPage, setReviewPage] = useState(1)
+  const [reviewsLoadingMore, setReviewsLoadingMore] = useState(false)
+  const [reviewEligibility, setReviewEligibility] = useState<{
+    loggedIn: boolean
+    eligible: boolean
+    verified: boolean
+    reason: string | null
+    existingReviewId: string | null
+    kids?: { id: string; name: string }[]
+  } | null>(null)
   const [enquiryLoading, setEnquiryLoading] = useState(false)
   const [enquiryError, setEnquiryError] = useState<string | null>(null)
   const [enquiryForm, setEnquiryForm] = useState({
@@ -285,6 +316,33 @@ export default function LearningCenterDetailPage() {
     notes: '',
     batchScheduleId: ''
   })
+
+  // Prefill enquiry form for logged-in parents: session first, then the
+  // authoritative Parent record (its phone links enquiries to review eligibility)
+  useEffect(() => {
+    if (!session?.user || session.user.role !== 'PARENT') return
+    const sessionPhone = (session.user as any).phone || ''
+    setEnquiryForm(prev => ({
+      ...prev,
+      parentName: prev.parentName || session.user.name || '',
+      parentPhone: prev.parentPhone || sessionPhone,
+      parentEmail: prev.parentEmail || session.user.email || ''
+    }))
+    if (sessionPhone) return
+    fetch('/api/v1/parent/profile')
+      .then((r) => r.json())
+      .then((json) => {
+        const p = json?.data
+        if (!p) return
+        setEnquiryForm(prev => ({
+          ...prev,
+          parentName: prev.parentName || p.name || '',
+          parentPhone: prev.parentPhone || p.phone || '',
+          parentEmail: prev.parentEmail || p.email || ''
+        }))
+      })
+      .catch(() => {})
+  }, [session])
 
   const tabItems = [
     { name: 'Overview', id: 'overview' },
@@ -344,7 +402,10 @@ export default function LearningCenterDetailPage() {
             foundedYear: dbSchool.establishedYear,
             locations: dbSchool.locations || [],
             contacts: dbSchool.contacts || [],
+            media: dbSchool.media || [],
             reviews: dbSchool.reviews || [],
+            institutionType: dbSchool.institutionType || 'LEARNING_CENTER',
+            stats: dbSchool.stats || null,
             batchSchedules: dbSchool.batchSchedules || [],
             instructors: dbSchool.instructors || []
           }
@@ -400,6 +461,98 @@ export default function LearningCenterDetailPage() {
     }
     fetchCenterDetails()
   }, [slug])
+
+  // Silent re-fetch of reviews + stats after a review write/delete
+  const refreshReviews = async () => {
+    try {
+      const res = await fetch(`/api/public/schools/${slug}`)
+      if (!res.ok) return
+      const json = await res.json()
+      if (json.success && json.data) {
+        setCenter((prev: any) => prev ? {
+          ...prev,
+          reviews: json.data.reviews || [],
+          stats: json.data.stats || null,
+          rating: json.data.avgRating || prev.rating,
+          reviewCount: json.data.reviewCount ?? prev.reviewCount,
+        } : prev)
+        setReviewItems(null)
+        setReviewSort('recent')
+        setReviewPage(1)
+      }
+    } catch { /* keep stale data */ }
+  }
+
+  const fetchReviewPage = async (sort: string, page: number, append: boolean) => {
+    setReviewsLoadingMore(true)
+    try {
+      const res = await fetch(`/api/public/schools/${slug}/reviews?sort=${sort}&page=${page}&pageSize=10`)
+      const json = await res.json()
+      if (json.success) {
+        setReviewItems((prev) => {
+          if (!append) return json.data.reviews
+          const base = prev ?? center?.reviews ?? []
+          const seen = new Set(base.map((r: any) => r.id))
+          return [...base, ...json.data.reviews.filter((r: any) => !seen.has(r.id))]
+        })
+        setReviewPage(page)
+      }
+    } catch { /* keep current list */ } finally {
+      setReviewsLoadingMore(false)
+    }
+  }
+
+  const fetchReviewEligibility = async (schoolId: string) => {
+    try {
+      const res = await fetch(`/api/v1/reviews/eligibility?schoolId=${schoolId}`)
+      const json = await res.json()
+      if (json.success) setReviewEligibility(json.data)
+    } catch { /* button falls back to login prompt */ }
+  }
+
+  useEffect(() => {
+    if (center?.id) fetchReviewEligibility(center.id)
+  }, [center?.id, session?.user?.id])
+
+  const handleWriteReview = async () => {
+    // Re-check live: an enquiry submitted after page load changes eligibility
+    let elig = reviewEligibility
+    if (center?.id) {
+      try {
+        const res = await fetch(`/api/v1/reviews/eligibility?schoolId=${center.id}`)
+        const json = await res.json()
+        if (json.success) {
+          elig = json.data
+          setReviewEligibility(json.data)
+        }
+      } catch { /* fall back to cached state */ }
+    }
+    if (!elig?.loggedIn) {
+      setLoginPromptOpen(true)
+      return
+    }
+    if (!elig.eligible) {
+      setToastMsg(elig.reason || 'Enquire with this centre before writing a review.')
+      return
+    }
+    setReviewOpen(true)
+  }
+
+  const handleDeleteOwnReview = async (reviewId: string) => {
+    try {
+      const res = await fetch(`/api/v1/reviews/${reviewId}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        setToastMsg('Your review has been deleted.')
+        setReviewEligibility((prev) => prev ? { ...prev, existingReviewId: null } : prev)
+        refreshReviews()
+      } else {
+        setToastMsg(json.error || 'Failed to delete review.')
+      }
+    } catch {
+      setToastMsg('Network error. Please try again.')
+    }
+  }
 
   // SEO injection
   useEffect(() => {
@@ -583,6 +736,10 @@ export default function LearningCenterDetailPage() {
 
   const gradient = getGradientAndEmoji(center.activityType)
   const initialLetters = center.name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+  // logo is stored as a media row with caption 'logo' — keep it out of cover/gallery
+  const logoUrl = center.media?.find((m) => m.caption === 'logo')?.url
+  const galleryMedia = (center.media || []).filter((m) => m.caption !== 'logo')
+  const coverPhoto = galleryMedia.find((m) => m.caption === 'cover')?.url || galleryMedia[0]?.url
 
   return (
     <div className="min-h-screen bg-[#F5F7FA] font-sans antialiased text-slate-800 flex flex-col justify-between select-none">
@@ -592,18 +749,30 @@ export default function LearningCenterDetailPage() {
 
       {/* 2. COVER PHOTO SECTION */}
       <section className="relative h-[200px] md:h-[280px] w-full bg-slate-200 overflow-hidden">
-        <div className={`w-full h-full bg-gradient-to-br ${gradient.bg} flex flex-col items-center justify-center text-white relative`}>
-          <span className="text-6xl animate-pulse">{gradient.emoji}</span>
-        </div>
+        {coverPhoto ? (
+          <img
+            src={coverPhoto}
+            alt={`${center.name} Cover`}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className={`w-full h-full bg-gradient-to-br ${gradient.bg} flex flex-col items-center justify-center text-white relative`}>
+            <span className="text-6xl animate-pulse">{gradient.emoji}</span>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
 
         {/* Cover Info Overlay */}
         <div className="absolute bottom-4 md:bottom-6 left-0 right-0 max-w-7xl mx-auto px-4 md:px-8 z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 text-white">
           <div className="flex items-center gap-4">
-            <div className="relative w-[60px] h-[60px] rounded-full border-2 border-white flex items-center justify-center font-black text-lg shadow shrink-0">
-              <span className={`w-full h-full rounded-full flex items-center justify-center bg-gradient-to-br ${gradient.bg} text-white`}>
-                {initialLetters}
-              </span>
+            <div className="relative w-[60px] h-[60px] rounded-full border-2 border-white bg-white flex items-center justify-center font-black text-lg shadow shrink-0 overflow-hidden">
+              {logoUrl ? (
+                <img src={logoUrl} alt={`${center.name} logo`} className="w-full h-full object-cover rounded-full" />
+              ) : (
+                <span className={`w-full h-full rounded-full flex items-center justify-center bg-gradient-to-br ${gradient.bg} text-white`}>
+                  {initialLetters}
+                </span>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -776,6 +945,11 @@ export default function LearningCenterDetailPage() {
           </section>
 
           {/* SECTION: BATCHES & SCHEDULE */}
+          <GatedWrapper
+            isGated={isGated}
+            onRegister={() => setRegisterModalOpen(true)}
+            subtext="Create a free parent account to see batches, instructors, fees, and book a trial class with this centre."
+          >
           <section id="schedule" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <div className="border-l-[3px] border-[#1565D8] pl-3">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">Batches & Schedule</h3>
@@ -843,8 +1017,10 @@ export default function LearningCenterDetailPage() {
               </table>
             </div>
           </section>
+          </GatedWrapper>
 
           {/* SECTION: INSTRUCTORS */}
+          <GatedWrapper isGated={isGated} onRegister={() => setRegisterModalOpen(true)} showOverlay={false}>
           <section id="instructors" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Instructors</h3>
             
@@ -876,17 +1052,44 @@ export default function LearningCenterDetailPage() {
               )}
             </div>
           </section>
+          </GatedWrapper>
 
           {/* SECTION: GALLERY */}
+          <GatedWrapper isGated={isGated} onRegister={() => setRegisterModalOpen(true)} showOverlay={false}>
           <section id="gallery" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Gallery</h3>
-            <div className="text-center py-10 bg-slate-50 rounded-2xl border border-slate-200/65 flex flex-col items-center justify-center">
-              <Camera className="w-10 h-10 text-slate-300 mb-2" strokeWidth={1.5} />
-              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">No photos uploaded yet</p>
-            </div>
+            {galleryMedia.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {galleryMedia.map((med, idx) => (
+                  <div
+                    key={med.id}
+                    onClick={() => setLightboxIndex(idx)}
+                    className={`bg-slate-100 rounded-xl overflow-hidden relative group cursor-pointer aspect-square ${
+                      idx === 0 && galleryMedia.length > 1
+                        ? 'col-span-2 row-span-2 aspect-auto md:h-full'
+                        : 'col-span-1'
+                    }`}
+                  >
+                    <img
+                      src={med.url}
+                      alt={med.caption || center.name}
+                      className="w-full h-full object-cover group-hover:scale-102 transition duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition duration-300" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-10 bg-slate-50 rounded-2xl border border-slate-200/65 flex flex-col items-center justify-center">
+                <Camera className="w-10 h-10 text-slate-300 mb-2" strokeWidth={1.5} />
+                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">No photos uploaded yet</p>
+              </div>
+            )}
           </section>
+          </GatedWrapper>
 
           {/* SECTION: FEES */}
+          <GatedWrapper isGated={isGated} onRegister={() => setRegisterModalOpen(true)} showOverlay={false}>
           <section id="fees" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Fees Breakdown</h3>
             
@@ -913,10 +1116,20 @@ export default function LearningCenterDetailPage() {
               </table>
             </div>
           </section>
+          </GatedWrapper>
 
           {/* SECTION: REVIEWS */}
+          <GatedWrapper isGated={isGated} onRegister={() => setRegisterModalOpen(true)} showOverlay={false}>
           <section id="reviews" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
-            <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Parent Reviews</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Parent Reviews</h3>
+              <Button
+                onClick={handleWriteReview}
+                className="bg-[#1565D8]/10 hover:bg-[#1565D8] text-[#1565D8] hover:text-white font-bold text-xs px-4 py-2 h-auto rounded-xl border border-[#1565D8]/20 transition"
+              >
+                {reviewEligibility?.existingReviewId ? 'Edit Your Review' : 'Write a Review'}
+              </Button>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50 p-5 rounded-xl border border-slate-150">
               <div className="text-center flex flex-col justify-center items-center border-b md:border-b-0 md:border-r border-slate-250 pb-4 md:pb-0">
@@ -939,24 +1152,40 @@ export default function LearningCenterDetailPage() {
               </div>
 
               <div className="md:col-span-2 space-y-2">
-                {[
-                  { label: 'Teaching Quality', score: 4.8 },
-                  { label: 'Facilities', score: 4.6 },
-                  { label: 'Value for Money', score: 4.7 },
-                  { label: 'Communication', score: 4.5 }
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-500 capitalize w-28 truncate">{item.label}</span>
+                {Object.entries((center.stats?.ratingsBreakdown as Record<string, number>) || {}).map(([slug, score]) => (
+                  <div key={slug} className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-500 w-32 truncate">
+                      {center.stats?.ratingsBreakdownLabels?.[slug] ?? slug}
+                    </span>
                     <Progress
-                      value={item.score * 20}
+                      value={score * 20}
                       indicatorClassName="bg-amber-400"
                       className="h-2 flex-1 mx-3 bg-slate-200"
                     />
-                    <span className="font-bold text-slate-700 w-6 text-right">{item.score}</span>
+                    <span className="font-bold text-slate-700 w-6 text-right">{score}</span>
                   </div>
                 ))}
               </div>
             </div>
+
+            {(center.stats?.totalReviews ?? 0) > 3 && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Sort by</span>
+                {([['recent', 'Most Recent'], ['highest', 'Highest Rated'], ['lowest', 'Lowest Rated']] as const).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => { setReviewSort(key); fetchReviewPage(key, 1, false) }}
+                    className={`text-[11px] font-bold px-3 py-1 rounded-full border transition cursor-pointer ${
+                      reviewSort === key
+                        ? 'bg-[#1565D8] text-white border-[#1565D8]'
+                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="space-y-4">
               {(!center.reviews || center.reviews.length === 0) ? (
@@ -964,32 +1193,105 @@ export default function LearningCenterDetailPage() {
                   No reviews yet. Be the first to share your experience!
                 </div>
               ) : (
-                center.reviews.map((rev: any) => (
+                (reviewItems ?? center.reviews).map((rev: any) => (
                   <Card key={rev.id} className="p-5 bg-white border-slate-200 shadow-sm space-y-3 rounded-xl">
                     <div className="flex justify-between items-start">
                       <div>
                         {rev.title && <h5 className="text-xs font-bold text-slate-800">{rev.title}</h5>}
                         <div className="flex items-center gap-1.5 mt-1 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                          <span>{rev.parent?.name || 'Verified Parent'}</span>
+                          <span>{rev.parent?.name || 'Parent'}</span>
+                          {rev.isVerifiedAdmission && (
+                            <Badge className="bg-emerald-50 text-emerald-600 border border-emerald-200 font-black text-[9px] uppercase tracking-wider px-1.5 py-0">
+                              Verified Parent
+                            </Badge>
+                          )}
+                          {rev.classOrCourse && (
+                            <Badge className="bg-blue-50 text-[#1565D8] border border-blue-100 font-bold text-[9px] uppercase tracking-wider px-1.5 py-0">
+                              {rev.classOrCourse}
+                            </Badge>
+                          )}
                           <span>•</span>
                           <span>{new Date(rev.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-0.5 bg-amber-50 border border-amber-250 px-2 py-0.5 rounded text-amber-600 text-xs font-black">
-                        <Star className="w-3.5 h-3.5 fill-current" />
-                        <span>{rev.rating}</span>
+                      <div className="flex items-center gap-2">
+                        {reviewEligibility?.existingReviewId === rev.id && (
+                          <button
+                            onClick={() => handleDeleteOwnReview(rev.id)}
+                            className="text-[10px] font-bold text-red-500 hover:text-red-700 cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        )}
+                        <div className="flex items-center gap-0.5 bg-amber-50 border border-amber-250 px-2 py-0.5 rounded text-amber-600 text-xs font-black">
+                          <Star className="w-3.5 h-3.5 fill-current" />
+                          <span>{rev.rating}</span>
+                        </div>
                       </div>
                     </div>
+                    {rev.subRatings && Object.keys(rev.subRatings).length > 0 && (
+                      <div className="flex flex-wrap gap-2 text-[9px] font-bold text-slate-500">
+                        {Object.entries(rev.subRatings as Record<string, number>).map(([slug, value]) => (
+                          <span key={slug} className="bg-slate-50 border border-slate-200/50 px-2 py-0.5 rounded-full">
+                            {center.stats?.ratingsBreakdownLabels?.[slug] ?? slug}: ⭐{value}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <p className="text-xs leading-relaxed text-slate-500 font-medium">
-                      {rev.content}
+                      {rev.body ?? rev.content}
                     </p>
+                    {((rev.pros?.length ?? 0) > 0 || (rev.cons?.length ?? 0) > 0) && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {rev.pros?.map((p: string) => (
+                          <span key={`p-${p}`} className="text-[10px] font-semibold bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">
+                            + {p}
+                          </span>
+                        ))}
+                        {rev.cons?.map((c: string) => (
+                          <span key={`c-${c}`} className="text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded-full">
+                            − {c}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {(rev.responses?.length ?? 0) > 0 && (
+                      <div className="space-y-2 border-l-2 border-slate-100 pl-4">
+                        {rev.responses.map((resp: any) => (
+                          <div key={resp.id}>
+                            <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">
+                              {resp.authorType === 'SCHOOL' ? `Response from ${center.name}` : resp.authorType === 'PARENT' ? (rev.parent?.name || 'Parent') : 'Vidhyaan'}
+                              <span className="font-medium normal-case tracking-normal"> · {new Date(resp.createdAt).toLocaleDateString()}</span>
+                            </p>
+                            <p className="text-xs leading-relaxed text-slate-600 font-medium">{resp.body}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </Card>
                 ))
               )}
             </div>
+
+            {(reviewItems ?? center.reviews ?? []).length < (center.stats?.totalReviews ?? 0) && (
+              <div className="text-center">
+                <Button
+                  variant="outline"
+                  disabled={reviewsLoadingMore}
+                  onClick={() => fetchReviewPage(reviewSort, reviewItems ? reviewPage + 1 : 2, true)}
+                  className="border-slate-200 text-slate-600 hover:border-slate-300 text-xs font-bold px-6 py-2.5 h-auto rounded-xl"
+                >
+                  {reviewsLoadingMore
+                    ? 'Loading…'
+                    : `Show More Reviews (${(center.stats?.totalReviews ?? 0) - (reviewItems ?? center.reviews ?? []).length} more)`}
+                </Button>
+              </div>
+            )}
           </section>
+          </GatedWrapper>
 
           {/* SECTION: LOCATION */}
+          <GatedWrapper isGated={isGated} onRegister={() => setRegisterModalOpen(true)} showOverlay={false}>
           <section id="location" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Location & Timings</h3>
             
@@ -1039,14 +1341,21 @@ export default function LearningCenterDetailPage() {
               </div>
             </div>
           </section>
+          </GatedWrapper>
 
         </div>
 
         {/* Right Column Sticky Sidebar (35% width) */}
         <div className="space-y-6">
           <aside className="space-y-6 lg:sticky lg:top-28">
-            
+
             {/* CARD 1 — QUICK ENROLLMENT */}
+            <GatedWrapper
+              isGated={isGated}
+              onRegister={() => setRegisterModalOpen(true)}
+              title="Unlock Trial Booking"
+              subtext="Create a free parent account to book trial classes and send enquiries to this centre."
+            >
             <Card className="bg-white rounded-2xl border-t-[3px] border-t-[#1565D8] border-x-slate-200 border-b-slate-200 p-6 shadow-md space-y-5">
               <div>
                 <h4 className="text-sm font-black text-slate-800">Book a Trial Class</h4>
@@ -1150,6 +1459,7 @@ export default function LearningCenterDetailPage() {
                 </form>
               )}
             </Card>
+            </GatedWrapper>
 
             {/* CARD 2 — QUICK INFO */}
             <Card className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
@@ -1433,7 +1743,38 @@ export default function LearningCenterDetailPage() {
         description="Please sign in with a parent account to bookmark learning centers and track your queries."
       />
 
+      {center?.id && (
+        <ReviewModal
+          open={reviewOpen}
+          onOpenChange={setReviewOpen}
+          schoolId={center.id}
+          categories={getReviewCategories(center.institutionType as any)}
+          existing={(center.reviews || []).find((r: any) => r.id === reviewEligibility?.existingReviewId) ?? null}
+          kids={reviewEligibility?.kids ?? []}
+          onSubmitted={() => {
+            refreshReviews()
+            fetchReviewEligibility(center.id)
+          }}
+        />
+      )}
+
       <MarketplaceToast message={toastMsg} onClose={() => setToastMsg(null)} />
+
+      <ParentRegisterModal
+        open={registerModalOpen}
+        onOpenChange={setRegisterModalOpen}
+        onSuccess={() => {
+          setRegisterModalOpen(false)
+          update()
+        }}
+      />
+
+      <SchoolGalleryLightbox
+        media={galleryMedia}
+        index={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+        onIndexChange={setLightboxIndex}
+      />
 
       <CompareBar />
     </div>

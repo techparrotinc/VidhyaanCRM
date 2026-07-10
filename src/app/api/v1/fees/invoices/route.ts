@@ -42,7 +42,15 @@ export const GET = route({
       deletedAt: null
     }
     if (studentId) baseWhere.studentId = studentId
-    if (academicYearIdParam) {
+    const arrears = searchParams.get('arrears') === 'true'
+    if (arrears && academicYearIdParam) {
+      // Carry-forward view: unsettled invoices from OTHER academic years for
+      // still-active students (e.g. balances left behind by promotion).
+      baseWhere.academicYearId = { not: academicYearIdParam }
+      baseWhere.NOT = { academicYearId: null }
+      baseWhere.status = { in: ['UNPAID', 'PARTIALLY_PAID', 'OVERDUE'] }
+      baseWhere.student = { status: 'ACTIVE', deletedAt: null }
+    } else if (academicYearIdParam) {
       // Legacy invoices predate AY stamping — include them under every year.
       // AND-wrapped so it composes with the search OR below.
       baseWhere.AND = [
@@ -55,6 +63,7 @@ export const GET = route({
     if (invoiceType) baseWhere.invoiceType = asEnum(InvoiceType, invoiceType, 'invoiceType')
     if (gradeLabel && gradeLabel !== 'all') {
       baseWhere.student = {
+        ...(baseWhere.student ?? {}),
         gradeLabel
       }
     }
@@ -79,7 +88,8 @@ export const GET = route({
     }
 
     const where = { ...baseWhere }
-    if (status && status !== '') where.status = asEnum(InvoiceStatus, status, 'status')
+    // Arrears mode pins its own unsettled-status set; the status tab doesn't apply.
+    if (!arrears && status && status !== '') where.status = asEnum(InvoiceStatus, status, 'status')
 
     const [invoices, total, statusCountsRaw] = await Promise.all([
       db.invoice.findMany({

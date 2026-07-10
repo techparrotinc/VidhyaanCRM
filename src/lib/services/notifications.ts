@@ -7,8 +7,11 @@ export type NotificationType =
   | 'LEAD_FOLLOWUP_DUE'
   | 'LEAD_CONVERTED'
   | 'ADMISSION_STAGE_CHANGED'
+  | 'DOCUMENT_UPLOADED'
+  | 'INTERVIEW_REMINDER'
   | 'FEE_PAYMENT_RECEIVED'
   | 'FEE_OVERDUE'
+  | 'FEE_REMINDER'
   | 'TRIAL_ENDING'
   | 'PAYMENT_FAILED'
   | 'BILLING'
@@ -56,9 +59,9 @@ export async function createNotification(params: CreateNotificationParams) {
     let category = 'system'
     if (type === 'LEAD_RECEIVED' || type === 'LEAD_FOLLOWUP_DUE' || type === 'LEAD_CONVERTED') {
       category = 'leads'
-    } else if (type === 'ADMISSION_STAGE_CHANGED') {
+    } else if (type === 'ADMISSION_STAGE_CHANGED' || type === 'DOCUMENT_UPLOADED' || type === 'INTERVIEW_REMINDER') {
       category = 'admissions'
-    } else if (type === 'FEE_PAYMENT_RECEIVED' || type === 'FEE_OVERDUE' || type === 'PAYMENT_FAILED') {
+    } else if (type === 'FEE_PAYMENT_RECEIVED' || type === 'FEE_OVERDUE' || type === 'FEE_REMINDER' || type === 'PAYMENT_FAILED') {
       category = 'fees'
     } else if (type === 'EVENT_RSVP_RECEIVED' || type === 'EVENT_CANCELLED') {
       category = 'events'

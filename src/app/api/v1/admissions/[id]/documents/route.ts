@@ -3,6 +3,7 @@ import { route } from '@/lib/api/compose'
 import { ok, created } from '@/lib/api/respond'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
+import { createNotification } from '@/lib/services/notifications'
 
 export const GET = route({
   module: MODULES.ADMISSION_MANAGEMENT,
@@ -66,6 +67,30 @@ export const POST = route({
         performedById: user.id
       }
     })
+
+    // Notify the assigned counsellor (skip when they uploaded it themselves)
+    try {
+      const admission = await db.admission.findFirst({
+        where: { id: params?.id ?? '' },
+        select: { applicantName: true, assignedToId: true }
+      })
+      if (admission?.assignedToId && admission.assignedToId !== user.id) {
+        await createNotification({
+          orgId: user.orgId,
+          recipientType: 'USER',
+          recipientId: admission.assignedToId,
+          type: 'DOCUMENT_UPLOADED',
+          title: 'Document Uploaded',
+          body: `${body.name} uploaded for ${admission.applicantName}`,
+          data: {
+            admissionId: params?.id ?? '',
+            href: `/admission-management/${params?.id ?? ''}`
+          }
+        })
+      }
+    } catch (e) {
+      console.error('Failed to trigger document notification:', e)
+    }
 
     return created(doc)
   }

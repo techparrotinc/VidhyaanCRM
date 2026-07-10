@@ -41,6 +41,8 @@ type Summary = {
   overdueAmount: number
   overdueCount: number
   scheduledAmount: number
+  arrearsAmount: number
+  arrearsCount: number
   statusCounts: Record<string, number>
 }
 
@@ -81,6 +83,8 @@ export default function FeeManagementPage() {
   const [isInitialized, setIsInitialized] = useState(false)
   const searchParams = useSearchParams()
   const [studentIdFilter, setStudentIdFilter] = useState<string | null>(null)
+  // Carry-forward view: unsettled invoices from previous academic years
+  const [arrearsMode, setArrearsMode] = useState(false)
 
   // Dropdowns lists
   const [termsList, setTermsList] = useState<any[]>([])
@@ -170,6 +174,9 @@ export default function FeeManagementPage() {
         if (selectedYearId) {
           params.set('academicYearId', selectedYearId)
         }
+        if (arrearsMode && selectedYearId) {
+          params.set('arrears', 'true')
+        }
 
         const res = await fetch(
           `/api/v1/fees/invoices?${params}`
@@ -185,7 +192,7 @@ export default function FeeManagementPage() {
       } finally {
         if (seq === invoiceSeqRef.current) setIsLoading(false)
       }
-    }, [page, activeStatus, search, gradeLabel, termFilter, monthFilter, courseFilter, institutionType, studentIdFilter, selectedYearId]
+    }, [page, activeStatus, search, gradeLabel, termFilter, monthFilter, courseFilter, institutionType, studentIdFilter, selectedYearId, arrearsMode]
   )
 
   const fetchSummary = useCallback(
@@ -632,6 +639,28 @@ export default function FeeManagementPage() {
                   }
                 />
               </div>
+
+              {/* Carry-forward dues from previous academic years (promoted
+                  students keep their old-year balances; without this they're
+                  invisible under the current year's filter) */}
+              {((summary.arrearsAmount ?? 0) > 0 || arrearsMode) && (
+                <div className={`mt-3 flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-sm font-medium ${
+                  arrearsMode ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-amber-50 border-amber-200 text-amber-800'
+                }`}>
+                  <span className="flex items-center gap-2">
+                    <AlertCircle className={`w-4 h-4 shrink-0 ${arrearsMode ? 'text-blue-500' : 'text-amber-500'}`} />
+                    {arrearsMode
+                      ? 'Showing dues carried over from previous academic years'
+                      : <>₹{(summary.arrearsAmount ?? 0).toLocaleString('en-IN')} due from previous academic years ({summary.arrearsCount} invoice{summary.arrearsCount === 1 ? '' : 's'}, active students)</>}
+                  </span>
+                  <button
+                    onClick={() => { setArrearsMode(m => !m); setPage(1); setStudentIdFilter(null) }}
+                    className="text-sm font-semibold underline shrink-0 cursor-pointer"
+                  >
+                    {arrearsMode ? 'Back to current year' : 'View dues'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

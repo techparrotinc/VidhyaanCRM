@@ -85,6 +85,22 @@ export const GET = route({
       dueDate: { lt: now }
     }
 
+    // Carry-forward dues: unsettled invoices that belong to OTHER academic
+    // years (e.g. a promoted student's last-year balance). They're excluded
+    // from the year-scoped KPIs above, so surface them as their own metric.
+    // Null-AY invoices already show under every year and aren't arrears.
+    const arrearsWhere: any = academicYearIdParam
+      ? {
+          orgId: user.orgId,
+          deletedAt: null,
+          academicYearId: { not: academicYearIdParam },
+          NOT: { academicYearId: null },
+          status: { in: ['UNPAID', 'PARTIALLY_PAID', 'OVERDUE'] },
+          ...(studentId ? { studentId } : {}),
+          student: { status: 'ACTIVE', deletedAt: null, ...(gradeLabel && gradeLabel !== 'all' ? { gradeLabel } : {}) }
+        }
+      : null
+
     const [
       totalInvoices,
       statusCounts,
@@ -92,7 +108,8 @@ export const GET = route({
       totalOutstanding,
       totalBilledAgg,
       overdueAgg,
-      scheduledAgg
+      scheduledAgg,
+      arrearsAgg
     ] = await Promise.all([
       db.invoice.count({ where }),
       db.invoice.groupBy({
@@ -128,7 +145,14 @@ export const GET = route({
       db.invoice.aggregate({
         where: { ...baseWhere, status: 'SCHEDULED' },
         _sum: { totalAmount: true }
-      })
+      }),
+      arrearsWhere
+        ? db.invoice.aggregate({
+            where: arrearsWhere,
+            _sum: { totalAmount: true, paidAmount: true },
+            _count: { id: true }
+          })
+        : Promise.resolve(null)
     ])
 
     const outstanding =
@@ -150,6 +174,11 @@ export const GET = route({
       overdueAmount,
       overdueCount: overdueAgg._count.id,
       scheduledAmount: Number(scheduledAgg._sum.totalAmount ?? 0),
+      // dues carried over from other academic years (active students only)
+      arrearsAmount: arrearsAgg
+        ? Number(arrearsAgg._sum.totalAmount ?? 0) - Number(arrearsAgg._sum.paidAmount ?? 0)
+        : 0,
+      arrearsCount: arrearsAgg?._count.id ?? 0,
       statusCounts: statusCounts.reduce(
         (acc, s) => ({
           ...acc,

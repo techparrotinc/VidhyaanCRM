@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/client'
+import { createNotification } from '@/lib/services/notifications'
 
 export const dynamic = 'force-dynamic'
 
@@ -169,6 +170,53 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // ── Fee reminders: invoices due in exactly 3 days ──────────────
+    // Fires once per invoice (the day it crosses the 3-day mark), aggregated
+    // into one notification per org so admins aren't spammed per invoice.
+    const remindStart = new Date(today)
+    remindStart.setDate(remindStart.getDate() + 3)
+    const remindEnd = new Date(remindStart)
+    remindEnd.setDate(remindEnd.getDate() + 1)
+
+    const dueSoon = await prisma.invoice.groupBy({
+      by: ['orgId'],
+      where: {
+        status: { in: ['UNPAID', 'PARTIALLY_PAID'] },
+        dueDate: { gte: remindStart, lt: remindEnd },
+        deletedAt: null
+      },
+      _count: { _all: true }
+    })
+
+    let feeRemindersSent = 0
+    for (const grp of dueSoon) {
+      try {
+        const admins = await prisma.user.findMany({
+          where: {
+            orgId: grp.orgId,
+            roleAssignments: { some: { role: 'ORG_ADMIN', status: 'ACTIVE' } },
+            deletedAt: null
+          },
+          select: { id: true }
+        })
+        const n = grp._count._all
+        for (const admin of admins) {
+          await createNotification({
+            orgId: grp.orgId,
+            recipientType: 'USER',
+            recipientId: admin.id,
+            type: 'FEE_REMINDER',
+            title: 'Fees Due Soon',
+            body: `${n} invoice${n === 1 ? '' : 's'} due in 3 days — follow up before they turn overdue`,
+            data: { href: '/fee-management?status=UNPAID' }
+          })
+          feeRemindersSent++
+        }
+      } catch (err) {
+        console.error(`Fee reminder failed for org ${grp.orgId}:`, err)
+      }
+    }
+
     return NextResponse.json({
       success: true,
       processed: dueEnrollments.length,
@@ -177,7 +225,8 @@ export async function GET(req: NextRequest) {
       errors,
       courseInvoicesGenerated: generated,
       scheduledInvoicesActivated: activatedCount,
-      scheduledCampaignsActivated: campaignsActivatedCount
+      scheduledCampaignsActivated: campaignsActivatedCount,
+      feeRemindersSent
     })
   } catch (err: any) {
     return NextResponse.json(

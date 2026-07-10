@@ -262,6 +262,28 @@ export const PUT = route({
         }
       }
 
+      // Interview-type stage → remind the assigned counsellor (respects the
+      // INTERVIEW_REMINDER preference; the generic stage-change note above
+      // covers other stages)
+      if (newStage?.name?.toLowerCase().includes('interview') && updated.assignedToId) {
+        try {
+          await createNotification({
+            orgId: user.orgId,
+            recipientType: 'USER',
+            recipientId: updated.assignedToId,
+            type: 'INTERVIEW_REMINDER',
+            title: 'Interview Scheduled',
+            body: `${updated.applicantName} is now in "${newStage.name}" — schedule and conduct the interview`,
+            data: {
+              admissionId: updated.id,
+              href: `/admission-management/${updated.id}`
+            }
+          })
+        } catch (e) {
+          console.error('Failed to trigger interview reminder:', e)
+        }
+      }
+
       // Interview-type stage → notify the parent (fire-and-forget)
       if (newStage?.name?.toLowerCase().includes('interview') && updated.email) {
         prisma.organization.findUnique({ where: { id: user.orgId }, select: { name: true } }).then((org) =>

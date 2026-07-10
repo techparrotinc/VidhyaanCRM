@@ -8,6 +8,8 @@ import {
   rollupOrgDay
 } from '@/lib/reports/rollup'
 
+const describeDb = describe.skipIf(!process.env.TEST_DATABASE_URL) // no test DB -> skip, never touch prod
+
 // Integration tests against the DATABASE_URL database (same pattern as
 // tenant-isolation): seeds two throwaway orgs (isDummy) with a known day of
 // activity, asserts rollup correctness, idempotency, and org scoping, then
@@ -38,6 +40,7 @@ async function createOrg(suffix: string) {
 }
 
 beforeAll(async () => {
+  if (!process.env.TEST_DATABASE_URL) return // DB suites skipped; don't touch prod
   orgA = await createOrg('a')
   orgB = await createOrg('b')
 
@@ -81,6 +84,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  if (!process.env.TEST_DATABASE_URL) return // DB suites skipped; don't touch prod
   const orgs = { orgId: { in: [orgA, orgB] } }
   await prisma.dailyRollup.deleteMany({ where: orgs })
   await prisma.concession.deleteMany({ where: orgs })
@@ -105,7 +109,7 @@ describe('istDayWindow', () => {
   })
 })
 
-describe('rollup correctness', () => {
+describeDb('rollup correctness', () => {
   it('computes the expected metrics for a known day of activity', async () => {
     const rows = await computeDailyRollups(prisma, orgA, DATE)
     const byMetric = (m: string) => rows.filter(r => r.metric === m)
@@ -157,7 +161,7 @@ describe('rollup correctness', () => {
   })
 })
 
-describe('rollup idempotency', () => {
+describeDb('rollup idempotency', () => {
   it('re-running the same org×date produces identical row counts', async () => {
     const first = await rollupOrgDay(prisma, orgA, DATE)
     const countAfterFirst = await prisma.dailyRollup.count({ where: { orgId: orgA } })
@@ -169,7 +173,7 @@ describe('rollup idempotency', () => {
   })
 })
 
-describe('rollup tenant scoping', () => {
+describeDb('rollup tenant scoping', () => {
   it('one org’s rollup never counts another org’s activity', async () => {
     await rollupOrgDay(prisma, orgB, DATE)
     const rowsB = await prisma.dailyRollup.findMany({

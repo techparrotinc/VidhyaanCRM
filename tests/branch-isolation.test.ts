@@ -2,6 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { prisma } from '@/lib/db/client'
 import { forOrg, OrgScopedClient } from '@/lib/db/tenant'
 
+const describeDb = describe.skipIf(!process.env.TEST_DATABASE_URL) // no test DB -> skip, never touch prod
+
 // Integration tests against the DATABASE_URL database. Seeds one throwaway
 // org (isDummy) with two branches + leads per branch + one legacy null-branch
 // lead, asserts the branch-scoped client clamps reads/writes/creates to the
@@ -68,7 +70,7 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-describe('branch-scoped reads', () => {
+describeDb('branch-scoped reads', () => {
   it('findMany excludes the sibling branch but includes legacy null rows', async () => {
     const leads = await dbA.lead.findMany()
     const ids = leads.map(l => l.id)
@@ -101,7 +103,7 @@ describe('branch-scoped reads', () => {
   })
 })
 
-describe('branch-scoped writes', () => {
+describeDb('branch-scoped writes', () => {
   it('create stamps the active branch', async () => {
     const lead = await dbA.lead.create({
       data: { orgId, parentName: 'Stamped', phone: '4444444444', leadCode: `${RUN}-S` }
@@ -135,7 +137,7 @@ describe('branch-scoped writes', () => {
   })
 })
 
-describe('no branch context — legacy behaviour unchanged', () => {
+describeDb('no branch context — legacy behaviour unchanged', () => {
   it('sees every branch and legacy rows', async () => {
     const leads = await dbAll.lead.findMany()
     expect(leads.map(l => l.id).sort()).toEqual([leadA, leadB, leadNull].sort())

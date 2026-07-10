@@ -13,7 +13,7 @@ This document serves as the single source of truth for design patterns, technolo
 - **Run Local Dev Server**: `npm run dev` (Runs Next.js 15 with Turbopack on http://localhost:3000)
 - **Verify Production Compile**: `npm run build`
 - **Verify Linter**: `npm run lint`
-- **Run Tests**: `npm test` (vitest — tenant isolation suite needs `DATABASE_URL`)
+- **Run Tests**: `npm test` (vitest — DB-backed suites need `TEST_DATABASE_URL` = disposable Neon branch; without it they are skipped and can never touch the shared prod DB)
 - **Automated Verification & Docs Update**: `python3 scripts/verify_project.py` (Compiles, verifies build health, and autogenerates status metadata below)
 
 ---

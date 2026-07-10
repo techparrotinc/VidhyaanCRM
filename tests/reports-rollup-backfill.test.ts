@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db/client'
 import { computeDailyRollups, istDayWindow, istDateString } from '@/lib/reports/rollup'
 import { backfillRollupRange } from '@/lib/reports/rollup-backfill'
 
+const describeDb = describe.skipIf(!process.env.TEST_DATABASE_URL) // no test DB -> skip, never touch prod
+
 // The set-based backfill and the per-day cron path implement the same metric
 // definitions twice (SQL vs Prisma groupBy). This suite pins them together:
 // same fixture, both paths, identical rows.
@@ -88,7 +90,7 @@ const normalize = (rows: Row[]) =>
       `${a.metric}|${a.dimensionValue}`.localeCompare(`${b.metric}|${b.dimensionValue}`)
     )
 
-describe('set-based backfill ↔ per-day cron parity', () => {
+describeDb('set-based backfill ↔ per-day cron parity', () => {
   it('produces identical rows for the same fixture day', async () => {
     const perDay = await computeDailyRollups(prisma, orgId, DATE)
 

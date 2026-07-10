@@ -5,6 +5,8 @@ import { REPORT_QUERIES } from '@/lib/reports/queries'
 import { REPORTS } from '@/lib/reports/registry'
 import type { ReportCtx } from '@/lib/reports/queries/types'
 
+const describeDb = describe.skipIf(!process.env.TEST_DATABASE_URL) // no test DB -> skip, never touch prod
+
 // Integration tests for the report query modules against DATABASE_URL.
 // Two throwaway orgs verify results and org/role scoping end to end.
 
@@ -27,6 +29,7 @@ function ctxFor(orgId: string, overrides: Partial<ReportCtx> = {}): ReportCtx {
 }
 
 beforeAll(async () => {
+  if (!process.env.TEST_DATABASE_URL) return // DB suites skipped; don't touch prod
   const [a, b] = await Promise.all([
     prisma.organization.create({
       data: {
@@ -90,6 +93,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  if (!process.env.TEST_DATABASE_URL) return // DB suites skipped; don't touch prod
   // Guard every id: if beforeAll died before assigning them, an undefined in
   // a where clause makes Prisma drop the filter entirely — deleteMany({})
   // would wipe the whole table (this happened; see work log 2026-07-08).
@@ -118,7 +122,7 @@ describe('registry ↔ query dispatch parity', () => {
   })
 })
 
-describe('lead-funnel', () => {
+describeDb('lead-funnel', () => {
   it('counts statuses and computes conversion for the org only', async () => {
     const s = await REPORT_QUERIES['lead-funnel'].summary(ctxFor(orgA), {})
     const total = s.kpis.find(k => k.key === 'total')!
@@ -141,7 +145,7 @@ describe('lead-funnel', () => {
   })
 })
 
-describe('lead-source-effectiveness', () => {
+describeDb('lead-source-effectiveness', () => {
   it('ranks sources and flags conversion gaps', async () => {
     const r = await REPORT_QUERIES['lead-source-effectiveness'].rows(ctxFor(orgA), {}, undefined, 50)
     const walkIn = r.rows.find(x => x.source === 'WALK IN')!
@@ -155,7 +159,7 @@ describe('lead-source-effectiveness', () => {
   })
 })
 
-describe('follow-up-discipline', () => {
+describeDb('follow-up-discipline', () => {
   it('surfaces overdue follow-ups with day counts', async () => {
     const s = await REPORT_QUERIES['follow-up-discipline'].summary(ctxFor(orgA), {})
     expect(s.kpis.find(k => k.key === 'overdue')!.value).toBe(10)
@@ -170,7 +174,7 @@ describe('follow-up-discipline', () => {
   })
 })
 
-describe('defaulter-ageing', () => {
+describeDb('defaulter-ageing', () => {
   it('buckets balances and lists defaulters', async () => {
     const s = await REPORT_QUERIES['defaulter-ageing'].summary(ctxFor(orgA), {})
     expect(s.kpis.find(k => k.key === 'outstanding')!.value).toBe(4000)
@@ -221,7 +225,7 @@ describe('defaulter-ageing', () => {
   })
 })
 
-describe('enrollment-strength', () => {
+describeDb('enrollment-strength', () => {
   it('tallies active students by grade', async () => {
     const r = await REPORT_QUERIES['enrollment-strength'].rows(ctxFor(orgA), {}, undefined, 50)
     const g1 = r.rows.find(x => x.grade === 'Grade 1')!

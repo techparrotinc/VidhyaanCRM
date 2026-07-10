@@ -2,6 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { prisma } from '@/lib/db/client'
 import { forOrg, OrgScopedClient } from '@/lib/db/tenant'
 
+const describeDb = describe.skipIf(!process.env.TEST_DATABASE_URL) // no test DB -> skip, never touch prod
+
 // Integration tests against the DATABASE_URL database. Seeds two throwaway
 // orgs (isDummy) with leads, asserts the tenant-scoped client never reads or
 // writes across the boundary, then hard-deletes everything it created.
@@ -50,7 +52,7 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-describe('reads are org-scoped', () => {
+describeDb('reads are org-scoped', () => {
   it('findMany returns only own-org rows', async () => {
     const leads = await db.lead.findMany()
     expect(leads.length).toBeGreaterThan(0)
@@ -92,7 +94,7 @@ describe('reads are org-scoped', () => {
   })
 })
 
-describe('writes are org-scoped', () => {
+describeDb('writes are org-scoped', () => {
   it('create injects orgId', async () => {
     const lead = await db.lead.create({
       data: { parentName: 'Created', phone: '3333333333', leadCode: `${RUN}-C` } as any
@@ -129,7 +131,7 @@ describe('writes are org-scoped', () => {
   })
 })
 
-describe('soft delete', () => {
+describeDb('soft delete', () => {
   it('delete rewrites to deletedAt and hides row from scoped reads', async () => {
     const tmp = await db.lead.create({
       data: { parentName: 'Doomed', phone: '5555555555', leadCode: `${RUN}-D` } as any

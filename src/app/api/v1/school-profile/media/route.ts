@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
+import { uploadObject } from '@/lib/storage'
 import { recalculateAndSaveSchoolScores } from '@/lib/school-profile-helper'
 
 const mediaJsonSchema = z.object({
@@ -89,11 +90,22 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'No file provided' }, { status: 400 })
       }
 
-      // Simulate DO Spaces Upload
-      await new Promise((resolve) => setTimeout(resolve, 300))
-      const fileExtension = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10) || 'jpg'
-      const uniqueId = Math.random().toString(36).substring(2, 10)
-      url = `https://vidhyaan-documents.sfo3.digitaloceanspaces.com/uploads/${uniqueId}-${Date.now()}.${fileExtension}`
+      if (!file.type.startsWith('image/')) {
+        return NextResponse.json({ error: 'Only image files are allowed' }, { status: 400 })
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        return NextResponse.json({ error: 'Image must be under 5 MB' }, { status: 400 })
+      }
+
+      const buffer = Buffer.from(await file.arrayBuffer())
+      const uploaded = await uploadObject({
+        orgId: session.user.orgId,
+        fileName: file.name,
+        contentType: file.type,
+        body: buffer,
+        category: 'school-media'
+      })
+      url = uploaded.url
     } else {
       return NextResponse.json({ error: 'Unsupported content type' }, { status: 400 })
     }

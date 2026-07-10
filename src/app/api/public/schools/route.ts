@@ -124,6 +124,8 @@ export async function GET(req: NextRequest) {
       },
       affiliations: true,
       media: {
+        // listing cards want the cover photo — never the logo, never deleted rows
+        where: { deletedAt: null, NOT: { caption: 'logo' } },
         orderBy: { sortOrder: 'asc' as const },
         take: 1
       },

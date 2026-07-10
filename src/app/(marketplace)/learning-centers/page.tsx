@@ -81,6 +81,7 @@ interface LearningCenter {
   enrollingStatus: 'Enrolling Now' | 'Batch Full'
   homeVisits: boolean
   instructorsCount: number
+  coverPhoto?: string | null
   distance?: number | null
 }
 
@@ -377,6 +378,7 @@ export default function LearningCentersSearchPage() {
           homeVisits: s.homeVisitAvailable || false,
           description: s.description,
           foundedYear: s.establishedYear,
+          coverPhoto: s.media?.[0]?.url || null,
           distance: s.distance !== null && s.distance !== undefined ? Number(Number(s.distance).toFixed(1)) : null
         }
       })
@@ -997,12 +999,20 @@ export default function LearningCentersSearchPage() {
                     >
                       {/* Left Photo Area */}
                       <div className="w-full md:w-52 h-44 md:h-auto shrink-0 relative overflow-hidden bg-slate-100">
-                        <div className={`w-full h-full bg-gradient-to-br ${gradient.bg} flex flex-col items-center justify-center text-white relative`}>
-                          <span className="text-4xl animate-bounce duration-1000">{gradient.emoji}</span>
-                          <span className="text-[10px] font-black uppercase tracking-wider text-white/80 mt-2">
-                            {c.activityType}
-                          </span>
-                        </div>
+                        {c.coverPhoto ? (
+                          <img
+                            src={c.coverPhoto}
+                            alt={c.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className={`w-full h-full bg-gradient-to-br ${gradient.bg} flex flex-col items-center justify-center text-white relative`}>
+                            <span className="text-4xl animate-bounce duration-1000">{gradient.emoji}</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-white/80 mt-2">
+                              {c.activityType}
+                            </span>
+                          </div>
+                        )}
 
                         {/* Top-Left Trial badge */}
                         {c.trialAvailable && (

@@ -45,7 +45,7 @@ function publicUrl(key: string, cfg: StorageConfig): string {
   return `https://${cfg.bucket}.s3.${cfg.region}.amazonaws.com/${key}`
 }
 
-export const UPLOAD_CATEGORIES = ['leads', 'admissions', 'events', 'campaigns', 'students', 'documents'] as const
+export const UPLOAD_CATEGORIES = ['leads', 'admissions', 'events', 'campaigns', 'students', 'documents', 'school-media'] as const
 export type UploadCategory = (typeof UPLOAD_CATEGORIES)[number]
 
 export async function uploadObject(opts: {

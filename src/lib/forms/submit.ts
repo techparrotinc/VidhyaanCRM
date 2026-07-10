@@ -41,10 +41,17 @@ export async function applyToTarget(
     applied = res.applied
     pending = res.pending
   } else {
+    // Stamp the org's active academic year so minted records don't land as
+    // year-less rows (those show under every year in the AY switcher).
+    const activeYear = await prisma.academicYear.findFirst({
+      where: { orgId: instance.orgId, status: 'ACTIVE' },
+      select: { id: true },
+    })
     const created = await adapter.createFrom(prisma, {
       orgId: instance.orgId,
       values,
       campaignId: instance.campaignId,
+      academicYearId: activeYear?.id ?? null,
     })
     targetId = created.id
     applied = Object.keys(values)

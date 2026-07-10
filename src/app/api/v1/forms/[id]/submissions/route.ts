@@ -21,7 +21,10 @@ export const GET = route({
     })
 
     // Resolve a display label per target (lead/admission name).
-    const leadIds = submissions.filter((s) => s.targetType === 'LEAD' && s.targetId).map((s) => s.targetId!)
+    // STANDALONE submissions mint a Lead (see targets/index.ts), so their
+    // targetId resolves through the lead table too.
+    const isLeadTarget = (t: string) => t === 'LEAD' || t === 'STANDALONE' || t === 'ENQUIRY'
+    const leadIds = submissions.filter((s) => isLeadTarget(s.targetType) && s.targetId).map((s) => s.targetId!)
     const admIds = submissions.filter((s) => s.targetType === 'ADMISSION' && s.targetId).map((s) => s.targetId!)
     const [leads, adms] = await Promise.all([
       leadIds.length ? db.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, parentName: true, kidName: true } }) : [],
@@ -36,7 +39,7 @@ export const GET = route({
         id: s.id,
         targetType: s.targetType,
         targetId: s.targetId,
-        targetLabel: s.targetType === 'LEAD' ? leadName.get(s.targetId ?? '') : s.targetType === 'ADMISSION' ? admName.get(s.targetId ?? '') : null,
+        targetLabel: isLeadTarget(s.targetType) ? leadName.get(s.targetId ?? '') : s.targetType === 'ADMISSION' ? admName.get(s.targetId ?? '') : null,
         data: s.data,
         files: s.files,
         fieldStates: s.fieldStates,

@@ -49,7 +49,7 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
 
   const [profileCompletion, setProfileCompletion] = useState<number | null>(null)
   const [enabledModules, setEnabledModules] = useState<string[]>([])
-  const [orgName, setOrgName] = useState('Prince Matriculation')
+  const [orgName, setOrgName] = useState('')
   const [unreadLeadsCount, setUnreadLeadsCount] = useState(0)
   const [setupPct, setSetupPct] = useState<number | null>(null)
 
@@ -390,7 +390,7 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
       </div>
 
       {/* School Name row (Expanded Only) */}
-      {!isCollapsed && (
+      {!isCollapsed && orgName && (
         <div className="px-4 py-2 text-xs text-[#94A3B8] truncate bg-[#1E293B] border-b border-[#334155] w-full select-none shrink-0 font-medium">
           {orgName}
         </div>

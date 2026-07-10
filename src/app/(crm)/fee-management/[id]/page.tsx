@@ -5,6 +5,7 @@ import { useState, useEffect,
 import { useParams, useRouter, useSearchParams }
   from 'next/navigation'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { DateTimePicker } from '@/components/ui/datetime-picker'
 import { format } from 'date-fns'
 import {
   ArrowLeft, Pencil, Trash2,
@@ -275,8 +276,27 @@ export default function InvoiceDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#F8FAFC]">
-        <div className="w-6 h-6 border-2 border-[#1565D8] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#F8FAFC] p-6 space-y-6 animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-7 w-52 bg-slate-200 rounded-lg" />
+            <div className="h-4 w-36 bg-slate-100 rounded-lg" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-10 w-36 bg-slate-200 rounded-lg" />
+            <div className="h-10 w-24 bg-slate-100 rounded-lg" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="h-48 bg-white border border-slate-200 rounded-2xl" />
+            <div className="h-64 bg-white border border-slate-200 rounded-2xl" />
+          </div>
+          <div className="space-y-6">
+            <div className="h-40 bg-white border border-slate-200 rounded-2xl" />
+            <div className="h-56 bg-white border border-slate-200 rounded-2xl" />
+          </div>
+        </div>
       </div>
     )
   }
@@ -662,16 +682,16 @@ export default function InvoiceDetailPage() {
                     <label className="text-xs font-medium text-slate-600">
                       Payment Date
                     </label>
-                    <input
-                      type="date"
+                    <DateTimePicker
+                      dateOnly
+                      clearable={false}
                       value={paymentForm.paidAt}
-                      onChange={e =>
+                      onChange={v =>
                         setPaymentForm(prev => ({
                           ...prev,
-                          paidAt: e.target.value
+                          paidAt: v ? format(new Date(v), 'yyyy-MM-dd') : prev.paidAt
                         }))
                       }
-                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 

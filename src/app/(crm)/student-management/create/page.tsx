@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { mutate } from 'swr'
 import { ArrowLeft, Save, Loader2, AlertCircle, CalendarDays } from 'lucide-react'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
+import { useAcademicYearStore } from '@/stores/academic-year.store'
 import { GRADE_OPTIONS } from '@/constants/grades'
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
@@ -26,7 +27,7 @@ const format = (date: Date, formatStr: string): string => {
 
 export default function CreateStudentPage() {
   const router = useRouter()
-  const { years, isLoading: loadingYears } = useAcademicYears()
+  const { years, currentYear, isLoading: loadingYears } = useAcademicYears()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -44,6 +45,17 @@ export default function CreateStudentPage() {
   })
   
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(undefined)
+
+  // Default the academic year to the global switcher selection (else the
+  // org's active year) so new students never land without a year scope.
+  const selectedYearId = useAcademicYearStore((s) => s.selectedYearId)
+  useEffect(() => {
+    if (formData.academicYearId) return
+    const defaultId = (selectedYearId && years.some((y: any) => y.id === selectedYearId))
+      ? selectedYearId
+      : currentYear?.id
+    if (defaultId) setFormData(prev => prev.academicYearId ? prev : { ...prev, academicYearId: defaultId })
+  }, [selectedYearId, currentYear?.id, years, formData.academicYearId])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target

@@ -1,5 +1,7 @@
 'use client'
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import { useEffect, useRef, useState } from 'react'
 import { IndianRupee, CheckCircle2, Loader2, Upload, AlertCircle } from 'lucide-react'
 import type { FormField, FormSchema } from '@/lib/forms/types'
@@ -301,7 +303,7 @@ function RenderField({
                 if (!res.ok) throw new Error(json.error)
                 onFile({ url: json.url, name: json.name, size: json.size })
               } catch (err: any) {
-                alert(err.message || 'Upload failed')
+                appAlert(err.message || 'Upload failed')
               } finally { setUploading(false) }
             }}
           />

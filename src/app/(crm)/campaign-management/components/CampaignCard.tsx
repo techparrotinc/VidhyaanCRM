@@ -84,6 +84,7 @@ interface CampaignCardProps {
     scheduledAt: string | null
     sentAt: string | null
     createdAt: string
+    audienceFilter?: { pool?: 'LEADS' | 'STUDENTS' | 'BOTH' } | null
     _count: { recipients: number }
     stats?: {
       totalRecipients?: number
@@ -287,6 +288,8 @@ export function CampaignCard({ campaign, onDelete, onCancel, onDuplicate }: Camp
             <Users className="w-3 h-3" />
             {campaign._count.recipients > 0
               ? `${campaign._count.recipients} recipients selected`
+              : campaign.audienceFilter?.pool
+              ? { LEADS: 'Audience: leads', STUDENTS: 'Audience: students', BOTH: 'Audience: leads & students' }[campaign.audienceFilter.pool]
               : 'No audience selected yet'}
           </div>
         )}

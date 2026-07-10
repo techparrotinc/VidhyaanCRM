@@ -3,6 +3,7 @@
 import React from 'react'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { GRADE_LABEL_OPTIONS } from '@/constants/grades'
 
 type FeeRange = {
   id: string
@@ -127,13 +128,22 @@ export default function FeesTab({
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase">Grade / Class</label>
-              <input
-                type="text"
-                placeholder="e.g. Class 1"
+              <select
                 value={newFeeGrade}
                 onChange={(e) => onNewFeeGradeChange(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none"
-              />
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none h-[38px]"
+              >
+                <option value="">Select grade…</option>
+                {GRADE_LABEL_OPTIONS.map((label) => (
+                  <option
+                    key={label}
+                    value={label}
+                    disabled={feeRanges.some((fr) => fr.gradeLabel === label)}
+                  >
+                    {label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase">Annual Fee (₹)</label>

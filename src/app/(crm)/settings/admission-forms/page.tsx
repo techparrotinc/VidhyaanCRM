@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Plus, Pencil, Trash2, ClipboardList, Send, Inbox, IndianRupee } from 'lucide-react'
+import { Plus, Pencil, Trash2, ClipboardList, Send, Inbox, IndianRupee, Link2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { appAlert } from '@/components/ui/app-alert'
 
 const PURPOSE_LABEL: Record<string, string> = {
   ADMISSION: 'Admission',
@@ -37,6 +38,20 @@ export default function AdmissionFormsPage() {
   const [forms, setForms] = useState<FormRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  // Reusable share link — /apply/f/[formId] mints a fresh instance per visitor,
+  // so the same URL can be posted on a website or WhatsApp group.
+  const copyShareLink = async (f: FormRow) => {
+    const url = `${window.location.origin}/apply/f/${f.id}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedId(f.id)
+      setTimeout(() => setCopiedId((id) => (id === f.id ? null : id)), 2000)
+    } catch {
+      appAlert(url, { title: 'Copy this link', variant: 'info' })
+    }
+  }
 
   const fetchForms = useCallback(async () => {
     setLoading(true)
@@ -164,6 +179,25 @@ export default function AdmissionFormsPage() {
                 {f.status === 'PUBLISHED' && !f.isDefault && (
                   <Button variant="ghost" size="sm" className="text-slate-600" onClick={() => setDefault(f)} title="Set as default for auto-send">
                     Set default
+                  </Button>
+                )}
+                {f.status === 'PUBLISHED' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => copyShareLink(f)}
+                    title="Copy public form link"
+                  >
+                    {copiedId === f.id ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-emerald-600" /> Copied
+                      </>
+                    ) : (
+                      <>
+                        <Link2 className="h-3.5 w-3.5" /> Copy link
+                      </>
+                    )}
                   </Button>
                 )}
                 <Link href={`/settings/admission-forms/${f.id}`}>

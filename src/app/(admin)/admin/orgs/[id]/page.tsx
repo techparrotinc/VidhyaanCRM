@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -136,7 +138,7 @@ export default function OrgDetailPage() {
   const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!notifTitle.trim() || !notifMessage.trim()) {
-      alert('Title and Message are required')
+      appAlert('Title and Message are required')
       return
     }
 
@@ -159,14 +161,14 @@ export default function OrgDetailPage() {
         throw new Error(errorData.error || 'Failed to send notification')
       }
 
-      alert('Notification sent successfully!')
+      appAlert('Notification sent successfully!')
       setShowNotificationModal(false)
       setNotifTitle('')
       setNotifMessage('')
       setNotifType('INFO')
       setNotifChannel('IN_APP')
     } catch (err: any) {
-      alert(err.message || 'Failed to send notification')
+      appAlert(err.message || 'Failed to send notification')
     } finally {
       setSendingNotif(false)
     }
@@ -216,7 +218,7 @@ export default function OrgDetailPage() {
         setAuditLogs(logsJson.data || [])
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to toggle module status')
+      appAlert(err.message || 'Failed to toggle module status')
     }
   }
 
@@ -231,10 +233,10 @@ export default function OrgDetailPage() {
         const errJson = await res.json()
         throw new Error(errJson.error || 'Failed to update organization status')
       }
-      alert(`Organization status updated to ${newStatus}`)
+      appAlert(`Organization status updated to ${newStatus}`)
       await loadData()
     } catch (err: any) {
-      alert(err.message || 'Failed to update organization status')
+      appAlert(err.message || 'Failed to update organization status')
     }
   }
 
@@ -255,10 +257,10 @@ export default function OrgDetailPage() {
         body: JSON.stringify({ notes })
       })
       if (!res.ok) throw new Error('Failed to save internal notes')
-      alert('Internal notes saved successfully')
+      appAlert('Internal notes saved successfully')
       await loadData()
     } catch (err: any) {
-      alert(err.message || 'Failed to save notes')
+      appAlert(err.message || 'Failed to save notes')
     } finally {
       setNotesSaving(false)
     }
@@ -293,7 +295,7 @@ export default function OrgDetailPage() {
       setShowEditModal(false)
       await loadData()
     } catch (err: any) {
-      alert(err.message || 'Failed to update organization details')
+      appAlert(err.message || 'Failed to update organization details')
     }
   }
 
@@ -309,10 +311,10 @@ export default function OrgDetailPage() {
       })
 
       if (!res.ok) throw new Error('Failed to extend trial')
-      alert(`Trial extended by ${days} days`)
+      appAlert(`Trial extended by ${days} days`)
       await loadData()
     } catch (err: any) {
-      alert(err.message || 'Failed to extend trial')
+      appAlert(err.message || 'Failed to extend trial')
     }
   }
 
@@ -332,7 +334,7 @@ export default function OrgDetailPage() {
       const impData = await res.json()
       setImpersonationToken(impData.token)
     } catch (err: any) {
-      alert(err.message || 'Impersonation request failed')
+      appAlert(err.message || 'Impersonation request failed')
     }
   }
 
@@ -349,10 +351,10 @@ export default function OrgDetailPage() {
       })
 
       if (!res.ok) throw new Error(`Failed to ${action} school listing`)
-      alert(`School listing ${approve ? 'approved' : 'rejected'} successfully.`)
+      appAlert(`School listing ${approve ? 'approved' : 'rejected'} successfully.`)
       await loadData()
     } catch (err: any) {
-      alert(err.message || 'Verification update failed')
+      appAlert(err.message || 'Verification update failed')
     }
   }
 

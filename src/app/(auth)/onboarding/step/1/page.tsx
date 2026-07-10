@@ -12,6 +12,7 @@ import {
 } from '@/constants/institutionConfig'
 import { LanguageTagInput } from '@/components/ui/LanguageTagInput'
 import { ExamFocusTagInput } from '@/components/ui/ExamFocusTagInput'
+import { GRADE_RANGE_OPTIONS } from '@/constants/grades'
 
 const institutionTypes = [
   { value: 'SCHOOL', label: 'School' },
@@ -20,12 +21,7 @@ const institutionTypes = [
   { value: 'COACHING_CENTER', label: 'Coaching Center' }
 ]
 
-const grades = [
-  'Playgroup', 'Nursery', 'LKG', 'UKG',
-  'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
-  'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10',
-  'Class 11', 'Class 12'
-]
+const grades = [...GRADE_RANGE_OPTIONS]
 
 export default function OnboardingStep1() {
   const router = useRouter()

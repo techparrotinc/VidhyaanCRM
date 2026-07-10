@@ -579,7 +579,7 @@ export default function SecuritySettingsPage() {
                       Verify OTP to Remove PIN
                     </label>
                     <p className="text-xs text-slate-400">
-                      We sent a 6-digit verification code to your phone
+                      We sent a 4-digit verification code to your phone
                     </p>
                   </div>
 

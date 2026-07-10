@@ -13,6 +13,7 @@ import {
 } from '@/constants/institutionConfig'
 import { LanguageTagInput } from '@/components/ui/LanguageTagInput'
 import { ExamFocusTagInput } from '@/components/ui/ExamFocusTagInput'
+import { GRADE_RANGE_OPTIONS } from '@/constants/grades'
 
 const institutionTypeLabels: Record<string, string> = {
   SCHOOL: 'School',
@@ -30,12 +31,7 @@ interface SimilarSchool {
   affiliations: Array<{ board: string }>
 }
 
-const grades = [
-  'Playgroup', 'Nursery', 'LKG', 'UKG',
-  'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
-  'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10',
-  'Class 11', 'Class 12'
-]
+const grades = [...GRADE_RANGE_OPTIONS]
 
 export default function RegisterPage() {
   const router = useRouter()

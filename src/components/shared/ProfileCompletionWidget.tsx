@@ -37,6 +37,7 @@ interface School {
   name: string
   description: string | null
   monthlyFeeMin: number | null
+  academicYear: string | null
   locations: SchoolLocation[]
   contacts: SchoolContact[]
   affiliations: SchoolAffiliation[]
@@ -57,47 +58,13 @@ export default function ProfileCompletionWidget() {
         if (data.success && data.school) {
           setSchool(data.school)
         }
+        if (data.success && typeof data.profileCompletePct === 'number') {
+          setScore(data.profileCompletePct)
+        }
       })
       .catch((err) => console.error('Error fetching profile completion status:', err))
       .finally(() => setLoading(false))
   }, [])
-
-  useEffect(() => {
-    if (!school) return
-
-    let currentScore = 10 // Name is always registered / true (10 points)
-
-    if (school.description && school.description.trim() !== '') {
-      currentScore += 10
-    }
-    if (school.locations && school.locations.length > 0) {
-      currentScore += 10
-    }
-    if (school.contacts && school.contacts.length > 0) {
-      currentScore += 10
-    }
-    if (school.affiliations && school.affiliations.length > 0) {
-      currentScore += 10
-    }
-    const hasFeeRange = (school.feeRanges && school.feeRanges.length > 0) || school.monthlyFeeMin !== null
-    if (hasFeeRange) {
-      currentScore += 10
-    }
-    const hasLogo = school.media && school.media.some((m) => m.caption === 'logo')
-    if (hasLogo) {
-      currentScore += 15
-    }
-    const hasCover = school.media && school.media.some((m) => m.caption === 'cover')
-    if (hasCover) {
-      currentScore += 15
-    }
-    const hasGallery = school.media && school.media.some((m) => m.caption === 'gallery')
-    if (hasGallery) {
-      currentScore += 10
-    }
-
-    setScore(currentScore)
-  }, [school])
 
   if (loading) {
     return (
@@ -110,14 +77,9 @@ export default function ProfileCompletionWidget() {
 
   if (!school) return null
 
-  // Define checklist items
+  // Checklist mirrors calculateProfileCompletePct (school-profile-helper.ts)
+  // — same criteria and weights, so this widget always matches the dashboard.
   const items = [
-    {
-      label: 'School / center name',
-      done: true,
-      points: 10,
-      link: '/onboarding/step/1'
-    },
     {
       label: 'Upload institution logo',
       done: school.media && school.media.some((m) => m.caption === 'logo'),
@@ -125,22 +87,16 @@ export default function ProfileCompletionWidget() {
       link: '/onboarding/step/4'
     },
     {
-      label: 'Upload cover photo',
-      done: school.media && school.media.some((m) => m.caption === 'cover'),
-      points: 15,
-      link: '/onboarding/step/4'
-    },
-    {
-      label: 'Upload gallery photos',
-      done: school.media && school.media.some((m) => m.caption === 'gallery'),
-      points: 10,
-      link: '/onboarding/step/4'
-    },
-    {
-      label: 'Add profile description',
-      done: !!(school.description && school.description.trim() !== ''),
+      label: 'Add profile description (100+ chars)',
+      done: !!(school.description && school.description.trim().length >= 100),
       points: 10,
       link: '/onboarding/step/1'
+    },
+    {
+      label: 'Add contact phone/email details',
+      done: school.contacts && school.contacts.length > 0,
+      points: 10,
+      link: '/onboarding/step/2'
     },
     {
       label: 'Set campus location address',
@@ -155,26 +111,32 @@ export default function ProfileCompletionWidget() {
       link: '/onboarding/step/3'
     },
     {
-      label: 'Add contact phone/email details',
-      done: school.contacts && school.contacts.length > 0,
-      points: 10,
-      link: '/onboarding/step/2'
+      label: 'Upload cover or gallery photos',
+      done: school.media && school.media.some((m) => m.caption === 'gallery' || m.caption === 'cover'),
+      points: 15,
+      link: '/onboarding/step/4'
     },
     {
       label: 'Add school fee ranges',
       done: (school.feeRanges && school.feeRanges.length > 0) || school.monthlyFeeMin !== null,
-      points: 10,
+      points: 15,
+      link: '/onboarding/step/3'
+    },
+    {
+      label: 'Set admission academic year',
+      done: !!(school.academicYear && school.academicYear.trim() !== ''),
+      points: 15,
       link: '/onboarding/step/3'
     }
   ]
 
   const incompleteItems = items.filter((item) => !item.done)
 
-  // Circular progress math
+  // Circular progress math — circumference must match the drawn circle's
+  // radius exactly, or the arc never closes at 100%
   const radius = 34
   const stroke = 6
-  const normalizedRadius = radius - stroke * 2
-  const circumference = normalizedRadius * 2 * Math.PI
+  const circumference = radius * 2 * Math.PI
   const strokeDashoffset = circumference - (score / 100) * circumference
 
   return (

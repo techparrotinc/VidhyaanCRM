@@ -203,7 +203,7 @@ export default function ClaimVerifyPhonePage() {
               Verify Phone Number
             </h1>
             <p className="text-slate-500 mt-2 text-sm max-w-[400px]">
-              {phone ? `We've sent a 6-digit verification code to +91 ${phone}` : 'Loading details...'}
+              {phone ? `We've sent a 4-digit verification code to +91 ${phone}` : 'Loading details...'}
             </p>
           </div>
         </div>

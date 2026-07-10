@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
@@ -136,10 +138,10 @@ export default function SchoolVerificationsPage() {
       
       setApproveConfirmOpen(false)
       setActionSchool(null)
-      alert(`School listing "${actionSchool.name}" approved successfully and is now live!`)
+      appAlert(`School listing "${actionSchool.name}" approved successfully and is now live!`)
       await fetchSchools()
     } catch (err: any) {
-      alert(err.message || 'Approval failed')
+      appAlert(err.message || 'Approval failed')
     }
   }
 
@@ -157,10 +159,10 @@ export default function SchoolVerificationsPage() {
       setRejectModalOpen(false)
       setActionSchool(null)
       setRejectionReason('')
-      alert(`School listing "${actionSchool.name}" verification rejected.`)
+      appAlert(`School listing "${actionSchool.name}" verification rejected.`)
       await fetchSchools()
     } catch (err: any) {
-      alert(err.message || 'Rejection failed')
+      appAlert(err.message || 'Rejection failed')
     }
   }
 

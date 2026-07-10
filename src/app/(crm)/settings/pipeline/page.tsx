@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import {
   ArrowUp,
@@ -94,7 +96,7 @@ export default function PipelineSettingsPage() {
       setShowAddForm(false)
       await fetchStages()
     } catch (err: any) {
-      alert(err.message || 'Could not add stage')
+      appAlert(err.message || 'Could not add stage')
     } finally {
       setAdding(false)
     }
@@ -116,7 +118,7 @@ export default function PipelineSettingsPage() {
       if (!res.ok) throw new Error('Failed to update stage name')
       await fetchStages()
     } catch (err: any) {
-      alert(err.message || 'Could not update stage name')
+      appAlert(err.message || 'Could not update stage name')
     } finally {
       setEditingId(null)
     }
@@ -133,7 +135,7 @@ export default function PipelineSettingsPage() {
       if (!res.ok) throw new Error('Failed to update stage settings')
       await fetchStages()
     } catch (err: any) {
-      alert(err.message || 'Could not update stage settings')
+      appAlert(err.message || 'Could not update stage settings')
     }
   }
 
@@ -152,7 +154,7 @@ export default function PipelineSettingsPage() {
       
       await fetchStages()
     } catch (err: any) {
-      alert(err.message || 'Could not delete stage')
+      appAlert(err.message || 'Could not delete stage')
     }
   }
 
@@ -182,7 +184,7 @@ export default function PipelineSettingsPage() {
       if (!res.ok) throw new Error('Failed to reorder stages')
       await fetchStages()
     } catch (err: any) {
-      alert(err.message || 'Could not reorder stages')
+      appAlert(err.message || 'Could not reorder stages')
     }
   }
 

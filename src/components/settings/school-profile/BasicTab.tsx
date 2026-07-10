@@ -3,6 +3,8 @@
 import React from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { GRADE_RANGE_OPTIONS } from '@/constants/grades'
+import { INSTITUTION_CONFIG, InstitutionType } from '@/constants/institutionConfig'
 
 const inputCls = 'w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]'
 const labelCls = 'text-xs font-bold uppercase tracking-wider text-slate-500'
@@ -29,6 +31,8 @@ type BasicTabProps = {
 }
 
 export default function BasicTab({ values, institutionType, onChange, onSave, saving }: BasicTabProps) {
+  const config = INSTITUTION_CONFIG[institutionType as InstitutionType]
+  const schoolTypeOptions = config?.schoolTypeOptions ?? []
   return (
     <form onSubmit={onSave} className="space-y-6">
       <div className="border-b border-slate-100 pb-4 mb-4">
@@ -63,14 +67,17 @@ export default function BasicTab({ values, institutionType, onChange, onSave, sa
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label className={labelCls}>School Type</label>
-          <select value={values.schoolType || ''} onChange={(e) => onChange('schoolType', e.target.value)} className={inputCls}>
-            <option value="BOYS">Boys Only</option>
-            <option value="GIRLS">Girls Only</option>
-            <option value="CO_ED">Co-Educational</option>
-          </select>
-        </div>
+        {schoolTypeOptions.length > 0 && (
+          <div className="space-y-1.5">
+            <label className={labelCls}>School Type</label>
+            <select value={values.schoolType || ''} onChange={(e) => onChange('schoolType', e.target.value)} className={inputCls}>
+              <option value="">Select type…</option>
+              {schoolTypeOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="space-y-1.5">
           <label className={labelCls}>Established Year</label>
@@ -98,14 +105,22 @@ export default function BasicTab({ values, institutionType, onChange, onSave, sa
 
         <div className="space-y-1.5">
           <label className={labelCls}>Grade Offered From</label>
-          <input type="text" value={values.gradeFrom}
-            onChange={(e) => onChange('gradeFrom', e.target.value)} placeholder="e.g. LKG, 1" className={inputCls} />
+          <select value={values.gradeFrom || ''} onChange={(e) => onChange('gradeFrom', e.target.value)} className={inputCls}>
+            <option value="">Select grade…</option>
+            {GRADE_RANGE_OPTIONS.map((g) => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
         </div>
 
         <div className="space-y-1.5">
           <label className={labelCls}>Grade Offered To</label>
-          <input type="text" value={values.gradeTo}
-            onChange={(e) => onChange('gradeTo', e.target.value)} placeholder="e.g. Class 10, Class 12" className={inputCls} />
+          <select value={values.gradeTo || ''} onChange={(e) => onChange('gradeTo', e.target.value)} className={inputCls}>
+            <option value="">Select grade…</option>
+            {GRADE_RANGE_OPTIONS.map((g) => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
         </div>
 
         <div className="space-y-1.5">

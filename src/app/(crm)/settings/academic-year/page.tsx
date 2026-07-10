@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import {
   CalendarDays,
@@ -91,7 +93,7 @@ export default function AcademicYearSettingsPage() {
       setShowAddForm(false)
       await fetchYears()
     } catch (err: any) {
-      alert(err.message || 'Could not create academic year')
+      appAlert(err.message || 'Could not create academic year')
     } finally {
       setAdding(false)
     }

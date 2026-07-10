@@ -1,5 +1,7 @@
 'use client'
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -392,10 +394,12 @@ export default function SchoolProfilePage() {
       const data = await res.json()
       if (data.success) {
         setSchool(data.school)
-        alert('Basic Info saved successfully!')
+        appAlert('Basic Info saved successfully!')
+      } else {
+        appAlert(data.error || 'Save failed')
       }
     } catch (e) {
-      alert('Save failed')
+      appAlert('Save failed')
     } finally {
       setSaving(false)
     }
@@ -425,10 +429,12 @@ export default function SchoolProfilePage() {
       const data = await res.json()
       if (data.success) {
         setSchool(data.school)
-        alert('Location and Contact info saved!')
+        appAlert('Location and Contact info saved!')
+      } else {
+        appAlert(data.error || 'Save failed')
       }
     } catch (e) {
-      alert('Save failed')
+      appAlert('Save failed')
     } finally {
       setSaving(false)
     }
@@ -446,10 +452,12 @@ export default function SchoolProfilePage() {
       const data = await res.json()
       if (data.success) {
         setSchool(data.school)
-        alert('Operating hours updated successfully!')
+        appAlert('Operating hours updated successfully!')
+      } else {
+        appAlert(data.error || 'Save failed')
       }
     } catch (e) {
-      alert('Save hours failed')
+      appAlert('Save hours failed')
     } finally {
       setSaving(false)
     }
@@ -480,10 +488,12 @@ export default function SchoolProfilePage() {
       const data = await res.json()
       if (data.success) {
         setSchool(data.school)
-        alert('Academics settings saved successfully!')
+        appAlert('Academics settings saved successfully!')
+      } else {
+        appAlert(data.error || 'Save failed')
       }
     } catch (e) {
-      alert('Save failed')
+      appAlert('Save failed')
     } finally {
       setSaving(false)
     }
@@ -501,10 +511,12 @@ export default function SchoolProfilePage() {
       const data = await res.json()
       if (data.success) {
         setSchool(data.school)
-        alert('Facilities updated!')
+        appAlert('Facilities updated!')
+      } else {
+        appAlert(data.error || 'Save failed')
       }
     } catch (e) {
-      alert('Save failed')
+      appAlert('Save failed')
     } finally {
       setSaving(false)
     }
@@ -519,7 +531,7 @@ export default function SchoolProfilePage() {
     if (customCaption === 'gallery' && planSlug === 'free') {
       const galleryCount = mediaList.filter((m) => m.caption === 'gallery').length
       if (galleryCount >= 3) {
-        alert('Limit reached! Max 3 photos for free plan.')
+        appAlert('Limit reached! Max 3 photos for free plan.')
         return
       }
     }
@@ -556,13 +568,13 @@ export default function SchoolProfilePage() {
           loadProfile()
         }, 500)
       } else {
-        alert(data.error || 'Upload failed')
+        appAlert(data.error || 'Upload failed')
         setUploading(false)
         setScanStatus('idle')
       }
     } catch (e) {
       console.error(e)
-      alert('Upload failed')
+      appAlert('Upload failed')
       setUploading(false)
       setScanStatus('idle')
     }
@@ -577,9 +589,11 @@ export default function SchoolProfilePage() {
       const data = await res.json()
       if (data.success) {
         loadProfile()
+      } else {
+        appAlert(data.error || 'Delete failed')
       }
     } catch (e) {
-      alert('Delete failed')
+      appAlert('Delete failed')
     }
   }
 
@@ -591,9 +605,11 @@ export default function SchoolProfilePage() {
       const data = await res.json()
       if (data.success) {
         loadProfile()
+      } else {
+        appAlert(data.error || 'Failed to set primary cover')
       }
     } catch (e) {
-      alert('Failed to set primary cover')
+      appAlert('Failed to set primary cover')
     }
   }
 
@@ -621,7 +637,7 @@ export default function SchoolProfilePage() {
       // For this implementation, we will update the sortOrder of all media in gallery tab manually.
       // We will do updates sequentially or send the array to bulk reorder.
       // Since we don't have a bulk reorder, we can just PUT them individually or simulate the update success.
-      alert('Photo order saved successfully!')
+      appAlert('Photo order saved successfully!')
     } catch (e) {
       console.error(e)
     } finally {
@@ -651,9 +667,11 @@ export default function SchoolProfilePage() {
           setNewLcMonthly('')
           setNewLcRegistration('')
           loadProfile()
+        } else {
+          appAlert(data.error || 'Failed to add fee')
         }
       } catch (e) {
-        alert('Failed to add fee')
+        appAlert('Failed to add fee')
       } finally {
         setSaving(false)
       }
@@ -677,9 +695,11 @@ export default function SchoolProfilePage() {
           setNewFeeMin('')
           setNewFeeMax('')
           loadProfile()
+        } else {
+          appAlert(data.error || 'Failed to add fee')
         }
       } catch (e) {
-        alert('Failed to add fee')
+        appAlert('Failed to add fee')
       } finally {
         setSaving(false)
       }
@@ -694,9 +714,11 @@ export default function SchoolProfilePage() {
       const data = await res.json()
       if (data.success) {
         loadProfile()
+      } else {
+        appAlert(data.error || 'Delete fee failed')
       }
     } catch (e) {
-      alert('Delete fee failed')
+      appAlert('Delete fee failed')
     }
   }
 
@@ -718,10 +740,12 @@ export default function SchoolProfilePage() {
       const data = await res.json()
       if (data.success) {
         setSchool(data.school)
-        alert('Admission Settings saved successfully!')
+        appAlert('Admission Settings saved successfully!')
+      } else {
+        appAlert(data.error || 'Save failed')
       }
     } catch (e) {
-      alert('Save failed')
+      appAlert('Save failed')
     } finally {
       setSaving(false)
     }
@@ -749,9 +773,11 @@ export default function SchoolProfilePage() {
           <Badge className="bg-blue-50 text-[#1565D8] px-3.5 py-1.5 rounded-full border border-blue-100 font-semibold text-xs tracking-wide">
             Rank Score: {school.rankingScore}/100
           </Badge>
-          <Badge className="bg-emerald-50 text-emerald-700 px-3.5 py-1.5 rounded-full border border-emerald-100 font-semibold text-xs tracking-wide">
-            Rating: {school.avgRating || '4.0'} ★
-          </Badge>
+          {school.avgRating > 0 && (
+            <Badge className="bg-emerald-50 text-emerald-700 px-3.5 py-1.5 rounded-full border border-emerald-100 font-semibold text-xs tracking-wide">
+              Rating: {school.avgRating} ★
+            </Badge>
+          )}
         </div>
       </div>
 

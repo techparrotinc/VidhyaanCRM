@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import {
   Download,
@@ -113,7 +115,7 @@ export default function ScrapingToolsPage() {
 
       const parsed = parseCSV(text)
       if (parsed.length <= 1) {
-        alert('CSV file is empty or missing data rows')
+        appAlert('CSV file is empty or missing data rows')
         return
       }
 
@@ -128,7 +130,7 @@ export default function ScrapingToolsPage() {
       const addressIdx = headers.indexOf('address')
 
       if (schoolNameIdx === -1 || cityIdx === -1) {
-        alert('CSV must contain at least "school_name" and "city" headers')
+        appAlert('CSV must contain at least "school_name" and "city" headers')
         return
       }
 
@@ -172,7 +174,7 @@ export default function ScrapingToolsPage() {
       setImporting(true)
       const validRows = csvRows.filter(r => r.isValid)
       if (validRows.length === 0) {
-        alert('No valid rows to import')
+        appAlert('No valid rows to import')
         return
       }
 
@@ -191,13 +193,13 @@ export default function ScrapingToolsPage() {
       }
 
       const data = await res.json()
-      alert(`Successfully imported ${data.importedCount} of ${data.totalCount} schools!`)
+      appAlert(`Successfully imported ${data.importedCount} of ${data.totalCount} schools!`)
       setCsvRows([])
       setCsvFileName('')
       setPreviewOpen(false)
       await fetchLogs()
     } catch (err: any) {
-      alert(err.message || 'Failed to import schools')
+      appAlert(err.message || 'Failed to import schools')
     } finally {
       setImporting(false)
     }

@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import {
   Loader2,
@@ -109,7 +111,7 @@ export default function NotificationSettingsPage() {
       triggerToast('Preferences saved successfully')
       await fetchPreferences()
     } catch (err: any) {
-      alert(err.message || 'Could not save preferences')
+      appAlert(err.message || 'Could not save preferences')
     } finally {
       setSaving(false)
     }

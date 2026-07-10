@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
@@ -106,7 +108,7 @@ export default function AdminOrgsPage() {
   const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!createForm.schoolName.trim() || !createForm.adminName.trim() || !createForm.email.trim() || !createForm.phone.trim()) {
-      alert('Institution name, admin name, email and phone are required')
+      appAlert('Institution name, admin name, email and phone are required')
       return
     }
     try {
@@ -131,11 +133,11 @@ export default function AdminOrgsPage() {
       }
       setShowCreate(false)
       setCreateForm({ schoolName: '', institutionType: 'SCHOOL', adminName: '', email: '', phone: '', role: 'Administrator' })
-      alert('Organization created. The admin has been sent a verification/welcome message to complete login.')
+      appAlert('Organization created. The admin has been sent a verification/welcome message to complete login.')
       setPage(1)
       await fetchOrgs()
     } catch (err: any) {
-      alert(err.message || 'Failed to create organization')
+      appAlert(err.message || 'Failed to create organization')
     } finally {
       setCreating(false)
     }
@@ -211,7 +213,7 @@ export default function AdminOrgsPage() {
       }
       await fetchOrgs()
     } catch (err: any) {
-      alert(err.message || 'Could not update organization status')
+      appAlert(err.message || 'Could not update organization status')
     }
   }
 
@@ -243,7 +245,7 @@ export default function AdminOrgsPage() {
       setImpersonatingId(orgId)
       setImpersonationToken(impData.token)
     } catch (err: any) {
-      alert(err.message || 'Failed to initiate impersonation')
+      appAlert(err.message || 'Failed to initiate impersonation')
     }
   }
 

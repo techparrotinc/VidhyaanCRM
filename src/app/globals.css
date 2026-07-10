@@ -1,44 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
-@font-face {
-  font-family: 'CircularXXWeb';
-  src: url('/fonts/CircularXXWeb-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'CircularXXWeb';
-  src: url('/fonts/CircularXXWeb-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'CircularXXWeb';
-  src: url('/fonts/CircularXXWeb-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'ABCDiatype';
-  src: url('/fonts/ABCDiatype-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'ABCDiatype';
-  src: url('/fonts/ABCDiatype-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
+/* CircularXXWeb / ABC Diatype are licensed fonts; no woff2 files are shipped.
+   The font stacks keep their names so adding the files + @font-face back
+   re-enables them. Poppins (imported above) is the effective primary font. */
 
 @import "tailwindcss";
 @import "tw-animate-css";

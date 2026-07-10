@@ -5,6 +5,7 @@ import "./globals.css";
 import { Suspense } from "react";
 import PageTransitionProvider from "@/components/PageTransitionProvider";
 import LoadingScreen from "@/components/LoadingScreen";
+import { AppAlertHost } from "@/components/ui/app-alert";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -55,6 +56,7 @@ export default function RootLayout({
             </Suspense>
           </PageTransitionProvider>
         </SessionProvider>
+        <AppAlertHost />
       </body>
     </html>
   );

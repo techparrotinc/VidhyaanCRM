@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import {
   CreditCard,
@@ -119,10 +121,10 @@ export default function AdminPlansPage() {
 
       if (!res.ok) throw new Error('Failed to update plan prices')
       setEditPlan(null)
-      alert('Plan updated successfully')
+      appAlert('Plan updated successfully')
       await fetchPlans()
     } catch (err: any) {
-      alert(err.message || 'Plan update failed')
+      appAlert(err.message || 'Plan update failed')
     }
   }
 
@@ -161,7 +163,7 @@ export default function AdminPlansPage() {
       setEditSlab(null)
       await fetchPlans()
     } catch (err: any) {
-      alert(err.message || 'Slab price update failed')
+      appAlert(err.message || 'Slab price update failed')
     } finally {
       setSlabSaving(false)
     }
@@ -178,7 +180,7 @@ export default function AdminPlansPage() {
       if (!res.ok) throw new Error('Failed to toggle plan active status')
       await fetchPlans()
     } catch (err: any) {
-      alert(err.message || 'Failed to update plan status')
+      appAlert(err.message || 'Failed to update plan status')
     }
   }
 

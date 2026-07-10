@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -392,7 +394,7 @@ export default function SchoolsSearchPage() {
 
   const handleShare = (slug: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/schools/${slug}`)
-    alert('Link copied to clipboard!')
+    appAlert('Link copied to clipboard!')
   }
 
   const handleEnquiryOpen = (school: School) => {

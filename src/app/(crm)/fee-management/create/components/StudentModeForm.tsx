@@ -74,10 +74,8 @@ const StudentModeForm = forwardRef<WizardFormHandle, StudentModeFormProps>(
   const [isPlanDropdownExpanded, setIsPlanDropdownExpanded] = useState(false)
   const [hasManuallyChangedPlan, setHasManuallyChangedPlan] = useState(false)
 
-  const getGradeDisplayLabel = (val: string) => {
-    const mapped = mapGradeValue(val)
-    return getGradeLabel(mapped).replace(/^Class\s+/i, 'Grade ')
-  }
+  // Canonical label — must read the same as Lead/Admission grade dropdowns
+  const getGradeDisplayLabel = (val: string) => getGradeLabel(mapGradeValue(val))
 
   // SWR Fetches
   const { data: termsData } = useSWR<{ success: boolean; data: Term[] }>(

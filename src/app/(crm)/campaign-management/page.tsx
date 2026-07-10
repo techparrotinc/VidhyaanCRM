@@ -1,5 +1,7 @@
 'use client'
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -87,14 +89,14 @@ export default function CampaignListPage() {
         method: 'DELETE'
       })
       if (res.ok) {
-        alert('Campaign deleted')
+        appAlert('Campaign deleted')
         mutate()
       } else {
         const data = await res.json()
-        alert(data.error || 'Failed to delete campaign')
+        appAlert(data.error || 'Failed to delete campaign')
       }
     } catch (e) {
-      alert('An error occurred while deleting campaign')
+      appAlert('An error occurred while deleting campaign')
     }
   }
 
@@ -114,14 +116,14 @@ export default function CampaignListPage() {
         })
       })
       if (res.ok) {
-        alert('Campaign cancelled')
+        appAlert('Campaign cancelled')
         mutate()
       } else {
         const data = await res.json()
-        alert(data.error || 'Failed to cancel campaign')
+        appAlert(data.error || 'Failed to cancel campaign')
       }
     } catch (e) {
-      alert('An error occurred while cancelling campaign')
+      appAlert('An error occurred while cancelling campaign')
     }
   }
 
@@ -129,7 +131,7 @@ export default function CampaignListPage() {
     try {
       const detailRes = await fetch(`/api/v1/campaigns/${id}`)
       if (!detailRes.ok) {
-        alert('Failed to fetch campaign details for duplication')
+        appAlert('Failed to fetch campaign details for duplication')
         return
       }
       const { data: campaign } = await detailRes.json()
@@ -149,15 +151,15 @@ export default function CampaignListPage() {
 
       if (dupRes.ok) {
         const { data: newCampaign } = await dupRes.json()
-        alert('Campaign duplicated')
+        appAlert('Campaign duplicated')
         mutate()
         router.push(`/campaign-management/${newCampaign.id}/edit`)
       } else {
         const data = await dupRes.json()
-        alert(data.error || 'Failed to duplicate campaign')
+        appAlert(data.error || 'Failed to duplicate campaign')
       }
     } catch (e) {
-      alert('An error occurred while duplicating campaign')
+      appAlert('An error occurred while duplicating campaign')
     }
   }
 

@@ -1,8 +1,11 @@
 'use client'
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Check } from 'lucide-react'
+import { ArrowLeft, Check, AlertTriangle } from 'lucide-react'
+import { useCampaignQuota } from '@/hooks/useCampaignQuota'
 import { StepOne } from './components/StepOne'
 import { StepTwo } from './components/StepTwo'
 import { StepThree } from './components/StepThree'
@@ -28,6 +31,7 @@ export default function NewCampaignPage() {
   const [sendNow, setSendNow] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const { quota } = useCampaignQuota()
   const [institutionType, setInstitutionType] = useState<'SCHOOL' | 'LEARNING_CENTER'>('SCHOOL')
   const [hasWhatsappAddon, setHasWhatsappAddon] = useState(false)
   const [isCountLoading, setIsCountLoading] = useState(false)
@@ -92,7 +96,7 @@ export default function NewCampaignPage() {
 
       if (!createRes.ok) {
         const errJson = await createRes.json()
-        alert(errJson.error || 'Failed to save campaign')
+        appAlert(errJson.error || 'Failed to save campaign')
         return
       }
 
@@ -100,7 +104,7 @@ export default function NewCampaignPage() {
       const campaignId = campaign.id
 
       if (action === 'draft') {
-        alert('Campaign saved as draft')
+        appAlert('Campaign saved as draft')
         router.push('/campaign-management')
         return
       }
@@ -118,23 +122,23 @@ export default function NewCampaignPage() {
 
       if (sendRes.ok) {
         if (action === 'send') {
-          alert('Campaign sent successfully')
+          appAlert('Campaign sent successfully')
         } else {
-          alert('Campaign scheduled successfully')
+          appAlert('Campaign scheduled successfully')
         }
         router.push('/campaign-management')
       } else {
         const errorJson = await sendRes.json()
         if (sendRes.status === 402) {
-          alert(errorJson.error || 'Recipient quota exceeded. Please upgrade.')
+          appAlert(errorJson.error || 'Recipient quota exceeded. Please upgrade.')
         } else if (sendRes.status === 403) {
-          alert(errorJson.error || 'WhatsApp addon required. Please upgrade.')
+          appAlert(errorJson.error || 'WhatsApp addon required. Please upgrade.')
         } else {
-          alert(errorJson.error || 'Failed to send campaign. Please try again.')
+          appAlert(errorJson.error || 'Failed to send campaign. Please try again.')
         }
       }
     } catch (e) {
-      alert('An error occurred. Please try again.')
+      appAlert('An error occurred. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -190,6 +194,19 @@ export default function NewCampaignPage() {
 
       {/* CONTENT AREA */}
       <div className="p-4 lg:p-6 max-w-2xl mx-auto">
+        {quota && (quota.limit === 0 || (quota.limit > 0 && quota.remaining === 0)) && (
+          <div className="mb-4 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 font-medium">
+            <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" />
+            <span>
+              {quota.limit === 0
+                ? 'Your current plan does not include campaign sending — you can build and save this campaign as a draft, but sending requires a paid plan. '
+                : 'Monthly recipient limit reached — you can save as a draft, but sending more this month requires an upgrade. '}
+              <button onClick={() => router.push('/settings/billing/upgrade')} className="underline font-semibold cursor-pointer">
+                Upgrade plan
+              </button>
+            </span>
+          </div>
+        )}
         {currentStep === 1 && (
           <StepOne
             channel={channel}

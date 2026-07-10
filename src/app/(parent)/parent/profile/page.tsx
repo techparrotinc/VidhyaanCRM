@@ -1,5 +1,7 @@
 'use client'
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
@@ -24,6 +26,7 @@ import {
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { GRADE_LABEL_OPTIONS } from '@/constants/grades'
 
 interface Kid {
   id: string
@@ -54,23 +57,7 @@ const CITIES = [
   'Coimbatore'
 ]
 
-const GRADES = [
-  'Playgroup',
-  'LKG',
-  'UKG',
-  'Class 1',
-  'Class 2',
-  'Class 3',
-  'Class 4',
-  'Class 5',
-  'Class 6',
-  'Class 7',
-  'Class 8',
-  'Class 9',
-  'Class 10',
-  'Class 11',
-  'Class 12'
-]
+const GRADES = [...GRADE_LABEL_OPTIONS]
 
 export default function ParentProfilePage() {
   const router = useRouter()
@@ -407,7 +394,7 @@ export default function ParentProfilePage() {
         throw new Error(json.error || 'Failed to delete account')
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to delete your account. Contact support.')
+      appAlert(err.message || 'Failed to delete your account. Contact support.')
     } finally {
       setDeleteLoading(false)
     }

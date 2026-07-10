@@ -31,3 +31,31 @@ export const GRADE_LABELS: Record<string, string> = Object.fromEntries(
 export function getGradeLabel(value: string): string {
   return GRADE_LABELS[value] || value
 }
+
+/** Canonical display labels (no "Other") — for pick lists that store the label text. */
+export const GRADE_LABEL_OPTIONS = GRADE_OPTIONS
+  .filter(g => g.value !== 'other')
+  .map(g => g.label)
+
+/**
+ * Ordered plain grade ladder for range endpoints (gradeFrom/gradeTo) —
+ * no stream splits, since a range like "LKG to Class 12" spans streams.
+ */
+export const GRADE_RANGE_OPTIONS = [
+  'Pre-KG',
+  'Nursery',
+  'LKG',
+  'UKG',
+  'Class 1',
+  'Class 2',
+  'Class 3',
+  'Class 4',
+  'Class 5',
+  'Class 6',
+  'Class 7',
+  'Class 8',
+  'Class 9',
+  'Class 10',
+  'Class 11',
+  'Class 12',
+] as const

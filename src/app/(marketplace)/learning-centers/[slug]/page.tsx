@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -645,7 +647,7 @@ export default function LearningCenterDetailPage() {
   const handleShare = () => {
     if (typeof window !== 'undefined') {
       navigator.clipboard.writeText(window.location.href)
-      alert('Academy profile link copied to clipboard!')
+      appAlert('Academy profile link copied to clipboard!')
     }
   }
 

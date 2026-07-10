@@ -297,7 +297,7 @@ export default function ClaimProfilePage() {
                             {location && (
                               <div className="flex items-start gap-1">
                                 <MapPin className="w-4 h-4 mt-0.5 text-slate-400 flex-shrink-0" />
-                                <span>{location.address}, {location.city}</span>
+                                <span>{[location.address, location.city].filter(Boolean).join(', ')}</span>
                               </div>
                             )}
                             <div className="flex items-center gap-4">
@@ -315,7 +315,7 @@ export default function ClaimProfilePage() {
                           </div>
                         </div>
 
-                        {isUnclaimed && (
+                        {isUnclaimed ? (
                           <button
                             onClick={() => router.push(`/claim-profile/verify/${school.id}`)}
                             className="self-start md:self-auto px-4 py-2.5 bg-blue-50 text-[#1565D8] hover:bg-[#1565D8] hover:text-white font-bold rounded-xl text-sm transition-all flex items-center gap-1.5 cursor-pointer group"
@@ -323,6 +323,12 @@ export default function ClaimProfilePage() {
                             <span>Claim This Institution</span>
                             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                           </button>
+                        ) : (
+                          <p className="self-start md:self-auto max-w-[220px] text-xs text-slate-400 leading-relaxed">
+                            {school.verificationStatus === 'PENDING'
+                              ? 'A claim for this profile is under review. If this is your institution, contact support@vidhyaan.com.'
+                              : 'Already claimed by its owner. If this is your institution, contact support@vidhyaan.com.'}
+                          </p>
                         )}
                       </div>
                     )

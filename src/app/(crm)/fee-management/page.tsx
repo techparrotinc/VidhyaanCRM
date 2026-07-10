@@ -35,9 +35,11 @@ type Invoice = InvoiceRow
 type Summary = {
   totalInvoices: number
   collected: number
+  cohortCollected: number
   outstanding: number
   totalBilled: number
   overdueAmount: number
+  overdueCount: number
   scheduledAmount: number
   statusCounts: Record<string, number>
 }
@@ -463,8 +465,12 @@ export default function FeeManagementPage() {
           <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-xl select-none">
             <CheckCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-green-800 font-sans">Invoices Generated Successfully</p>
-              <p className="text-xs text-green-600 font-semibold mt-0.5">{batchInvoices.length} invoices created</p>
+              <p className="text-sm font-semibold text-green-800 font-sans">
+                {batchInvoices.length === 1 ? 'Invoice Generated Successfully' : 'Invoices Generated Successfully'}
+              </p>
+              <p className="text-xs text-green-600 font-semibold mt-0.5">
+                {batchInvoices.length} {batchInvoices.length === 1 ? 'invoice' : 'invoices'} created
+              </p>
             </div>
           </div>
 
@@ -584,12 +590,21 @@ export default function FeeManagementPage() {
                   value={`₹${(summary.totalBilled ?? 0).toLocaleString('en-IN')}`}
                   subLabel={`${summary.totalInvoices} invoices`}
                 />
+                {/* Cohort-pure: every number on this page reconciles with the
+                    invoice list below. Cash received in the month (any invoice)
+                    lives on the dashboard "Received" tile; shown here only as a
+                    quiet footnote when a month filter is active. */}
                 <KpiTile
                   label="Collected"
                   size="compact"
-                  value={`₹${summary.collected.toLocaleString('en-IN')}`}
+                  value={`₹${(summary.cohortCollected ?? 0).toLocaleString('en-IN')}`}
                   valueClassName="text-green-600"
-                  subLabel={`${computeCollectionRate(summary.collected, summary.totalBilled)}% collection rate`}
+                  subLabel={
+                    `${computeCollectionRate(summary.totalBilled - summary.outstanding, summary.totalBilled)}% of ₹${(summary.totalBilled ?? 0).toLocaleString('en-IN')} billed` +
+                    (monthFilter !== 'all' && summary.collected !== (summary.cohortCollected ?? 0)
+                      ? ` · ₹${summary.collected.toLocaleString('en-IN')} total received this month`
+                      : '')
+                  }
                 />
                 <KpiTile
                   label="Outstanding"
@@ -609,10 +624,10 @@ export default function FeeManagementPage() {
                   valueClassName="text-amber-600"
                   subLabel={
                     <span className="flex items-center gap-1">
-                      {(summary.statusCounts?.OVERDUE ?? 0) > 0 && (
+                      {(summary.overdueCount ?? 0) > 0 && (
                         <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
                       )}
-                      {summary.statusCounts?.OVERDUE ?? 0} overdue invoices
+                      {summary.overdueCount ?? 0} overdue invoices
                     </span>
                   }
                 />

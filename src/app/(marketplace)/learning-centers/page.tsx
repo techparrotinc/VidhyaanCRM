@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -1070,7 +1072,7 @@ export default function LearningCentersSearchPage() {
                               <button
                                 onClick={() => {
                                   navigator.clipboard.writeText(`${window.location.origin}/learning-centers/${c.slug}`)
-                                  alert('Link copied to clipboard!')
+                                  appAlert('Link copied to clipboard!')
                                 }}
                                 className="p-1.5 border border-slate-200 text-slate-400 rounded-lg transition hover:bg-slate-50 cursor-pointer"
                               >

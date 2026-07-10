@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import useSWR from 'swr'
@@ -547,7 +549,7 @@ export default function LeadManagementPage() {
         ...prev,
         [selectedLead.id]: currentNoteText
       }))
-      alert("Note saved successfully!")
+      appAlert("Note saved successfully!")
     }
   }
 

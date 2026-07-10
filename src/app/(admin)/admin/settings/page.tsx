@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import {
   Settings,
@@ -183,7 +185,7 @@ export default function AdminSettingsPage() {
       if (flagName === 'maintenanceMode') setMaintenanceMode(!currentVal)
 
     } catch (err: any) {
-      alert(err.message || 'Error updating feature flags')
+      appAlert(err.message || 'Error updating feature flags')
     }
   }
 
@@ -231,10 +233,10 @@ export default function AdminSettingsPage() {
       })
 
       if (!res.ok) throw new Error('Failed to update settings parameters')
-      alert('Platform configurations saved successfully!')
+      appAlert('Platform configurations saved successfully!')
       await fetchSettings()
     } catch (err: any) {
-      alert(err.message || 'Failed to update settings')
+      appAlert(err.message || 'Failed to update settings')
     } finally {
       setSaving(false)
     }
@@ -250,9 +252,9 @@ export default function AdminSettingsPage() {
         const data = await res.json()
         throw new Error(data.error || 'Failed to send test email')
       }
-      alert('Success: Test email sent to your admin mailbox!')
+      appAlert('Success: Test email sent to your admin mailbox!')
     } catch (err: any) {
-      alert(err.message || 'Failed to send test email')
+      appAlert(err.message || 'Failed to send test email')
     } finally {
       setSendingTest(false)
     }
@@ -502,19 +504,19 @@ export default function AdminSettingsPage() {
             </div>
           </Card>
 
-          {/* Storage & DO Spaces Settings */}
+          {/* Storage (AWS S3 / S3-compatible) Settings */}
           <Card className="p-5 bg-white border-slate-200 shadow-sm space-y-4">
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-              <Cloud className="w-4 h-4 text-blue-650" /> Storage Solutions (DO Spaces / CDN)
+              <Cloud className="w-4 h-4 text-blue-650" /> Storage (AWS S3 / CDN)
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold text-slate-700">
               <div>
-                <label className="block text-slate-450 mb-1.5">Spaces Endpoint</label>
+                <label className="block text-slate-450 mb-1.5">Custom Endpoint (S3-compatible only)</label>
                 <input
                   type="text"
                   value={doSpacesEndpoint}
                   onChange={(e) => setDoSpacesEndpoint(e.target.value)}
-                  placeholder="sgp1.digitaloceanspaces.com"
+                  placeholder="Leave blank for AWS S3"
                   className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
                 />
               </div>
@@ -524,7 +526,7 @@ export default function AdminSettingsPage() {
                   type="text"
                   value={doSpacesBucket}
                   onChange={(e) => setDoSpacesBucket(e.target.value)}
-                  placeholder="vidhyaan-assets"
+                  placeholder="vidhyaan"
                   className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
                 />
               </div>
@@ -556,7 +558,7 @@ export default function AdminSettingsPage() {
                   type="text"
                   value={s3AccessKeyId}
                   onChange={(e) => setS3AccessKeyId(e.target.value)}
-                  placeholder="AKIA... / DO..."
+                  placeholder="AKIA..."
                   className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
                 />
               </div>
@@ -574,7 +576,7 @@ export default function AdminSettingsPage() {
               </div>
             </div>
             <div className="text-[10px] font-bold text-slate-400 flex justify-between items-center pt-2">
-              <span>Endpoint blank = AWS S3. Set an endpoint for DigitalOcean Spaces. Blank credentials fall back to the server IAM role / env.</span>
+              <span>Default is AWS S3. Set a custom endpoint only for an S3-compatible provider. Blank credentials fall back to the server IAM role / env.</span>
             </div>
           </Card>
 
@@ -792,7 +794,7 @@ export default function AdminSettingsPage() {
                           ? enabledBillingCycles.filter((c) => c !== cycle.key)
                           : [...enabledBillingCycles, cycle.key]
                         if (next.length === 0) {
-                          alert('At least one billing cycle must stay enabled.')
+                          appAlert('At least one billing cycle must stay enabled.')
                           return
                         }
                         const res = await fetch('/api/admin/settings', {
@@ -801,7 +803,7 @@ export default function AdminSettingsPage() {
                           body: JSON.stringify({ enabledBillingCycles: next })
                         })
                         if (res.ok) setEnabledBillingCycles(next)
-                        else alert('Failed to update billing cycles')
+                        else appAlert('Failed to update billing cycles')
                       }}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
                         enabled ? 'bg-blue-600' : 'bg-slate-300'
@@ -833,7 +835,7 @@ export default function AdminSettingsPage() {
                       body: JSON.stringify({ pricesIncludeGst: next })
                     })
                     if (res.ok) setPricesIncludeGst(next)
-                    else alert('Failed to update GST pricing mode')
+                    else appAlert('Failed to update GST pricing mode')
                   }}
                   className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
                     pricesIncludeGst ? 'bg-blue-600' : 'bg-slate-300'

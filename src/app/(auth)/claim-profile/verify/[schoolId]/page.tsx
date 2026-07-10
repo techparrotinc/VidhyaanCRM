@@ -242,7 +242,7 @@ export default function ClaimVerifyPage() {
     }
   }
 
-  // OPTION C: Document upload (mock S3 upload)
+  // OPTION C: Document upload (real S3 upload via public claim-upload API)
   const handleDocumentSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !school) return
@@ -250,47 +250,50 @@ export default function ClaimVerifyPage() {
     setUploading(true)
     setUploadProgress(0)
 
-    // Simulate upload progress
+    // fetch() exposes no upload progress events — tick the bar while in flight
     const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 95) {
-          clearInterval(interval)
-          return 95
-        }
-        return prev + 15
-      })
-    }, 150)
+      setUploadProgress(prev => (prev >= 90 ? 90 : prev + 10))
+    }, 200)
 
-    setTimeout(async () => {
-      clearInterval(interval)
-      setUploadProgress(100)
-      
-      const simulatedUrl = `https://vidhyaan-documents.sfo3.digitaloceanspaces.com/claims/${school.id}-${Date.now()}-${file.name}`
-      setUploadedUrl(simulatedUrl)
-      
-      try {
-        const res = await fetch('/api/auth/school/claim', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            schoolId: school.id,
-            verificationType: 'DOCUMENT',
-            documentUrl: simulatedUrl
-          })
-        })
-        const data = await res.json()
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || 'Failed to submit document claim')
-        }
-        
-        setUploading(false)
-        setDocumentConfirmed(true)
-      } catch (err: any) {
-        console.error(err)
-        setError(err.message || 'Failed to register document claim')
-        setUploading(false)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('schoolId', school.id)
+
+      const uploadRes = await fetch('/api/public/claim-upload', {
+        method: 'POST',
+        body: formData
+      })
+      const uploadData = await uploadRes.json()
+      if (!uploadRes.ok || !uploadData.url) {
+        throw new Error(uploadData.error || 'Failed to upload document')
       }
-    }, 1500)
+      setUploadedUrl(uploadData.url)
+
+      const res = await fetch('/api/auth/school/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: school.id,
+          verificationType: 'DOCUMENT',
+          documentUrl: uploadData.url
+        })
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to submit document claim')
+      }
+
+      setUploadProgress(100)
+      setDocumentConfirmed(true)
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || 'Failed to register document claim')
+    } finally {
+      clearInterval(interval)
+      setUploading(false)
+      e.target.value = ''
+    }
   }
 
   const steps = [
@@ -620,7 +623,7 @@ export default function ClaimVerifyPage() {
                     <div className="space-y-4 max-w-[400px]">
                       <h4 className="font-bold text-slate-800">Email Verification</h4>
                       <p className="text-sm text-slate-500">
-                        Click below to receive a 6-digit confirmation code at the school email.
+                        Click below to receive a 4-digit confirmation code at the school email.
                       </p>
                       <button
                         onClick={sendEmailOtp}
@@ -694,7 +697,7 @@ export default function ClaimVerifyPage() {
                                 style={{ width: `${uploadProgress}%` }}
                               />
                             </div>
-                            <span className="text-xs font-bold text-slate-600">Uploading to Spaces... {uploadProgress}%</span>
+                            <span className="text-xs font-bold text-slate-600">Uploading... {uploadProgress}%</span>
                           </div>
                         ) : (
                           <label className="flex flex-col items-center gap-2.5 cursor-pointer">

@@ -194,6 +194,8 @@ export async function POST(req: NextRequest) {
         totalTeachers: totalTeachers ? parseInt(totalTeachers) : null,
         isPublished: false,
         verificationStatus: 'PENDING',
+        dataSource: 'CLAIMED', // self-registered, not a scraped listing
+        claimedAt: new Date(),
         establishedYear: establishedYear ? parseInt(establishedYear) : null
       }
     })

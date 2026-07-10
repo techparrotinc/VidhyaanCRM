@@ -81,7 +81,7 @@ export default function LoadingScreen() {
         <div className="flex flex-col items-center space-y-3">
           <Shield className="w-12 h-12 text-[#1565D8] fill-[#1565D8]/10" strokeWidth={1.5} />
           <h2 className="text-xl font-bold text-slate-800 font-sans tracking-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>
-            Prince Matriculation School
+            Vidhyaan
           </h2>
         </div>
 

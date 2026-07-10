@@ -1,5 +1,7 @@
 'use client'
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -144,7 +146,7 @@ export default function UsersPage() {
       setShowInviteModal(false)
       await fetchUsers()
     } catch (err: any) {
-      alert(err.message || 'Could not invite user')
+      appAlert(err.message || 'Could not invite user')
     } finally {
       setInviting(false)
     }
@@ -218,7 +220,7 @@ export default function UsersPage() {
       setShowBranchModal(null)
       await fetchUsers()
     } catch (err: any) {
-      alert(err.message || 'Could not update branch access')
+      appAlert(err.message || 'Could not update branch access')
     } finally {
       setSavingBranches(false)
     }
@@ -240,7 +242,7 @@ export default function UsersPage() {
       triggerToast(`${name} has been deactivated`)
       await fetchUsers()
     } catch (err: any) {
-      alert(err.message || 'Could not deactivate user')
+      appAlert(err.message || 'Could not deactivate user')
     }
   }
 

@@ -46,16 +46,43 @@ export const GET = route({
         gradeLabel
       }
     }
-    if (month) {
-      baseWhere.createdAt = {
-        gte: startOfMonth(parseISO(month + '-01')),
-        lte: endOfMonth(parseISO(month + '-01'))
-      }
+    const monthWindow = month
+      ? {
+          gte: startOfMonth(parseISO(month + '-01')),
+          lte: endOfMonth(parseISO(month + '-01'))
+        }
+      : null
+    if (monthWindow) {
+      baseWhere.createdAt = monthWindow
     }
 
     const where = { ...baseWhere }
     if (status && status !== '') {
       where.status = status
+    }
+
+    // "Collected" is cash received in the selected month (payments by paidAt),
+    // matching the dashboard tile — NOT payments attached to invoices created
+    // that month. Other filters still scope through the invoice relation.
+    const { createdAt: _cohortMonth, ...invoiceScopeSansMonth } = baseWhere
+    const collectedWhere: any = {
+      orgId: user.orgId,
+      status: 'SUCCESS',
+      deletedAt: null,
+      invoice: invoiceScopeSansMonth
+    }
+    if (monthWindow) {
+      collectedWhere.paidAt = monthWindow
+    }
+
+    // Overdue must be derived (due date passed, not settled) — the stored
+    // OVERDUE status only flips when the overdue endpoint runs, and past-due
+    // SCHEDULED invoices never flip. Mirrors isInvoiceOverdue() on the rows.
+    const now = new Date()
+    const overdueWhere = {
+      ...baseWhere,
+      status: { notIn: ['PAID', 'WAIVED'] },
+      dueDate: { lt: now }
     }
 
     const [
@@ -74,12 +101,7 @@ export const GET = route({
         _count: { id: true }
       }),
       db.payment.aggregate({
-        where: {
-          orgId: user.orgId,
-          status: 'SUCCESS',
-          deletedAt: null,
-          invoice: baseWhere
-        },
+        where: collectedWhere,
         _sum: { amount: true }
       }),
       db.invoice.aggregate({
@@ -96,11 +118,12 @@ export const GET = route({
       }),
       db.invoice.aggregate({
         where: baseWhere,
-        _sum: { totalAmount: true }
+        _sum: { totalAmount: true, paidAmount: true }
       }),
       db.invoice.aggregate({
-        where: { ...baseWhere, status: 'OVERDUE' },
-        _sum: { totalAmount: true, paidAmount: true }
+        where: overdueWhere,
+        _sum: { totalAmount: true, paidAmount: true },
+        _count: { id: true }
       }),
       db.invoice.aggregate({
         where: { ...baseWhere, status: 'SCHEDULED' },
@@ -119,9 +142,13 @@ export const GET = route({
     return ok({
       totalInvoices,
       collected: Number(totalCollected._sum.amount ?? 0),
+      // paid against invoices in the current (month-)cohort — lets the UI
+      // show how much of the cash relates to the invoices actually listed
+      cohortCollected: Number(totalBilledAgg._sum.paidAmount ?? 0),
       outstanding,
       totalBilled: Number(totalBilledAgg._sum.totalAmount ?? 0),
       overdueAmount,
+      overdueCount: overdueAgg._count.id,
       scheduledAmount: Number(scheduledAgg._sum.totalAmount ?? 0),
       statusCounts: statusCounts.reduce(
         (acc, s) => ({

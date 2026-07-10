@@ -148,14 +148,14 @@ export default function GalleryTab({
             <div className="flex items-center justify-between text-xs font-bold text-blue-800">
               <span className="flex items-center gap-1">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Scanning and Uploading to DO Spaces...
+                Scanning and uploading securely...
               </span>
               <span>{uploadProgress}%</span>
             </div>
             <Progress value={uploadProgress} className="h-1.5 bg-blue-100" />
             {scanStatus === 'scanning' && (
               <span className="text-[10px] text-slate-500 block font-semibold">
-                🔬 DigitalOcean ClamAV & AI Vision scanning file for security checks...
+                🔬 Scanning file for security checks...
               </span>
             )}
             {scanStatus === 'passed' && (

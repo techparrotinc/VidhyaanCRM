@@ -1,5 +1,7 @@
 'use client'
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Check } from 'lucide-react'
@@ -120,12 +122,12 @@ export default function EditCampaignDashboard({ id }: { id: string }) {
 
       if (!updateRes.ok) {
         const errJson = await updateRes.json()
-        alert(errJson.error || 'Failed to update campaign')
+        appAlert(errJson.error || 'Failed to update campaign')
         return
       }
 
       if (action === 'draft') {
-        alert('Campaign updated')
+        appAlert('Campaign updated')
         router.push('/campaign-management')
         return
       }
@@ -143,23 +145,23 @@ export default function EditCampaignDashboard({ id }: { id: string }) {
 
       if (sendRes.ok) {
         if (action === 'send') {
-          alert('Campaign sent successfully')
+          appAlert('Campaign sent successfully')
         } else {
-          alert('Campaign scheduled successfully')
+          appAlert('Campaign scheduled successfully')
         }
         router.push('/campaign-management')
       } else {
         const errorJson = await sendRes.json()
         if (sendRes.status === 402) {
-          alert(errorJson.error || 'Recipient quota exceeded. Please upgrade.')
+          appAlert(errorJson.error || 'Recipient quota exceeded. Please upgrade.')
         } else if (sendRes.status === 403) {
-          alert(errorJson.error || 'WhatsApp addon required. Please upgrade.')
+          appAlert(errorJson.error || 'WhatsApp addon required. Please upgrade.')
         } else {
-          alert(errorJson.error || 'Failed to send campaign. Please try again.')
+          appAlert(errorJson.error || 'Failed to send campaign. Please try again.')
         }
       }
     } catch (e) {
-      alert('An error occurred. Please try again.')
+      appAlert('An error occurred. Please try again.')
     } finally {
       setIsSubmitting(false)
     }

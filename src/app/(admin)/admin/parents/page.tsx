@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import {
@@ -114,10 +116,10 @@ export default function AdminParentsPage() {
       })
 
       if (!res.ok) throw new Error(`Failed to ${action} parent account`)
-      alert(`Parent account ${action}d successfully.`)
+      appAlert(`Parent account ${action}d successfully.`)
       await fetchParents()
     } catch (err: any) {
-      alert(err.message || 'Action failed')
+      appAlert(err.message || 'Action failed')
     }
   }
 
@@ -136,10 +138,10 @@ export default function AdminParentsPage() {
       setErasureParent(null)
       setErasureReason('')
       setErasureConfirmText('')
-      alert('GDPR/DPDP erasure processed. Identifying data completely anonymized.')
+      appAlert('GDPR/DPDP erasure processed. Identifying data completely anonymized.')
       await fetchParents()
     } catch (err: any) {
-      alert(err.message || 'Erasure request failed')
+      appAlert(err.message || 'Erasure request failed')
     }
   }
 

@@ -16,7 +16,9 @@ export const GET = route({
         id: true, name: true, description: true, purpose: true, status: true,
         version: true, isDefault: true, feeRequired: true, applicationFeeAmount: true,
         courseIds: true, gradeLabels: true, updatedAt: true,
-        _count: { select: { instances: true, submissions: true } },
+        // Share-link visits mint LINK-channel instances (apply/f route); only
+        // deliberate sends (email/WhatsApp/campaign) count as "sent".
+        _count: { select: { instances: { where: { channel: { not: 'LINK' } } }, submissions: true } },
       },
     })
     return ok(forms)

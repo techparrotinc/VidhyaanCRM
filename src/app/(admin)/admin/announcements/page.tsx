@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState } from 'react'
 import { Megaphone, Send, Loader2, Users, Mail, Bell, AlertTriangle } from 'lucide-react'
 import { Card } from '@/components/ui/card'
@@ -14,7 +16,7 @@ export default function AnnouncementsPage() {
   const [result, setResult] = useState<{ sent: number; emailsSent: number } | null>(null)
 
   const submit = async () => {
-    if (!title.trim() || !message.trim()) { alert('Title and message are required'); return }
+    if (!title.trim() || !message.trim()) { appAlert('Title and message are required'); return }
     try {
       setSending(true)
       const res = await fetch('/api/admin/notify', {
@@ -28,7 +30,7 @@ export default function AnnouncementsPage() {
       setConfirm(false)
       setTitle(''); setMessage('')
     } catch (e: any) {
-      alert(e.message || 'Broadcast failed')
+      appAlert(e.message || 'Broadcast failed')
     } finally {
       setSending(false)
     }
@@ -80,7 +82,7 @@ export default function AnnouncementsPage() {
         </div>
 
         {!confirm ? (
-          <Button onClick={() => { if (title.trim() && message.trim()) setConfirm(true); else alert('Title and message are required') }}
+          <Button onClick={() => { if (title.trim() && message.trim()) setConfirm(true); else appAlert('Title and message are required') }}
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 flex items-center gap-1.5">
             <Send className="w-4 h-4" /> Review &amp; Send
           </Button>

@@ -17,7 +17,7 @@ const updateProfileSchema = z.object({
   totalTeachers: intLike,
   mediumOfInstruction: str(100),
   gender: str(30),
-  gradesOffered: z.array(z.string().max(50)).max(50).optional().nullable(),
+  gradesOffered: str(50),
   trialClassAvailable: z.boolean().optional().nullable(),
   enrollmentStatus: str(50),
   ageGroupMin: intLike,

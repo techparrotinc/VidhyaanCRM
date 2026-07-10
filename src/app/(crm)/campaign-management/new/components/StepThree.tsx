@@ -129,7 +129,7 @@ export function StepThree({
 
   // WhatsApp templates fetching — lifted selection so the FK persists on
   // the campaign (the send path resolves the approved template from it)
-  const { templates, isLoading: isTemplatesLoading } = useWhatsappTemplates()
+  const { templates, isLoading: isTemplatesLoading } = useWhatsappTemplates(channel === 'WHATSAPP')
   const selectedTemplateId = whatsappTemplateId
 
   const [scheduleDate, setScheduleDate] = useState<Date | undefined>(() => 

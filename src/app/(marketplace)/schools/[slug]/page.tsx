@@ -1,5 +1,7 @@
 "use client"
 
+import { appAlert } from '@/components/ui/app-alert'
+
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -718,13 +720,13 @@ export default function SchoolProfilePage() {
   const handleShare = () => {
     if (typeof window !== 'undefined') {
       navigator.clipboard.writeText(window.location.href)
-      alert('Profile link copied to clipboard!')
+      appAlert('Profile link copied to clipboard!')
     }
   }
 
   const handleCompare = () => {
     if (!school) return
-    alert(`${school.name} added to compare list!`)
+    appAlert(`${school.name} added to compare list!`)
   }
 
   const handleEnquirySubmit = async (e: React.FormEvent) => {
@@ -1280,7 +1282,7 @@ export default function SchoolProfilePage() {
                 <Button
                   onClick={(e) => {
                     if (!enquiryForm.parentPhone) {
-                      alert('Please specify a parent mobile phone number.')
+                      appAlert('Please specify a parent mobile phone number.')
                       return
                     }
                     handleEnquirySubmit(e)

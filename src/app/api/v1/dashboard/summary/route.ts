@@ -10,7 +10,7 @@ export const GET = route({
     const { searchParams } = new URL(req.url)
     const academicYearId = searchParams.get('academicYearId') ?? undefined
 
-    const cacheKey = `dashboard:summary:${orgId}:${academicYearId || 'all'}`
+    const cacheKey = `dashboard:summary:v2:${orgId}:${academicYearId || 'all'}`
     const cached = await redis.get(cacheKey)
     if (cached) {
       return ok(JSON.parse(cached))
@@ -48,6 +48,23 @@ export const GET = route({
     )
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+    // Overdue must be derived, not read from the stored status: the
+    // UNPAID→OVERDUE flip only happens when the fee-management page is
+    // visited, so stored status lags reality. PARTIALLY_PAID still owes too.
+    const overdueWhere = {
+      OR: [
+        { status: InvoiceStatus.OVERDUE },
+        {
+          status: { in: [InvoiceStatus.UNPAID, InvoiceStatus.PARTIALLY_PAID] },
+          dueDate: { lt: now }
+        }
+      ]
+    }
+    const dueSoonWhere = {
+      status: { in: [InvoiceStatus.UNPAID, InvoiceStatus.PARTIALLY_PAID] },
+      dueDate: { gte: now, lte: next7Days }
+    }
 
     const [
       totalLeads,
@@ -168,30 +185,26 @@ export const GET = route({
         _sum: { amount: true }
       }),
 
-      // Fee overdue
+      // Fee overdue (net of partial payments)
       db.invoice.aggregate({
         where: {
           orgId,
-          status: InvoiceStatus.OVERDUE,
           deletedAt: null,
-          ...ayScope
+          ...ayScope,
+          ...overdueWhere
         },
-        _sum: { totalAmount: true }
+        _sum: { totalAmount: true, paidAmount: true }
       }),
 
-      // Fee upcoming (next 7 days)
+      // Fee upcoming (next 7 days, net of partial payments)
       db.invoice.aggregate({
         where: {
           orgId,
-          status: InvoiceStatus.UNPAID,
-          dueDate: {
-            gte: now,
-            lte: next7Days
-          },
           deletedAt: null,
-          ...ayScope
+          ...ayScope,
+          ...dueSoonWhere
         },
-        _sum: { totalAmount: true }
+        _sum: { totalAmount: true, paidAmount: true }
       }),
 
       // Recent activities (last 5)
@@ -351,34 +364,22 @@ export const GET = route({
         select: { studentId: true }
       }),
       db.invoice.findMany({
-        where: { orgId, deletedAt: null, ...ayScope, status: InvoiceStatus.OVERDUE },
+        where: { orgId, deletedAt: null, ...ayScope, ...overdueWhere },
         distinct: ['studentId'],
         select: { studentId: true }
       }),
       db.invoice.findMany({
-        where: {
-          orgId,
-          deletedAt: null,
-          ...ayScope,
-          status: InvoiceStatus.UNPAID,
-          dueDate: { gte: now, lte: next7Days }
-        },
+        where: { orgId, deletedAt: null, ...ayScope, ...dueSoonWhere },
         distinct: ['studentId'],
         select: { studentId: true }
       }),
       db.invoice.findFirst({
-        where: { orgId, deletedAt: null, ...ayScope, status: InvoiceStatus.OVERDUE },
+        where: { orgId, deletedAt: null, ...ayScope, ...overdueWhere },
         orderBy: { dueDate: 'asc' },
         select: { dueDate: true }
       }),
       db.invoice.count({
-        where: {
-          orgId,
-          deletedAt: null,
-          ...ayScope,
-          status: InvoiceStatus.UNPAID,
-          dueDate: { gte: now, lte: next7Days }
-        }
+        where: { orgId, deletedAt: null, ...ayScope, ...dueSoonWhere }
       }),
       db.payment.aggregate({
         where: { orgId, status: PaymentStatus.SUCCESS, ...paymentAyScope },
@@ -395,7 +396,7 @@ export const GET = route({
         }
       }),
       db.invoice.aggregate({
-        where: { orgId, deletedAt: null, ...ayScope, status: InvoiceStatus.OVERDUE },
+        where: { orgId, deletedAt: null, ...ayScope, ...overdueWhere },
         _sum: { totalAmount: true, paidAmount: true }
       }),
 
@@ -554,9 +555,9 @@ export const GET = route({
         collectedLastMonth:
           feeCollectedLastMonth._sum.amount ?? 0,
         overdue:
-          feeOverdue._sum.totalAmount ?? 0,
+          Number(feeOverdue._sum.totalAmount ?? 0) - Number(feeOverdue._sum.paidAmount ?? 0),
         upcoming:
-          feeUpcoming._sum.totalAmount ?? 0
+          Number(feeUpcoming._sum.totalAmount ?? 0) - Number(feeUpcoming._sum.paidAmount ?? 0)
       },
       feeOverview: (() => {
         const overdueSet = new Set(overdueStudentRows.map(r => r.studentId))

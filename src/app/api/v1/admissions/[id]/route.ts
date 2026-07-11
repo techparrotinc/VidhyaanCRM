@@ -11,6 +11,7 @@ import { createLeadWithUniqueCode } from '@/lib/lead-code'
 import { prisma } from '@/lib/db/client'
 import { sendOrgTemplateEmail } from '@/lib/mail/org-templates'
 import { sendReviewRequestForAdmission } from '@/lib/reviews/request'
+import { onAdmissionStageChange, onAdmissionAssigned } from '@/lib/whatsapp/emitters'
 
 // Whitelist of updatable Admission scalars + body-only fields handled separately below
 // (unknown keys are stripped — previously anything not destructured out hit prisma directly)
@@ -313,6 +314,30 @@ export const PUT = route({
         })
         updated.status = 'REJECTED'
       }
+
+      // WhatsApp stage notification to the parent (fire-and-forget;
+      // template adoption per org is the switch)
+      if (updated.stage) {
+        const stage = updated.stage
+        ;(updated.assignedToId
+          ? prisma.user.findUnique({ where: { id: updated.assignedToId }, select: { name: true } })
+          : Promise.resolve(null)
+        )
+          .then(c => onAdmissionStageChange(user.orgId, updated, stage, c?.name))
+          .catch(() => {})
+      }
+    }
+
+    // Reassigned → WhatsApp work alert to the new counsellor
+    if (
+      body.assignedToId &&
+      updated.assignedToId &&
+      updated.assignedToId !== existing.assignedToId
+    ) {
+      prisma.user
+        .findUnique({ where: { id: updated.assignedToId }, select: { name: true, phone: true } })
+        .then(c => c && onAdmissionAssigned(user.orgId, updated, c))
+        .catch(() => {})
     }
 
     // Admission confirmed → congratulate the parent (covers both the

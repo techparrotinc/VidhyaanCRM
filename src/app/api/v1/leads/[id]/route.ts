@@ -8,6 +8,8 @@ import { ROLES, CRM_ROLES } from '@/constants/roles'
 import { LeadSource, LeadStatus, LeadPriority } from '@prisma/client'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { dedupFields } from '@/lib/dedup'
+import { prisma } from '@/lib/db'
+import { onLeadAssigned, onLeadClosed } from '@/lib/whatsapp/emitters'
 
 export const GET = route({
   module: MODULES.LEAD_MANAGEMENT,
@@ -291,6 +293,22 @@ export const PUT = route({
           performedById: user.id
         }
       })
+    }
+
+    // WhatsApp workflow notifications (fire-and-forget; template adoption
+    // per org is the switch)
+    if (
+      body.assignedToId &&
+      updated.assignedToId &&
+      updated.assignedToId !== existing.assignedToId
+    ) {
+      prisma.user
+        .findUnique({ where: { id: updated.assignedToId }, select: { name: true, phone: true } })
+        .then(c => c && onLeadAssigned(user.orgId, updated, c))
+        .catch(() => {})
+    }
+    if (body.status === 'NOT_INTERESTED' && existing.status !== 'NOT_INTERESTED') {
+      onLeadClosed(user.orgId, updated).catch(() => {})
     }
 
     return ok(updated)

@@ -26,6 +26,7 @@ export default function NewCampaignPage() {
   const [recipientCount, setRecipientCount] = useState(0)
   const [templateBody, setTemplateBody] = useState('')
   const [whatsappTemplateId, setWhatsappTemplateId] = useState('')
+  const [paramValues, setParamValues] = useState<Record<string, string>>({})
   const [formTemplateId, setFormTemplateId] = useState('')
   const [scheduledAt, setScheduledAt] = useState<string | null>(null)
   const [sendNow, setSendNow] = useState(true)
@@ -89,7 +90,8 @@ export default function NewCampaignPage() {
           },
           templateBody,
           whatsappTemplateId: channel === 'WHATSAPP' ? whatsappTemplateId || null : null,
-          formTemplateId: channel !== 'WHATSAPP' ? formTemplateId || null : null,
+          formTemplateId: formTemplateId || null,
+          paramValues: channel === 'WHATSAPP' ? paramValues : null,
           scheduledAt: action === 'schedule' ? scheduledAt : null
         })
       })
@@ -237,6 +239,8 @@ export default function NewCampaignPage() {
             campaignName={campaignName}
             templateBody={templateBody}
             whatsappTemplateId={whatsappTemplateId}
+            paramValues={paramValues}
+            onParamValuesChange={setParamValues}
             formTemplateId={formTemplateId}
             scheduledAt={scheduledAt}
             sendNow={sendNow}

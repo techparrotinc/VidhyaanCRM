@@ -6,11 +6,20 @@
 /** Known token vocabulary offered in template builders. */
 export const TEMPLATE_TOKENS = [
   'parentName',
-  'kidName',
-  'schoolName',
-  'grade', // grade/class/course sought
+  'kidName', // child / student / applicant name
+  'schoolName', // org name — school, learning centre, coaching or college
+  'grade', // grade/class/course/batch sought (institution-aware)
+  'counsellorName',
+  'adminName',
+  'plan', // fee plan / invoice description
+  'term', // billing term / period
   'date',
+  'time',
   'amount',
+  'days', // day counts (SLA / overdue)
+  'count', // record counts (summaries)
+  'reason', // free-form reason (holiday cause, rejection note)
+  'resumeDate', // reopening date for holiday announcements
   'link' // per-recipient digital-form URL (campaign with an attached form)
 ] as const
 

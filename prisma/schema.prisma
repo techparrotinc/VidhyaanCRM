@@ -2477,6 +2477,9 @@ model Campaign {
   /// Soft ref to crm.forms — when set, each recipient gets a unique digital
   /// form link (per-recipient FormInstance token) injected as {{link}}.
   formTemplateId     String?         @map("form_template_id")
+  /// Custom token values typed at compose time (e.g. holiday reason /
+  /// resume date) — merged over the auto-filled campaign variables.
+  paramValues        Json?           @map("param_values")
   scheduledAt        DateTime?       @map("scheduled_at")
   sentAt             DateTime?       @map("sent_at")
   audienceFilter     Json?           @map("audience_filter")

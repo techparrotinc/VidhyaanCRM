@@ -29,6 +29,7 @@ export default function EditCampaignDashboard({ id }: { id: string }) {
   const [templateBody, setTemplateBody] = useState('')
   const [whatsappTemplateId, setWhatsappTemplateId] = useState('')
   const [formTemplateId, setFormTemplateId] = useState('')
+  const [paramValues, setParamValues] = useState<Record<string, string>>({})
   const [scheduledAt, setScheduledAt] = useState<string | null>(null)
   const [sendNow, setSendNow] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -49,6 +50,7 @@ export default function EditCampaignDashboard({ id }: { id: string }) {
       setTemplateBody(campaign.templateBody ?? '')
       setWhatsappTemplateId(campaign.whatsappTemplateId ?? '')
       setFormTemplateId(campaign.formTemplateId ?? '')
+      setParamValues(campaign.paramValues ?? {})
       if (campaign.scheduledAt) {
         // Convert to datetime-local format: YYYY-MM-DDTHH:MM
         const dateStr = new Date(campaign.scheduledAt).toISOString().slice(0, 16)
@@ -115,7 +117,8 @@ export default function EditCampaignDashboard({ id }: { id: string }) {
           },
           templateBody,
           whatsappTemplateId: channel === 'WHATSAPP' ? whatsappTemplateId || null : null,
-          formTemplateId: channel !== 'WHATSAPP' ? formTemplateId || null : null,
+          formTemplateId: formTemplateId || null,
+          paramValues: channel === 'WHATSAPP' ? paramValues : null,
           scheduledAt: action === 'schedule' ? scheduledAt : null
         })
       })
@@ -277,6 +280,8 @@ export default function EditCampaignDashboard({ id }: { id: string }) {
             scheduledAt={scheduledAt}
             sendNow={sendNow}
             recipientCount={recipientCount}
+            paramValues={paramValues}
+            onParamValuesChange={setParamValues}
             onBodyChange={setTemplateBody}
             onTemplateChange={setWhatsappTemplateId}
             onFormTemplateChange={setFormTemplateId}

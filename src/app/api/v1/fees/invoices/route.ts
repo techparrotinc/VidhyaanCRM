@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { route } from '@/lib/api/compose'
 import { ok, created, paginated } from '@/lib/api/respond'
 import { MODULES } from '@/constants/modules'
+import { onInvoiceCreated, notifyBatchInvoices, formatInr, invoiceItemsLabel } from '@/lib/whatsapp/emitters'
 import { ROLES } from '@/constants/roles'
 import { redis } from '@/lib/redis'
 import { prisma } from '@/lib/db/client'
@@ -280,6 +281,9 @@ export const POST = route({
         console.error('Failed to invalidate pipeline cache:', err)
       }
 
+      // WhatsApp fee notifications (fire-and-forget, active invoices only)
+      notifyBatchInvoices(user.orgId, result.map(r => r.id)).catch(() => {})
+
       return NextResponse.json({
         batchId: body.batchId,
         count: result.length,
@@ -328,7 +332,9 @@ export const POST = route({
             id: true,
             name: true,
             studentCode: true,
-            gradeLabel: true
+            gradeLabel: true,
+            guardianName: true,
+            guardianPhone: true
           }
         },
         items: true
@@ -340,6 +346,20 @@ export const POST = route({
       await redis.del(`pipeline:${user.orgId}`)
     } catch (err) {
       console.error('Failed to invalidate pipeline cache:', err)
+    }
+
+    // WhatsApp fee notification to the guardian (active invoices only —
+    // scheduled ones notify when the auto-invoice cron activates them)
+    if (invoice.status === 'UNPAID') {
+      onInvoiceCreated({
+        orgId: user.orgId,
+        invoiceId: invoice.id,
+        guardianName: invoice.student?.guardianName,
+        guardianPhone: invoice.student?.guardianPhone,
+        plan: invoiceItemsLabel(invoice.items),
+        amount: formatInr(invoice.totalAmount),
+        dueDate: invoice.dueDate
+      }).catch(() => {})
     }
 
     return created(invoice)

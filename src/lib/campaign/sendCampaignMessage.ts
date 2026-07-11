@@ -25,6 +25,8 @@ export async function sendCampaignMessage(
     channel: CampaignChannel
     templateBody: string | null
     whatsappTemplateId?: string | null
+    /** Compose-time custom token values (merged over auto-filled ones). */
+    paramValues?: Record<string, string> | null
     organization: {
       name: string
     }
@@ -46,6 +48,11 @@ export async function sendCampaignMessage(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const template = campaign.templateBody || ''
+    // Auto-filled per-recipient values; compose-time custom values win for
+    // any token the campaign author typed explicitly (blank customs ignored).
+    const customValues = Object.fromEntries(
+      Object.entries(campaign.paramValues ?? {}).filter(([, v]) => v?.trim())
+    )
     const variables = {
       parentName: recipient.name,
       kidName: '',
@@ -53,6 +60,7 @@ export async function sendCampaignMessage(
       grade: '',
       date: format(new Date(), 'd MMM yyyy'),
       amount: '',
+      ...customValues,
       link: recipient.formLink ?? ''
     }
 

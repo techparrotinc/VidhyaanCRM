@@ -30,6 +30,10 @@
     {
       "path": "/api/cron/usage-digest",
       "schedule": "30 2 * * 1"
+    },
+    {
+      "path": "/api/cron/whatsapp-notifications",
+      "schedule": "30 4 * * *"
     }
   ]
 }

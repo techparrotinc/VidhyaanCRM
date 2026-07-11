@@ -11,6 +11,7 @@ import { cleanPhoneNumber } from '@/lib/utils'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
 import { sendOrgTemplateEmail } from '@/lib/mail/org-templates'
 import { sendLeadWhatsAppAck } from '@/lib/leads/whatsapp-ack'
+import { onLeadAssigned } from '@/lib/whatsapp/emitters'
 import { findMatches, loadDedupConfig, dedupFields } from '@/lib/dedup'
 import { assertNotDuplicate } from '@/lib/dedup/guard'
 import { isPaidPlan } from '@/lib/billing/plan-status'
@@ -404,6 +405,13 @@ export const POST = route({
     sendLeadWhatsAppAck(user.orgId, lead).catch((e) =>
       console.error('Lead WhatsApp ack failed:', e?.message ?? e)
     )
+    // Assigned at creation → counsellor introduction to parent + staff alert
+    if (lead.assignedToId) {
+      prisma.user
+        .findUnique({ where: { id: lead.assignedToId }, select: { name: true, phone: true } })
+        .then((c) => c && onLeadAssigned(user.orgId, lead, c))
+        .catch(() => {})
+    }
 
     return created({
       ...lead,

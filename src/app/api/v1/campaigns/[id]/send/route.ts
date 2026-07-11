@@ -373,6 +373,7 @@ async function handleSendCampaign({
               channel: campaign.channel,
               templateBody: campaign.templateBody,
               whatsappTemplateId: campaign.whatsappTemplateId ?? null,
+              paramValues: (campaign.paramValues as Record<string, string> | null) ?? null,
               organization: {
                 name: campaign.organization.name
               }

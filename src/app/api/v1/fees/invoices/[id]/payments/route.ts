@@ -4,6 +4,8 @@ import { ok, created } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
+import { prisma } from '@/lib/db/client'
+import { onPaymentRecorded, formatInr, invoiceItemsLabel } from '@/lib/whatsapp/emitters'
 
 const paymentSchema = z.object({
   amount: z.number().min(1),
@@ -112,6 +114,28 @@ export const POST = route({
         status: newStatus
       }
     })
+
+    // WhatsApp payment confirmation to the guardian (fire-and-forget)
+    prisma.student
+      .findFirst({
+        where: { id: invoice.studentId, orgId: user.orgId },
+        select: { guardianName: true, guardianPhone: true }
+      })
+      .then(async (student) => {
+        if (!student) return
+        const items = await prisma.invoiceItem.findMany({
+          where: { invoiceId: id },
+          select: { head: true }
+        })
+        return onPaymentRecorded({
+          orgId: user.orgId,
+          paymentId: payment.id,
+          guardianName: student.guardianName,
+          guardianPhone: student.guardianPhone,
+          plan: `${invoiceItemsLabel(items)} (${formatInr(body.amount)})`
+        })
+      })
+      .catch(() => {})
 
     return created({
       payment,

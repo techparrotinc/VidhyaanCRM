@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { AlertCircle, Loader2, CalendarDays } from 'lucide-react'
 import { useWhatsappTemplates } from '@/hooks/useWhatsappTemplates'
+import { previewTemplateBody } from '@/lib/campaign/templateParams'
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
 
@@ -95,11 +96,13 @@ interface StepThreeProps {
   templateBody: string
   whatsappTemplateId: string
   formTemplateId: string
+  paramValues: Record<string, string>
   scheduledAt: string | null
   sendNow: boolean
   recipientCount: number
   onBodyChange: (body: string) => void
   onTemplateChange: (templateId: string) => void
+  onParamValuesChange: (values: Record<string, string>) => void
   onFormTemplateChange: (formId: string) => void
   onScheduleChange: (scheduledAt: string | null) => void
   onSendNowChange: (sendNow: boolean) => void
@@ -113,11 +116,13 @@ export function StepThree({
   templateBody,
   whatsappTemplateId,
   formTemplateId,
+  paramValues,
   scheduledAt,
   sendNow,
   recipientCount,
   onBodyChange,
   onTemplateChange,
+  onParamValuesChange,
   onFormTemplateChange,
   onScheduleChange,
   onSendNowChange,
@@ -237,10 +242,14 @@ export function StepThree({
   return (
     <div className="space-y-6">
       {/* ATTACH DIGITAL FORM (EMAIL/SMS) */}
-      {channel !== 'WHATSAPP' && forms.length > 0 && (
+      {forms.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
           <p className="text-sm font-semibold text-slate-700">Attach a digital form (optional)</p>
-          <p className="text-xs text-slate-500">Each recipient gets a unique link. Insert <code className="rounded bg-slate-100 px-1">{'{{link}}'}</code> where it should appear in your message.</p>
+          <p className="text-xs text-slate-500">
+            {channel === 'WHATSAPP'
+              ? <>Each recipient gets a unique link. Pick a template whose variable mapping includes the <code className="rounded bg-slate-100 px-1">link</code> token.</>
+              : <>Each recipient gets a unique link. Insert <code className="rounded bg-slate-100 px-1">{'{{link}}'}</code> where it should appear in your message.</>}
+          </p>
           <div className="flex flex-wrap items-center gap-2">
             <select
               className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
@@ -250,7 +259,7 @@ export function StepThree({
               <option value="">No form</option>
               {forms.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
-            {formTemplateId && (
+            {formTemplateId && channel !== 'WHATSAPP' && (
               <button
                 type="button"
                 onClick={() => insertAtCursor('{{link}}')}
@@ -379,13 +388,68 @@ export function StepThree({
                       Template Preview
                     </p>
                     <p className="text-sm text-slate-700 whitespace-pre-wrap">
-                      {templateBody}
+                      {previewTemplateBody(selectedTemplate.body, selectedTemplate.variables, {
+                        schoolName: 'Your institution',
+                        date: format(new Date(), 'd MMM yyyy'),
+                        ...Object.fromEntries(
+                          Object.entries(paramValues).filter(([, v]) => v?.trim())
+                        )
+                      })}
                     </p>
                     <p className="text-xs text-slate-400 mt-2">
-                      MSG91 ID: {selectedTemplate.msg91TemplateId}
+                      Template: {selectedTemplate.msg91TemplateId}
                     </p>
                   </div>
                 )}
+
+                {/* Custom values for tokens the send can't fill automatically
+                    (holiday reason, resume date, amounts…). Auto-filled:
+                    parentName, schoolName, date, link. */}
+                {selectedTemplate &&
+                  (() => {
+                    const AUTO = new Set(['parentName', 'schoolName', 'date', 'link'])
+                    const customTokens = Array.from(
+                      new Set(
+                        (Array.isArray(selectedTemplate.variables)
+                          ? (selectedTemplate.variables as string[])
+                          : []
+                        ).filter(t => !AUTO.has(t))
+                      )
+                    )
+                    if (customTokens.length === 0) return null
+                    return (
+                      <div className="mt-3 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          Fill in the message details
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {customTokens.map(token => (
+                            <div key={token}>
+                              <label className="text-xs font-semibold text-slate-600 block mb-1 capitalize">
+                                {token.replace(/([A-Z])/g, ' $1')}
+                              </label>
+                              <input
+                                value={paramValues[token] ?? ''}
+                                onChange={e =>
+                                  onParamValuesChange({ ...paramValues, [token]: e.target.value })
+                                }
+                                placeholder={`e.g. ${
+                                  token === 'reason' ? 'Diwali festival'
+                                  : token === 'resumeDate' ? '17 Nov 2026'
+                                  : token === 'kidName' ? 'left blank = "-"'
+                                  : '…'
+                                }`}
+                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8]"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-slate-400">
+                          Recipient name, institution name, today&apos;s date and form links fill in automatically. Blank fields send as &quot;-&quot;.
+                        </p>
+                      </div>
+                    )
+                  })()}
               </>
             )}
           </div>

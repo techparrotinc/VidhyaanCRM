@@ -24,3 +24,28 @@ export function institutionMode(institutionType?: string | null): 'school' | 'le
 export function admissionNoun(institutionType?: string | null): string {
   return isLearningCentre(institutionType) ? 'Enrolment' : 'Admission'
 }
+
+/**
+ * The proper noun for the institution itself — used wherever UI would otherwise
+ * hardcode "School" (e.g. "School Admin", "School Profile"). Falls back to
+ * "Institution" for unknown types so no caller ever leaks the raw enum.
+ */
+export function institutionNoun(institutionType?: string | null): string {
+  switch ((institutionType ?? '').toUpperCase()) {
+    case 'LEARNING_CENTER':
+      return 'Learning Center'
+    case 'COACHING_CENTER':
+      return 'Coaching Center'
+    case 'SKILL_DEVELOPMENT':
+      return 'Skill Center'
+    case 'SPORTS_ACADEMY':
+      return 'Sports Academy'
+    case 'JUNIOR_COLLEGE':
+      return 'College'
+    case 'SCHOOL':
+    case '':
+      return 'School'
+    default:
+      return 'Institution'
+  }
+}

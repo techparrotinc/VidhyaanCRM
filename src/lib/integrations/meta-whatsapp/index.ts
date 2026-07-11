@@ -22,7 +22,8 @@ export interface MetaSendParams {
   phoneNumberId: string
 }
 
-export async function sendMetaWhatsAppTemplate(params: MetaSendParams): Promise<void> {
+/** Sends an approved template message. Returns the Meta message id (wamid). */
+export async function sendMetaWhatsAppTemplate(params: MetaSendParams): Promise<string | null> {
   const phone = params.to.replace(/\D/g, '')
   const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`
 
@@ -60,17 +61,44 @@ export async function sendMetaWhatsAppTemplate(params: MetaSendParams): Promise<
     })
   })
 
+  const data: any = await response.json().catch(() => null)
   if (!response.ok) {
-    let errMsg = 'Meta WhatsApp send failed'
-    let errCode: number | undefined
-    try {
-      const data = await response.json()
-      errMsg = data?.error?.message || errMsg
-      errCode = data?.error?.code
-    } catch {
-      // non-JSON error body
-    }
-    throw new MetaWhatsAppError(errMsg, errCode)
+    throw new MetaWhatsAppError(
+      data?.error?.message || 'Meta WhatsApp send failed',
+      data?.error?.code
+    )
+  }
+  return data?.messages?.[0]?.id ?? null
+}
+
+/**
+ * Free-form text message — only deliverable inside the 24h customer-service
+ * window (used for opt-out confirmations replying to an inbound message).
+ */
+export async function sendMetaTextMessage(params: {
+  to: string
+  body: string
+  accessToken: string
+  phoneNumberId: string
+}): Promise<void> {
+  const phone = params.to.replace(/\D/g, '')
+  const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`
+  const response = await fetch(`${GRAPH_BASE}/${params.phoneNumberId}/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${params.accessToken}`
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      to: formattedPhone,
+      type: 'text',
+      text: { body: params.body }
+    })
+  })
+  if (!response.ok) {
+    const data: any = await response.json().catch(() => null)
+    throw new MetaWhatsAppError(data?.error?.message || 'Meta text send failed', data?.error?.code)
   }
 }
 

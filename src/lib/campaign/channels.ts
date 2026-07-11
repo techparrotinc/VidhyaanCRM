@@ -1,6 +1,7 @@
 import { sendCampaignEmail as zeptoSendCampaignEmail } from '@/lib/integrations/zeptomail'
 import { sendMetaWhatsAppTemplate } from '@/lib/integrations/meta-whatsapp'
 import { getMetaWhatsAppConfig } from '@/lib/platform-config'
+import { prisma } from '@/lib/db/client'
 
 export async function sendCampaignEmail(params: {
   to: string
@@ -104,7 +105,7 @@ export async function sendCampaignWhatsApp(params: {
   parameters?: string[]
   /** Org's own MSG91 WhatsApp account (BYO); falls back to Vidhyaan env keys. */
   credentials?: WhatsAppCredentials
-}): Promise<void> {
+}): Promise<string | null> {
   const phone = params.to.replace(/\D/g, '')
   const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`
 
@@ -113,9 +114,18 @@ export async function sendCampaignWhatsApp(params: {
   // Platform shared account prefers direct Meta Cloud API when configured in
   // admin settings; BYO org credentials always stay on their own MSG91 route.
   if (!params.credentials) {
+    // The shared number carries one sender identity — honour global opt-outs.
+    const optedOut = await prisma.whatsappOptOut.findUnique({
+      where: { phone: formattedPhone.slice(-10) },
+      select: { id: true }
+    })
+    if (optedOut) {
+      throw new Error('Recipient has opted out of WhatsApp messages')
+    }
+
     const meta = await getMetaWhatsAppConfig()
     if (meta.configured) {
-      await sendMetaWhatsAppTemplate({
+      return sendMetaWhatsAppTemplate({
         to: formattedPhone,
         templateName: params.templateId,
         language: params.language,
@@ -123,7 +133,6 @@ export async function sendCampaignWhatsApp(params: {
         accessToken: meta.accessToken!,
         phoneNumberId: meta.phoneNumberId!
       })
-      return
     }
   }
 
@@ -171,4 +180,5 @@ export async function sendCampaignWhatsApp(params: {
     }
     throw new Error(errMsg)
   }
+  return null // MSG91 path exposes no per-message id we track
 }

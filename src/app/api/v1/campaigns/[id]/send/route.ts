@@ -392,9 +392,24 @@ async function handleSendCampaign({
               where: { id: record.id },
               data: {
                 status: 'SENT' as const,
-                sentAt: new Date()
+                sentAt: new Date(),
+                providerMessageId: result.wamid ?? null
               }
             })
+            // Outbound log — delivery webhook joins back via wamid
+            if (result.wamid && record.phone) {
+              await prisma.whatsappMessage
+                .create({
+                  data: {
+                    orgId,
+                    wamid: result.wamid,
+                    phone: record.phone.replace(/\D/g, '').slice(-10),
+                    templateName: campaign.whatsappTemplateId ?? 'campaign',
+                    ref: `campaign_recipient:${record.id}`
+                  }
+                })
+                .catch(() => {})
+            }
           } else {
             await db.campaignRecipient.update({
               where: { id: record.id },

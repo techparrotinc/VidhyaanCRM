@@ -140,6 +140,10 @@ export interface MetaWhatsAppConfig {
   accessToken: string | null
   phoneNumberId: string | null
   wabaId: string | null
+  /** Meta App secret — verifies X-Hub-Signature-256 on inbound webhooks. */
+  appSecret: string | null
+  /** Token echoed during Meta's webhook subscribe handshake. */
+  webhookVerifyToken: string | null
   /** true when token + phone number id are both present — send-ready. */
   configured: boolean
 }
@@ -149,10 +153,15 @@ export async function getMetaWhatsAppConfig(): Promise<MetaWhatsAppConfig> {
   const accessToken = dec(row?.metaWaAccessTokenEnc) ?? plain(process.env.META_WA_ACCESS_TOKEN) ?? null
   const phoneNumberId = plain(row?.metaWaPhoneNumberId) ?? plain(process.env.META_WA_PHONE_NUMBER_ID) ?? null
   const wabaId = plain(row?.metaWaBusinessAccountId) ?? plain(process.env.META_WA_WABA_ID) ?? null
+  const appSecret = dec(row?.metaWaAppSecretEnc) ?? plain(process.env.META_WA_APP_SECRET) ?? null
+  const webhookVerifyToken =
+    plain(row?.metaWaWebhookVerifyToken) ?? plain(process.env.META_WA_VERIFY_TOKEN) ?? null
   return {
     accessToken,
     phoneNumberId,
     wabaId,
+    appSecret,
+    webhookVerifyToken,
     configured: !!(accessToken && phoneNumberId),
   }
 }

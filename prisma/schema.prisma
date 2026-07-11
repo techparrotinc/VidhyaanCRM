@@ -386,6 +386,7 @@ enum CampaignSendStatus {
   PENDING
   SENT
   DELIVERED
+  READ
   FAILED
 
   @@schema("crm")
@@ -2515,14 +2516,39 @@ model CampaignRecipient {
   status        CampaignSendStatus @default(PENDING)
   sentAt        DateTime?          @map("sent_at")
   deliveredAt   DateTime?          @map("delivered_at")
+  readAt        DateTime?          @map("read_at")
   failureReason String?            @map("failure_reason")
+  /// Meta wamid — joins delivery webhooks back to this recipient
+  providerMessageId String?        @map("provider_message_id")
   createdAt     DateTime           @default(now()) @map("created_at")
 
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@index([orgId])
   @@index([campaignId])
+  @@index([providerMessageId])
   @@map("campaign_recipients")
+  @@schema("crm")
+}
+
+/// Outbound WhatsApp message log (Meta Cloud API sends). One row per send;
+/// the delivery webhook updates status by wamid. `ref` mirrors the credit
+/// ledger reference (fee_invoice:<id>, campaign_recipient:<id>, …).
+model WhatsappMessage {
+  id           String    @id @default(cuid())
+  orgId        String    @map("org_id")
+  wamid        String?   @unique
+  phone        String
+  templateName String    @map("template_name")
+  ref          String?
+  status       String    @default("ACCEPTED") // ACCEPTED/SENT/DELIVERED/READ/FAILED
+  error        String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@index([orgId, createdAt])
+  @@index([phone])
+  @@map("whatsapp_messages")
   @@schema("crm")
 }
 
@@ -3046,6 +3072,8 @@ model PlatformSettings {
   metaWaAccessTokenEnc    String? @map("meta_wa_access_token_enc")  // encrypted
   metaWaPhoneNumberId     String? @map("meta_wa_phone_number_id")
   metaWaBusinessAccountId String? @map("meta_wa_business_account_id") // WABA id (template sync)
+  metaWaAppSecretEnc      String? @map("meta_wa_app_secret_enc")    // encrypted — webhook signature check
+  metaWaWebhookVerifyToken String? @map("meta_wa_webhook_verify_token")
 
   // Usage & ROI model (admin-configurable) for the org usage dashboard.
   // usageHourlyRate: blended staff cost (₹/hour). usageMinutesPerAction:
@@ -3060,6 +3088,35 @@ model PlatformSettings {
   updatedAt             DateTime       @updatedAt @map("updated_at")
 
   @@map("platform_settings")
+  @@schema("platform")
+}
+
+/// Global opt-out list for the platform shared WhatsApp number. A parent
+/// replying STOP opts out of every org's messages from this number (the
+/// sender identity is shared, so consent is too). Phone = 10-digit normalized.
+model WhatsappOptOut {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  reason    String   @default("STOP")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("whatsapp_opt_outs")
+  @@schema("platform")
+}
+
+/// Inbound WhatsApp messages received on the platform shared number.
+/// orgId = best-effort attribution (last org that messaged this phone).
+model WhatsappInboundMessage {
+  id        String   @id @default(cuid())
+  wamid     String?  @unique
+  phone     String
+  body      String
+  orgId     String?  @map("org_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([phone])
+  @@index([orgId, createdAt])
+  @@map("whatsapp_inbound_messages")
   @@schema("platform")
 }
 

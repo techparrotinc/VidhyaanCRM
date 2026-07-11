@@ -45,7 +45,7 @@ export async function sendCampaignMessage(
     smsFlowId?: string
     whatsappNumber?: string
   }
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; wamid?: string | null }> {
   try {
     const template = campaign.templateBody || ''
     // Auto-filled per-recipient values; compose-time custom values win for
@@ -169,7 +169,7 @@ export async function sendCampaignMessage(
       if (!recipient.phone) {
         return { success: false, error: 'No phone number' }
       }
-      await sendCampaignWhatsApp({
+      const wamid = await sendCampaignWhatsApp({
         to: recipient.phone,
         templateId,
         body,
@@ -182,6 +182,7 @@ export async function sendCampaignMessage(
             }
           : undefined
       })
+      return { success: true, wamid }
     }
 
     return { success: true }

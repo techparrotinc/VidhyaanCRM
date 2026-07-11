@@ -86,6 +86,8 @@ export default function AdminSettingsPage() {
   const [metaWaAccessToken, setMetaWaAccessToken] = useState('')
   const [metaWaPhoneNumberId, setMetaWaPhoneNumberId] = useState('')
   const [metaWaBusinessAccountId, setMetaWaBusinessAccountId] = useState('')
+  const [metaWaAppSecret, setMetaWaAppSecret] = useState('')
+  const [metaWaWebhookVerifyToken, setMetaWaWebhookVerifyToken] = useState('')
 
   // Usage & ROI model
   const [usageHourlyRate, setUsageHourlyRate] = useState(DEFAULT_HOURLY_RATE)
@@ -99,6 +101,7 @@ export default function AdminSettingsPage() {
     zeptoToken: false,
     msg91AuthKey: false,
     metaWaAccessToken: false,
+    metaWaAppSecret: false,
     uptimeRobotKey: false,
   })
 
@@ -143,6 +146,7 @@ export default function AdminSettingsPage() {
       setMsg91SenderId(data.msg91SenderId || '')
       setMetaWaPhoneNumberId(data.metaWaPhoneNumberId || '')
       setMetaWaBusinessAccountId(data.metaWaBusinessAccountId || '')
+      setMetaWaWebhookVerifyToken(data.metaWaWebhookVerifyToken || '')
       setUsageHourlyRate(data.usageHourlyRate ?? DEFAULT_HOURLY_RATE)
       setUsageMinutes({ ...DEFAULT_MINUTES_PER_ACTION, ...(data.usageMinutesPerAction || {}) })
 
@@ -153,6 +157,7 @@ export default function AdminSettingsPage() {
       setZeptoToken('')
       setMsg91AuthKey('')
       setMetaWaAccessToken('')
+      setMetaWaAppSecret('')
       setUptimeRobotApiKey('')
       setConfigured({
         razorpayKeySecret: !!data.hasRazorpayKeySecret,
@@ -161,6 +166,7 @@ export default function AdminSettingsPage() {
         zeptoToken: !!data.hasZeptoToken,
         msg91AuthKey: !!data.hasMsg91AuthKey,
         metaWaAccessToken: !!data.hasMetaWaAccessToken,
+        metaWaAppSecret: !!data.hasMetaWaAppSecret,
         uptimeRobotKey: !!data.hasUptimeRobotKey,
       })
 
@@ -223,6 +229,7 @@ export default function AdminSettingsPage() {
         msg91SenderId,
         metaWaPhoneNumberId,
         metaWaBusinessAccountId,
+        metaWaWebhookVerifyToken,
         businessName,
         businessAddress,
         businessGstin,
@@ -237,6 +244,7 @@ export default function AdminSettingsPage() {
       if (zeptoToken) payload.zeptoToken = zeptoToken
       if (msg91AuthKey) payload.msg91AuthKey = msg91AuthKey
       if (metaWaAccessToken) payload.metaWaAccessToken = metaWaAccessToken
+      if (metaWaAppSecret) payload.metaWaAppSecret = metaWaAppSecret
       if (uptimeRobotApiKey) payload.uptimeRobotApiKey = uptimeRobotApiKey
 
       const res = await fetch('/api/admin/settings', {
@@ -676,8 +684,32 @@ export default function AdminSettingsPage() {
                 />
               </div>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold text-slate-700">
+              <div>
+                <label className="block text-slate-450 mb-1.5">
+                  App Secret {configured.metaWaAppSecret && <span className="text-green-600 font-bold">• set</span>}
+                </label>
+                <input
+                  type="password"
+                  value={metaWaAppSecret}
+                  onChange={(e) => setMetaWaAppSecret(e.target.value)}
+                  placeholder={configured.metaWaAppSecret ? '•••••••• (leave blank to keep)' : 'Meta app secret (webhooks)'}
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-450 mb-1.5">Webhook Verify Token</label>
+                <input
+                  type="text"
+                  value={metaWaWebhookVerifyToken}
+                  onChange={(e) => setMetaWaWebhookVerifyToken(e.target.value)}
+                  placeholder="Any random string; must match Meta config"
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+            </div>
             <p className="text-[10px] font-semibold text-slate-400">
-              When the token + Phone Number ID are set, platform shared-account WhatsApp sends go <span className="font-bold text-slate-500">directly via Meta</span> (no MSG91 fee). WABA ID enables template sync. Orgs with their own verified MSG91 account are unaffected.
+              When the token + Phone Number ID are set, platform shared-account WhatsApp sends go <span className="font-bold text-slate-500">directly via Meta</span> (no MSG91 fee). WABA ID enables template sync. App Secret + Verify Token power the delivery/opt-out webhook at <code>/api/webhooks/meta-whatsapp</code>. Orgs with their own verified MSG91 account are unaffected.
             </p>
           </Card>
 

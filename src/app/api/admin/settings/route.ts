@@ -43,6 +43,8 @@ const platformSettingsSchema = z.object({
   metaWaAccessToken: strOpt(600),
   metaWaPhoneNumberId: strOpt(40),
   metaWaBusinessAccountId: strOpt(40),
+  metaWaAppSecret: strOpt(200),
+  metaWaWebhookVerifyToken: strOpt(100),
   // Usage & ROI model
   usageHourlyRate: intLike.optional(),
   usageMinutesPerAction: z.record(z.string().max(40), z.number().min(0).max(600)).optional(),
@@ -70,6 +72,7 @@ function maskSettings(s: any) {
     zeptoTokenEnc,
     msg91AuthKeyEnc,
     metaWaAccessTokenEnc,
+    metaWaAppSecretEnc,
     uptimeRobotApiKeyEnc,
     ...rest
   } = s
@@ -81,6 +84,7 @@ function maskSettings(s: any) {
     hasZeptoToken: !!zeptoTokenEnc,
     hasMsg91AuthKey: !!msg91AuthKeyEnc,
     hasMetaWaAccessToken: !!metaWaAccessTokenEnc,
+    hasMetaWaAppSecret: !!metaWaAppSecretEnc,
     hasUptimeRobotKey: !!uptimeRobotApiKeyEnc,
   }
 }
@@ -177,6 +181,8 @@ export async function PUT(req: NextRequest) {
         metaWaAccessTokenEnc: encField(body.metaWaAccessToken),
         metaWaPhoneNumberId: plainOrClear(body.metaWaPhoneNumberId),
         metaWaBusinessAccountId: plainOrClear(body.metaWaBusinessAccountId),
+        metaWaAppSecretEnc: encField(body.metaWaAppSecret),
+        metaWaWebhookVerifyToken: plainOrClear(body.metaWaWebhookVerifyToken),
         usageHourlyRate: body.usageHourlyRate !== undefined ? parseInt(body.usageHourlyRate) : undefined,
         usageMinutesPerAction: body.usageMinutesPerAction !== undefined ? body.usageMinutesPerAction : undefined,
         uptimeRobotApiKeyEnc: encField(body.uptimeRobotApiKey),

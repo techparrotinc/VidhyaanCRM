@@ -6,6 +6,7 @@
 // platform cost and never metered.
 
 import type { MessageChannel } from '@prisma/client'
+import { prisma } from '@/lib/db/client'
 import { sendCampaignSMS, sendCampaignWhatsApp } from '@/lib/campaign/channels'
 import { spendCredits, refundCredits } from './engine'
 import { getActiveProviderConfig } from './provider'
@@ -63,8 +64,9 @@ export async function sendMeteredWhatsApp(
 ): Promise<void> {
   const byo = await getActiveProviderConfig(orgId, 'WHATSAPP' as MessageChannel)
   const spent = byo ? null : await spendCredits(orgId, 'WHATSAPP' as MessageChannel, 1, ref)
-  await sendWithRefund(orgId, 'WHATSAPP' as MessageChannel, spent, ref, () =>
-    sendCampaignWhatsApp({
+  let wamid: string | null = null
+  try {
+    wamid = await sendCampaignWhatsApp({
       to,
       templateId,
       body,
@@ -74,5 +76,35 @@ export async function sendMeteredWhatsApp(
         ? { authKey: byo.authKey, whatsappNumber: byo.whatsappNumber }
         : undefined
     })
-  )
+  } catch (err: any) {
+    if (spent) {
+      await refundCredits(orgId, 'WHATSAPP' as MessageChannel, 1, spent, ref).catch(() => {})
+    }
+    await prisma.whatsappMessage
+      .create({
+        data: {
+          orgId,
+          phone: to.replace(/\D/g, '').slice(-10),
+          templateName: templateId,
+          ref,
+          status: 'FAILED',
+          error: err?.message?.slice(0, 500) ?? 'send failed'
+        }
+      })
+      .catch(() => {})
+    throw err
+  }
+
+  // Outbound log — the Meta delivery webhook updates this row by wamid
+  await prisma.whatsappMessage
+    .create({
+      data: {
+        orgId,
+        wamid,
+        phone: to.replace(/\D/g, '').slice(-10),
+        templateName: templateId,
+        ref
+      }
+    })
+    .catch(() => {})
 }

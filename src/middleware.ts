@@ -13,6 +13,8 @@ function isPublicRoute(pathname: string): boolean {
     pathname === '/about' ||
     pathname === '/contact' ||
     pathname === '/data-deletion' ||
+    pathname === '/privacy-policy' ||
+    pathname === '/terms-of-service' ||
     pathname === '/products' ||
     pathname === '/for-schools' ||
     pathname === '/for-parents' ||

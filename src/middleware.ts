@@ -12,10 +12,15 @@ function isPublicRoute(pathname: string): boolean {
     pathname === '/pricing' ||
     pathname === '/about' ||
     pathname === '/contact' ||
+    pathname === '/data-deletion' ||
     pathname === '/products' ||
     pathname === '/for-schools' ||
     pathname === '/for-parents' ||
-    pathname === '/favicon.ico'
+    pathname === '/favicon.ico' ||
+    pathname === '/icon.png' ||
+    pathname === '/apple-icon.png' ||
+    pathname === '/opengraph-image.png' ||
+    pathname === '/twitter-image.png'
   ) {
     return true
   }
@@ -42,7 +47,8 @@ function isPublicRoute(pathname: string): boolean {
     '/_next',
     '/fonts',
     '/images',
-    '/icons'
+    '/icons',
+    '/brand'
   ]
 
   return prefixes.some((prefix) => pathname.startsWith(prefix))

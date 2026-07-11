@@ -5,12 +5,14 @@ import { useState, useEffect,
 import { useParams, useRouter, useSearchParams }
   from 'next/navigation'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { appAlert } from '@/components/ui/app-alert'
 import { DateTimePicker } from '@/components/ui/datetime-picker'
 import { format } from 'date-fns'
 import {
   ArrowLeft, Pencil, Trash2,
   CreditCard, CheckCircle,
-  Clock, AlertCircle, X
+  Clock, AlertCircle, X,
+  Download, Mail, Ban
 } from 'lucide-react'
 
 const STATUS_CONFIG = {
@@ -258,6 +260,42 @@ export default function InvoiceDetailPage() {
     router.push('/fee-management')
   }
 
+  const handleDownloadPdf = () => {
+    window.open(`/api/v1/fees/invoices/${id}/pdf`, '_blank')
+  }
+
+  const handleEmailInvoice = async () => {
+    const res = await fetch(`/api/v1/fees/invoices/${id}/email`, { method: 'POST' })
+    const data = await res.json().catch(() => ({}))
+    if (res.ok && data.success !== false) {
+      appAlert('Invoice emailed to the guardian.')
+    } else {
+      appAlert(data.error || data.message || 'Could not send the invoice email.')
+    }
+  }
+
+  const handleWaive = async () => {
+    const okToWaive = await confirmDialog({
+      title: 'Waive this invoice?',
+      message: 'The outstanding balance will be written off and the invoice marked as Waived.',
+      confirmLabel: 'Waive Invoice',
+      variant: 'danger'
+    })
+    if (!okToWaive) return
+    const res = await fetch(`/api/v1/fees/invoices/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'WAIVED' })
+    })
+    const data = await res.json().catch(() => ({}))
+    if (res.ok && data.success !== false) {
+      appAlert('Invoice waived.')
+      fetchInvoice()
+    } else {
+      appAlert(data.error || 'Could not waive the invoice.')
+    }
+  }
+
   const balance = invoice
     ? Number(invoice.totalAmount) -
       Number(invoice.paidAmount)
@@ -330,6 +368,29 @@ export default function InvoiceDetailPage() {
                 className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap">
                 <CreditCard className="w-4 h-4" />
                 Record Payment
+              </button>
+            )}
+
+            <button
+              onClick={handleDownloadPdf}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors whitespace-nowrap">
+              <Download className="w-4 h-4" />
+              PDF
+            </button>
+
+            <button
+              onClick={handleEmailInvoice}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors whitespace-nowrap">
+              <Mail className="w-4 h-4" />
+              Email
+            </button>
+
+            {!isPaid && invoice?.status !== 'WAIVED' && (
+              <button
+                onClick={handleWaive}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-amber-200 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors whitespace-nowrap">
+                <Ban className="w-4 h-4" />
+                Waive
               </button>
             )}
 

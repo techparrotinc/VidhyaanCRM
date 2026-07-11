@@ -80,8 +80,11 @@ export async function POST(req: NextRequest) {
         }
         await prisma.otpCode.update({ where: { id: otp.id }, data: { consumedAt: new Date() } })
       }
+      // INVITED users are included: their first OTP login accepts the invite
+      // (activated in the NextAuth authorize step). Excluding them here 404s
+      // the pre-signIn 2FA challenge and strands every invited team member.
       const user = await prisma.user.findFirst({
-        where: { OR: [{ phone: body.contact }, { email: body.contact }], status: 'ACTIVE' },
+        where: { OR: [{ phone: body.contact }, { email: body.contact }], status: { in: ['ACTIVE', 'INVITED'] } },
         select: { id: true }
       })
       if (!user) {

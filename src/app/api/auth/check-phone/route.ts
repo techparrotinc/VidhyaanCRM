@@ -29,9 +29,13 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Find active user
+    // Find a loginable user. INVITED team members are included: their first
+    // OTP login accepts the invite (activated in the NextAuth authorize step),
+    // mirroring the lazy INVITED→ACTIVE flip parents get in parent-access.ts.
+    // Without this the login page reports "No account found" for anyone an
+    // admin invited, stranding the entire team-invite feature.
     const user = await prisma.user.findFirst({
-      where: { phone, status: 'ACTIVE', deletedAt: null }
+      where: { phone, status: { in: ['ACTIVE', 'INVITED'] }, deletedAt: null }
     })
 
     if (!user) {

@@ -59,15 +59,22 @@ const authConfig: NextAuthConfig = {
             // Both factors satisfied — consume the challenge (single-use).
             await redis.del(key)
 
+            // INVITED team members activate on this first successful login —
+            // invite acceptance = first OTP login (the invited phone is the
+            // trust anchor). Without this, invited users can never sign in.
             const user = await prisma.user.findUnique({
-              where: { id: payload.userId, status: 'ACTIVE' }
+              where: { id: payload.userId }
             })
-            if (!user) return null
+            if (!user || (user.status !== 'ACTIVE' && user.status !== 'INVITED')) return null
 
             const assignment = await prisma.userRoleAssignment.findFirst({
               where: { id: payload.assignmentId, userId: user.id, status: 'ACTIVE' }
             })
             if (!assignment) return null
+
+            if (user.status === 'INVITED') {
+              await prisma.user.update({ where: { id: user.id }, data: { status: 'ACTIVE' } })
+            }
 
             // If org policy mandates 2FA but the user is not enrolled
             // (requires2fa was false), flag a forced enrolment for middleware.
@@ -285,11 +292,21 @@ const authConfig: NextAuthConfig = {
                 { phone: contact },
                 { email: contact }
               ],
-              status: 'ACTIVE'
+              status: { in: ['ACTIVE', 'INVITED'] }
             }
           })
 
           if (!user) return null
+
+          // First OTP login accepts a team invite: flip INVITED → ACTIVE.
+          // The invited phone is the trust anchor (only its holder receives
+          // the OTP), so this is a safe self-service activation.
+          if (user.status === 'INVITED') {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { status: 'ACTIVE' }
+            })
+          }
           try {
             const resolved = await resolveActiveRoleAssignment(
               user.id,

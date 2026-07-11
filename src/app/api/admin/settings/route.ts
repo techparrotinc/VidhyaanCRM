@@ -40,6 +40,9 @@ const platformSettingsSchema = z.object({
   msg91AuthKey: strOpt(200),
   msg91WhatsappNumber: strOpt(40),
   msg91SenderId: strOpt(40),
+  metaWaAccessToken: strOpt(600),
+  metaWaPhoneNumberId: strOpt(40),
+  metaWaBusinessAccountId: strOpt(40),
   // Usage & ROI model
   usageHourlyRate: intLike.optional(),
   usageMinutesPerAction: z.record(z.string().max(40), z.number().min(0).max(600)).optional(),
@@ -66,6 +69,7 @@ function maskSettings(s: any) {
     s3SecretKeyEnc,
     zeptoTokenEnc,
     msg91AuthKeyEnc,
+    metaWaAccessTokenEnc,
     uptimeRobotApiKeyEnc,
     ...rest
   } = s
@@ -76,6 +80,7 @@ function maskSettings(s: any) {
     hasS3SecretKey: !!s3SecretKeyEnc,
     hasZeptoToken: !!zeptoTokenEnc,
     hasMsg91AuthKey: !!msg91AuthKeyEnc,
+    hasMetaWaAccessToken: !!metaWaAccessTokenEnc,
     hasUptimeRobotKey: !!uptimeRobotApiKeyEnc,
   }
 }
@@ -169,6 +174,9 @@ export async function PUT(req: NextRequest) {
         msg91AuthKeyEnc: encField(body.msg91AuthKey),
         msg91WhatsappNumber: plainOrClear(body.msg91WhatsappNumber),
         msg91SenderId: plainOrClear(body.msg91SenderId),
+        metaWaAccessTokenEnc: encField(body.metaWaAccessToken),
+        metaWaPhoneNumberId: plainOrClear(body.metaWaPhoneNumberId),
+        metaWaBusinessAccountId: plainOrClear(body.metaWaBusinessAccountId),
         usageHourlyRate: body.usageHourlyRate !== undefined ? parseInt(body.usageHourlyRate) : undefined,
         usageMinutesPerAction: body.usageMinutesPerAction !== undefined ? body.usageMinutesPerAction : undefined,
         uptimeRobotApiKeyEnc: encField(body.uptimeRobotApiKey),

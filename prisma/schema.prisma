@@ -2536,6 +2536,9 @@ model WhatsappTemplate {
   /// template, e.g. ["parentName","amount"]. null = legacy
   /// single-blob-parameter mode.
   variables        Json?
+  /// Functional bucket (GENERAL/FEE_REMINDER/ATTENDANCE/HOMEWORK/…) — see
+  /// src/constants/whatsapp-template-categories.ts
+  category         String           @default("GENERAL")
   /// Which WhatsApp account this template lives on
   accountScope     WaAccountScope   @default(VIDHYAAN) @map("account_scope")
   /// Soft ref to billing.messaging_provider_configs when accountScope=OWN
@@ -2582,6 +2585,8 @@ model SharedWhatsappTemplate {
   body            String
   /// Ordered variable tokens mapping to {{1}}..{{n}}
   variables       Json?
+  /// Functional bucket — see src/constants/whatsapp-template-categories.ts
+  category        String    @default("GENERAL")
   isActive        Boolean   @default(true) @map("is_active")
   sortOrder       Int       @default(0) @map("sort_order")
   createdAt       DateTime  @default(now()) @map("created_at")
@@ -3032,6 +3037,12 @@ model PlatformSettings {
   msg91AuthKeyEnc        String? @map("msg91_auth_key_enc")        // encrypted
   msg91WhatsappNumber    String? @map("msg91_whatsapp_number")
   msg91SenderId          String? @map("msg91_sender_id")
+  // Meta WhatsApp Cloud API (direct, no BSP). When configured, platform
+  // shared-account WhatsApp sends go through graph.facebook.com instead of
+  // MSG91. System-user permanent token, encrypted at rest.
+  metaWaAccessTokenEnc    String? @map("meta_wa_access_token_enc")  // encrypted
+  metaWaPhoneNumberId     String? @map("meta_wa_phone_number_id")
+  metaWaBusinessAccountId String? @map("meta_wa_business_account_id") // WABA id (template sync)
 
   // Usage & ROI model (admin-configurable) for the org usage dashboard.
   // usageHourlyRate: blended staff cost (₹/hour). usageMinutesPerAction:

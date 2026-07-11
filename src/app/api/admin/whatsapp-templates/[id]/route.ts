@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { ok, errorResponse } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { z } from 'zod'
+import { WA_CATEGORY_VALUES } from '@/constants/whatsapp-template-categories'
 
 const WRITE_ROLES = ['SUPER_ADMIN', 'OPERATIONS_ADMIN']
 
@@ -12,6 +13,7 @@ const updateSchema = z.object({
   language: z.string().min(2).max(10).optional(),
   body: z.string().min(1).max(1000).optional(),
   variables: z.array(z.string().min(1).max(40)).max(10).optional().nullable(),
+  category: z.enum(WA_CATEGORY_VALUES).optional(),
   isActive: z.boolean().optional(),
   sortOrder: z.number().int().min(0).optional()
 })

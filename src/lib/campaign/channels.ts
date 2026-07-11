@@ -1,4 +1,6 @@
 import { sendCampaignEmail as zeptoSendCampaignEmail } from '@/lib/integrations/zeptomail'
+import { sendMetaWhatsAppTemplate } from '@/lib/integrations/meta-whatsapp'
+import { getMetaWhatsAppConfig } from '@/lib/platform-config'
 
 export async function sendCampaignEmail(params: {
   to: string
@@ -107,6 +109,24 @@ export async function sendCampaignWhatsApp(params: {
   const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`
 
   const parameterTexts = params.parameters ?? [params.body]
+
+  // Platform shared account prefers direct Meta Cloud API when configured in
+  // admin settings; BYO org credentials always stay on their own MSG91 route.
+  if (!params.credentials) {
+    const meta = await getMetaWhatsAppConfig()
+    if (meta.configured) {
+      await sendMetaWhatsAppTemplate({
+        to: formattedPhone,
+        templateName: params.templateId,
+        language: params.language,
+        parameters: parameterTexts,
+        accessToken: meta.accessToken!,
+        phoneNumberId: meta.phoneNumberId!
+      })
+      return
+    }
+  }
+
   const components =
     parameterTexts.length > 0
       ? [

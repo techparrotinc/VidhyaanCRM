@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { ok, created, errorResponse } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { z } from 'zod'
+import { WA_CATEGORY_VALUES, guessWaTemplateCategory } from '@/constants/whatsapp-template-categories'
 
 const READ_ROLES = ['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN']
 const WRITE_ROLES = ['SUPER_ADMIN', 'OPERATIONS_ADMIN']
@@ -13,6 +14,7 @@ const templateSchema = z.object({
   language: z.string().min(2).max(10).default('en'),
   body: z.string().min(1).max(1000),
   variables: z.array(z.string().min(1).max(40)).max(10).optional().nullable(),
+  category: z.enum(WA_CATEGORY_VALUES).optional(),
   isActive: z.boolean().default(true),
   sortOrder: z.number().int().min(0).default(0)
 })
@@ -54,6 +56,7 @@ export async function POST(req: Request) {
         language: body.language,
         body: body.body,
         variables: body.variables ?? undefined,
+        category: body.category ?? guessWaTemplateCategory(body.name, body.body),
         isActive: body.isActive,
         sortOrder: body.sortOrder
       }

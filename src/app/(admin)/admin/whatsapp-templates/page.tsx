@@ -1,11 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, Plus, Pencil, Trash2, MessageCircle } from 'lucide-react'
+import { Loader2, Plus, Pencil, Trash2, MessageCircle, RefreshCw, Search } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import VariablesBuilder from '@/components/whatsapp/VariablesBuilder'
 import { previewTemplateBody } from '@/lib/campaign/templateParams'
+import { WA_TEMPLATE_CATEGORIES, waCategoryLabel } from '@/constants/whatsapp-template-categories'
 
 type SharedTemplate = {
   id: string
@@ -14,6 +15,7 @@ type SharedTemplate = {
   language: string
   body: string
   variables: string[] | null
+  category: string
   isActive: boolean
   sortOrder: number
 }
@@ -24,6 +26,7 @@ const emptyForm = {
   language: 'en',
   body: '',
   variables: [] as string[],
+  category: 'GENERAL',
   isActive: true
 }
 
@@ -35,6 +38,21 @@ export default function AdminWhatsappTemplatesPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm)
+  const [syncing, setSyncing] = useState(false)
+  const [syncNote, setSyncNote] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
+
+  const q = search.trim().toLowerCase()
+  const visibleTemplates = templates.filter(t => {
+    if (categoryFilter !== 'ALL' && (t.category ?? 'GENERAL') !== categoryFilter) return false
+    if (!q) return true
+    return (
+      t.name.toLowerCase().includes(q) ||
+      t.msg91TemplateId.toLowerCase().includes(q) ||
+      t.body.toLowerCase().includes(q)
+    )
+  })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -68,6 +86,7 @@ export default function AdminWhatsappTemplatesPage() {
       language: t.language,
       body: t.body,
       variables: Array.isArray(t.variables) ? t.variables : [],
+      category: t.category ?? 'GENERAL',
       isActive: t.isActive
     })
     setEditingId(t.id)
@@ -102,6 +121,23 @@ export default function AdminWhatsappTemplatesPage() {
     }
   }
 
+  const handleSyncFromMeta = async () => {
+    setSyncing(true)
+    setError(null)
+    setSyncNote(null)
+    try {
+      const res = await fetch('/api/admin/whatsapp-templates/sync', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error?.message || data.error || 'Sync failed')
+      setSyncNote(`Imported ${data.data?.imported ?? 0} new template(s) — ${data.data?.total ?? 0} approved on the WABA.`)
+      await load()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   const handleDelete = async (id: string) => {
     if (!window.confirm('Remove this template from the catalog? Orgs that already added it keep their copy.')) return
     await fetch(`/api/admin/whatsapp-templates/${id}`, { method: 'DELETE' })
@@ -120,14 +156,57 @@ export default function AdminWhatsappTemplatesPage() {
             Templates approved on Vidhyaan&apos;s WhatsApp Business account. Orgs on the shared account pick from this catalog.
           </p>
         </div>
-        <Button onClick={openCreate} className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs">
-          <Plus className="w-4 h-4 mr-1" /> Publish Template
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleSyncFromMeta}
+            disabled={syncing}
+            variant="outline"
+            className="text-xs font-bold"
+          >
+            {syncing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
+            Sync from Meta
+          </Button>
+          <Button onClick={openCreate} className="bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs">
+            <Plus className="w-4 h-4 mr-1" /> Publish Template
+          </Button>
+        </div>
       </div>
+
+      {syncNote && (
+        <p className="text-sm font-semibold text-green-700 bg-green-50 border border-green-100 rounded-lg px-4 py-3">{syncNote}</p>
+      )}
 
       {error && !showForm && (
         <p className="text-sm font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{error}</p>
       )}
+
+      {/* Search + category filter */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search templates…"
+            className="w-64 pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {[{ value: 'ALL', label: 'All' }, ...WA_TEMPLATE_CATEGORIES].map(c => (
+            <button
+              key={c.value}
+              onClick={() => setCategoryFilter(c.value)}
+              className={`px-3 py-1.5 text-[11px] font-semibold rounded-full border transition-colors ${
+                categoryFilter === c.value
+                  ? 'bg-[#1565D8] border-[#1565D8] text-white'
+                  : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {showForm && (
         <Card className="p-6 bg-white border-slate-200 shadow-sm space-y-4 max-w-2xl">
@@ -170,6 +249,18 @@ export default function AdminWhatsappTemplatesPage() {
                 <option value="te">Telugu (te)</option>
                 <option value="kn">Kannada (kn)</option>
                 <option value="ml">Malayalam (ml)</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 block mb-1">Category</label>
+              <select
+                value={form.category}
+                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {WA_TEMPLATE_CATEGORIES.map(c => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
               </select>
             </div>
             <div className="flex items-end pb-1">
@@ -232,13 +323,18 @@ export default function AdminWhatsappTemplatesPage() {
         <Card className="p-10 bg-white border-slate-200 text-center text-sm text-slate-400">
           No templates published yet. Publish the approved Vidhyaan template to make it available to schools.
         </Card>
+      ) : visibleTemplates.length === 0 ? (
+        <Card className="p-10 bg-white border-slate-200 text-center text-sm text-slate-400">
+          No templates match the current search / category filter.
+        </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {templates.map(t => (
+          {visibleTemplates.map(t => (
             <Card key={t.id} className="p-5 bg-white border-slate-200 shadow-sm space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
                   {t.name}
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{waCategoryLabel(t.category)}</span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{t.language}</span>
                   {!t.isActive && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">Hidden</span>

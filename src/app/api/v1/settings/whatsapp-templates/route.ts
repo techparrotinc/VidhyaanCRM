@@ -4,13 +4,15 @@ import { ok, created } from '@/lib/api/respond'
 import { ROLES } from '@/constants/roles'
 import { MODULES } from '@/constants/modules'
 import { prisma } from '@/lib/db/client'
+import { WA_CATEGORY_VALUES, guessWaTemplateCategory } from '@/constants/whatsapp-template-categories'
 
 const templateSchema = z.object({
   name: z.string().min(1).max(100),
   msg91TemplateId: z.string().min(1).max(100),
   language: z.string().min(2).max(10).default('en'),
   body: z.string().min(1).max(1000),
-  variables: z.array(z.string().min(1).max(40)).max(10).optional().nullable()
+  variables: z.array(z.string().min(1).max(40)).max(10).optional().nullable(),
+  category: z.enum(WA_CATEGORY_VALUES).optional()
 })
 
 export const GET = route({
@@ -54,6 +56,7 @@ export const POST = route({
         language: data.language,
         body: data.body,
         variables: data.variables ?? undefined,
+        category: data.category ?? guessWaTemplateCategory(data.name, data.body),
         accountScope: 'OWN',
         providerConfigId: providerConfig?.id ?? null,
         status: 'DRAFT',

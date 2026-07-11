@@ -7,6 +7,7 @@ import { ROLES } from '@/constants/roles'
 import { MODULES } from '@/constants/modules'
 import { getActiveProviderConfig } from '@/lib/credits/provider'
 import { fetchMsg91Templates, Msg91TemplateSyncError } from '@/lib/integrations/msg91/templates'
+import { guessWaTemplateCategory } from '@/constants/whatsapp-template-categories'
 
 /**
  * POST — imports approved templates from the org's own MSG91 WhatsApp
@@ -73,6 +74,7 @@ export const POST = route({
           msg91TemplateId: tpl.name,
           language: tpl.language,
           body: tpl.body || tpl.name,
+          category: guessWaTemplateCategory(tpl.name, tpl.body),
           variables:
             tpl.variableCount > 0
               ? Array.from({ length: tpl.variableCount }, (_, i) => `var${i + 1}`)

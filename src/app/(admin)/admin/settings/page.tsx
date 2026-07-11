@@ -82,6 +82,11 @@ export default function AdminSettingsPage() {
   const [msg91WhatsappNumber, setMsg91WhatsappNumber] = useState('')
   const [msg91SenderId, setMsg91SenderId] = useState('')
 
+  // Meta WhatsApp Cloud API (direct)
+  const [metaWaAccessToken, setMetaWaAccessToken] = useState('')
+  const [metaWaPhoneNumberId, setMetaWaPhoneNumberId] = useState('')
+  const [metaWaBusinessAccountId, setMetaWaBusinessAccountId] = useState('')
+
   // Usage & ROI model
   const [usageHourlyRate, setUsageHourlyRate] = useState(DEFAULT_HOURLY_RATE)
   const [usageMinutes, setUsageMinutes] = useState<Record<string, number>>({ ...DEFAULT_MINUTES_PER_ACTION })
@@ -93,6 +98,7 @@ export default function AdminSettingsPage() {
     s3SecretKey: false,
     zeptoToken: false,
     msg91AuthKey: false,
+    metaWaAccessToken: false,
     uptimeRobotKey: false,
   })
 
@@ -135,6 +141,8 @@ export default function AdminSettingsPage() {
       setS3AccessKeyId(data.s3AccessKeyId || '')
       setMsg91WhatsappNumber(data.msg91WhatsappNumber || '')
       setMsg91SenderId(data.msg91SenderId || '')
+      setMetaWaPhoneNumberId(data.metaWaPhoneNumberId || '')
+      setMetaWaBusinessAccountId(data.metaWaBusinessAccountId || '')
       setUsageHourlyRate(data.usageHourlyRate ?? DEFAULT_HOURLY_RATE)
       setUsageMinutes({ ...DEFAULT_MINUTES_PER_ACTION, ...(data.usageMinutesPerAction || {}) })
 
@@ -144,6 +152,7 @@ export default function AdminSettingsPage() {
       setS3SecretKey('')
       setZeptoToken('')
       setMsg91AuthKey('')
+      setMetaWaAccessToken('')
       setUptimeRobotApiKey('')
       setConfigured({
         razorpayKeySecret: !!data.hasRazorpayKeySecret,
@@ -151,6 +160,7 @@ export default function AdminSettingsPage() {
         s3SecretKey: !!data.hasS3SecretKey,
         zeptoToken: !!data.hasZeptoToken,
         msg91AuthKey: !!data.hasMsg91AuthKey,
+        metaWaAccessToken: !!data.hasMetaWaAccessToken,
         uptimeRobotKey: !!data.hasUptimeRobotKey,
       })
 
@@ -211,6 +221,8 @@ export default function AdminSettingsPage() {
         s3AccessKeyId,
         msg91WhatsappNumber,
         msg91SenderId,
+        metaWaPhoneNumberId,
+        metaWaBusinessAccountId,
         businessName,
         businessAddress,
         businessGstin,
@@ -224,6 +236,7 @@ export default function AdminSettingsPage() {
       if (s3SecretKey) payload.s3SecretKey = s3SecretKey
       if (zeptoToken) payload.zeptoToken = zeptoToken
       if (msg91AuthKey) payload.msg91AuthKey = msg91AuthKey
+      if (metaWaAccessToken) payload.metaWaAccessToken = metaWaAccessToken
       if (uptimeRobotApiKey) payload.uptimeRobotApiKey = uptimeRobotApiKey
 
       const res = await fetch('/api/admin/settings', {
@@ -621,6 +634,50 @@ export default function AdminSettingsPage() {
             </div>
             <p className="text-[10px] font-semibold text-slate-400">
               WhatsApp send also requires the <span className="font-bold text-slate-500">WhatsApp Notifications</span> flag (or env <code>ENABLE_WHATSAPP</code>) enabled.
+            </p>
+          </Card>
+
+          {/* Meta WhatsApp Cloud API (direct) */}
+          <Card className="p-5 bg-white border-slate-200 shadow-sm space-y-4">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <Key className="w-4 h-4 text-blue-650" /> WhatsApp Cloud API (Meta Direct)
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold text-slate-700">
+              <div>
+                <label className="block text-slate-450 mb-1.5">
+                  Access Token {configured.metaWaAccessToken && <span className="text-green-600 font-bold">• set</span>}
+                </label>
+                <input
+                  type="password"
+                  value={metaWaAccessToken}
+                  onChange={(e) => setMetaWaAccessToken(e.target.value)}
+                  placeholder={configured.metaWaAccessToken ? '•••••••• (leave blank to keep)' : 'System-user permanent token'}
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-450 mb-1.5">Phone Number ID</label>
+                <input
+                  type="text"
+                  value={metaWaPhoneNumberId}
+                  onChange={(e) => setMetaWaPhoneNumberId(e.target.value)}
+                  placeholder="e.g. 1066…"
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-450 mb-1.5">WABA ID</label>
+                <input
+                  type="text"
+                  value={metaWaBusinessAccountId}
+                  onChange={(e) => setMetaWaBusinessAccountId(e.target.value)}
+                  placeholder="WhatsApp Business Account ID"
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+            </div>
+            <p className="text-[10px] font-semibold text-slate-400">
+              When the token + Phone Number ID are set, platform shared-account WhatsApp sends go <span className="font-bold text-slate-500">directly via Meta</span> (no MSG91 fee). WABA ID enables template sync. Orgs with their own verified MSG91 account are unaffected.
             </p>
           </Card>
 

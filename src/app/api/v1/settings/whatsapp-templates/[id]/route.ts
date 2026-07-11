@@ -4,13 +4,15 @@ import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { ROLES } from '@/constants/roles'
 import { MODULES } from '@/constants/modules'
+import { WA_CATEGORY_VALUES } from '@/constants/whatsapp-template-categories'
 
 const templateSchema = z.object({
   name: z.string().min(1).max(100),
   msg91TemplateId: z.string().min(1).max(100),
   language: z.string().min(2).max(10),
   body: z.string().min(1).max(1000),
-  variables: z.array(z.string().min(1).max(40)).max(10).optional().nullable()
+  variables: z.array(z.string().min(1).max(40)).max(10).optional().nullable(),
+  category: z.enum(WA_CATEGORY_VALUES)
 })
 
 export const GET = route({

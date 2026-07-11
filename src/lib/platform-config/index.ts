@@ -136,6 +136,27 @@ export async function getMsg91Config(): Promise<Msg91Config> {
   }
 }
 
+export interface MetaWhatsAppConfig {
+  accessToken: string | null
+  phoneNumberId: string | null
+  wabaId: string | null
+  /** true when token + phone number id are both present — send-ready. */
+  configured: boolean
+}
+
+export async function getMetaWhatsAppConfig(): Promise<MetaWhatsAppConfig> {
+  const row = await loadRow()
+  const accessToken = dec(row?.metaWaAccessTokenEnc) ?? plain(process.env.META_WA_ACCESS_TOKEN) ?? null
+  const phoneNumberId = plain(row?.metaWaPhoneNumberId) ?? plain(process.env.META_WA_PHONE_NUMBER_ID) ?? null
+  const wabaId = plain(row?.metaWaBusinessAccountId) ?? plain(process.env.META_WA_WABA_ID) ?? null
+  return {
+    accessToken,
+    phoneNumberId,
+    wabaId,
+    configured: !!(accessToken && phoneNumberId),
+  }
+}
+
 export interface PlatformFeatureFlags {
   enableWhatsapp: boolean
   enableCampaignModule: boolean

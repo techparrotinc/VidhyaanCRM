@@ -30,6 +30,7 @@ export const GET = route({
         language: t.language,
         body: t.body,
         variables: t.variables,
+        category: t.category,
         alreadyAdded: addedIds.has(t.id)
       }))
     })

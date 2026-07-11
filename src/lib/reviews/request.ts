@@ -10,6 +10,7 @@
 import { prisma } from '@/lib/db'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { sendMeteredWhatsApp } from '@/lib/credits/metered-send'
+import { buildTemplateParameters } from '@/lib/campaign/templateParams'
 import { renderEmailHtml } from '@/lib/mail/org-templates'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 
@@ -91,17 +92,37 @@ export async function sendReviewRequestForAdmission(
     }
   }
 
-  // WhatsApp via metered send (never let credit errors bubble up)
+  // WhatsApp via metered send (never let credit errors bubble up). Requires
+  // the org to have adopted an approved review_request template — sends with
+  // its variable mapping; skips silently when the template isn't available.
   if (admission.phone && typeof phoneKey === 'string' && phoneKey.length >= 10) {
     try {
-      await sendMeteredWhatsApp(
-        orgId,
-        phoneKey,
-        'review_request',
-        `Congratulations ${parentName}! ${admission.applicantName}'s admission at ${schoolName} is confirmed. Loved the experience? Share a quick review to help other parents: ${reviewLink}`,
-        `review-request:${admission.id}`
-      )
-      delivered = true
+      const template = await prisma.whatsappTemplate.findFirst({
+        where: {
+          orgId,
+          msg91TemplateId: 'review_request',
+          status: { in: ['VERIFIED', 'SYNCED'] },
+          deletedAt: null,
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+      if (template) {
+        const parameters = buildTemplateParameters(template.variables, {
+          parentName,
+          kidName: admission.applicantName || 'your child',
+          schoolName,
+          link: reviewLink,
+        })
+        await sendMeteredWhatsApp(
+          orgId,
+          phoneKey,
+          template.msg91TemplateId,
+          `Congratulations ${parentName}! ${admission.applicantName}'s admission at ${schoolName} is confirmed. Share a quick review: ${reviewLink}`,
+          `review-request:${admission.id}`,
+          { language: template.language, parameters: parameters ?? undefined }
+        )
+        delivered = true
+      }
     } catch (e) {
       console.error('Review request WhatsApp failed:', e)
     }

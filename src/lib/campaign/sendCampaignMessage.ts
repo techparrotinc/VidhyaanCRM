@@ -12,6 +12,7 @@ function replaceVariables(
     .replace(/\{\{parentName\}\}/g, variables.parentName ?? '')
     .replace(/\{\{kidName\}\}/g, variables.kidName ?? '')
     .replace(/\{\{schoolName\}\}/g, variables.schoolName ?? '')
+    .replace(/\{\{grade\}\}/g, variables.grade ?? '')
     .replace(/\{\{date\}\}/g, variables.date ?? '')
     .replace(/\{\{amount\}\}/g, variables.amount ?? '')
     .replace(/\{\{link\}\}/g, variables.link ?? '')
@@ -49,6 +50,7 @@ export async function sendCampaignMessage(
       parentName: recipient.name,
       kidName: '',
       schoolName: campaign.organization.name,
+      grade: '',
       date: format(new Date(), 'd MMM yyyy'),
       amount: '',
       link: recipient.formLink ?? ''

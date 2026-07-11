@@ -10,6 +10,7 @@ import { createNotification } from '@/lib/services/notifications'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
 import { sendOrgTemplateEmail } from '@/lib/mail/org-templates'
+import { sendLeadWhatsAppAck } from '@/lib/leads/whatsapp-ack'
 import { findMatches, loadDedupConfig, dedupFields } from '@/lib/dedup'
 import { assertNotDuplicate } from '@/lib/dedup/guard'
 import { isPaidPlan } from '@/lib/billing/plan-status'
@@ -398,6 +399,11 @@ export const POST = route({
         })
       ).catch(() => {})
     }
+    // WhatsApp ack (enquiry_received template) — skips silently when the
+    // add-on is off or the org hasn't adopted the template
+    sendLeadWhatsAppAck(user.orgId, lead).catch((e) =>
+      console.error('Lead WhatsApp ack failed:', e?.message ?? e)
+    )
 
     return created({
       ...lead,

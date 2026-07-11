@@ -26,7 +26,12 @@ export async function sendMetaWhatsAppTemplate(params: MetaSendParams): Promise<
   const phone = params.to.replace(/\D/g, '')
   const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`
 
-  const parameterTexts = params.parameters ?? []
+  // Meta rejects empty text parameters ((#131008) Required parameter is
+  // missing) where MSG91 tolerated '' — substitute a dash so a blank token
+  // never kills the whole send.
+  const parameterTexts = (params.parameters ?? []).map(text =>
+    text.trim() === '' ? '-' : text
+  )
   const components =
     parameterTexts.length > 0
       ? [

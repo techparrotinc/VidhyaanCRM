@@ -7,8 +7,27 @@
 
 import type { MessageChannel } from '@prisma/client'
 import { sendCampaignSMS, sendCampaignWhatsApp } from '@/lib/campaign/channels'
-import { spendCredits } from './engine'
+import { spendCredits, refundCredits } from './engine'
 import { getActiveProviderConfig } from './provider'
+
+// Runs the actual send after a credit debit; a failed send refunds the
+// credit so orgs never pay for undelivered messages.
+async function sendWithRefund(
+  orgId: string,
+  channel: MessageChannel,
+  spent: { fromFree: number; fromPurchased: number } | null,
+  ref: string | undefined,
+  send: () => Promise<void>
+): Promise<void> {
+  try {
+    await send()
+  } catch (err) {
+    if (spent) {
+      await refundCredits(orgId, channel, 1, spent, ref).catch(() => {})
+    }
+    throw err
+  }
+}
 
 export async function sendMeteredSms(
   orgId: string,
@@ -17,16 +36,16 @@ export async function sendMeteredSms(
   ref?: string
 ): Promise<void> {
   const byo = await getActiveProviderConfig(orgId, 'SMS' as MessageChannel)
-  if (!byo) {
-    await spendCredits(orgId, 'SMS' as MessageChannel, 1, ref)
-  }
-  await sendCampaignSMS({
-    to,
-    body,
-    credentials: byo
-      ? { authKey: byo.authKey, senderId: byo.senderId, flowId: byo.smsFlowId }
-      : undefined
-  })
+  const spent = byo ? null : await spendCredits(orgId, 'SMS' as MessageChannel, 1, ref)
+  await sendWithRefund(orgId, 'SMS' as MessageChannel, spent, ref, () =>
+    sendCampaignSMS({
+      to,
+      body,
+      credentials: byo
+        ? { authKey: byo.authKey, senderId: byo.senderId, flowId: byo.smsFlowId }
+        : undefined
+    })
+  )
 }
 
 export async function sendMeteredWhatsApp(
@@ -34,18 +53,26 @@ export async function sendMeteredWhatsApp(
   to: string,
   templateId: string,
   body: string,
-  ref?: string
+  ref?: string,
+  opts?: {
+    /** Meta language code of the approved template (default en). */
+    language?: string
+    /** Ordered positional {{1}}..{{n}} parameters; overrides legacy body mode. */
+    parameters?: string[]
+  }
 ): Promise<void> {
   const byo = await getActiveProviderConfig(orgId, 'WHATSAPP' as MessageChannel)
-  if (!byo) {
-    await spendCredits(orgId, 'WHATSAPP' as MessageChannel, 1, ref)
-  }
-  await sendCampaignWhatsApp({
-    to,
-    templateId,
-    body,
-    credentials: byo
-      ? { authKey: byo.authKey, whatsappNumber: byo.whatsappNumber }
-      : undefined
-  })
+  const spent = byo ? null : await spendCredits(orgId, 'WHATSAPP' as MessageChannel, 1, ref)
+  await sendWithRefund(orgId, 'WHATSAPP' as MessageChannel, spent, ref, () =>
+    sendCampaignWhatsApp({
+      to,
+      templateId,
+      body,
+      language: opts?.language,
+      parameters: opts?.parameters,
+      credentials: byo
+        ? { authKey: byo.authKey, whatsappNumber: byo.whatsappNumber }
+        : undefined
+    })
+  )
 }

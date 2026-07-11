@@ -8,6 +8,7 @@ export const TEMPLATE_TOKENS = [
   'parentName',
   'kidName',
   'schoolName',
+  'grade', // grade/class/course sought
   'date',
   'amount',
   'link' // per-recipient digital-form URL (campaign with an attached form)

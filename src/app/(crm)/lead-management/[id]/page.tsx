@@ -119,9 +119,6 @@ const initialLeads: Lead[] = [
   }
 ]
 
-const relatedLeads = [
-  { id: 'LD-008', name: 'Rinah Conrad', avatar: 'RC', applyingFor: 'UKG', status: 'New', date: '13 May 2026' },
-]
 
 const statusLabels: Record<string, string> = {
   NEW: 'New',
@@ -312,9 +309,8 @@ export default function LeadDetailPage() {
         const json = await res.json()
         setLead(json.data)
       } catch (err) {
-        console.error('Failed to fetch lead from API, falling back to mock:', err)
-        const mock = initialLeads.find((l: any) => l.id === leadId) || initialLeads[0]
-        setLead(mock)
+        console.error('Failed to fetch lead:', err)
+        setLead(null)
       } finally {
         setLoading(false)
       }
@@ -690,6 +686,15 @@ export default function LeadDetailPage() {
 
   if (loading) {
     return <RecordSkeleton />
+  }
+
+  if (!lead) {
+    return (
+      <div className="p-10 text-center space-y-2">
+        <h3 className="text-lg font-bold text-slate-800">Lead not found</h3>
+        <p className="text-sm text-slate-500">It may have been deleted, or you may not have access to it.</p>
+      </div>
+    )
   }
 
   const isConverted = lead?.status === 'CONVERTED'
@@ -1215,9 +1220,18 @@ export default function LeadDetailPage() {
             </div>
             <p className="text-xs text-slate-400 mb-3">From same phone number</p>
 
-            {relatedLeads.length > 0 ? (
+            {(lead?.related ?? []).length > 0 ? (
               <div className="space-y-2">
-                {relatedLeads.map((rl) => (
+                {(lead.related as any[]).map((raw: any) => {
+                  const rl = {
+                    id: raw.id,
+                    name: raw.kidName || raw.parentName || raw.leadCode,
+                    avatar: ((raw.kidName || raw.parentName || 'LD').split(' ').map((n: string) => n[0]).join('').slice(0, 2)).toUpperCase(),
+                    applyingFor: raw.gradeSought ? getGradeLabel(raw.gradeSought) : (raw.course || '—'),
+                    status: statusLabels[raw.status] || raw.status,
+                    date: raw.createdAt ? new Date(raw.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
+                  }
+                  return (
                   <div
                     key={rl.id}
                     onClick={() => router.push(`/lead-management/${rl.id}`)}
@@ -1234,7 +1248,8 @@ export default function LeadDetailPage() {
                     </div>
                     <ChevronRight size={14} className="text-slate-300" />
                   </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <p className="text-xs text-slate-400 text-center py-3">No related leads found</p>

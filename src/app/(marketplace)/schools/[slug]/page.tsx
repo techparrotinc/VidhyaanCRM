@@ -172,6 +172,11 @@ interface SchoolProfile {
   avgRating: number
   reviewCount: number
   admissionOpen: boolean
+  establishedYear: number | null
+  totalStudents: number | null
+  totalTeachers: number | null
+  gradesOffered: string | null
+  mediumOfInstruction: string | null
   locations: SchoolLocation[]
   contacts: SchoolContact[]
   media: SchoolMedia[]
@@ -983,20 +988,26 @@ export default function SchoolProfilePage() {
           <section id="overview" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Overview</h3>
             
-            {/* Quick stats row */}
+            {/* Quick stats row — real values only; hide tiles the school hasn't provided */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4">
-              <div className="pb-3 border-b-2 border-slate-100">
-                <span className="text-xl font-black text-slate-800">2012</span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mt-0.5">Established</span>
-              </div>
-              <div className="pb-3 border-b-2 border-slate-100">
-                <span className="text-xl font-black text-slate-800">550+</span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mt-0.5">Students</span>
-              </div>
-              <div className="pb-3 border-b-2 border-slate-100">
-                <span className="text-xl font-black text-slate-800">38</span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mt-0.5">Teachers</span>
-              </div>
+              {school.establishedYear && (
+                <div className="pb-3 border-b-2 border-slate-100">
+                  <span className="text-xl font-black text-slate-800">{school.establishedYear}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mt-0.5">Established</span>
+                </div>
+              )}
+              {school.totalStudents != null && school.totalStudents > 0 && (
+                <div className="pb-3 border-b-2 border-slate-100">
+                  <span className="text-xl font-black text-slate-800">{school.totalStudents}+</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mt-0.5">Students</span>
+                </div>
+              )}
+              {school.totalTeachers != null && school.totalTeachers > 0 && (
+                <div className="pb-3 border-b-2 border-slate-100">
+                  <span className="text-xl font-black text-slate-800">{school.totalTeachers}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mt-0.5">Teachers</span>
+                </div>
+              )}
               <div className="pb-3 border-b-2 border-slate-100">
                 <div className="flex items-center gap-1">
                   <span className="text-xl font-black text-slate-800">
@@ -1013,7 +1024,7 @@ export default function SchoolProfilePage() {
               <h4 className="text-sm font-black text-slate-800">About School</h4>
               <p className="text-xs font-semibold leading-relaxed text-slate-500 whitespace-pre-line">
                 {readMore || !school.description || school.description.length <= 300
-                  ? school.description || 'Welcome to this institution. We strive to provide excellent academic support, extracurricular activities, and state-of-the-art facilities to shape future global leaders.'
+                  ? school.description || 'This school has not added a description yet.'
                   : `${school.description.substring(0, 300)}...`
                 }
               </p>
@@ -1076,11 +1087,11 @@ export default function SchoolProfilePage() {
               </div>
               <div className="py-3 flex justify-between gap-4">
                 <span className="text-slate-400">Medium of Instruction</span>
-                <span className="text-slate-800 font-bold">English</span>
+                <span className="text-slate-800 font-bold">{school.mediumOfInstruction || 'N/A'}</span>
               </div>
               <div className="py-3 flex justify-between gap-4">
                 <span className="text-slate-400">Classes Offered</span>
-                <span className="text-slate-800 font-bold">Kindergarten to 12th Grade</span>
+                <span className="text-slate-800 font-bold">{school.gradesOffered || 'N/A'}</span>
               </div>
             </div>
           </section>
@@ -1830,15 +1841,15 @@ export default function SchoolProfilePage() {
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-400">Classes Offered</span>
-                  <span className="text-slate-700 font-bold text-right">Nursery - 12th</span>
+                  <span className="text-slate-700 font-bold text-right">{school.gradesOffered || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-400">Instruction Medium</span>
-                  <span className="text-slate-700 font-bold text-right">English</span>
+                  <span className="text-slate-700 font-bold text-right">{school.mediumOfInstruction || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-400">Established</span>
-                  <span className="text-slate-700 font-bold text-right">2012</span>
+                  <span className="text-slate-700 font-bold text-right">{school.establishedYear || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-400">Status</span>

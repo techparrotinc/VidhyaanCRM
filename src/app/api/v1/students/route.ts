@@ -5,6 +5,7 @@ import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { Gender, StudentStatus } from '@prisma/client'
+import { prisma } from '@/lib/db/client'
 import { parseQuery, paginationShape, enumParam } from '@/lib/api/query'
 import { getGradeLabel } from '@/constants/grades'
 import { assertFreeTierLimit } from '@/lib/billing/limits'
@@ -155,10 +156,19 @@ export const POST = route({
       orgId: user.orgId, phone: body.guardianPhone, name: body.guardianName, email: body.guardianEmail,
     })
 
+    // Code from numeric max, never count()+1 (counts undercount after soft
+    // deletes and collide on the unique constraint). STU- prefix matches the
+    // convert-from-admission and bulk-import paths.
     const year = new Date().getFullYear()
-    const count = await db.student.count()
-
-    const studentCode = 'ST-' + year + '-' + String(count + 1).padStart(5, '0')
+    const prefix = `STU-${year}-`
+    const codeRows = await prisma.$queryRaw<{ max: number | null }[]>`
+      SELECT MAX(CAST(SUBSTRING(student_code FROM ${prefix.length + 1}::int) AS INTEGER)) AS max
+      FROM crm.students
+      WHERE org_id = ${user.orgId}
+        AND student_code ~ ${'^' + prefix + '[0-9]+$'}
+    `
+    const studentCode =
+      prefix + String(Number(codeRows[0]?.max ?? 0) + 1).padStart(5, '0')
 
     const student = await db.student.create({
       data: {

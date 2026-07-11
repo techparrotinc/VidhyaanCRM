@@ -126,13 +126,10 @@ const campaigns = [
   { id: '3', name: 'WhatsApp Campaign Apr 2026' },
 ]
 
-const generateLeadId = () => {
-  const year = new Date().getFullYear()
-  const seq = Math.floor(
-    Math.random() * 90000
-  ) + 10000
-  return `LD-${year}-${seq}`
-}
+// The real lead code is generated server-side on save (nextLeadCode); the
+// form shows a neutral placeholder rather than a fabricated number, and a
+// deterministic value avoids the SSR/client hydration mismatch Math.random caused.
+const LEAD_ID_PLACEHOLDER = 'Assigned on save' 
 
 export default function AddLeadPage() {
   const router = useRouter()
@@ -187,6 +184,11 @@ export default function AddLeadPage() {
         const json = await res.json()
         if (json.data && Array.isArray(json.data)) {
           setDbAcademicYears(json.data)
+          // Default to the org's active year so new leads never land year-less
+          const active = json.data.find((y: any) => y.status === 'ACTIVE')
+          if (active) {
+            setFormData(prev => prev.academicYearId ? prev : { ...prev, academicYearId: active.id })
+          }
         }
       } catch (err) {
         console.error('Failed to fetch academic years', err)
@@ -227,7 +229,7 @@ export default function AddLeadPage() {
   const [expectedJoinDate, setExpectedJoinDate] = useState<Date | undefined>(undefined)
 
   // Auto-generate Lead ID on page load
-  const [leadId] = useState(generateLeadId)
+  const leadId = LEAD_ID_PLACEHOLDER
 
   const [duplicateFound, setDuplicateFound] = useState<any>(null)
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null)

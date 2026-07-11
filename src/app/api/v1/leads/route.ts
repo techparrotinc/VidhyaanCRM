@@ -221,7 +221,9 @@ export const POST = route({
     const body = createLeadSchema.parse(await req.json())
 
     const parentName = body.parentName
-    const resolvedYear = body.academicYearId || null
+    // Fall back to the request's resolved academic year (switcher/active year)
+    // so UI-created leads never land as year-less rows.
+    const resolvedYear = body.academicYearId || academicYearId || null
 
     // Dedup: block hard (and unconfirmed soft) matches; resolve household identity.
     const dedupConfig = await loadDedupConfig(db, user.orgId)
@@ -267,7 +269,7 @@ export const POST = route({
             batch: body.batch || null,
             leadCode,
             orgId: user.orgId,
-            academicYearId: body.academicYearId || null,
+            academicYearId: resolvedYear,
             phoneNormalized: identity.phoneNormalized,
             householdId: identity.householdId,
             nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
@@ -343,7 +345,7 @@ export const POST = route({
           batch: body.batch || null,
           leadCode,
           orgId: user.orgId,
-          academicYearId: body.academicYearId || null,
+          academicYearId: resolvedYear,
           phoneNormalized: identity.phoneNormalized,
           householdId: identity.householdId,
           nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,

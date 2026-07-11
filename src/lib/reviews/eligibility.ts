@@ -31,7 +31,7 @@ export async function getReviewEligibility(
 ): Promise<ReviewEligibility> {
   const parent = await prisma.parent.findUnique({
     where: { id: parentId },
-    select: { phone: true },
+    select: { phone: true, email: true },
   })
   const phoneClean =
     typeof cleanPhoneNumber(parent?.phone ?? '') === 'string'
@@ -80,7 +80,27 @@ export async function getReviewEligibility(
       : Promise.resolve(null),
   ])
 
-  const verified = Boolean(guardianLink || admittedApp)
+  // Contact-matched enrolment counts too — the parent portal already treats a
+  // guardianPhone/guardianEmail match as a live link (linkedStudentsWhere in
+  // lib/parent-portal), so the badge must agree with what the parent sees.
+  let contactMatchedStudent: { id: string } | null = null
+  if (!guardianLink && school?.orgId && (parent?.phone || parent?.email)) {
+    const contactMatch: any[] = []
+    if (parent?.phone) contactMatch.push({ guardianPhone: parent.phone })
+    if (parent?.email) contactMatch.push({ guardianEmail: parent.email })
+    contactMatchedStudent = await prisma.student.findFirst({
+      where: {
+        orgId: school.orgId,
+        status: 'ACTIVE',
+        deletedAt: null,
+        NOT: { guardianLinks: { some: { parentId, status: 'REVOKED' } } },
+        OR: contactMatch,
+      },
+      select: { id: true },
+    })
+  }
+
+  const verified = Boolean(guardianLink || contactMatchedStudent || admittedApp)
   // An enrolled parent is inherently eligible even without a marketplace
   // enquiry trail (they may have joined the school before Vidhyaan).
   const eligible = Boolean(enquiry || application || trialBooking || verified)

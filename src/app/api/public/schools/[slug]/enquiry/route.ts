@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/client'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 import { enquiryNotificationTemplate, enquiryConfirmationTemplate } from '@/lib/mail/templates'
 import { cleanPhoneNumber } from '@/lib/utils'
+import { getGradeLabel } from '@/constants/grades'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
 import { dedupFields } from '@/lib/dedup'
 import { resolveOrgEmail } from '@/lib/mail/org-templates'
@@ -24,7 +25,10 @@ export async function POST(
       source: z.enum(['VIDHYAAN', 'WEBSITE', 'WALK_IN', 'PHONE', 'WHATSAPP', 'REFERRAL', 'OTHER']).catch('VIDHYAAN').default('VIDHYAAN')
     }).parse(await req.json())
 
-    const { parentName, email, childName, gradeSought, message, source } = body
+    const { parentName, email, childName, message, source } = body
+    // The public grade picker submits option values ("lkg", "class_11_science");
+    // the CRM stores display labels ("LKG") — normalise so filters/reports match.
+    const gradeSought = body.gradeSought ? getGradeLabel(body.gradeSought) : body.gradeSought
     const phone = cleanPhoneNumber(body.phone) as string
 
 

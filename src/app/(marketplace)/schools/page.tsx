@@ -65,6 +65,8 @@ interface School {
   viewCount?: number
   admissionOpen: boolean
   avgResponseHours: number | null
+  gender?: string | null
+  gradesOffered?: string | null
   isFeatured?: boolean
   isVerified?: boolean
   verificationStatus?: string
@@ -1047,13 +1049,17 @@ export default function SchoolsSearchPage() {
                                 {school.institutionType || 'Private'}
                               </span>
 
-                              <span className="text-[9px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full uppercase">
-                                Co-Ed
-                              </span>
+                              {school.gender && (
+                                <span className="text-[9px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full uppercase">
+                                  {school.gender === 'CO_ED' ? 'Co-Ed' : school.gender === 'BOYS' ? 'Boys Only' : school.gender === 'GIRLS' ? 'Girls Only' : school.gender}
+                                </span>
+                              )}
 
-                              <span className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-100 px-2.5 py-0.5 rounded-full uppercase">
-                                Nursery – 12th
-                              </span>
+                              {school.gradesOffered && (
+                                <span className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-100 px-2.5 py-0.5 rounded-full uppercase">
+                                  {school.gradesOffered}
+                                </span>
+                              )}
                             </div>
 
                             {/* Row 3 — Stats row */}

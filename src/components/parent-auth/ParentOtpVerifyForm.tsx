@@ -68,6 +68,12 @@ export default function ParentOtpVerifyForm({
     if (digit && index < 3) {
       inputRefs.current[index + 1]?.focus()
     }
+
+    // Auto-verify on the 4th digit — same behaviour as the unified login page
+    const otpCode = newOtp.join('')
+    if (otpCode.length === 4) {
+      submitCode(otpCode)
+    }
   }
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -99,6 +105,10 @@ export default function ParentOtpVerifyForm({
 
     const focusIndex = Math.min(pastedData.length, 3)
     inputRefs.current[focusIndex]?.focus()
+
+    if (pastedData.length === 4) {
+      submitCode(pastedData)
+    }
   }
 
   const handleResend = async () => {
@@ -143,7 +153,12 @@ export default function ParentOtpVerifyForm({
       setError('Please fill in all 4 OTP digits')
       return
     }
+    await submitCode(otpCode)
+  }
 
+  const submitCode = async (otpCode: string) => {
+    setError(null)
+    setSuccess(null)
     setLoading(true)
     try {
       const res = await signIn('credentials', {

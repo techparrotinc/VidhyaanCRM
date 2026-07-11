@@ -6,6 +6,7 @@ import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { sendOrgTemplateEmail } from '@/lib/mail/org-templates'
+import { getGradeLabel } from '@/constants/grades'
 
 const convertSchema = z.object({
   name: z.string().optional(),
@@ -72,7 +73,13 @@ export const POST = route({
         name: inputData.name || admission.applicantName,
         guardianPhone: admission.phone ?? null,
         guardianEmail: admission.email ?? null,
-        gradeLabel: (inputData.gradeLabel || admission.gradeSought) ?? null,
+        // Admissions inherit raw lead grade values ("lkg"); students store
+        // display labels ("LKG") — normalise or the student is invisible to
+        // the promote wizard and class-mode fee targeting.
+        gradeLabel: (() => {
+          const g = inputData.gradeLabel || admission.gradeSought
+          return g ? getGradeLabel(g) : null
+        })(),
         studentCode,
         status: 'ACTIVE',
         academicYearId: admission.academicYearId ?? academicYearId ?? null,

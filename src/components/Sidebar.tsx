@@ -19,7 +19,6 @@ import {
   ListChecks,
   ChevronLeft,
   ChevronRight,
-  Shield,
   Lock,
   MoreVertical,
   X,
@@ -167,7 +166,7 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
 
   // User details
   const user = session?.user
-  const name = user?.name || "School Admin"
+  const name = user?.name || "Admin"
   const email = user?.email || "admin@vidhyaan.com"
   const initials = name
     .split(' ')
@@ -363,14 +362,13 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
       <div className="h-16 px-4 border-b border-[#334155] flex items-center justify-between shrink-0 bg-[#1E293B] relative">
         {isCollapsed ? (
           <div className="w-full flex items-center justify-center">
-            <Shield className="w-7 h-7 text-[#60A5FA] fill-[#60A5FA] shrink-0" strokeWidth={1.5} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/vidhyaan-icon-white.svg" alt="Vidhyaan" className="w-7 h-7 shrink-0" />
           </div>
         ) : (
-          <div className="flex items-center gap-2 min-w-0">
-            <Shield className="w-7 h-7 text-[#60A5FA] fill-[#60A5FA] shrink-0" strokeWidth={1.5} />
-            <span className="text-lg font-bold text-white truncate">
-              Vidhyaan
-            </span>
+          <div className="flex items-center min-w-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/vidhyaan-logo-white.svg" alt="Vidhyaan" className="h-7 w-auto" />
           </div>
         )}
 

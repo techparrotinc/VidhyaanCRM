@@ -203,9 +203,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Header / Logo */}
       <div className={`shrink-0 border-b border-slate-800 ${isCollapsed ? 'p-4' : 'p-6'}`}>
         <Link href="/admin" className="flex items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20 shrink-0">
-            V
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/vidhyaan-icon-white.svg" alt="Vidhyaan" className="w-9 h-9 shrink-0" />
           {!isCollapsed && (
             <div>
               <span className="font-bold text-lg tracking-tight block text-white leading-none font-sans">Vidhyaan</span>

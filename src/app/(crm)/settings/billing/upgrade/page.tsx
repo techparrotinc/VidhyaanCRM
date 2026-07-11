@@ -385,7 +385,8 @@ export default function UpgradePlanPage() {
           {/* LEFT: What you're buying + trust */}
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-[#1565D8] flex items-center justify-center font-bold text-white text-lg shadow-sm">V</div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/vidhyaan-icon.svg" alt="Vidhyaan" className="w-11 h-11" />
               <div>
                 <div className="text-sm font-black text-slate-900">Vidhyaan</div>
                 <div className="text-[11px] font-semibold text-slate-400">School CRM & Fee Management</div>

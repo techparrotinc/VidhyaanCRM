@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, Loader2, AlertCircle, ArrowRight, MapPin, Award, Lock, ArrowLeft } from 'lucide-react'
+import { Loader2, AlertCircle, ArrowRight, MapPin, Award, Lock, ArrowLeft } from 'lucide-react'
 import {
   INSTITUTION_CONFIG,
   CENTER_CATEGORIES,
@@ -232,9 +232,8 @@ export default function RegisterPage() {
         <div className="relative z-10 flex flex-col justify-between p-10 w-full h-full">
           {/* Logo */}
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
-              <Shield className="text-white w-5 h-5" />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/vidhyaan-icon-white.svg" alt="Vidhyaan" className="w-9 h-9" />
             <span className="text-lg font-extrabold text-white tracking-tight">Vidhyaan for Partners</span>
           </div>
 
@@ -282,9 +281,8 @@ export default function RegisterPage() {
           
           {/* Mobile logo (hidden on desktop) */}
           <div className="flex flex-col items-center mb-4 lg:hidden">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#1565D8] to-[#1E88E5] rounded-xl flex items-center justify-center shadow-md mb-1.5">
-              <Shield className="text-white w-6 h-6" />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/vidhyaan-icon.svg" alt="Vidhyaan" className="w-10 h-10 mb-1.5" />
             <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
               Vidhyaan
             </h1>

@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { Shield, Lock } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import ParentRegisterForm from '@/components/parent-auth/ParentRegisterForm'
 
 export default function ParentRegisterPage() {
@@ -53,10 +53,8 @@ export default function ParentRegisterPage() {
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
-              <Shield className="text-white w-6 h-6" />
-            </div>
-            <span className="text-xl font-extrabold text-white tracking-tight">Vidhyaan</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/vidhyaan-logo-white.svg" alt="Vidhyaan" className="h-9 w-auto" />
           </div>
 
           {/* Hero text */}
@@ -102,9 +100,8 @@ export default function ParentRegisterPage() {
           
           {/* Mobile logo (hidden on desktop) */}
           <div className="flex flex-col items-center mb-8 lg:hidden">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#1565D8] to-[#1E88E5] rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200/40 mb-2.5">
-              <Shield className="text-white w-7 h-7" />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/vidhyaan-icon.svg" alt="Vidhyaan" className="w-12 h-12 mb-2.5" />
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
               Vidhyaan
             </h1>

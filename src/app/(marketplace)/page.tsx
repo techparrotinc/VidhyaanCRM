@@ -526,7 +526,7 @@ export default function MarketplaceHomepage() {
             "@context": "https://schema.org",
             "@type": "Product",
             "name": "Vidhyaan School Discovery Platform",
-            "image": "https://vidhyaan.com/favicon.ico",
+            "image": "https://vidhyaan.com/brand/vidhyaan-icon-512.png",
             "description": "Find and compare the best schools and learning centers near you.",
             "aggregateRating": {
               "@type": "AggregateRating",
@@ -1394,10 +1394,8 @@ export default function MarketplaceHomepage() {
           {/* Brand column */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-[#1565D8] flex items-center justify-center text-white font-black text-xs shadow-md">
-                V
-              </div>
-              <span className="text-base font-black tracking-tight text-white">Vidhyaan</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/vidhyaan-logo-white.svg" alt="Vidhyaan" className="h-8 w-auto" />
             </div>
             <p className="text-xs leading-relaxed text-slate-400 font-medium max-w-xs">
               India's trusted school discovery platform

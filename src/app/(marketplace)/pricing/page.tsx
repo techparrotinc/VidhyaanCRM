@@ -456,10 +456,8 @@ export default function PricingPage() {
           {/* Brand column */}
           <div className="space-y-4 text-left">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-[#1565D8] flex items-center justify-center text-white font-black text-xs shadow-md">
-                V
-              </div>
-              <span className="text-base font-black tracking-tight text-white">Vidhyaan</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/vidhyaan-logo-white.svg" alt="Vidhyaan" className="h-8 w-auto" />
             </div>
             <p className="text-xs leading-relaxed text-slate-400 font-medium max-w-xs">
               India's trusted school discovery platform

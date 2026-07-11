@@ -40,12 +40,8 @@ export default function ParentRegisterModal({
         
         {/* Compact Branding Header */}
         <div className="flex items-center justify-center gap-2 mb-4">
-          <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center shadow-sm">
-            <Shield className="text-[#1565D8] w-4 h-4" />
-          </div>
-          <h1 className="text-base font-extrabold tracking-tight text-slate-900 font-sans">
-            Vidhyaan
-          </h1>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/vidhyaan-logo.svg" alt="Vidhyaan" className="h-7 w-auto" />
         </div>
 
         {/* Dialog Title for accessibility (Visually hidden if header has similar contents, but let's keep it clean) */}

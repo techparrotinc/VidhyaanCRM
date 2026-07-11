@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, Search, Loader2, ArrowRight, MapPin, Building, Award } from 'lucide-react'
+import { Search, Loader2, ArrowRight, MapPin, Building, Award } from 'lucide-react'
 
 interface SchoolResult {
   id: string
@@ -156,10 +156,8 @@ export default function ClaimProfilePage() {
             </Link>
             
             <div className="flex items-center gap-2 select-none">
-              <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center shadow-sm">
-                <Shield className="text-[#1565D8] w-5 h-5" />
-              </div>
-              <span className="text-lg font-bold text-slate-800 tracking-tight">Vidhyaan</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/vidhyaan-logo.svg" alt="Vidhyaan" className="h-7 w-auto" />
             </div>
           </div>
 

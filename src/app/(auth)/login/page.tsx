@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Shield, Loader2, ArrowLeft, CheckCircle2, Lock, AlertCircle, Users, Building2 } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import PinInput from '@/components/ui/PinInput'
+import { institutionNoun } from '@/lib/institution'
 
 type LoginState = 'phone' | 'workspace' | 'pin' | 'otp' | 'twofa'
 
@@ -12,12 +13,13 @@ type RoleAssignment = {
   id: string
   role: string
   orgName: string | null
+  institutionType: string | null
 }
 
-const roleLabel = (role: string) => {
+const roleLabel = (role: string, institutionType?: string | null) => {
   if (role === 'PARENT') return 'Parent'
   if (['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN'].includes(role)) return 'Platform Admin'
-  return 'School Admin'
+  return `${institutionNoun(institutionType)} Admin`
 }
 
 export default function LoginPage() {
@@ -27,6 +29,7 @@ export default function LoginPage() {
   const [userName, setUserName] = useState('')
   const [hasPin, setHasPin] = useState(false)
   const [userRole, setUserRole] = useState('')
+  const [institutionType, setInstitutionType] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
 
@@ -221,6 +224,7 @@ export default function LoginPage() {
 
       setUserName(data.name || 'User')
       setUserRole(data.role || '')
+      setInstitutionType(data.institutionType ?? null)
       setHasPin(data.hasPin)
 
       const roleAssignments: RoleAssignment[] = data.assignments ?? []
@@ -537,13 +541,9 @@ export default function LoginPage() {
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
-              <Shield className="text-white w-6 h-6" />
-            </div>
-            <span className="text-xl font-extrabold text-white tracking-tight">
-              Vidhyaan
-            </span>
+          <div className="flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/vidhyaan-logo-white.svg" alt="Vidhyaan" className="h-9 w-auto" />
           </div>
 
           {/* Hero text */}
@@ -591,12 +591,8 @@ export default function LoginPage() {
           
           {/* Mobile logo (hidden on desktop) */}
           <div className="flex flex-col items-center mb-8 lg:hidden">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#1565D8] to-[#1E88E5] rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200/40 mb-2.5">
-              <Shield className="text-white w-7 h-7" />
-            </div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
-              Vidhyaan
-            </h1>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/vidhyaan-logo.svg" alt="Vidhyaan" className="h-10 w-auto" />
           </div>
 
           {/* Card Container */}
@@ -776,7 +772,7 @@ export default function LoginPage() {
                             {isParentRole ? 'Parent Portal' : a.orgName ?? 'Institution'}
                           </p>
                           <p className="text-xs text-slate-400 font-medium mt-0.5">
-                            {roleLabel(a.role)}
+                            {roleLabel(a.role, a.institutionType)}
                           </p>
                         </div>
                       </button>
@@ -823,8 +819,8 @@ export default function LoginPage() {
                       {selectedAssignment
                         ? (selectedAssignment.role === 'PARENT'
                             ? 'Parent Portal'
-                            : selectedAssignment.orgName ?? roleLabel(selectedAssignment.role))
-                        : roleLabel(userRole)}
+                            : selectedAssignment.orgName ?? roleLabel(selectedAssignment.role, selectedAssignment.institutionType))
+                        : roleLabel(userRole, institutionType)}
                     </span>
                     <button
                       onClick={() => {

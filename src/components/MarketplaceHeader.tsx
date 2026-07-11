@@ -156,11 +156,9 @@ export default function MarketplaceHeader() {
           
           <div className="flex items-center gap-3">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 cursor-pointer">
-              <div className="w-8 h-8 rounded-lg bg-[#1565D8] flex items-center justify-center text-white font-black text-sm shadow-md">
-                V
-              </div>
-              <span className="text-base font-black tracking-tight text-slate-900">Vidhyaan</span>
+            <Link href="/" className="flex items-center cursor-pointer">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/vidhyaan-logo.svg" alt="Vidhyaan" className="h-8 w-auto" />
             </Link>
           </div>
 

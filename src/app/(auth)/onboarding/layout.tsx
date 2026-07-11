@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
 
 const steps = [
-  { number: 1, label: 'School Info', path: '/onboarding/step/1' },
+  { number: 1, label: 'Basic Info', path: '/onboarding/step/1' },
   { number: 2, label: 'Location', path: '/onboarding/step/2' },
   { number: 3, label: 'Academics', path: '/onboarding/step/3' },
   { number: 4, label: 'Photos', path: '/onboarding/step/4' },
@@ -45,10 +45,8 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
       <header className="h-20 bg-white border-b border-slate-100 px-6 flex items-center justify-between sticky top-0 z-50 shadow-sm">
         {/* Left: Logo */}
         <div className="flex items-center gap-2 select-none">
-          <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center shadow-sm">
-            <Shield className="text-[#1565D8] w-5.5 h-5.5" />
-          </div>
-          <span className="text-xl font-bold text-slate-800 tracking-tight">Vidhyaan</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/vidhyaan-logo.svg" alt="Vidhyaan" className="h-8 w-auto" />
         </div>
 
         {/* Center: Step progress bar */}

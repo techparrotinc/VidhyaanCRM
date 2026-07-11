@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, Loader2, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Loader2, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react'
 import PinInput from '@/components/ui/PinInput'
 
 type Step = 1 | 2 | 3
@@ -286,9 +286,8 @@ export default function ForgotPinPage() {
       <div className="w-full max-w-[420px]">
         {/* Logo Branding */}
         <div className="flex flex-col items-center mb-6">
-          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center shadow-sm mb-2">
-            <Shield className="text-[#1565D8] w-8 h-8" />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/vidhyaan-icon.svg" alt="Vidhyaan" className="w-12 h-12 mb-2" />
           <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
             Vidhyaan
           </h1>

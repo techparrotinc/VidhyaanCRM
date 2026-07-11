@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { Shield } from 'lucide-react'
 
 const MESSAGES = [
   "Setting up your dashboard...",
@@ -79,7 +78,8 @@ export default function LoadingScreen() {
       <div className="flex flex-col items-center text-center space-y-8 max-w-sm">
         {/* Branding & Logo */}
         <div className="flex flex-col items-center space-y-3">
-          <Shield className="w-12 h-12 text-[#1565D8] fill-[#1565D8]/10" strokeWidth={1.5} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/vidhyaan-icon.svg" alt="" className="w-12 h-12" />
           <h2 className="text-xl font-bold text-slate-800 font-sans tracking-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>
             Vidhyaan
           </h2>

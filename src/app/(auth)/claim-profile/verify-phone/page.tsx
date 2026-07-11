@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
-import { Shield, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 export default function ClaimVerifyPhonePage() {
   const router = useRouter()
@@ -164,10 +164,8 @@ export default function ClaimVerifyPhonePage() {
         {/* Logo and Progress Bar */}
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center gap-2 select-none mb-6">
-            <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center shadow-sm">
-              <Shield className="text-[#1565D8] w-5 h-5" />
-            </div>
-            <span className="text-lg font-bold text-slate-800 tracking-tight">Vidhyaan</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/vidhyaan-logo.svg" alt="Vidhyaan" className="h-7 w-auto" />
           </div>
 
           <div className="w-full bg-white rounded-2xl border border-slate-100 p-5 shadow-sm mb-6">

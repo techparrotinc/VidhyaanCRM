@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
         textBody: `Your Vidhyaan OTP code is: ${code}`
       })
     } else {
-      await sendOTP(contactToUse, code, channel, mappedPurpose)
+      await sendOTP(contactToUse, code, channel, mappedPurpose, { orgId: existingUser?.orgId })
     }
 
     return NextResponse.json({

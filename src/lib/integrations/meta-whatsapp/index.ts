@@ -72,6 +72,52 @@ export async function sendMetaWhatsAppTemplate(params: MetaSendParams): Promise<
 }
 
 /**
+ * AUTHENTICATION-category template send (login OTP). Meta's auth templates
+ * take the code as both a body parameter and the copy-code button parameter.
+ */
+export async function sendMetaAuthOtp(params: {
+  to: string
+  code: string
+  accessToken: string
+  phoneNumberId: string
+  templateName?: string
+  language?: string
+}): Promise<string | null> {
+  const phone = params.to.replace(/\D/g, '')
+  const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`
+  const response = await fetch(`${GRAPH_BASE}/${params.phoneNumberId}/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${params.accessToken}`
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      to: formattedPhone,
+      type: 'template',
+      template: {
+        name: params.templateName ?? 'otp_login',
+        language: { code: params.language ?? 'en' },
+        components: [
+          { type: 'body', parameters: [{ type: 'text', text: params.code }] },
+          {
+            type: 'button',
+            sub_type: 'url',
+            index: '0',
+            parameters: [{ type: 'text', text: params.code }]
+          }
+        ]
+      }
+    })
+  })
+  const data: any = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new MetaWhatsAppError(data?.error?.message || 'Meta OTP send failed', data?.error?.code)
+  }
+  return data?.messages?.[0]?.id ?? null
+}
+
+/**
  * Free-form text message — only deliverable inside the 24h customer-service
  * window (used for opt-out confirmations replying to an inbound message).
  */

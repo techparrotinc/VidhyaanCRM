@@ -40,7 +40,7 @@ export async function POST() {
       if (existing) {
         await prisma.sharedWhatsappTemplate.update({
           where: { id: existing.id },
-          data: { body: tpl.body || existing.body }
+          data: { body: tpl.body || existing.body, metaCategory: tpl.category }
         })
         continue
       }
@@ -52,6 +52,7 @@ export async function POST() {
           language: tpl.language,
           body: tpl.body || tpl.name,
           category: guessWaTemplateCategory(tpl.name, tpl.body),
+          metaCategory: tpl.category,
           variables:
             tpl.variableCount > 0
               ? Array.from({ length: tpl.variableCount }, (_, i) => `var${i + 1}`)

@@ -1,8 +1,10 @@
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/db/client'
 import { OtpChannel, OtpPurpose } from '@prisma/client'
-import { sendOtpSms, sendOtpWhatsApp } from '@/lib/integrations/msg91'
+import { sendOtpSms } from '@/lib/integrations/msg91'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
+import { sendMetaAuthOtp } from '@/lib/integrations/meta-whatsapp'
+import { getMetaWhatsAppConfig } from '@/lib/platform-config'
 
 export function generateOTP(): string {
   const array = new Uint32Array(1)
@@ -79,11 +81,41 @@ async function sendOtpEmail(email: string, code: string): Promise<void> {
   }
 }
 
+export type OrgOtpChannel = 'SMS' | 'WHATSAPP' | 'BOTH'
+
+/** Org-configurable OTP delivery preference (Settings → Notifications). */
+export async function getOrgOtpChannel(orgId: string): Promise<OrgOtpChannel> {
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { settings: true }
+    })
+    const pref = (org?.settings as any)?.otpChannel
+    return pref === 'WHATSAPP' || pref === 'BOTH' ? pref : 'SMS'
+  } catch {
+    return 'SMS'
+  }
+}
+
+/** OTP over WhatsApp via the Meta AUTHENTICATION template. Throws on failure. */
+async function sendOtpWhatsAppMeta(phone: string, code: string): Promise<void> {
+  const cfg = await getMetaWhatsAppConfig()
+  if (!cfg.configured) throw new Error('Meta WhatsApp not configured')
+  await sendMetaAuthOtp({
+    to: phone,
+    code,
+    accessToken: cfg.accessToken!,
+    phoneNumberId: cfg.phoneNumberId!,
+    templateName: process.env.META_WA_OTP_TEMPLATE || 'otp_login'
+  })
+}
+
 export async function sendOTP(
   contact: string,
   code: string,
   channel: OtpChannel,
-  purpose?: OtpPurpose
+  purpose?: OtpPurpose,
+  opts?: { orgId?: string | null }
 ): Promise<void> {
   const isDev = process.env.NODE_ENV === 'development' && process.env.FORCE_REAL_OTP !== 'true'
 
@@ -105,16 +137,26 @@ export async function sendOTP(
       templateId = process.env.MSG91_LOGIN_TEMPLATE_ID
     }
 
-    await sendOtpSms(
-      contact,
-      code,
-      templateId
-    )
+    // Org preference decides the channel mix; platform users (no org) keep
+    // SMS unless the env kill-switch opts everyone into WhatsApp too.
+    const pref: OrgOtpChannel = opts?.orgId
+      ? await getOrgOtpChannel(opts.orgId)
+      : process.env.ENABLE_WHATSAPP === 'true' ? 'BOTH' : 'SMS'
 
-    if (process.env.ENABLE_WHATSAPP === 'true') {
-      await sendOtpWhatsApp(contact, code).catch((err) => {
-        console.error('WhatsApp OTP failed:', err)
-      })
+    let waDelivered = false
+    if (pref === 'WHATSAPP' || pref === 'BOTH') {
+      try {
+        await sendOtpWhatsAppMeta(contact, code)
+        waDelivered = true
+      } catch (err: any) {
+        console.error('WhatsApp OTP failed (falling back to SMS):', err?.message ?? err)
+      }
+    }
+
+    // SMS is the reliability floor: send it unless the org chose
+    // WhatsApp-only AND the WhatsApp send actually went through.
+    if (!(pref === 'WHATSAPP' && waDelivered)) {
+      await sendOtpSms(contact, code, templateId)
     }
   }
 

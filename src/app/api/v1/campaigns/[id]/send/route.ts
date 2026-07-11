@@ -240,6 +240,7 @@ async function handleSendCampaign({
   // the whole batch (failed sends refunded in STEP 10); zero balance blocks.
   let providerCreds: Awaited<ReturnType<typeof getActiveProviderConfig>> = null
   let debitSplit: { fromFree: number; fromPurchased: number } | null = null
+  let creditsPerMessage = 1
 
   if (isCreditChannel && recipients.length > 0) {
     providerCreds = await getActiveProviderConfig(orgId, creditChannel)
@@ -250,7 +251,7 @@ async function handleSendCampaign({
     if (campaign.channel === CampaignChannel.WHATSAPP && campaign.whatsappTemplateId) {
       const tpl = await db.whatsappTemplate.findFirst({
         where: { id: campaign.whatsappTemplateId, orgId, deletedAt: null },
-        select: { accountScope: true, name: true }
+        select: { accountScope: true, name: true, metaCategory: true }
       })
       if (!tpl) {
         return NextResponse.json(
@@ -270,17 +271,23 @@ async function handleSendCampaign({
           { status: 422 }
         )
       }
+      // Marketing-category templates cost Meta ~7.5× a utility message —
+      // reflected as 2 credits per recipient (utility/auth stay at 1).
+      if (tpl.metaCategory === 'MARKETING') {
+        creditsPerMessage = 2
+      }
     }
 
     if (!providerCreds) {
+      const creditsNeeded = recipients.length * creditsPerMessage
       try {
-        debitSplit = await spendCredits(orgId, creditChannel, recipients.length, campaign.id)
+        debitSplit = await spendCredits(orgId, creditChannel, creditsNeeded, campaign.id)
       } catch (err) {
         if (err instanceof InsufficientCreditsError) {
           return NextResponse.json(
             {
               success: false,
-              error: `Not enough ${creditChannel === 'SMS' ? 'SMS' : 'WhatsApp'} credits: this campaign needs ${recipients.length}, you have ${err.available}. Purchase credits in Settings → Add-ons.`,
+              error: `Not enough ${creditChannel === 'SMS' ? 'SMS' : 'WhatsApp'} credits: this campaign needs ${creditsNeeded}${creditsPerMessage > 1 ? ` (${recipients.length} recipients × ${creditsPerMessage} credits for a marketing template)` : ''}, you have ${err.available}. Purchase credits in Settings → Add-ons.`,
               code: 'INSUFFICIENT_CREDITS',
               shortfall: err.shortfall,
               available: err.available
@@ -443,7 +450,7 @@ async function handleSendCampaign({
 
   // Refund credits for failed sends in the pre-debited batch
   if (debitSplit && finalFailed > 0) {
-    await refundCredits(orgId, creditChannel, finalFailed, debitSplit, campaign.id).catch(err =>
+    await refundCredits(orgId, creditChannel, finalFailed * creditsPerMessage, debitSplit, campaign.id).catch(err =>
       console.error('Credit refund failed:', err)
     )
   }

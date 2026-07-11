@@ -35,6 +35,7 @@ export const POST = route({
         body: shared.body,
         variables: shared.variables ?? undefined,
         category: shared.category,
+        metaCategory: shared.metaCategory,
         accountScope: 'VIDHYAAN',
         // Catalog entries mirror templates already approved on Vidhyaan's
         // WABA — immediately usable, no per-org verification needed

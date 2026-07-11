@@ -54,7 +54,11 @@ export async function sendTemplateNotification(
     template.msg91TemplateId,
     '', // structured params path — legacy blob unused
     args.ref,
-    { language: template.language, parameters: parameters ?? undefined }
+    {
+      language: template.language,
+      parameters: parameters ?? undefined,
+      credits: template.metaCategory === 'MARKETING' ? 2 : 1
+    }
   )
   return true
 }

@@ -2568,6 +2568,9 @@ model WhatsappTemplate {
   /// Functional bucket (GENERAL/FEE_REMINDER/ATTENDANCE/HOMEWORK/…) — see
   /// src/constants/whatsapp-template-categories.ts
   category         String           @default("GENERAL")
+  /// Meta pricing category (MARKETING/UTILITY/AUTHENTICATION) — drives
+  /// per-message credit cost (marketing costs Meta ~7.5× utility)
+  metaCategory     String?          @map("meta_category")
   /// Which WhatsApp account this template lives on
   accountScope     WaAccountScope   @default(VIDHYAAN) @map("account_scope")
   /// Soft ref to billing.messaging_provider_configs when accountScope=OWN
@@ -2616,6 +2619,8 @@ model SharedWhatsappTemplate {
   variables       Json?
   /// Functional bucket — see src/constants/whatsapp-template-categories.ts
   category        String    @default("GENERAL")
+  /// Meta pricing category (MARKETING/UTILITY/AUTHENTICATION)
+  metaCategory    String?   @map("meta_category")
   isActive        Boolean   @default(true) @map("is_active")
   sortOrder       Int       @default(0) @map("sort_order")
   createdAt       DateTime  @default(now()) @map("created_at")

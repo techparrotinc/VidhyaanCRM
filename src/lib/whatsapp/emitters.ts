@@ -5,7 +5,7 @@
 
 import { format } from 'date-fns'
 import { prisma } from '@/lib/db/client'
-import { notifyWhatsApp, orgDisplayName, gradeValue } from './notify'
+import { notifyWhatsApp, sendTemplateNotification, orgDisplayName, gradeValue } from './notify'
 
 export function formatInr(amount: unknown): string {
   const n = Number(amount)
@@ -176,22 +176,40 @@ interface InvoiceNotifyArgs {
   dueDate?: Date | null
 }
 
-/** Invoice created → fee details to the guardian. */
+/**
+ * Invoice created → fee details to the guardian. Prefers the payment-link
+ * variant (deep link into the parent portal checkout — payments reconcile
+ * through the existing gateway webhook) when the org adopted it; falls back
+ * to the plain fee_invoice template.
+ */
 export async function onInvoiceCreated(args: InvoiceNotifyArgs): Promise<void> {
   const schoolName = await orgDisplayName(args.orgId)
-  notifyWhatsApp({
+  const values = {
+    parentName: args.guardianName || 'Parent',
+    plan: args.plan,
+    amount: args.amount,
+    date: args.dueDate ? format(args.dueDate, 'd MMM yyyy') : '-',
+    schoolName,
+    link: `${process.env.NEXTAUTH_URL || 'https://vidhyaan.com'}/parent/fees?invoice=${args.invoiceId}`
+  }
+
+  const withLink = await sendTemplateNotification({
     orgId: args.orgId,
-    template: 'fee_invoice',
+    template: 'fee_invoice_with_payment_link',
     phone: args.guardianPhone,
-    values: {
-      parentName: args.guardianName || 'Parent',
-      plan: args.plan,
-      amount: args.amount,
-      date: args.dueDate ? format(args.dueDate, 'd MMM yyyy') : '-',
-      schoolName
-    },
+    values,
     ref: `fee_invoice:${args.invoiceId}`
-  })
+  }).catch(() => false)
+
+  if (!withLink) {
+    notifyWhatsApp({
+      orgId: args.orgId,
+      template: 'fee_invoice',
+      phone: args.guardianPhone,
+      values,
+      ref: `fee_invoice:${args.invoiceId}`
+    })
+  }
 }
 
 /** Batch invoice run → per-guardian fee notifications for active invoices. */

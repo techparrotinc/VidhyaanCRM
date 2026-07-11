@@ -60,10 +60,13 @@ export async function sendMeteredWhatsApp(
     language?: string
     /** Ordered positional {{1}}..{{n}} parameters; overrides legacy body mode. */
     parameters?: string[]
+    /** Credits to debit (2 for MARKETING-category templates; default 1). */
+    credits?: number
   }
 ): Promise<void> {
+  const qty = opts?.credits ?? 1
   const byo = await getActiveProviderConfig(orgId, 'WHATSAPP' as MessageChannel)
-  const spent = byo ? null : await spendCredits(orgId, 'WHATSAPP' as MessageChannel, 1, ref)
+  const spent = byo ? null : await spendCredits(orgId, 'WHATSAPP' as MessageChannel, qty, ref)
   let wamid: string | null = null
   try {
     wamid = await sendCampaignWhatsApp({
@@ -78,7 +81,7 @@ export async function sendMeteredWhatsApp(
     })
   } catch (err: any) {
     if (spent) {
-      await refundCredits(orgId, 'WHATSAPP' as MessageChannel, 1, spent, ref).catch(() => {})
+      await refundCredits(orgId, 'WHATSAPP' as MessageChannel, qty, spent, ref).catch(() => {})
     }
     await prisma.whatsappMessage
       .create({

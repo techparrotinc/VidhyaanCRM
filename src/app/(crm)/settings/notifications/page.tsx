@@ -42,6 +42,8 @@ export default function NotificationSettingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [whatsappModuleEnabled, setWhatsappModuleEnabled] = useState(true) // assume enabled during trial
+  const [otpChannel, setOtpChannel] = useState<'SMS' | 'WHATSAPP' | 'BOTH'>('SMS')
+  const [otpSaving, setOtpSaving] = useState(false)
 
   // Toast notifier state
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false })
@@ -76,7 +78,29 @@ export default function NotificationSettingsPage() {
 
   useEffect(() => {
     fetchPreferences()
+    fetch('/api/v1/settings/notifications/otp-channel')
+      .then(r => r.json())
+      .then(j => j?.data?.otpChannel && setOtpChannel(j.data.otpChannel))
+      .catch(() => {})
   }, [])
+
+  const saveOtpChannel = async (value: 'SMS' | 'WHATSAPP' | 'BOTH') => {
+    setOtpChannel(value)
+    setOtpSaving(true)
+    try {
+      const res = await fetch('/api/v1/settings/notifications/otp-channel', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otpChannel: value })
+      })
+      if (!res.ok) throw new Error('Only the org admin can change the OTP channel')
+      triggerToast('Login OTP channel updated')
+    } catch (err: any) {
+      appAlert(err.message || 'Could not save OTP channel')
+    } finally {
+      setOtpSaving(false)
+    }
+  }
 
   const triggerToast = (message: string) => {
     setToast({ message, show: true })
@@ -148,6 +172,38 @@ export default function NotificationSettingsPage() {
         <div>
           <h3 className="text-lg font-bold text-slate-950">Notification Preferences</h3>
           <p className="text-sm text-slate-500">Configure alert channels for leads, admissions, fees, and trial changes.</p>
+        </div>
+      </div>
+
+      {/* Login OTP channel (org-wide) */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-[#1565D8]" />
+          <h4 className="text-sm font-bold text-slate-800">Login OTP delivery</h4>
+          {otpSaving && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />}
+        </div>
+        <p className="text-xs text-slate-500">
+          How your team receives login verification codes. WhatsApp delivery automatically falls back to SMS if it fails — nobody gets locked out.
+        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          {([
+            { value: 'SMS', label: 'SMS only' },
+            { value: 'WHATSAPP', label: 'WhatsApp (SMS fallback)' },
+            { value: 'BOTH', label: 'Both' }
+          ] as const).map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => saveOtpChannel(opt.value)}
+              disabled={otpSaving}
+              className={`px-3.5 py-2 text-xs font-semibold rounded-lg border transition-colors ${
+                otpChannel === opt.value
+                  ? 'bg-[#1565D8] border-[#1565D8] text-white'
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 

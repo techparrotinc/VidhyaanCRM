@@ -199,11 +199,11 @@ export default function ParentRegisterForm({
           />
           <label htmlFor="terms" className="text-xs text-slate-500 font-medium leading-relaxed select-none">
             I agree to the{' '}
-            <a href="/terms" target="_blank" className="text-[#1565D8] font-bold hover:underline">
+            <a href="/terms-of-service" target="_blank" className="text-[#1565D8] font-bold hover:underline">
               Terms of Service
             </a>{' '}
             and{' '}
-            <a href="/privacy" target="_blank" className="text-[#1565D8] font-bold hover:underline">
+            <a href="/privacy-policy" target="_blank" className="text-[#1565D8] font-bold hover:underline">
               Privacy Policy
             </a>
           </label>

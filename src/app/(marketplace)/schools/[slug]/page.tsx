@@ -1975,9 +1975,10 @@ export default function SchoolProfilePage() {
             <div className="flex flex-col space-y-2 text-xs font-semibold text-slate-355">
               <Link href="/about" className="hover:text-white transition">About Us</Link>
               <Link href="/contact" className="hover:text-white transition">Contact Us</Link>
-              <Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link>
-              <Link href="/terms" className="hover:text-white transition">Terms of Service</Link>
-              <Link href="/refunds" className="hover:text-white transition">Refund Policy</Link>
+              <Link href="/privacy-policy" className="hover:text-white transition">Privacy Policy</Link>
+              <Link href="/terms-of-service" className="hover:text-white transition">Terms of Service</Link>
+              <Link href="/terms-of-service" className="hover:text-white transition">Refund Policy</Link>
+              <Link href="/data-deletion" className="hover:text-white transition">Data Deletion</Link>
             </div>
           </div>
         </div>

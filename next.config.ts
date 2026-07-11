@@ -32,6 +32,10 @@ const nextConfig: NextConfig = {
         destination: "/products/parent-portal",
         permanent: true,
       },
+      // Legacy legal-page paths (old footer links, external references)
+      { source: "/privacy", destination: "/privacy-policy", permanent: true },
+      { source: "/terms", destination: "/terms-of-service", permanent: true },
+      { source: "/refunds", destination: "/terms-of-service", permanent: true },
     ];
   }
 };

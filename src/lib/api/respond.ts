@@ -65,6 +65,18 @@ export function errorResponse(
     )
   }
 
+  // Malformed/empty request body from req.json() — client fault, not a crash
+  if (error instanceof SyntaxError) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Invalid or empty request body',
+        code: 'VALIDATION_ERROR'
+      },
+      { status: 400 }
+    )
+  }
+
   console.error('Unhandled error:', error)
   return NextResponse.json(
     {

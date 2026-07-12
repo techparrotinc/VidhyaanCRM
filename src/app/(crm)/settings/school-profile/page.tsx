@@ -41,6 +41,7 @@ import BillingTab from '@/components/settings/school-profile/BillingTab'
 import AdmissionsTab from '@/components/settings/school-profile/AdmissionsTab'
 import FeesTab from '@/components/settings/school-profile/FeesTab'
 import { Progress } from '@/components/ui/progress'
+import { institutionNoun } from '@/lib/institution'
 
 interface SchoolMedia {
   id: string
@@ -297,12 +298,6 @@ export default function SchoolProfilePage() {
         setAdmissionFormLink(s.admissionFormLink || '')
       }
 
-      // Load Plan details
-      const billingRes = await fetch('/api/v1/billing')
-      const billingData = await billingRes.json()
-      if (billingData.org?.plan?.slug) {
-        setPlanSlug(billingData.org.plan.slug)
-      }
     } catch (e) {
       console.error('Failed to load profile:', e)
     } finally {
@@ -310,15 +305,30 @@ export default function SchoolProfilePage() {
     }
   }
 
+  // Plan slug only gates upsell chrome — fetch alongside the profile instead
+  // of serially after it, and never hold the page spinner for it.
+  const loadPlan = async () => {
+    try {
+      const billingRes = await fetch('/api/v1/billing')
+      const billingData = await billingRes.json()
+      if (billingData.org?.plan?.slug) {
+        setPlanSlug(billingData.org.plan.slug)
+      }
+    } catch (e) {
+      console.error('Failed to load plan:', e)
+    }
+  }
+
   useEffect(() => {
     loadProfile()
+    loadPlan()
   }, [])
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
         <Loader2 className="w-8 h-8 text-[#1565D8] animate-spin" />
-        <span className="text-sm font-semibold text-slate-500">Loading School Profile...</span>
+        <span className="text-sm font-semibold text-slate-500">Loading Profile...</span>
       </div>
     )
   }
@@ -327,7 +337,7 @@ export default function SchoolProfilePage() {
     return (
       <div className="p-6 text-center">
         <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-lg font-bold text-slate-800">School Profile Not Found</h3>
+        <h3 className="text-lg font-bold text-slate-800">Profile Not Found</h3>
         <p className="text-sm text-slate-500 mt-1">Please ensure your organization is properly setup.</p>
       </div>
     )
@@ -764,9 +774,9 @@ export default function SchoolProfilePage() {
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-905 font-sans">School Profile Manager</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-905 font-sans">{institutionNoun(school.institutionType)} Profile Manager</h1>
           <p className="text-sm text-slate-500 font-normal">
-            Manage your school page public details, curriculum, fees, and photo gallery.
+            Manage your {institutionNoun(school.institutionType).toLowerCase()} page public details, curriculum, fees, and photo gallery.
           </p>
         </div>
         <div className="flex items-center gap-2.5">

@@ -1686,7 +1686,7 @@ export default function SchoolProfilePage() {
               isGated={isGated}
               onRegister={() => setRegisterModalOpen(true)}
               title="Unlock Admissions Form"
-              subtext="Create a free parent account to send enquiries and schedule campus visits."
+              subtext="Create a free parent account to track your enquiries and schedule campus visits — or use Send Enquiry above for a quick question without an account."
             >
             
             {/* CARD 1 — QUICK ENQUIRY */}

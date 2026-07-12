@@ -670,14 +670,14 @@ export default function SchoolsSearchPage() {
                 <div className="space-y-2 pb-3 border-b border-slate-100">
                   <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">CURRICULUM</label>
                   <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                    {[
-                      { label: 'CBSE', count: 16 },
-                      { label: 'IGCSE', count: 3 },
-                      { label: 'ICSE', count: 4 },
-                      { label: 'State Board', count: 5, query: 'State' },
-                      { label: 'IB', count: 2 },
-                      { label: 'Cambridge', count: 1 }
-                    ].map((item) => {
+                    {([
+                      { label: 'CBSE' },
+                      { label: 'IGCSE' },
+                      { label: 'ICSE' },
+                      { label: 'State Board', query: 'State' },
+                      { label: 'IB' },
+                      { label: 'Cambridge' }
+                    ] as { label: string; query?: string; count?: number }[]).map((item) => {
                       const boardQuery = item.query ?? item.label
                       const isChecked = activeBoards.includes(boardQuery)
                       
@@ -694,9 +694,11 @@ export default function SchoolsSearchPage() {
                               {item.label}
                             </span>
                           </div>
-                          <span className="text-[9px] text-slate-455 bg-slate-100 px-2 py-0.5 rounded-full font-bold">
-                            {item.count}
-                          </span>
+                          {item.count != null && (
+                            <span className="text-[9px] text-slate-455 bg-slate-100 px-2 py-0.5 rounded-full font-bold">
+                              {item.count}
+                            </span>
+                          )}
                         </label>
                       )
                     })}
@@ -707,10 +709,10 @@ export default function SchoolsSearchPage() {
                 <div className="space-y-2 pb-3 border-b border-slate-100">
                   <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">ADMISSION STATUS</label>
                   <div className="space-y-2">
-                    {[
-                      { label: 'Open', val: 'true', count: 12, bg: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
-                      { label: 'Closed', val: 'false', count: 14, bg: 'bg-red-50 text-red-500 border-red-100' }
-                    ].map((item) => (
+                    {([
+                      { label: 'Open', val: 'true', bg: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+                      { label: 'Closed', val: 'false', bg: 'bg-red-50 text-red-500 border-red-100' }
+                    ] as { label: string; val: string; bg: string; count?: number }[]).map((item) => (
                       <label key={item.label} className="flex items-center justify-between cursor-pointer group">
                         <div className="flex items-center gap-2.5">
                           <input
@@ -726,9 +728,11 @@ export default function SchoolsSearchPage() {
                             {item.label}
                           </span>
                         </div>
-                        <span className={`text-[9px] border px-2 py-0.5 rounded-full font-bold ${item.bg}`}>
-                          {item.count}
-                        </span>
+                        {item.count != null && (
+                          <span className={`text-[9px] border px-2 py-0.5 rounded-full font-bold ${item.bg}`}>
+                            {item.count}
+                          </span>
+                        )}
                       </label>
                     ))}
                   </div>
@@ -738,13 +742,13 @@ export default function SchoolsSearchPage() {
                 <div className="space-y-2 pb-3 border-b border-slate-100">
                   <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">SCHOOL TYPE</label>
                   <div className="space-y-2">
-                    {[
-                      { label: 'Co-Educational', query: 'Co-Ed', count: 18 },
-                      { label: 'Boys Only', query: 'Boys Only', count: 5 },
-                      { label: 'Girls Only', query: 'Girls Only', count: 3 },
-                      { label: 'Day School', query: 'Day School', count: 20 },
-                      { label: 'Boarding School', query: 'Boarding', count: 4 }
-                    ].map((item) => (
+                    {([
+                      { label: 'Co-Educational', query: 'Co-Ed' },
+                      { label: 'Boys Only', query: 'Boys Only' },
+                      { label: 'Girls Only', query: 'Girls Only' },
+                      { label: 'Day School', query: 'Day School' },
+                      { label: 'Boarding School', query: 'Boarding' }
+                    ] as { label: string; query: string; count?: number }[]).map((item) => (
                       <label key={item.label} className="flex items-center justify-between cursor-pointer group">
                         <div className="flex items-center gap-2.5">
                           <input
@@ -760,9 +764,11 @@ export default function SchoolsSearchPage() {
                             {item.label}
                           </span>
                         </div>
-                        <span className="text-[9px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-bold">
-                          {item.count}
-                        </span>
+                        {item.count != null && (
+                          <span className="text-[9px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full font-bold">
+                            {item.count}
+                          </span>
+                        )}
                       </label>
                     ))}
                   </div>
@@ -821,7 +827,7 @@ export default function SchoolsSearchPage() {
 
                 {/* Active Filters chips */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  {distanceRadius < 40 && (
+                  {lat !== null && lng !== null && distanceRadius < 40 && (
                     <span className="flex items-center gap-1 bg-blue-50 border border-blue-150 text-[#1565D8] text-[10px] font-bold px-3 py-0.5 rounded-full">
                       Within {distanceRadius}km
                       <X 

@@ -51,7 +51,7 @@ export default function LeadDetailDrawer({
       <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
 
       {/* Sliding drawer panel */}
-      <div className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white shadow-2xl border-l border-slate-200 z-50 flex flex-col transform transition-transform duration-300 translate-x-0">
+      <div role="dialog" aria-modal="true" className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white shadow-2xl border-l border-slate-200 z-50 flex flex-col transform transition-transform duration-300 translate-x-0">
 
         {/* DRAWER HEADER */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">

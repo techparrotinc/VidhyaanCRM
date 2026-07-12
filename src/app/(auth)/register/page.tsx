@@ -97,6 +97,15 @@ export default function RegisterPage() {
       return
     }
 
+    if (establishedYear) {
+      const yr = parseInt(establishedYear)
+      const thisYear = new Date().getFullYear()
+      if (isNaN(yr) || yr < 1800 || yr > thisYear) {
+        setError(`Established year must be between 1800 and ${thisYear}`)
+        return
+      }
+    }
+
     setLoading(true)
     try {
       // Check similar schools
@@ -468,6 +477,8 @@ export default function RegisterPage() {
                         </label>
                         <input
                           type="number"
+                          min={1800}
+                          max={new Date().getFullYear()}
                           value={establishedYear}
                           onChange={(e) => setEstablishedYear(e.target.value)}
                           placeholder="e.g. 2005"
@@ -630,11 +641,11 @@ export default function RegisterPage() {
                     />
                     <span className="text-[10px] text-slate-500 leading-normal">
                       I agree to the{' '}
-                      <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#1565D8] font-bold hover:underline">
+                      <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-[#1565D8] font-bold hover:underline">
                         Terms
                       </a>{' '}
                       &{' '}
-                      <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#1565D8] font-bold hover:underline">
+                      <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-[#1565D8] font-bold hover:underline">
                         Privacy Policy
                       </a>
                     </span>

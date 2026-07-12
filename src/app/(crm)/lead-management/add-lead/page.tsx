@@ -120,11 +120,6 @@ const timeSlots = [
   { value: '18:30', label: '6:30 PM' },
 ]
 
-const campaigns = [
-  { id: '1', name: 'Summer Admission 2026' },
-  { id: '2', name: 'Open Day May 2026' },
-  { id: '3', name: 'WhatsApp Campaign Apr 2026' },
-]
 
 // The real lead code is generated server-side on save (nextLeadCode); the
 // form shows a neutral placeholder rather than a fabricated number, and a
@@ -135,6 +130,7 @@ export default function AddLeadPage() {
   const router = useRouter()
 
   const [dbCounsellors, setDbCounsellors] = useState<{ id: string; name: string }[]>([])
+  const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>([])
   const [dbAcademicYears, setDbAcademicYears] = useState<{ id: string; name: string }[]>([])
   // Real institution type drives grade vs course/batch fields (was hardcoded 'school').
   const [institutionType, setInstitutionType] = useState<'school' | 'learning_center'>('school')
@@ -152,6 +148,18 @@ export default function AddLeadPage() {
         }
       } catch (err) {
         console.error('Failed to fetch counsellors', err)
+      }
+    }
+
+    async function fetchCampaigns() {
+      try {
+        const res = await fetch('/api/v1/campaigns?limit=50')
+        const json = await res.json()
+        if (Array.isArray(json.data)) {
+          setCampaigns(json.data.map((c: any) => ({ id: c.id, name: c.name })))
+        }
+      } catch (err) {
+        console.error('Failed to fetch campaigns', err)
       }
     }
 
@@ -196,6 +204,7 @@ export default function AddLeadPage() {
     }
 
     fetchCounsellors()
+    fetchCampaigns()
     fetchAcademicYears()
     fetchInstitutionType()
     fetchCourses()
@@ -351,7 +360,7 @@ export default function AddLeadPage() {
     if (!formData.priority) newErrors.priority = "Priority setting is required"
 
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return newErrors
   }
 
   // Scroll to first error helper
@@ -369,18 +378,10 @@ export default function AddLeadPage() {
   // Handle Save
   // Handle Save
   const handleSubmit = async () => {
-    console.log('Submit started')
-    console.log('Form data:', formData)
-
-    if (!formData.parentName?.trim()) {
-      showToast('Parent name is required', 'error')
-      return
-    }
-
-    if (!formData.phone?.trim() ||
-      formData.phone.trim().length !== 10
-    ) {
-      showToast('Valid 10-digit phone is required', 'error')
+    const newErrors = validateForm()
+    if (Object.keys(newErrors).length > 0) {
+      scrollToFirstError(newErrors)
+      showToast('Please fill the required fields', 'error')
       return
     }
 
@@ -467,14 +468,9 @@ export default function AddLeadPage() {
     }
   }
 
-  const isFormValid = Boolean(
-    formData.parentName?.trim() &&
-    formData.phone?.trim() &&
-    formData.phone.length === 10 &&
-    formData.source
-  )
-
-  const buttonDisabled = !isFormValid || isSubmitting
+  // Save stays clickable so an incomplete form surfaces inline field errors
+  // via validateForm() instead of a silently disabled button.
+  const buttonDisabled = isSubmitting
 
   // Get user avatar initials
   const getInitials = () => {

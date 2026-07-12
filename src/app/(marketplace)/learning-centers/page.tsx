@@ -715,15 +715,15 @@ export default function LearningCentersSearchPage() {
               <div className="space-y-2">
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">ACTIVITY TYPE</span>
                 <div className="space-y-2 max-h-40 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
-                  {[
-                    { name: 'Dance', count: 12 },
-                    { name: 'Music', count: 8 },
-                    { name: 'Art', count: 6 },
-                    { name: 'Fitness', count: 9 },
-                    { name: 'Coaching', count: 15 },
-                    { name: 'Coding', count: 5 },
-                    { name: 'Language', count: 4 }
-                  ].map((act) => {
+                  {([
+                    { name: 'Dance' },
+                    { name: 'Music' },
+                    { name: 'Art' },
+                    { name: 'Fitness' },
+                    { name: 'Coaching' },
+                    { name: 'Coding' },
+                    { name: 'Language' }
+                  ] as { name: string; count?: number }[]).map((act) => {
                     const isChecked = selectedActivities.includes(act.name)
                     return (
                       <label key={act.name} className="flex items-center justify-between text-xs font-semibold text-slate-600 cursor-pointer hover:text-slate-800">
@@ -736,9 +736,11 @@ export default function LearningCentersSearchPage() {
                           />
                           <span>{act.name}</span>
                         </div>
-                        <span className="bg-slate-100 text-slate-400 text-[10px] px-1.5 py-0.5 rounded font-black">
-                          {act.count}
-                        </span>
+                        {act.count != null && (
+                          <span className="bg-slate-100 text-slate-400 text-[10px] px-1.5 py-0.5 rounded font-black">
+                            {act.count}
+                          </span>
+                        )}
                       </label>
                     )
                   })}
@@ -751,13 +753,13 @@ export default function LearningCentersSearchPage() {
               <div className="space-y-2">
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">AGE GROUP</span>
                 <div className="space-y-2">
-                  {[
-                    { label: 'Toddlers 2-4 years', count: 8 },
-                    { label: 'Kids 5-10 years', count: 22 },
-                    { label: 'Pre-teens 11-14 years', count: 18 },
-                    { label: 'Teens 15-18 years', count: 12 },
-                    { label: 'Adults 18+ years', count: 15 }
-                  ].map((age) => {
+                  {([
+                    { label: 'Toddlers 2-4 years' },
+                    { label: 'Kids 5-10 years' },
+                    { label: 'Pre-teens 11-14 years' },
+                    { label: 'Teens 15-18 years' },
+                    { label: 'Adults 18+ years' }
+                  ] as { label: string; count?: number }[]).map((age) => {
                     const isChecked = selectedAgeGroups.includes(age.label)
                     return (
                       <label key={age.label} className="flex items-center justify-between text-xs font-semibold text-slate-600 cursor-pointer hover:text-slate-800">
@@ -770,9 +772,11 @@ export default function LearningCentersSearchPage() {
                           />
                           <span>{age.label}</span>
                         </div>
-                        <span className="bg-slate-100 text-slate-450 text-[10px] px-1.5 py-0.5 rounded">
-                          {age.count}
-                        </span>
+                        {age.count != null && (
+                          <span className="bg-slate-100 text-slate-450 text-[10px] px-1.5 py-0.5 rounded">
+                            {age.count}
+                          </span>
+                        )}
                       </label>
                     )
                   })}
@@ -785,12 +789,12 @@ export default function LearningCentersSearchPage() {
               <div className="space-y-2">
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">BATCH TIMING</span>
                 <div className="space-y-2">
-                  {[
-                    { name: 'Morning (before 12 PM)', count: 15 },
-                    { name: 'Afternoon (12 PM - 4 PM)', count: 10 },
-                    { name: 'Evening (4 PM - 8 PM)', count: 28 },
-                    { name: 'Weekends Only', count: 18 }
-                  ].map((t) => {
+                  {([
+                    { name: 'Morning (before 12 PM)' },
+                    { name: 'Afternoon (12 PM - 4 PM)' },
+                    { name: 'Evening (4 PM - 8 PM)' },
+                    { name: 'Weekends Only' }
+                  ] as { name: string; count?: number }[]).map((t) => {
                     const isChecked = selectedTimings.includes(t.name)
                     return (
                       <label key={t.name} className="flex items-center justify-between text-xs font-semibold text-slate-600 cursor-pointer hover:text-slate-800">
@@ -807,9 +811,11 @@ export default function LearningCentersSearchPage() {
                           />
                           <span>{t.name}</span>
                         </div>
-                        <span className="bg-slate-100 text-slate-400 text-[10px] px-1.5 py-0.5 rounded">
-                          {t.count}
-                        </span>
+                        {t.count != null && (
+                          <span className="bg-slate-100 text-slate-400 text-[10px] px-1.5 py-0.5 rounded">
+                            {t.count}
+                          </span>
+                        )}
                       </label>
                     )
                   })}

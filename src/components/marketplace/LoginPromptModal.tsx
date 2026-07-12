@@ -22,7 +22,7 @@ export default function LoginPromptModal({
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 text-center animate-fade-in">
+      <div role="dialog" aria-modal="true" className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 text-center animate-fade-in">
         <Bookmark className="w-12 h-12 text-[#1565D8] mx-auto mb-4" strokeWidth={1.5} />
         <h3 className="text-base font-extrabold text-slate-900 uppercase tracking-wider mb-2">{title}</h3>
         <p className="text-xs text-slate-500 leading-relaxed mb-6">{description}</p>

@@ -337,14 +337,23 @@ export default function LoginPage() {
 
   // --- STATE 3: OTP LOGIN ---
   const handleOtpChange = (index: number, val: string) => {
-    const digit = val.replace(/\D/g, '').slice(-1)
+    // Fast typing can land several digits in one box before focus advances —
+    // spread them across the following boxes instead of keeping only the last.
+    const digits = val.replace(/\D/g, '')
     const newOtp = [...otp]
-    newOtp[index] = digit
-    setOtp(newOtp)
-
-    if (digit && index < 3) {
-      otpRefs.current[index + 1]?.focus()
+    if (digits === '') {
+      newOtp[index] = ''
+      setOtp(newOtp)
+      return
     }
+    let cursor = index
+    for (const d of digits) {
+      if (cursor >= 4) break
+      newOtp[cursor] = d
+      cursor++
+    }
+    setOtp(newOtp)
+    otpRefs.current[Math.min(cursor, 3)]?.focus()
 
     const otpCode = newOtp.join('')
     if (otpCode.length === 4) {
@@ -445,6 +454,7 @@ export default function LoginPage() {
     if (setupPin.length !== 4) return
     setLoading(true)
     setSetupPinError(false)
+    setApiError(null)
 
     try {
       const res = await fetch('/api/auth/pin/set', {
@@ -919,6 +929,13 @@ export default function LoginPage() {
                           disabled={loading}
                           autoFocus={true}
                         />
+
+                        {apiError && (
+                          <div className="p-3 rounded-2xl bg-red-50 border border-red-100 text-xs font-semibold text-red-600 flex items-start gap-2 animate-fade-slide-up">
+                            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                            <span>{apiError}</span>
+                          </div>
+                        )}
 
                         <button
                           onClick={handleInlinePinSave}

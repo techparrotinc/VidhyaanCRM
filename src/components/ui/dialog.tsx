@@ -61,6 +61,8 @@ export function DialogContent({
     <>
       <DialogOverlay />
       <div
+        role="dialog"
+        aria-modal="true"
         className={`fixed left-[50%] top-[50%] z-50 grid w-full max-w-sm translate-x-[-50%] translate-y-[-50%] gap-4 border border-slate-100 bg-white p-6 shadow-2xl duration-200 rounded-2xl animate-fade-in ${className}`}
         {...props}
         onClick={(e) => e.stopPropagation()}

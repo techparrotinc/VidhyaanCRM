@@ -15,7 +15,9 @@ const parentRegisterSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await req.json().catch(() => {
+      throw Object.assign(new Error('Invalid or empty request body'), { isBodyParse: true })
+    })
     const result = parentRegisterSchema.safeParse(body)
 
     if (!result.success) {
@@ -135,6 +137,12 @@ export async function POST(req: NextRequest) {
     })
 
   } catch (error: any) {
+    if (error?.isBodyParse) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid or empty request body' },
+        { status: 400 }
+      )
+    }
     console.error('Parent registration error:', error)
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       const field = (error.meta?.target as string[])

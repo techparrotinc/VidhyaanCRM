@@ -165,8 +165,8 @@ export default async function middleware(request: NextRequest) {
     }
   }
 
-  // Allow onboarding routes to pass through
-  if (pathname.startsWith('/onboarding') || pathname.startsWith('/api/v1/onboarding')) {
+  // Onboarding APIs enforce their own auth via the route() composer.
+  if (pathname.startsWith('/api/v1/onboarding')) {
     return passThrough()
   }
 
@@ -183,6 +183,13 @@ export default async function middleware(request: NextRequest) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('callbackUrl', pathname)
     return NextResponse.redirect(loginUrl)
+  }
+
+  // Onboarding pages: signed-in users pass straight through — the wizard
+  // itself drives step routing, and the CRM guard below must not run here
+  // (it would bounce incomplete orgs right back to onboarding in a loop).
+  if (pathname.startsWith('/onboarding')) {
+    return passThrough()
   }
 
   const role = session.user.role

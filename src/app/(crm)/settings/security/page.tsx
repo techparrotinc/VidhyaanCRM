@@ -243,14 +243,22 @@ export default function SecuritySettingsPage() {
   }
 
   const handleOtpChange = (index: number, val: string) => {
-    const digit = val.replace(/\D/g, '').slice(-1)
+    // Spread multi-digit input across boxes (fast typing beats focus advance)
+    const digits = val.replace(/\D/g, '')
     const newOtp = [...otp]
-    newOtp[index] = digit
-    setOtp(newOtp)
-
-    if (digit && index < 3) {
-      otpRefs.current[index + 1]?.focus()
+    if (digits === '') {
+      newOtp[index] = ''
+      setOtp(newOtp)
+      return
     }
+    let cursor = index
+    for (const d of digits) {
+      if (cursor >= 4) break
+      newOtp[cursor] = d
+      cursor++
+    }
+    setOtp(newOtp)
+    otpRefs.current[Math.min(cursor, 3)]?.focus()
 
     const otpCode = newOtp.join('')
     if (otpCode.length === 4) {

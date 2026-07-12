@@ -60,14 +60,22 @@ export default function ParentOtpVerifyForm({
   }
 
   const handleOtpChange = (index: number, val: string) => {
-    const digit = val.replace(/\D/g, '').slice(-1)
+    // Spread multi-digit input across boxes (fast typing beats focus advance)
+    const digits = val.replace(/\D/g, '')
     const newOtp = [...otp]
-    newOtp[index] = digit
-    setOtp(newOtp)
-
-    if (digit && index < 3) {
-      inputRefs.current[index + 1]?.focus()
+    if (digits === '') {
+      newOtp[index] = ''
+      setOtp(newOtp)
+      return
     }
+    let cursor = index
+    for (const d of digits) {
+      if (cursor >= 4) break
+      newOtp[cursor] = d
+      cursor++
+    }
+    setOtp(newOtp)
+    inputRefs.current[Math.min(cursor, 3)]?.focus()
 
     // Auto-verify on the 4th digit — same behaviour as the unified login page
     const otpCode = newOtp.join('')

@@ -79,7 +79,9 @@ export default function LoadingScreen() {
         {/* Branding & Logo */}
         <div className="flex flex-col items-center space-y-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/vidhyaan-icon.svg" alt="" className="w-12 h-12" />
+          {/* loading=lazy stops React SSR from emitting a <link rel=preload> for a
+              fallback that unmounts before the image counts as "used" */}
+          <img src="/brand/vidhyaan-icon.svg" alt="" loading="lazy" className="w-12 h-12" />
           <h2 className="text-xl font-bold text-slate-800 font-sans tracking-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>
             Vidhyaan
           </h2>

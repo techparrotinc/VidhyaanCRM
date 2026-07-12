@@ -44,22 +44,30 @@ export default function PinInput({
     if (!/^\d*$/.test(val)) return
 
     const newValues = [...values]
-    // Use only the last character entered
-    const digit = val.slice(-1)
-    newValues[index] = digit
+    // Fast typing can land several digits in one box before focus moves —
+    // spread them across the following boxes instead of keeping only the last.
+    const digits = val.replace(/\D/g, '')
+    if (digits === '') {
+      newValues[index] = ''
+      setValues(newValues)
+      return
+    }
+    let cursor = index
+    for (const d of digits) {
+      if (cursor >= length) break
+      newValues[cursor] = d
+      cursor++
+    }
     setValues(newValues)
 
-    if (digit !== '') {
-      // Auto-advance to next box
-      if (index < length - 1 && inputsRef.current[index + 1]) {
-        inputsRef.current[index + 1].focus()
-      }
-      
-      // If all values are filled, trigger completion
-      const completedPin = newValues.join('')
-      if (completedPin.length === length) {
-        onComplete(completedPin)
-      }
+    // Focus the box after the last digit written
+    const focusIndex = Math.min(cursor, length - 1)
+    inputsRef.current[focusIndex]?.focus()
+
+    // If all values are filled, trigger completion
+    const completedPin = newValues.join('')
+    if (completedPin.length === length) {
+      onComplete(completedPin)
     }
   }
 

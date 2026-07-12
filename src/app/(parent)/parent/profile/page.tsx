@@ -24,6 +24,7 @@ import {
   Settings
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
+import { DateTimePicker } from '@/components/ui/datetime-picker'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GRADE_LABEL_OPTIONS } from '@/constants/grades'
@@ -805,7 +806,7 @@ export default function ParentProfilePage() {
       {/* 1. CHANGE PHONE MODAL (OTP FLOW) */}
       {phoneModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl animate-fade-in border border-slate-100">
+          <div role="dialog" aria-modal="true" className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl animate-fade-in border border-slate-100">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">Change Phone Number</h3>
               <button onClick={() => setPhoneModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -880,7 +881,7 @@ export default function ParentProfilePage() {
       {/* 2. ADD/EDIT CHILD MODAL */}
       {kidModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl animate-fade-in border border-slate-100">
+          <div role="dialog" aria-modal="true" className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl animate-fade-in border border-slate-100">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
                 {editingKid ? 'Edit Child Profile' : 'Add Child Profile'}
@@ -912,11 +913,11 @@ export default function ParentProfilePage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Date of Birth</label>
-                  <input
-                    type="date"
-                    value={kidFormData.dob}
-                    onChange={e => setKidFormData({ ...kidFormData, dob: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
+                  <DateTimePicker
+                    dateOnly
+                    placeholder="Select date"
+                    value={kidFormData.dob ? new Date(kidFormData.dob + 'T00:00:00').toISOString() : ''}
+                    onChange={(iso) => setKidFormData({ ...kidFormData, dob: iso ? iso.slice(0, 10) : '' })}
                   />
                 </div>
 
@@ -980,7 +981,7 @@ export default function ParentProfilePage() {
       {/* 3. CONFIRM DELETE ACCOUNT MODAL */}
       {deleteModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl animate-fade-in border border-slate-100 text-center">
+          <div role="alertdialog" aria-modal="true" className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl animate-fade-in border border-slate-100 text-center">
             <ShieldAlert className="w-12 h-12 text-red-500 mx-auto mb-4" strokeWidth={1.5} />
             <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider mb-2">Delete Your Account?</h3>
             <p className="text-[10px] text-slate-450 font-bold leading-relaxed mb-4">

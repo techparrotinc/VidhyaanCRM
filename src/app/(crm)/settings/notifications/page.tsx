@@ -44,6 +44,7 @@ export default function NotificationSettingsPage() {
   const [whatsappModuleEnabled, setWhatsappModuleEnabled] = useState(true) // assume enabled during trial
   const [otpChannel, setOtpChannel] = useState<'SMS' | 'WHATSAPP' | 'BOTH'>('SMS')
   const [otpSaving, setOtpSaving] = useState(false)
+  const [otpWhatsappAvailable, setOtpWhatsappAvailable] = useState(false)
 
   // Toast notifier state
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false })
@@ -80,7 +81,10 @@ export default function NotificationSettingsPage() {
     fetchPreferences()
     fetch('/api/v1/settings/notifications/otp-channel')
       .then(r => r.json())
-      .then(j => j?.data?.otpChannel && setOtpChannel(j.data.otpChannel))
+      .then(j => {
+        if (j?.data?.otpChannel) setOtpChannel(j.data.otpChannel)
+        setOtpWhatsappAvailable(!!j?.data?.whatsappAvailable)
+      })
       .catch(() => {})
   }, [])
 
@@ -187,23 +191,30 @@ export default function NotificationSettingsPage() {
         </p>
         <div className="flex items-center gap-2 flex-wrap">
           {([
-            { value: 'SMS', label: 'SMS only' },
-            { value: 'WHATSAPP', label: 'WhatsApp (SMS fallback)' },
-            { value: 'BOTH', label: 'Both' }
-          ] as const).map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => saveOtpChannel(opt.value)}
-              disabled={otpSaving}
-              className={`px-3.5 py-2 text-xs font-semibold rounded-lg border transition-colors ${
-                otpChannel === opt.value
-                  ? 'bg-[#1565D8] border-[#1565D8] text-white'
-                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+            { value: 'SMS', label: 'SMS only', needsWa: false },
+            { value: 'WHATSAPP', label: 'WhatsApp (SMS fallback)', needsWa: true },
+            { value: 'BOTH', label: 'Both', needsWa: true }
+          ] as const).map(opt => {
+            const locked = opt.needsWa && !otpWhatsappAvailable
+            return (
+              <button
+                key={opt.value}
+                onClick={() => !locked && saveOtpChannel(opt.value)}
+                disabled={otpSaving || locked}
+                title={locked ? 'WhatsApp OTP is coming soon' : undefined}
+                className={`px-3.5 py-2 text-xs font-semibold rounded-lg border transition-colors ${
+                  otpChannel === opt.value
+                    ? 'bg-[#1565D8] border-[#1565D8] text-white'
+                    : locked
+                    ? 'bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                {opt.label}
+                {locked && <span className="ml-1.5 text-[9px] font-bold uppercase tracking-wide">Soon</span>}
+              </button>
+            )
+          })}
         </div>
       </div>
 

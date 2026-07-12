@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import VariablesBuilder from '@/components/whatsapp/VariablesBuilder'
 import { previewTemplateBody } from '@/lib/campaign/templateParams'
 import { WA_TEMPLATE_CATEGORIES, waCategoryLabel } from '@/constants/whatsapp-template-categories'
+import { waTemplateTrigger } from '@/constants/whatsapp-template-triggers'
 
 type OrgTemplate = {
   id: string
@@ -332,6 +333,11 @@ export default function WhatsappTemplatesPage() {
                   <p className="text-sm text-slate-600 whitespace-pre-wrap line-clamp-3">
                     {previewTemplateBody(t.body, t.variables)}
                   </p>
+                  {waTemplateTrigger(t.msg91TemplateId) && (
+                    <p className="text-xs font-semibold text-blue-700 bg-blue-50 rounded-lg px-3 py-2">
+                      ⚡ {waTemplateTrigger(t.msg91TemplateId)}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

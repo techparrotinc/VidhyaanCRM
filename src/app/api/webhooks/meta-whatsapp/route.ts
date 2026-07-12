@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db/client'
 import { getMetaWhatsAppConfig } from '@/lib/platform-config'
 import { sendMetaTextMessage } from '@/lib/integrations/meta-whatsapp'
 import { createNotification } from '@/lib/services/notifications'
+import { getAlertChannels } from '@/lib/platform-config'
+import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 
 // Meta WhatsApp Cloud API webhook: delivery statuses, inbound messages,
 // STOP/START consent management. Configure in the Meta App dashboard →
@@ -72,6 +74,10 @@ export async function POST(req: NextRequest) {
       for (const change of entry?.changes ?? []) {
         const value = change?.value
         if (!value) continue
+        if (change?.field === 'message_template_status_update') {
+          await processTemplateStatusUpdate(value)
+          continue
+        }
         await processStatuses(value.statuses ?? [])
         await processInbound(value.messages ?? [], cfg)
       }
@@ -82,6 +88,40 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true })
+}
+
+/**
+ * Meta paused/disabled/rejected a template (usually quality-based, hits
+ * marketing templates). Pull it from the shared catalog so schools stop
+ * selecting it, and alert ops — sends via it start failing immediately.
+ */
+async function processTemplateStatusUpdate(value: any): Promise<void> {
+  const event: string = String(value?.event ?? '').toUpperCase()
+  const name: string | undefined = value?.message_template_name
+  if (!name) return
+
+  const badEvents = ['PAUSED', 'DISABLED', 'REJECTED', 'FLAGGED']
+  if (badEvents.includes(event)) {
+    await prisma.sharedWhatsappTemplate.updateMany({
+      where: { msg91TemplateId: name, deletedAt: null },
+      data: { isActive: false }
+    })
+  }
+
+  // Ops alert for every lifecycle event (APPROVED included — signals a
+  // pending template like review_request just went live)
+  const { opsAlertEmail } = await getAlertChannels()
+  if (opsAlertEmail) {
+    const reason = value?.reason ?? value?.other_info?.description ?? '—'
+    await sendTransactionalEmail({
+      to: opsAlertEmail,
+      toName: 'Vidhyaan Ops',
+      subject: `WhatsApp template ${event}: ${name}`,
+      htmlBody: `<p>Meta reports template <strong>${name}</strong> (${value?.message_template_language ?? ''}) is now <strong>${event}</strong>.</p>
+<p>Reason: ${reason}</p>
+<p>${badEvents.includes(event) ? 'It has been removed from the shared catalog automatically. Fix it in WhatsApp Manager, then re-sync and reactivate.' : 'If it was pending (e.g. review_request), run Sync from Meta in the admin catalog to publish it.'}</p>`
+    }).catch(err => console.error('Template-status ops alert failed:', err))
+  }
 }
 
 async function processStatuses(statuses: any[]): Promise<void> {

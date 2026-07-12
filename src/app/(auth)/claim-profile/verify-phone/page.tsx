@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
+import OtpInput from '@/components/ui/otp-input'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
@@ -17,8 +18,6 @@ export default function ClaimVerifyPhonePage() {
   const [expiresIn, setExpiresIn] = useState(600)
   const [resendCooldown, setResendCooldown] = useState(30)
   
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([])
-
   // Retrieve phone from sessionStorage on mount
   useEffect(() => {
     const stored = sessionStorage.getItem('claim_register_phone')
@@ -41,12 +40,7 @@ export default function ClaimVerifyPhonePage() {
     return () => clearInterval(timer)
   }, [phone])
 
-  // Focus first input on mount
-  useEffect(() => {
-    if (phone) {
-      setTimeout(() => inputRefs.current[0]?.focus(), 50)
-    }
-  }, [phone])
+  // OTP box focus is handled inside <OtpInput /> (autoFocus on mount).
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60)
@@ -54,34 +48,7 @@ export default function ClaimVerifyPhonePage() {
     return `${m}:${s.toString().padStart(2, '0')}`
   }
 
-  const handleOtpChange = (value: string, index: number) => {
-    if (value.length > 1) {
-      const pasted = value.slice(0, 4).split('')
-      const newOtp = [...otp]
-      pasted.forEach((char, idx) => {
-        if (idx < 4) newOtp[idx] = char
-      })
-      setOtp(newOtp)
-      const targetIdx = Math.min(pasted.length, 3)
-      inputRefs.current[targetIdx]?.focus()
-      return
-    }
-
-    const newOtp = [...otp]
-    newOtp[index] = value
-    setOtp(newOtp)
-
-    if (value && index < 3) {
-      inputRefs.current[index + 1]?.focus()
-    }
-  }
-
-  const handleOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus()
-    }
-  }
-
+  // OTP entry UI lives in the shared <OtpInput />.
   const handleResend = async () => {
     if (!phone || resendCooldown > 0) return
     setError(null)
@@ -103,8 +70,7 @@ export default function ClaimVerifyPhonePage() {
       setSuccess('OTP code resent successfully!')
       setExpiresIn(data.expiresIn || 600)
       setResendCooldown(30)
-      setOtp(['', '', '', ''])
-      setTimeout(() => inputRefs.current[0]?.focus(), 50)
+      setOtp(['', '', '', '']) // OtpInput refocuses box 1 on clear
     } catch (err: any) {
       console.error(err)
       setError(err.message || 'Failed to resend OTP. Please try again.')
@@ -135,8 +101,7 @@ export default function ClaimVerifyPhonePage() {
 
       if (res?.error) {
         setError('Invalid or expired OTP')
-        setOtp(['', '', '', ''])
-        inputRefs.current[0]?.focus()
+        setOtp(['', '', '', '']) // OtpInput refocuses box 1 on clear
         return
       }
 
@@ -233,21 +198,14 @@ export default function ClaimVerifyPhonePage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="flex items-center justify-center gap-2.5 max-w-[360px] mx-auto py-2">
-                {otp.map((digit, idx) => (
-                  <input
-                    key={idx}
-                    ref={(el) => { inputRefs.current[idx] = el }}
-                    type="text"
-                    value={digit}
-                    onChange={(e) => handleOtpChange(e.target.value, idx)}
-                    onKeyDown={(e) => handleOtpKeyDown(e, idx)}
-                    maxLength={4}
-                    disabled={loading}
-                    className="w-12 h-14 bg-slate-50 border border-slate-200 rounded-xl text-center font-extrabold text-slate-800 text-xl focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all"
-                  />
-                ))}
-              </div>
+              <OtpInput
+                values={otp}
+                onChange={setOtp}
+                error={!!error}
+                disabled={loading}
+                className="flex items-center justify-center gap-2.5 max-w-[360px] mx-auto py-2"
+                boxClassName="w-12 h-14 bg-slate-50 border border-slate-200 rounded-xl text-center font-extrabold text-slate-800 text-xl focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all disabled:opacity-50"
+              />
 
               <div className="flex items-center justify-between text-xs font-semibold text-slate-500 max-w-[360px] mx-auto">
                 <span>Code expires in: <span className="text-slate-800">{formatTime(expiresIn)}</span></span>

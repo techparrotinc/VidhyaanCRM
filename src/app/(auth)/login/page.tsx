@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Shield, Loader2, ArrowLeft, CheckCircle2, Lock, AlertCircle, Users, Building2 } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import PinInput from '@/components/ui/PinInput'
+import OtpInput from '@/components/ui/otp-input'
 import { institutionNoun } from '@/lib/institution'
 
 type LoginState = 'phone' | 'workspace' | 'pin' | 'otp' | 'twofa'
@@ -52,7 +53,6 @@ export default function LoginPage() {
   const [otpError, setOtpError] = useState(false)
   const [otpSecondsLeft, setOtpSecondsLeft] = useState(600) // 10 mins expiry
   const [resendCooldown, setResendCooldown] = useState(30) // 30s resend cooldown
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([])
 
   // Step 4: Second factor (2FA) challenge
   const [challengeToken, setChallengeToken] = useState<string | null>(null)
@@ -90,12 +90,8 @@ export default function LoginPage() {
     return () => clearInterval(interval)
   }, [lockSecondsLeft])
 
-  // Focus managers
-  useEffect(() => {
-    if (state === 'otp' && !showInlinePinSetup) {
-      setTimeout(() => otpRefs.current[0]?.focus(), 50)
-    }
-  }, [state, showInlinePinSetup])
+  // Focus management for the OTP boxes lives inside <OtpInput /> (autoFocus
+  // on mount + refocus when the code is cleared).
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60)
@@ -335,67 +331,7 @@ export default function LoginPage() {
     }
   }
 
-  // --- STATE 3: OTP LOGIN ---
-  const handleOtpChange = (index: number, val: string) => {
-    // Fast typing can land several digits in one box before focus advances —
-    // spread them across the following boxes instead of keeping only the last.
-    const digits = val.replace(/\D/g, '')
-    const newOtp = [...otp]
-    if (digits === '') {
-      newOtp[index] = ''
-      setOtp(newOtp)
-      return
-    }
-    let cursor = index
-    for (const d of digits) {
-      if (cursor >= 4) break
-      newOtp[cursor] = d
-      cursor++
-    }
-    setOtp(newOtp)
-    otpRefs.current[Math.min(cursor, 3)]?.focus()
-
-    const otpCode = newOtp.join('')
-    if (otpCode.length === 4) {
-      triggerOtpVerify(otpCode)
-    }
-  }
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace') {
-      const newOtp = [...otp]
-      if (otp[index]) {
-        newOtp[index] = ''
-        setOtp(newOtp)
-      } else if (index > 0) {
-        newOtp[index - 1] = ''
-        setOtp(newOtp)
-        otpRefs.current[index - 1]?.focus()
-      }
-    }
-  }
-
-  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault()
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4)
-    if (!pastedData) return
-
-    const newOtp = [...otp]
-    for (let j = 0; j < 4; j++) {
-      if (j < pastedData.length) {
-        newOtp[j] = pastedData[j]
-      }
-    }
-    setOtp(newOtp)
-
-    if (pastedData.length === 4) {
-      triggerOtpVerify(pastedData)
-    } else {
-      const focusIndex = Math.min(pastedData.length, 3)
-      otpRefs.current[focusIndex]?.focus()
-    }
-  }
-
+  // --- STATE 3: OTP LOGIN (entry UI lives in the shared <OtpInput />) ---
   const triggerOtpVerify = async (code: string) => {
     setLoading(true)
     setApiError(null)
@@ -408,8 +344,7 @@ export default function LoginPage() {
 
       if (outcome === 'error') {
         setOtpError(true)
-        setOtp(['', '', '', ''])
-        setTimeout(() => otpRefs.current[0]?.focus(), 50)
+        setOtp(['', '', '', '']) // OtpInput refocuses box 1 on clear
         setApiError((prev) => prev || 'Incorrect OTP or session expired.')
         return
       }
@@ -990,26 +925,13 @@ export default function LoginPage() {
                         </div>
                       )}
                       
-                      <div className={`flex justify-between gap-2.5 ${otpError ? 'animate-shake' : ''}`}>
-                        {otp.map((digit, i) => (
-                          <input
-                            key={i}
-                            ref={(el) => {
-                              otpRefs.current[i] = el
-                            }}
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            maxLength={1}
-                            value={digit}
-                            onChange={(e) => handleOtpChange(i, e.target.value)}
-                            onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                            onPaste={i === 0 ? handleOtpPaste : undefined}
-                            disabled={loading}
-                            className="w-14 h-14 text-center text-xl font-extrabold bg-slate-50 border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-[#1565D8] focus:ring-4 focus:ring-blue-50/60 focus:bg-white transition-all text-slate-800 disabled:opacity-50"
-                          />
-                        ))}
-                      </div>
+                      <OtpInput
+                        values={otp}
+                        onChange={setOtp}
+                        onComplete={triggerOtpVerify}
+                        error={otpError}
+                        disabled={loading}
+                      />
                     </div>
 
                     <div className="flex justify-between items-center text-xs font-medium text-slate-400">

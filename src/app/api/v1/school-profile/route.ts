@@ -56,39 +56,40 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const school = await prisma.school.findFirst({
-      where: { orgId: session.user.orgId },
-      include: {
-        locations: { where: { deletedAt: null } },
-        contacts: { where: { deletedAt: null } },
-        affiliations: true,
-        media: { where: { deletedAt: null } },
-        feeRanges: true,
-        hours: true,
-        facilities: true
-      }
-    })
+    // The three lookups are independent — one round trip instead of three
+    // (matters from a non-co-located client; each serial hop adds full RTT).
+    const [school, org, explicitModules] = await Promise.all([
+      prisma.school.findFirst({
+        where: { orgId: session.user.orgId },
+        include: {
+          locations: { where: { deletedAt: null } },
+          contacts: { where: { deletedAt: null } },
+          affiliations: true,
+          media: { where: { deletedAt: null } },
+          feeRanges: true,
+          hours: true,
+          facilities: true
+        }
+      }),
+      prisma.organization.findUnique({
+        where: { id: session.user.orgId },
+        include: {
+          plan: {
+            include: {
+              planModules: true
+            }
+          }
+        }
+      }),
+      prisma.organizationModule.findMany({
+        where: { orgId: session.user.orgId, enabled: true },
+        include: { module: true }
+      })
+    ])
 
     if (!school) {
       return NextResponse.json({ error: 'School not found' }, { status: 404 })
     }
-
-    // Fetch enabled modules
-    const org = await prisma.organization.findUnique({
-      where: { id: session.user.orgId },
-      include: {
-        plan: {
-          include: {
-            planModules: true
-          }
-        }
-      }
-    })
-
-    const explicitModules = await prisma.organizationModule.findMany({
-      where: { orgId: session.user.orgId, enabled: true },
-      include: { module: true }
-    })
 
     const enabledModulesSet = new Set<string>()
     if (org?.plan?.planModules) {

@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react'
 import PinInput from '@/components/ui/PinInput'
+import OtpInput from '@/components/ui/otp-input'
 
 type Step = 1 | 2 | 3
 
@@ -23,7 +24,6 @@ export default function ForgotPinPage() {
   const [otpError, setOtpError] = useState(false)
   const [otpSecondsLeft, setOtpSecondsLeft] = useState(600)
   const [resendCooldown, setResendCooldown] = useState(30)
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([])
 
   // Step 3 PIN States
   const [newPin, setNewPin] = useState('')
@@ -41,11 +41,7 @@ export default function ForgotPinPage() {
     return () => clearInterval(timer)
   }, [step])
 
-  useEffect(() => {
-    if (step === 2) {
-      setTimeout(() => otpRefs.current[0]?.focus(), 50)
-    }
-  }, [step])
+  // OTP box focus is handled inside <OtpInput /> (autoFocus on mount).
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60)
@@ -100,65 +96,7 @@ export default function ForgotPinPage() {
     }
   }
 
-  // --- STEP 2: OTP VERIFICATION ---
-  const handleOtpChange = (index: number, val: string) => {
-    // Spread multi-digit input across boxes (fast typing beats focus advance)
-    const digits = val.replace(/\D/g, '')
-    const newOtp = [...otp]
-    if (digits === '') {
-      newOtp[index] = ''
-      setOtp(newOtp)
-      return
-    }
-    let cursor = index
-    for (const d of digits) {
-      if (cursor >= 4) break
-      newOtp[cursor] = d
-      cursor++
-    }
-    setOtp(newOtp)
-    otpRefs.current[Math.min(cursor, 3)]?.focus()
-
-    const otpCode = newOtp.join('')
-    if (otpCode.length === 4) {
-      triggerOtpVerify(otpCode)
-    }
-  }
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace') {
-      const newOtp = [...otp]
-      if (otp[index]) {
-        newOtp[index] = ''
-        setOtp(newOtp)
-      } else if (index > 0) {
-        newOtp[index - 1] = ''
-        setOtp(newOtp)
-        otpRefs.current[index - 1]?.focus()
-      }
-    }
-  }
-
-  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault()
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4)
-    if (!pastedData) return
-
-    const newOtp = [...otp]
-    for (let j = 0; j < 4; j++) {
-      if (j < pastedData.length) {
-        newOtp[j] = pastedData[j]
-      }
-    }
-    setOtp(newOtp)
-
-    if (pastedData.length === 4) {
-      triggerOtpVerify(pastedData)
-    } else {
-      const focusIndex = Math.min(pastedData.length, 3)
-      otpRefs.current[focusIndex]?.focus()
-    }
-  }
+  // --- STEP 2: OTP VERIFICATION (entry UI lives in the shared <OtpInput />) ---
 
   const triggerOtpVerify = async (code: string) => {
     setLoading(true)
@@ -175,8 +113,7 @@ export default function ForgotPinPage() {
 
       if (!res.ok || !data.success) {
         setOtpError(true)
-        setOtp(['', '', '', ''])
-        setTimeout(() => otpRefs.current[0]?.focus(), 50)
+        setOtp(['', '', '', '']) // OtpInput refocuses box 1 on clear
         setApiError(data.message || 'OTP verification failed.')
         return
       }
@@ -414,26 +351,15 @@ export default function ForgotPinPage() {
                       </div>
                     )}
                     
-                    <div className={`flex justify-between gap-2 ${otpError ? 'animate-shake' : ''}`}>
-                      {otp.map((digit, i) => (
-                        <input
-                          key={i}
-                          ref={(el) => {
-                            otpRefs.current[i] = el
-                          }}
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          maxLength={1}
-                          value={digit}
-                          onChange={(e) => handleOtpChange(i, e.target.value)}
-                          onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                          onPaste={i === 0 ? handleOtpPaste : undefined}
-                          disabled={loading}
-                          className="w-12 h-12 text-center text-xl font-extrabold bg-slate-50 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#1565D8] focus:ring-4 focus:ring-blue-50/50 transition-all text-slate-800 disabled:opacity-50 font-sans"
-                        />
-                      ))}
-                    </div>
+                    <OtpInput
+                      values={otp}
+                      onChange={setOtp}
+                      onComplete={triggerOtpVerify}
+                      error={otpError}
+                      disabled={loading}
+                      className="flex justify-between gap-2"
+                      boxClassName="w-12 h-12 text-center text-xl font-extrabold bg-slate-50 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-[#1565D8] focus:ring-4 focus:ring-blue-50/50 transition-all text-slate-800 disabled:opacity-50 font-sans"
+                    />
                   </div>
 
                   <div className="flex justify-between items-center text-xs font-medium text-slate-400 font-sans">

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Sparkles } from 'lucide-react'
+import { Sparkle } from 'lucide-react'
 import { AiSidebar } from './AiSidebar'
 import { useAiChat } from './useAiChat'
 
@@ -35,11 +35,12 @@ export function AiLauncher() {
       onClick={() => setOpen(true)}
       title="Vidhyaan AI"
       aria-label="Open Vidhyaan AI copilot"
-      className="relative flex h-9 w-9 items-center justify-center rounded-lg text-[#1565D8] transition-colors hover:bg-blue-50"
+      className="relative flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-[#1565D8] hover:bg-blue-50/40"
     >
-      <Sparkles className="h-[18px] w-[18px]" />
+      <Sparkle className="h-4 w-4 fill-emerald-400 text-emerald-500" />
+      <span>Ask AI</span>
       {hasConversation && (
-        <span className="absolute right-1 top-1 h-2 w-2 rounded-full border-2 border-white bg-emerald-500" />
+        <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
       )}
     </button>
   )

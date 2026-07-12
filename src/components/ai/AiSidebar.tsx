@@ -33,7 +33,11 @@ const SUGGESTIONS_BY_ROLE: Record<string, string[]> = {
     'How do I send fee reminders on WhatsApp?',
     'How is our fee collection this month?'
   ],
-  TEACHER: ['How do I view my students?', 'How do events and RSVPs work?']
+  TEACHER: [
+    'How do I mark daily attendance?',
+    "What's today's attendance for my classes?",
+    'How do I view my students?'
+  ]
 }
 
 export function AiSidebar({

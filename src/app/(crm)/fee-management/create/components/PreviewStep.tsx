@@ -518,7 +518,7 @@ export default function PreviewStep({
                 type="button"
                 onClick={onBack}
                 disabled={isSubmitting}
-                className="px-5 py-2.5 text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition duration-150 cursor-pointer disabled:opacity-50 select-none flex items-center gap-1.5"
+                className="border border-slate-200 bg-white text-slate-600 text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-slate-50 transition min-h-[42px] cursor-pointer disabled:opacity-50 select-none flex items-center justify-center gap-1.5"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back
@@ -527,9 +527,9 @@ export default function PreviewStep({
                 type="button"
                 onClick={handleConfirmAndGenerate}
                 disabled={isSubmitting}
-                className="px-6 py-2.5 text-sm font-bold text-white bg-[#1565D8] hover:bg-blue-700 rounded-xl shadow transition duration-150 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 select-none"
+                className="px-5 py-2.5 text-sm font-semibold text-white bg-[#1565D8] hover:bg-blue-700 rounded-lg transition duration-150 cursor-pointer disabled:opacity-50 min-h-[42px] flex items-center gap-2 select-none"
               >
-                {isSubmitting ? 'Generating...' : 'Confirm & Generate'}
+                {isSubmitting ? 'Saving...' : 'Save Invoice'}
               </button>
             </div>
           </div>

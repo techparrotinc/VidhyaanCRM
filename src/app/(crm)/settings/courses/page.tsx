@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Plus, Pencil, Trash2, BookOpen, Users } from 'lucide-react'
+import { BatchesTab } from '@/components/settings/BatchesTab'
 
 const CATEGORY_LABELS: Record<string, string> = {
   MUSIC: 'Music',
@@ -34,6 +36,10 @@ const FREQUENCY_COLORS: Record<string, string> = {
 }
 
 export default function CoursesSettingsPage() {
+  const searchParams = useSearchParams()
+  const [tab, setTab] = useState<'courses' | 'batches'>(
+    searchParams?.get('tab') === 'batches' ? 'batches' : 'courses'
+  )
   const [courses, setCourses] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -182,25 +188,46 @@ export default function CoursesSettingsPage() {
       {/* ── HEADER ── */}
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="text-lg font-bold text-slate-900">Courses</h1>
+          <h1 className="text-lg font-bold text-slate-900">Courses &amp; Batches</h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Define courses offered by your center. Fee invoices will be generated based on these settings.
+            Define the courses your center offers and the batches students attend.
           </p>
         </div>
-        <button
-          onClick={() => {
-            resetForm()
-            setShowForm(true)
-          }}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap flex-shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          Add Course
-        </button>
+        {tab === 'courses' && (
+          <button
+            onClick={() => {
+              resetForm()
+              setShowForm(true)
+            }}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap flex-shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Add Course
+          </button>
+        )}
       </div>
 
+      {/* ── TABS ── */}
+      <div className="flex gap-1 border-b border-slate-200">
+        {(['courses', 'batches'] as const).map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-2.5 text-sm font-semibold capitalize transition-all ${
+              tab === t
+                ? 'text-[#1565D8] border-b-[3px] border-[#1565D8] mb-[-1px]'
+                : 'text-slate-600 hover:text-slate-800'
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'batches' && <BatchesTab />}
+
       {/* ── ADD / EDIT FORM ── */}
-      {showForm && (
+      {tab === 'courses' && showForm && (
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <h2 className="text-sm font-semibold text-slate-700 mb-4">
             {editingCourse ? 'Edit Course' : 'Add New Course'}
@@ -354,6 +381,7 @@ export default function CoursesSettingsPage() {
       )}
 
       {/* ── COURSES LIST ── */}
+      {tab === 'courses' && (
       <div className="flex flex-col gap-3">
         {isLoading ? (
           <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-400">
@@ -458,6 +486,7 @@ export default function CoursesSettingsPage() {
           ))
         )}
       </div>
+      )}
     </div>
   )
 }

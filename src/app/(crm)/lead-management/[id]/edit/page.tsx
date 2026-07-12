@@ -35,6 +35,7 @@ import { GRADE_OPTIONS } from '@/constants/grades'
 import RecordSkeleton from '@/components/shared/RecordSkeleton'
 import { mapGradeValue } from '@/lib/utils/gradeMapping'
 import { institutionMode } from '@/lib/institution'
+import { useClassOptions } from '@/hooks/useClassOptions'
 
 const format = (date: Date, formatStr: string): string => {
   const yyyy = date.getFullYear()
@@ -133,6 +134,17 @@ export default function EditLeadPage() {
   // Real institution type drives grade vs course/batch fields (was hardcoded 'school').
   const [institutionType, setInstitutionType] = useState<'school' | 'learning_center'>('school')
   const [courses, setCourses] = useState<string[]>(DEFAULT_COURSES)
+  // Class master (schools) — falls back to GRADE_OPTIONS when org has none.
+  const { options: classOptions } = useClassOptions(institutionType === 'school')
+  // Batch master (LC) — falls back to the generic timing list when org has none.
+  const [batchOptions, setBatchOptions] = useState<string[]>([])
+  useEffect(() => {
+    if (institutionType !== 'learning_center') return
+    fetch('/api/v1/options/batches')
+      .then(r => r.json())
+      .then(json => setBatchOptions((json?.data?.batches ?? []).map((b: any) => b.name).filter(Boolean)))
+      .catch(() => {})
+  }, [institutionType])
 
   const [formData, setFormData] = useState({
     parentName: '',
@@ -716,9 +728,14 @@ export default function EditLeadPage() {
                         className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.gradeSought ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-slate-200'}`}
                       >
                         <option value="">Select grade</option>
-                        {GRADE_OPTIONS.map(grade => (
-                          <option key={grade.value} value={grade.value}>{grade.label}</option>
+                        {classOptions.map(cls => (
+                          <option key={cls.gradeSlug + cls.name} value={cls.gradeSlug}>{cls.name}</option>
                         ))}
+                        {formData.gradeSought && !classOptions.some(c => c.gradeSlug === formData.gradeSought) && (
+                          <option value={formData.gradeSought}>
+                            {GRADE_OPTIONS.find(g => g.value === formData.gradeSought)?.label || formData.gradeSought}
+                          </option>
+                        )}
                       </select>
                       {errors.gradeSought && (
                         <span className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
@@ -873,9 +890,13 @@ export default function EditLeadPage() {
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition"
                       >
                         <option value="">Select batch</option>
-                        {['Morning', 'Afternoon', 'Evening', 'Weekend'].map(batch => (
+                        {(batchOptions.length > 0 ? batchOptions : ['Morning', 'Afternoon', 'Evening', 'Weekend']).map(batch => (
                           <option key={batch} value={batch}>{batch}</option>
                         ))}
+                        {formData.batch &&
+                          !(batchOptions.length > 0 ? batchOptions : ['Morning', 'Afternoon', 'Evening', 'Weekend']).includes(formData.batch) && (
+                            <option value={formData.batch}>{formData.batch}</option>
+                          )}
                       </select>
                     </div>
 

@@ -7,6 +7,7 @@ import { mapGradeValue } from '@/lib/utils/gradeMapping'
 import { useCounsellors } from '@/hooks/useCounsellors'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { usePipelineStages } from '@/hooks/usePipelineStages'
+import { useClassOptions } from '@/hooks/useClassOptions'
 
 interface LeadRecord {
   id: string
@@ -91,6 +92,7 @@ export default function ConvertToAdmissionModal({
   const { counsellors, isLoading: loadingCounsellors } = useCounsellors()
   const { years: academicYears, isLoading: loadingYears } = useAcademicYears()
   const { stages: pipelineStages, isLoading: loadingPipeline } = usePipelineStages()
+  const { options: classOptions } = useClassOptions()
   const loadingOptions = loadingCounsellors || loadingYears || loadingPipeline
 
   // Pre-select active year when loaded
@@ -196,10 +198,14 @@ export default function ConvertToAdmissionModal({
 
   if (!isOpen || !lead) return null
 
-  // Dynamic Grade Options (unshift if not in standard list)
+  // Dynamic Grade Options — class master first, GRADE_OPTIONS fallback;
+  // unshift the lead's own value when it's in neither list.
   const mappedValue = mapGradeValue(lead.gradeSought)
-  const gradeOptions: { value: string; label: string }[] = [...GRADE_OPTIONS]
-  if (lead.gradeSought && !GRADE_OPTIONS.some(opt => opt.value === mappedValue)) {
+  const gradeOptions: { value: string; label: string }[] =
+    classOptions.length > 0
+      ? classOptions.map(c => ({ value: c.gradeSlug, label: c.name }))
+      : [...GRADE_OPTIONS]
+  if (lead.gradeSought && !gradeOptions.some(opt => opt.value === mappedValue)) {
     gradeOptions.unshift({
       value: lead.gradeSought,
       label: lead.gradeSought

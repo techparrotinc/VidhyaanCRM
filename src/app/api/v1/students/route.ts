@@ -110,6 +110,8 @@ const createStudentSchema = z.object({
   gender: z.string().optional(),
   dateOfBirth: z.string().optional(),
   gradeLabel: z.string().optional(),
+  section: z.string().max(50).optional(),
+  batchId: z.string().optional(),
   rollNumber: z.string().optional(),
   guardianName: z.string().optional(),
   guardianPhone: z.string().optional(),
@@ -181,6 +183,8 @@ export const POST = route({
         phoneNormalized: identity.phoneNormalized,
         householdId: identity.householdId,
         gradeLabel: body.gradeLabel ?? null,
+        section: body.section?.trim() || null,
+        batchId: body.batchId ?? null,
         rollNumber: body.rollNumber ?? null,
         dateOfBirth: body.dateOfBirth
           ? new Date(body.dateOfBirth)

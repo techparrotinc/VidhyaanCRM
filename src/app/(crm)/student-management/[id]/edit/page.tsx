@@ -5,7 +5,8 @@ import { useRouter, useParams } from 'next/navigation'
 import { ChevronLeft, Save, Lightbulb } from 'lucide-react'
 import { useStudent } from '@/hooks/useStudent'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
-import { GRADE_OPTIONS } from '@/constants/grades'
+import { useClassOptions } from '@/hooks/useClassOptions'
+import { isLearningCentre } from '@/lib/institution'
 
 const inputClass =
   'w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition'
@@ -45,11 +46,31 @@ export default function EditStudentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Institution mode + masters
+  const [isLC, setIsLC] = useState(false)
+  useEffect(() => {
+    fetch('/api/v1/settings/org-type')
+      .then(r => r.json())
+      .then(json => setIsLC(isLearningCentre(json?.data?.institutionType)))
+      .catch(() => {})
+  }, [])
+  const { options: classOptions } = useClassOptions(!isLC)
+  const [batches, setBatches] = useState<any[]>([])
+  useEffect(() => {
+    if (!isLC) return
+    fetch('/api/v1/options/batches')
+      .then(r => r.json())
+      .then(json => setBatches(json?.data?.batches ?? []))
+      .catch(() => {})
+  }, [isLC])
+
   const [form, setForm] = useState({
     name: '',
     gender: '',
     dateOfBirth: '',
     gradeLabel: '',
+    section: '',
+    batchId: '',
     rollNumber: '',
     guardianName: '',
     guardianPhone: '',
@@ -68,6 +89,8 @@ export default function EditStudentPage() {
           ? student.dateOfBirth.split('T')[0]
           : '',
         gradeLabel: student.gradeLabel ?? '',
+        section: (student as any).section ?? '',
+        batchId: (student as any).batchId ?? '',
         rollNumber: student.rollNumber ?? '',
         guardianName: student.guardianName ?? '',
         guardianPhone: student.guardianPhone ?? '',
@@ -108,6 +131,8 @@ export default function EditStudentPage() {
             dateOfBirth: form.dateOfBirth || undefined,
             gender: form.gender || undefined,
             gradeLabel: form.gradeLabel || undefined,
+            section: form.section || null,
+            batchId: form.batchId || undefined,
             rollNumber: form.rollNumber || undefined,
             guardianEmail: form.guardianEmail || undefined,
             academicYearId: form.academicYearId || undefined,
@@ -241,21 +266,75 @@ export default function EditStudentPage() {
                     className={inputClass} />
                 </div>
 
-                <div>
-                  <label className={labelClass}>Grade</label>
-                  <select
-                    name="gradeLabel"
-                    value={form.gradeLabel}
-                    onChange={handleChange}
-                    className={inputClass}>
-                    <option value="">Select grade</option>
-                    {GRADE_OPTIONS.map(g => (
-                      <option key={g.value} value={g.label}>
-                        {g.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {!isLC && (
+                  <>
+                    <div>
+                      <label className={labelClass}>Class</label>
+                      <select
+                        name="gradeLabel"
+                        value={form.gradeLabel}
+                        onChange={e => setForm(prev => ({ ...prev, gradeLabel: e.target.value, section: '' }))}
+                        className={inputClass}>
+                        <option value="">Select class</option>
+                        {classOptions.map(c => (
+                          <option key={c.name} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                        {form.gradeLabel && !classOptions.some(c => c.name === form.gradeLabel) && (
+                          <option value={form.gradeLabel}>{form.gradeLabel}</option>
+                        )}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Section</label>
+                      {(() => {
+                        const sections = classOptions.find(c => c.name === form.gradeLabel)?.sections ?? []
+                        return sections.length > 0 ? (
+                          <select
+                            name="section"
+                            value={form.section}
+                            onChange={handleChange}
+                            className={inputClass}>
+                            <option value="">No section</option>
+                            {sections.map(s => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                            {form.section && !sections.includes(form.section) && (
+                              <option value={form.section}>{form.section}</option>
+                            )}
+                          </select>
+                        ) : (
+                          <input
+                            name="section"
+                            value={form.section}
+                            onChange={handleChange}
+                            placeholder="e.g. A (optional)"
+                            className={inputClass} />
+                        )
+                      })()}
+                    </div>
+                  </>
+                )}
+
+                {isLC && (
+                  <div>
+                    <label className={labelClass}>Batch</label>
+                    <select
+                      name="batchId"
+                      value={form.batchId}
+                      onChange={handleChange}
+                      className={inputClass}>
+                      <option value="">No batch</option>
+                      {batches.map((b: any) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}{b.course ? ` (${b.course.name})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div>
                   <label className={labelClass}>Roll Number</label>

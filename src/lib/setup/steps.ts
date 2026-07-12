@@ -53,6 +53,8 @@ export async function evaluateSetupSteps(orgId: string): Promise<SetupSummary> {
     stageCount,
     feePlanCount,
     courseCount,
+    schoolClassCount,
+    batchCount,
     studentCount,
     leadCount,
     gatewayConfig,
@@ -76,6 +78,8 @@ export async function evaluateSetupSteps(orgId: string): Promise<SetupSummary> {
     prisma.admissionStage.count({ where: { orgId, deletedAt: null } }),
     prisma.feePlan.count({ where: { orgId, deletedAt: null } }),
     prisma.course.count({ where: { orgId, deletedAt: null } }),
+    prisma.schoolClass.count({ where: { orgId, deletedAt: null } }),
+    prisma.studentBatch.count({ where: { orgId, deletedAt: null } }),
     prisma.student.count({ where: { orgId, deletedAt: null } }),
     prisma.lead.count({ where: { orgId, deletedAt: null } }),
     prisma.paymentGatewayConfig.findFirst({
@@ -118,6 +122,21 @@ export async function evaluateSetupSteps(orgId: string): Promise<SetupSummary> {
       href: '/settings/pipeline',
       optional: false
     },
+    isCenter
+      ? {
+          key: 'classes',
+          label: 'Set up batches',
+          description: 'Group students into batches (Morning, Weekend…) for enrolment and attendance.',
+          href: '/settings/courses?tab=batches',
+          optional: true
+        }
+      : {
+          key: 'classes',
+          label: 'Define classes & sections',
+          description: 'Your classes power every class dropdown — leads, students, fees and attendance.',
+          href: '/settings/classes',
+          optional: false
+        },
     isCenter
       ? {
           key: 'fees',
@@ -174,6 +193,7 @@ export async function evaluateSetupSteps(orgId: string): Promise<SetupSummary> {
     profile: profilePct >= PROFILE_DONE_THRESHOLD,
     entity: activeAcademicYear !== null,
     pipeline: stageCount > 0,
+    classes: isCenter ? batchCount > 0 : schoolClassCount > 0,
     fees: isCenter ? courseCount > 0 : feePlanCount > 0,
     migrate: studentCount > 0 || leadCount > 0,
     gateway: gatewayConfig !== null,

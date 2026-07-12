@@ -241,7 +241,7 @@ export default function CreateAdmissionPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="border border-slate-200 bg-white text-slate-655 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-slate-50 transition cursor-pointer h-10 sm:h-9 flex-1 sm:flex-none font-sans"
+            className="border border-slate-200 bg-white text-slate-600 text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-slate-50 transition min-h-[42px] flex items-center justify-center cursor-pointer flex-1 sm:flex-none"
           >
             Cancel
           </button>
@@ -249,17 +249,17 @@ export default function CreateAdmissionPage() {
             type="button"
             onClick={handleSubmit}
             disabled={!isFormValid || isSubmitting}
-            className={`text-white text-sm font-semibold px-4 py-2 h-10 sm:h-9 rounded-lg flex items-center justify-center gap-2 transition flex-1 sm:flex-none ${isSubmitting ? 'opacity-70 cursor-not-allowed bg-[#1565D8]' : (isFormValid ? 'bg-[#1565D8] hover:bg-blue-700 cursor-pointer' : 'bg-[#1565D8]/50 opacity-50 cursor-not-allowed')}`}
+            className={`text-white text-sm font-semibold px-5 py-2.5 h-auto rounded-lg flex items-center gap-2 transition flex-1 sm:flex-none ${isSubmitting ? 'opacity-70 cursor-not-allowed bg-[#1565D8]' : (isFormValid ? 'bg-[#1565D8] hover:bg-blue-700 cursor-pointer' : 'bg-[#1565D8]/50 opacity-50 cursor-not-allowed')}`}
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="animate-spin size-4 mr-2" />
-                <span>Creating...</span>
+                <span>Saving...</span>
               </>
             ) : (
               <>
                 <Save className="size-4" />
-                <span>Create Admission Record</span>
+                <span>Save Admission</span>
               </>
             )}
           </Button>
@@ -554,10 +554,10 @@ export default function CreateAdmissionPage() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="animate-spin size-4 mr-2" />
-                    <span>Creating...</span>
+                    <span>Saving...</span>
                   </>
                 ) : (
-                  <span>Create Admission Record</span>
+                  <span>Save Admission</span>
                 )}
               </Button>
 
@@ -590,7 +590,7 @@ export default function CreateAdmissionPage() {
           disabled={!isFormValid || isSubmitting}
           className={`flex-[2] h-11 text-white text-sm font-semibold rounded-xl px-6 transition ${isSubmitting ? 'opacity-70 bg-[#1565D8] cursor-not-allowed' : (isFormValid ? 'bg-[#1565D8] hover:bg-blue-700' : 'bg-[#1565D8]/50 opacity-50 cursor-not-allowed')}`}
         >
-          {isSubmitting ? 'Creating...' : 'Create Admission'}
+          {isSubmitting ? 'Saving...' : 'Save Admission'}
         </button>
       </div>
     </div>

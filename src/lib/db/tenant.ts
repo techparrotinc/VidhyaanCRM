@@ -22,7 +22,14 @@ const TENANT_MODELS = [
   // public /apply/[token] route via the base client (no session, token is the
   // security boundary); listed here so authenticated builder/counsellor reads
   // stay org-scoped.
-  'Form', 'FormInstance', 'FormSubmission'
+  'Form', 'FormInstance', 'FormSubmission',
+  // Attendance. BiometricEvent is deliberately absent: it is written by the
+  // public device-ingest route (no session, device key is the security
+  // boundary) via the base client.
+  'AttendanceRecord', 'AttendanceSession', 'TeacherAssignment', 'Holiday',
+  'BiometricDevice', 'BiometricIdentity',
+  // Class/section master (schools) — source for class+section dropdowns.
+  'SchoolClass', 'ClassSection'
 ]
 
 const SOFT_DELETE_MODELS = [
@@ -37,7 +44,8 @@ const SOFT_DELETE_MODELS = [
 const BRANCH_MODELS = [
   'Lead', 'LeadActivity', 'Admission', 'AdmissionActivity',
   'AdmissionCapacity', 'Student', 'StudentBatch', 'FeePlan', 'Invoice',
-  'Payment', 'Event', 'Campaign', 'CounsellorTarget', 'DailyRollup', 'Form'
+  'Payment', 'Event', 'Campaign', 'CounsellorTarget', 'DailyRollup', 'Form',
+  'AttendanceRecord', 'AttendanceSession', 'SchoolClass'
 ]
 
 const tenantModelSet = new Set(TENANT_MODELS.map(m => m.toLowerCase()))

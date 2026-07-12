@@ -163,16 +163,15 @@ export default function FeeManagementCreatePage() {
               <button
                 type="button"
                 onClick={handleBack}
-                className="px-5 py-2.5 text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition duration-150 cursor-pointer flex items-center gap-1.5"
+                className="border border-slate-200 bg-white text-slate-600 text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-slate-50 transition min-h-[42px] flex items-center justify-center cursor-pointer"
               >
-                <ArrowLeft className="w-4 h-4" />
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleNext}
                 disabled={!isStepValid}
-                className="px-6 py-2.5 text-sm font-bold text-white bg-[#1565D8] hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 rounded-xl shadow transition duration-150 cursor-pointer disabled:cursor-not-allowed"
+                className="px-5 py-2.5 text-sm font-semibold text-white bg-[#1565D8] hover:bg-blue-700 disabled:bg-[#1565D8]/50 disabled:opacity-50 rounded-lg transition duration-150 cursor-pointer disabled:cursor-not-allowed min-h-[42px] flex items-center gap-2"
               >
                 Next: Preview & Schedule
               </button>

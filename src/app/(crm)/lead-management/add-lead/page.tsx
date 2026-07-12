@@ -38,6 +38,7 @@ import { GRADE_OPTIONS } from '@/constants/grades'
 import { mapGradeValue } from '@/lib/utils/gradeMapping'
 import { DedupDialog, DedupPayload } from "@/components/dedup/DedupDialog"
 import { institutionMode } from '@/lib/institution'
+import { useClassOptions } from '@/hooks/useClassOptions'
 
 const format = (date: Date, formatStr: string): string => {
   const yyyy = date.getFullYear()
@@ -136,6 +137,21 @@ export default function AddLeadPage() {
   const [institutionType, setInstitutionType] = useState<'school' | 'learning_center'>('school')
   // Real course catalogue for learning centres (fallback to the sample list).
   const [courses, setCourses] = useState<string[]>(DEFAULT_COURSES)
+  // Class master (schools) — falls back to GRADE_OPTIONS when org has none.
+  const { options: classOptions } = useClassOptions(institutionType === 'school')
+  // Batch master (LC) — falls back to the generic timing list when org has none.
+  const [batchOptions, setBatchOptions] = useState<string[]>([])
+
+  useEffect(() => {
+    if (institutionType !== 'learning_center') return
+    fetch('/api/v1/options/batches')
+      .then(r => r.json())
+      .then(json => {
+        const names = (json?.data?.batches ?? []).map((b: any) => b.name).filter(Boolean)
+        setBatchOptions(names)
+      })
+      .catch(() => {})
+  }, [institutionType])
 
   // Fetch counsellors and academic years on mount
   useEffect(() => {
@@ -695,8 +711,8 @@ export default function AddLeadPage() {
                         className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.gradeSought ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-slate-200'}`}
                       >
                         <option value="">Select grade</option>
-                        {GRADE_OPTIONS.map(grade => (
-                          <option key={grade.value} value={grade.value}>{grade.label}</option>
+                        {classOptions.map(cls => (
+                          <option key={cls.gradeSlug + cls.name} value={cls.gradeSlug}>{cls.name}</option>
                         ))}
                       </select>
                       {errors.gradeSought && (
@@ -873,7 +889,7 @@ export default function AddLeadPage() {
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition"
                       >
                         <option value="">Select batch</option>
-                        {['Morning', 'Afternoon', 'Evening', 'Weekend'].map(batch => (
+                        {(batchOptions.length > 0 ? batchOptions : ['Morning', 'Afternoon', 'Evening', 'Weekend']).map(batch => (
                           <option key={batch} value={batch}>{batch}</option>
                         ))}
                       </select>
@@ -1191,7 +1207,7 @@ export default function AddLeadPage() {
                         {institutionType === 'school' ? 'Grade' : 'Course'}
                       </span>
                       <span className="text-slate-700 font-semibold ml-auto truncate max-w-[120px]">
-                        {GRADE_OPTIONS.find(g => g.value === formData.gradeSought)?.label || '—'}
+                        {classOptions.find(c => c.gradeSlug === formData.gradeSought)?.name || GRADE_OPTIONS.find(g => g.value === formData.gradeSought)?.label || '—'}
                       </span>
                     </div>
 

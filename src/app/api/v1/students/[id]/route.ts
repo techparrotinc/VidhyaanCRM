@@ -93,6 +93,7 @@ const updateStudentSchema = z.object({
   gender: z.string().optional(),
   dateOfBirth: z.string().optional(),
   gradeLabel: z.string().optional(),
+  section: z.string().max(50).nullable().optional(),
   rollNumber: z.string().optional(),
   guardianName: z.string().optional(),
   guardianPhone: z.string().optional(),
@@ -126,6 +127,7 @@ export const PUT = route({
     if (body.guardianPhone !== undefined) updateData.guardianPhone = body.guardianPhone
     if (body.guardianEmail !== undefined) updateData.guardianEmail = body.guardianEmail
     if (body.gradeLabel !== undefined) updateData.gradeLabel = body.gradeLabel
+    if (body.section !== undefined) updateData.section = body.section?.trim() || null
     if (body.rollNumber !== undefined) updateData.rollNumber = body.rollNumber
     if (body.dateOfBirth !== undefined) {
       updateData.dateOfBirth = body.dateOfBirth ? new Date(body.dateOfBirth) : null

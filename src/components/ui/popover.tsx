@@ -12,6 +12,18 @@ const PopoverContext = React.createContext<{
   triggerRef: React.RefObject<HTMLButtonElement | null>
 } | null>(null)
 
+/**
+ * Close handle for content rendered inside a Popover (e.g. the shared
+ * Calendar closes itself after a day is picked). Returns null when not
+ * inside a Popover, so callers are safe anywhere.
+ */
+export function usePopoverClose(): (() => void) | null {
+  const context = React.useContext(PopoverContext)
+  if (!context) return null
+  const { setOpen } = context
+  return () => setOpen(false)
+}
+
 export function Popover({ children }: PopoverProps) {
   const [open, setOpen] = React.useState(false)
   const triggerRef = React.useRef<HTMLButtonElement | null>(null)

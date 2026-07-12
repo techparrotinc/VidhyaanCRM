@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db/client'
+import { isLearningCentre } from '@/lib/institution'
+import { seedClassesFromRange } from '@/lib/setup/seedClasses'
 
 const numLike = z.union([z.string().max(20), z.number()]).optional().nullable()
 const strOpt = (max: number) => z.string().max(max).optional().nullable()
@@ -311,6 +313,12 @@ export async function POST(req: NextRequest) {
             user.id
           )
         }
+      }
+
+      // Schools/junior colleges: seed the class master from the grade range
+      // (idempotent — skipDuplicates on unique orgId+name).
+      if (!isLearningCentre(mappedInstType) && data.gradeFrom && data.gradeTo) {
+        await seedClassesFromRange(org.id, data.gradeFrom, data.gradeTo)
       }
     }
 

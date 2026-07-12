@@ -15,7 +15,8 @@ export const MODULES = {
   CUSTOM_DOMAIN: 'custom_domain',
   WHATSAPP_ADDON: 'whatsapp_addon',
   SMS_ADDON: 'sms_addon',
-  AI_COPILOT: 'ai_copilot'
+  AI_COPILOT: 'ai_copilot',
+  ATTENDANCE: 'attendance'
 } as const
 
 export type ModuleSlug = typeof MODULES[keyof typeof MODULES]

@@ -288,6 +288,38 @@ export const REPORTS: ReportDefinition[] = [
         options: ['SUCCESS', 'PENDING', 'FAILED', 'REFUNDED'].map(v => ({ value: v, label: v }))
       }],
     exports: ['csv', 'xlsx', 'pdf']
+  },
+  {
+    key: 'attendance-register',
+    title: 'Daily Absence Register',
+    decision: 'See who was absent or on leave today and who marked the register',
+    category: 'students',
+    allowedRoles: [...ADMIN_ROLES, 'TEACHER'],
+    filters: [branchFilter, dateRange, gradeFilter,
+      {
+        key: 'status', label: 'Status', type: 'enum',
+        options: ['PRESENT', 'ABSENT', 'HALF_DAY', 'LEAVE'].map(v => ({ value: v, label: v.replace(/_/g, ' ') }))
+      }],
+    exports: ['csv', 'xlsx', 'pdf']
+  },
+  {
+    key: 'attendance-summary',
+    title: 'Attendance Monthly Summary',
+    decision: 'Compare attendance across classes, courses and batches for the month',
+    category: 'students',
+    allowedRoles: ADMIN_ROLES,
+    filters: [branchFilter, dateRange, gradeFilter],
+    exports: ['csv', 'xlsx', 'pdf']
+  },
+  {
+    key: 'low-attendance',
+    title: 'Low Attendance Students',
+    decision: 'Catch students slipping below the attendance threshold before exams',
+    category: 'students',
+    allowedRoles: ADMIN_ROLES,
+    filters: [branchFilter, dateRange, gradeFilter,
+      { key: 'threshold', label: 'Below %', type: 'number' }],
+    exports: ['csv', 'xlsx']
   }
 ]
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, DollarSign, X } from 'lucide-react'
-import { GRADE_OPTIONS } from '@/constants/grades'
+import { useClassOptions } from '@/hooks/useClassOptions'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -51,6 +51,9 @@ type FeePlan = {
 }
 
 export default function FeePlansSettingsPage() {
+  // Class master drives the grade dropdown; plans keep storing the SLUG
+  // value (class-mode invoicing matches on it).
+  const { options: classOptions } = useClassOptions()
   const [plans, setPlans] = useState<FeePlan[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -260,9 +263,9 @@ export default function FeePlansSettingsPage() {
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="">All Grades / Not grade-specific</option>
-                {GRADE_OPTIONS.map(g => (
-                  <option key={g.value} value={g.value}>
-                    {g.label}
+                {classOptions.map(c => (
+                  <option key={c.gradeSlug + c.name} value={c.gradeSlug}>
+                    {c.name}
                   </option>
                 ))}
               </select>

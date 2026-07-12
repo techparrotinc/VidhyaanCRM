@@ -699,6 +699,14 @@ model Organization {
   messageWallets        MessageWallet[]
   messagingProviders    MessagingProviderConfig[]
   forms                 Form[]
+  attendanceRecords     AttendanceRecord[]
+  attendanceSessions    AttendanceSession[]
+  teacherAssignments    TeacherAssignment[]
+  holidays              Holiday[]
+  biometricDevices      BiometricDevice[]
+  biometricIdentities   BiometricIdentity[]
+  schoolClasses         SchoolClass[]
+  classSections         ClassSection[]
 
   @@index([status])
   @@index([institutionType])
@@ -738,6 +746,7 @@ model Branch {
   campaigns           Campaign[]
   counsellorTargets   CounsellorTarget[]
   forms               Form[]
+  schoolClasses       SchoolClass[]
 
   @@index([orgId])
   @@map("branches")
@@ -770,6 +779,8 @@ model User {
   parent             Parent?
   studentActivities  StudentActivity[]        @relation("StudentActivityPerformedBy")
   twoFactor          UserTwoFactor?
+  attendanceMarked   AttendanceRecord[]       @relation("AttendanceMarkedBy")
+  teacherAssignments TeacherAssignment[]      @relation("TeacherAssignments")
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -1641,6 +1652,7 @@ model AcademicYear {
   counsellorTargets   CounsellorTarget[]
   terms               Term[]
   forms               Form[]
+  attendanceRecords   AttendanceRecord[]
 
   @@unique([orgId, name])
   @@index([orgId])
@@ -1904,32 +1916,32 @@ model AdmissionCapacity {
 /// sections/fields; `mapsTo` on each field is a CANONICAL key resolved by
 /// the adapter, never a raw column.
 model Form {
-  id                   String   @id @default(cuid())
-  orgId                String   @map("org_id")
-  branchId             String?  @map("branch_id")
-  academicYearId       String?  @map("academic_year_id")
+  id                   String      @id @default(cuid())
+  orgId                String      @map("org_id")
+  branchId             String?     @map("branch_id")
+  academicYearId       String?     @map("academic_year_id")
   name                 String
   description          String?
   purpose              FormPurpose @default(ADMISSION)
   status               FormStatus  @default(DRAFT)
-  version              Int      @default(1)
-  isDefault            Boolean  @default(false) @map("is_default")
+  version              Int         @default(1)
+  isDefault            Boolean     @default(false) @map("is_default")
   slug                 String?
   /// sections[] -> fields[]; field { key,label,type,required,options,placeholder,validation,mapsTo }
   schema               Json
   /// builder settings: theme, consentText, successMessage, redirectUrl
   settings             Json?
   /// targeting — auto-select a form per course/grade (and campaign at send time)
-  courseIds            String[] @map("course_ids")
-  gradeLabels          String[] @map("grade_labels")
+  courseIds            String[]    @map("course_ids")
+  gradeLabels          String[]    @map("grade_labels")
   /// optional in-form application fee
-  applicationFeeAmount Decimal? @map("application_fee_amount") @db.Decimal(10, 2)
-  feeCurrency          String   @default("INR") @map("fee_currency")
-  feeRequired          Boolean  @default(false) @map("fee_required")
-  createdById          String?  @map("created_by_id") // soft reference
-  createdAt            DateTime @default(now()) @map("created_at")
-  updatedAt            DateTime @updatedAt @map("updated_at")
-  deletedAt            DateTime? @map("deleted_at")
+  applicationFeeAmount Decimal?    @map("application_fee_amount") @db.Decimal(10, 2)
+  feeCurrency          String      @default("INR") @map("fee_currency")
+  feeRequired          Boolean     @default(false) @map("fee_required")
+  createdById          String?     @map("created_by_id") // soft reference
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @updatedAt @map("updated_at")
+  deletedAt            DateTime?   @map("deleted_at")
 
   organization Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch       Branch?          @relation(fields: [branchId], references: [id])
@@ -2050,21 +2062,23 @@ model Student {
   phoneNormalized String? @map("phone_normalized") // cleanPhoneNumber(guardianPhone)
   householdId     String? @map("household_id")
 
-  organization      Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  branch            Branch?               @relation(fields: [branchId], references: [id])
-  academicYear      AcademicYear?         @relation(fields: [academicYearId], references: [id])
-  admission         Admission?            @relation(fields: [admissionId], references: [id])
-  batch             StudentBatch?         @relation(fields: [batchId], references: [id])
-  household         Household?            @relation(fields: [householdId], references: [id])
-  invoices          Invoice[]
-  payments          Payment[]
-  concessions       Concession[]
-  siblingLinksA     SiblingLink[]         @relation("SiblingPrimary")
-  siblingLinksB     SiblingLink[]         @relation("SiblingRelated")
-  activities        StudentActivity[]
-  courseEnrollments CourseEnrollment[]
-  ledgerEntries     LedgerEntry[]
-  guardianLinks     StudentGuardianLink[]
+  organization        Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch              Branch?               @relation(fields: [branchId], references: [id])
+  academicYear        AcademicYear?         @relation(fields: [academicYearId], references: [id])
+  admission           Admission?            @relation(fields: [admissionId], references: [id])
+  batch               StudentBatch?         @relation(fields: [batchId], references: [id])
+  household           Household?            @relation(fields: [householdId], references: [id])
+  invoices            Invoice[]
+  payments            Payment[]
+  concessions         Concession[]
+  siblingLinksA       SiblingLink[]         @relation("SiblingPrimary")
+  siblingLinksB       SiblingLink[]         @relation("SiblingRelated")
+  activities          StudentActivity[]
+  courseEnrollments   CourseEnrollment[]
+  ledgerEntries       LedgerEntry[]
+  guardianLinks       StudentGuardianLink[]
+  attendanceRecords   AttendanceRecord[]
+  biometricIdentities BiometricIdentity[]
 
   @@unique([orgId, studentCode])
   @@index([orgId, createdAt])
@@ -2145,19 +2159,27 @@ model StudentBatch {
   orgId          String    @map("org_id")
   branchId       String?   @map("branch_id")
   academicYearId String?   @map("academic_year_id")
+  courseId       String?   @map("course_id") // optional link to the course this batch runs
   name           String
   programme      String?
+  daysOfWeek     String[]  @default([]) @map("days_of_week") // Mon..Sun
+  startTime      String?   @map("start_time") // HH:mm
+  endTime        String?   @map("end_time") // HH:mm
   startDate      DateTime? @map("start_date")
   endDate        DateTime? @map("end_date")
   capacity       Int?
+  isActive       Boolean   @default(true) @map("is_active")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
   deletedAt      DateTime? @map("deleted_at")
 
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  branch       Branch?       @relation(fields: [branchId], references: [id])
-  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
-  students     Student[]
+  organization       Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch             Branch?             @relation(fields: [branchId], references: [id])
+  academicYear       AcademicYear?       @relation(fields: [academicYearId], references: [id])
+  course             Course?             @relation(fields: [courseId], references: [id])
+  students           Student[]
+  attendanceSessions AttendanceSession[]
+  teacherAssignments TeacherAssignment[]
 
   @@index([orgId])
   @@index([branchId])
@@ -2505,22 +2527,22 @@ model Campaign {
 }
 
 model CampaignRecipient {
-  id            String             @id @default(cuid())
-  orgId         String             @map("org_id")
-  campaignId    String             @map("campaign_id")
-  recipientType String             @map("recipient_type")
-  recipientId   String?            @map("recipient_id")
-  name          String?
-  phone         String?
-  email         String?
-  status        CampaignSendStatus @default(PENDING)
-  sentAt        DateTime?          @map("sent_at")
-  deliveredAt   DateTime?          @map("delivered_at")
-  readAt        DateTime?          @map("read_at")
-  failureReason String?            @map("failure_reason")
+  id                String             @id @default(cuid())
+  orgId             String             @map("org_id")
+  campaignId        String             @map("campaign_id")
+  recipientType     String             @map("recipient_type")
+  recipientId       String?            @map("recipient_id")
+  name              String?
+  phone             String?
+  email             String?
+  status            CampaignSendStatus @default(PENDING)
+  sentAt            DateTime?          @map("sent_at")
+  deliveredAt       DateTime?          @map("delivered_at")
+  readAt            DateTime?          @map("read_at")
+  failureReason     String?            @map("failure_reason")
   /// Meta wamid — joins delivery webhooks back to this recipient
-  providerMessageId String?        @map("provider_message_id")
-  createdAt     DateTime           @default(now()) @map("created_at")
+  providerMessageId String?            @map("provider_message_id")
+  createdAt         DateTime           @default(now()) @map("created_at")
 
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
@@ -2535,16 +2557,16 @@ model CampaignRecipient {
 /// the delivery webhook updates status by wamid. `ref` mirrors the credit
 /// ledger reference (fee_invoice:<id>, campaign_recipient:<id>, …).
 model WhatsappMessage {
-  id           String    @id @default(cuid())
-  orgId        String    @map("org_id")
-  wamid        String?   @unique
+  id           String   @id @default(cuid())
+  orgId        String   @map("org_id")
+  wamid        String?  @unique
   phone        String
-  templateName String    @map("template_name")
+  templateName String   @map("template_name")
   ref          String?
-  status       String    @default("ACCEPTED") // ACCEPTED/SENT/DELIVERED/READ/FAILED
+  status       String   @default("ACCEPTED") // ACCEPTED/SENT/DELIVERED/READ/FAILED
   error        String?
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@index([orgId, createdAt])
   @@index([phone])
@@ -3059,38 +3081,38 @@ model PlatformSettings {
   // Secrets stored as vault ciphertext (see src/lib/payments/vault.ts).
   // All optional: when null the platform-config resolver falls back to the
   // corresponding process.env value, so an empty row = today's env behaviour.
-  razorpayKeyId          String? @map("razorpay_key_id")           // key_id (semi-public)
-  razorpayKeySecretEnc   String? @map("razorpay_key_secret_enc")   // key_secret (encrypted)
+  razorpayKeyId            String? @map("razorpay_key_id") // key_id (semi-public)
+  razorpayKeySecretEnc     String? @map("razorpay_key_secret_enc") // key_secret (encrypted)
   razorpayWebhookSecretEnc String? @map("razorpay_webhook_secret_enc") // webhook secret (encrypted)
-  s3Region               String? @map("s3_region")
-  s3AccessKeyId          String? @map("s3_access_key_id")
-  s3SecretKeyEnc         String? @map("s3_secret_key_enc")         // encrypted
-  zeptoTokenEnc          String? @map("zepto_token_enc")           // encrypted
-  zeptoFromEmail         String? @map("zepto_from_email")
-  zeptoCampaignEmail     String? @map("zepto_campaign_email")
-  msg91AuthKeyEnc        String? @map("msg91_auth_key_enc")        // encrypted
-  msg91WhatsappNumber    String? @map("msg91_whatsapp_number")
-  msg91SenderId          String? @map("msg91_sender_id")
+  s3Region                 String? @map("s3_region")
+  s3AccessKeyId            String? @map("s3_access_key_id")
+  s3SecretKeyEnc           String? @map("s3_secret_key_enc") // encrypted
+  zeptoTokenEnc            String? @map("zepto_token_enc") // encrypted
+  zeptoFromEmail           String? @map("zepto_from_email")
+  zeptoCampaignEmail       String? @map("zepto_campaign_email")
+  msg91AuthKeyEnc          String? @map("msg91_auth_key_enc") // encrypted
+  msg91WhatsappNumber      String? @map("msg91_whatsapp_number")
+  msg91SenderId            String? @map("msg91_sender_id")
   // Meta WhatsApp Cloud API (direct, no BSP). When configured, platform
   // shared-account WhatsApp sends go through graph.facebook.com instead of
   // MSG91. System-user permanent token, encrypted at rest.
-  metaWaAccessTokenEnc    String? @map("meta_wa_access_token_enc")  // encrypted
-  metaWaPhoneNumberId     String? @map("meta_wa_phone_number_id")
-  metaWaBusinessAccountId String? @map("meta_wa_business_account_id") // WABA id (template sync)
-  metaWaAppSecretEnc      String? @map("meta_wa_app_secret_enc")    // encrypted — webhook signature check
+  metaWaAccessTokenEnc     String? @map("meta_wa_access_token_enc") // encrypted
+  metaWaPhoneNumberId      String? @map("meta_wa_phone_number_id")
+  metaWaBusinessAccountId  String? @map("meta_wa_business_account_id") // WABA id (template sync)
+  metaWaAppSecretEnc       String? @map("meta_wa_app_secret_enc") // encrypted — webhook signature check
   metaWaWebhookVerifyToken String? @map("meta_wa_webhook_verify_token")
 
   // Usage & ROI model (admin-configurable) for the org usage dashboard.
   // usageHourlyRate: blended staff cost (₹/hour). usageMinutesPerAction:
   // JSON map of module-slug → minutes saved per tracked action.
-  usageHourlyRate       Int?    @default(300) @map("usage_hourly_rate")
-  usageMinutesPerAction Json?   @map("usage_minutes_per_action")
+  usageHourlyRate       Int?  @default(300) @map("usage_hourly_rate")
+  usageMinutesPerAction Json? @map("usage_minutes_per_action")
 
   // Optional external uptime monitor (UptimeRobot read-only API key, encrypted).
   // When set, the admin dashboard shows a real uptime %.
-  uptimeRobotApiKeyEnc  String? @map("uptime_robot_api_key_enc")
+  uptimeRobotApiKeyEnc String? @map("uptime_robot_api_key_enc")
 
-  updatedAt             DateTime       @updatedAt @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("platform_settings")
   @@schema("platform")
@@ -3148,15 +3170,15 @@ model FeatureUsageEvent {
 // cron so raw events/heartbeats can be pruned on a retention window while
 // long-range history is preserved. One row per (org, day, feature).
 model UsageDailyRollup {
-  id           String   @id @default(cuid())
-  orgId        String   @map("org_id")
-  day          DateTime @db.Date
-  feature      String
-  actions      Int      @default(0)
-  activeUsers  Int      @default(0) @map("active_users")
-  activeMinutes Int     @default(0) @map("active_minutes")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(cuid())
+  orgId         String   @map("org_id")
+  day           DateTime @db.Date
+  feature       String
+  actions       Int      @default(0)
+  activeUsers   Int      @default(0) @map("active_users")
+  activeMinutes Int      @default(0) @map("active_minutes")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@unique([orgId, day, feature])
   @@index([orgId, day])
@@ -3217,9 +3239,12 @@ model Course {
   updatedAt      DateTime        @updatedAt @map("updated_at")
   deletedAt      DateTime?       @map("deleted_at")
 
-  organization Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  enrollments  CourseEnrollment[]
-  invoices     Invoice[]
+  organization       Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  enrollments        CourseEnrollment[]
+  invoices           Invoice[]
+  attendanceSessions AttendanceSession[]
+  batches            StudentBatch[]
+  teacherAssignments TeacherAssignment[]
 
   @@index([orgId])
   @@map("courses")
@@ -3603,4 +3628,255 @@ model ReportSchedule {
   @@index([orgId, enabled])
   @@map("report_schedules")
   @@schema("reporting")
+}
+
+// ============================================================
+// ATTENDANCE (module slug: 'attendance')
+// School/junior-college = daily marks (sessionKey 'DAY');
+// learning/coaching centres = per-session marks keyed to a course/batch
+// AttendanceSession. See docs/plans + src/lib/attendance/.
+// ============================================================
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  LEAVE
+  HOLIDAY
+
+  @@schema("crm")
+}
+
+enum AttendanceSource {
+  MANUAL
+  BIOMETRIC
+  AUTO_ONLINE
+  API
+
+  @@schema("crm")
+}
+
+model AttendanceRecord {
+  id             String           @id @default(cuid())
+  orgId          String           @map("org_id")
+  branchId       String?          @map("branch_id")
+  academicYearId String?          @map("academic_year_id")
+  studentId      String           @map("student_id")
+  date           DateTime         @db.Date
+  sessionId      String?          @map("session_id")
+  // sessionId ?? 'DAY' — non-null stand-in so the unique constraint can
+  // dedupe daily marks (Postgres treats NULLs as distinct in uniques).
+  sessionKey     String           @default("DAY") @map("session_key")
+  status         AttendanceStatus
+  source         AttendanceSource @default(MANUAL)
+  checkInAt      DateTime?        @map("check_in_at")
+  checkOutAt     DateTime?        @map("check_out_at")
+  note           String?
+  markedById     String?          @map("marked_by_id")
+  updatedById    String?          @map("updated_by_id")
+  alertSentAt    DateTime?        @map("alert_sent_at") // absence-alert once-only stamp
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  organization Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  student      Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  session      AttendanceSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear?      @relation(fields: [academicYearId], references: [id])
+  markedBy     User?              @relation("AttendanceMarkedBy", fields: [markedById], references: [id])
+
+  @@unique([orgId, studentId, date, sessionKey])
+  @@index([orgId, date])
+  @@index([orgId, academicYearId, date])
+  @@index([orgId, studentId, date])
+  @@index([sessionId])
+  @@index([branchId])
+  @@map("attendance_records")
+  @@schema("crm")
+}
+
+/// One scheduled class occurrence for LC/coaching orgs (course XOR batch).
+model AttendanceSession {
+  id             String    @id @default(cuid())
+  orgId          String    @map("org_id")
+  branchId       String?   @map("branch_id")
+  academicYearId String?   @map("academic_year_id")
+  date           DateTime  @db.Date
+  courseId       String?   @map("course_id")
+  batchId        String?   @map("batch_id")
+  title          String?
+  startsAt       DateTime? @map("starts_at")
+  endsAt         DateTime? @map("ends_at")
+  deliveryMode   String    @default("IN_PERSON") @map("delivery_mode") // IN_PERSON | ONLINE
+  createdById    String?   @map("created_by_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  course       Course?            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  batch        StudentBatch?      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  records      AttendanceRecord[]
+
+  @@index([orgId, date])
+  @@index([courseId])
+  @@index([batchId])
+  @@map("attendance_sessions")
+  @@schema("crm")
+}
+
+/// Teacher -> marking target. School mode: gradeLabel(+section); LC mode:
+/// courseId or batchId. targetKey is the joined tuple so the unique works
+/// despite nullable columns.
+model TeacherAssignment {
+  id             String   @id @default(cuid())
+  orgId          String   @map("org_id")
+  teacherId      String   @map("teacher_id")
+  academicYearId String?  @map("academic_year_id")
+  gradeLabel     String?  @map("grade_label")
+  section        String?
+  courseId       String?  @map("course_id")
+  batchId        String?  @map("batch_id")
+  targetKey      String   @map("target_key") // `${gradeLabel}|${section}|${courseId}|${batchId}`
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  teacher      User          @relation("TeacherAssignments", fields: [teacherId], references: [id], onDelete: Cascade)
+  course       Course?       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  batch        StudentBatch? @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, teacherId, targetKey])
+  @@index([orgId, teacherId])
+  @@map("teacher_assignments")
+  @@schema("crm")
+}
+
+model Holiday {
+  id             String   @id @default(cuid())
+  orgId          String   @map("org_id")
+  academicYearId String?  @map("academic_year_id")
+  date           DateTime @db.Date
+  name           String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, date])
+  @@index([orgId, academicYearId])
+  @@map("holidays")
+  @@schema("crm")
+}
+
+/// Registered biometric device. Ingest auth = sha256(x-device-key) lookup.
+model BiometricDevice {
+  id           String    @id @default(cuid())
+  orgId        String    @map("org_id")
+  branchId     String?   @map("branch_id")
+  name         String
+  vendor       String? // ESSL | REALTIME | OTHER (free text)
+  serialNumber String?   @map("serial_number")
+  apiKeyPrefix String    @map("api_key_prefix") // display hint only
+  apiKeyHash   String    @unique @map("api_key_hash") // sha256(token)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastSeenAt   DateTime? @map("last_seen_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  organization Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  identities   BiometricIdentity[]
+  events       BiometricEvent[]
+
+  @@index([orgId])
+  @@map("biometric_devices")
+  @@schema("crm")
+}
+
+/// Maps the user id enrolled on a device to a CRM student.
+model BiometricIdentity {
+  id           String   @id @default(cuid())
+  orgId        String   @map("org_id")
+  deviceId     String?  @map("device_id") // null = org-wide mapping
+  deviceUserId String   @map("device_user_id")
+  studentId    String   @map("student_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  organization Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  device       BiometricDevice? @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, deviceUserId])
+  @@index([studentId])
+  @@map("biometric_identities")
+  @@schema("crm")
+}
+
+/// Raw punch events pushed by devices. Written by the public ingest route
+/// via the base client (device key is the security boundary) — deliberately
+/// NOT in TENANT_MODELS. Unique constraint makes re-pushes idempotent.
+model BiometricEvent {
+  id           String   @id @default(cuid())
+  orgId        String   @map("org_id")
+  deviceId     String   @map("device_id")
+  deviceUserId String   @map("device_user_id")
+  eventAt      DateTime @map("event_at")
+  direction    String? // in | out
+  payload      Json?
+  status       String   @default("PENDING") // PROCESSED | UNMATCHED
+  studentId    String?  @map("student_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  device BiometricDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, deviceUserId, eventAt])
+  @@index([orgId, status])
+  @@map("biometric_events")
+  @@schema("crm")
+}
+
+// ============================================================
+// CLASS / SECTION MASTER (schools & junior colleges)
+// Source of truth for class+section dropdowns across lead →
+// admission → student → fees → attendance. Records still STORE
+// the name string (Student.gradeLabel/section) — master drives
+// options only; gradeSlug bridges Lead.gradeSought slug values.
+// LC/coaching orgs use Course + StudentBatch instead.
+// ============================================================
+
+model SchoolClass {
+  id        String    @id @default(cuid())
+  orgId     String    @map("org_id")
+  branchId  String?   @map("branch_id")
+  name      String // canonical label, matches Student.gradeLabel ("Class 5")
+  gradeSlug String?   @map("grade_slug") // mapGradeValue(name)
+  sortOrder Int       @default(0) @map("sort_order") // ladder position
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch       Branch?        @relation(fields: [branchId], references: [id])
+  sections     ClassSection[]
+
+  @@unique([orgId, name])
+  @@index([orgId, sortOrder])
+  @@map("school_classes")
+  @@schema("crm")
+}
+
+model ClassSection {
+  id        String   @id @default(cuid())
+  orgId     String   @map("org_id")
+  classId   String   @map("class_id")
+  name      String // "A", "B" — matches Student.section
+  capacity  Int?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  schoolClass  SchoolClass  @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, name])
+  @@index([orgId])
+  @@map("class_sections")
+  @@schema("crm")
 }

@@ -18,6 +18,7 @@ import CourseEnrollmentCard from './components/CourseEnrollmentCard'
 import ParentAccessCard from './components/ParentAccessCard'
 import StudentInvoicesTab from './components/StudentInvoicesTab'
 import StudentPaymentsTab from './components/StudentPaymentsTab'
+import { StudentAttendanceTab } from '@/components/attendance/StudentAttendanceTab'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 
@@ -359,6 +360,7 @@ export default function StudentDetailPage() {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="invoices">Invoices</TabsTrigger>
               <TabsTrigger value="payments">Payments</TabsTrigger>
+              <TabsTrigger value="attendance">Attendance</TabsTrigger>
               <TabsTrigger value="activity">Activity</TabsTrigger>
             </TabsList>
 
@@ -512,6 +514,11 @@ export default function StudentDetailPage() {
             {/* ── PAYMENTS TAB ── */}
             <TabsContent value="payments">
               <StudentPaymentsTab studentId={id} />
+            </TabsContent>
+
+            {/* ── ATTENDANCE TAB ── */}
+            <TabsContent value="attendance">
+              <StudentAttendanceTab studentId={id} />
             </TabsContent>
 
             {/* ── ACTIVITY TAB ── */}

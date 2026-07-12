@@ -12,6 +12,7 @@ import {
   CreditCard,
   Megaphone,
   CalendarDays,
+  CalendarCheck,
   BarChart2,
   UserCog,
   ShieldCheck,
@@ -136,6 +137,7 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
     { name: 'Admission Management', href: '/admission-management', icon: ClipboardList, module: 'admission_management', section: 'Main' },
     { name: 'Student Management', href: '/student-management', icon: GraduationCap, module: 'student_management', section: 'Main' },
     { name: 'Fee Management', href: '/fee-management', icon: CreditCard, module: 'fee_management', section: 'Main' },
+    { name: 'Attendance', href: '/attendance', icon: CalendarCheck, module: 'attendance', section: 'Main', roles: ['ORG_ADMIN', 'BRANCH_ADMIN', 'TEACHER'] },
 
     // Section 2: Engagement
     { name: 'Campaigns', href: '/campaign-management', icon: Megaphone, module: 'campaign_management', section: 'Engagement' },

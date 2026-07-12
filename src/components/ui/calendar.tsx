@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { usePopoverClose } from "@/components/ui/popover"
 
 interface CalendarProps {
   mode?: "single"
@@ -16,6 +17,8 @@ export function Calendar({
 }: CalendarProps) {
   const selectedDate = selected ? new Date(selected) : null
   const [viewDate, setViewDate] = React.useState(() => selectedDate || new Date())
+  // Inside a Popover (DOB pickers etc.) a day pick closes it; elsewhere no-op.
+  const closePopover = usePopoverClose()
 
   React.useEffect(() => {
     if (selected) {
@@ -72,6 +75,19 @@ export function Calendar({
     setViewDate(new Date(year, month + 1, 1))
   }
 
+  // Jumpable range: old enough for dates of birth, far enough ahead for
+  // event scheduling.
+  const currentYear = new Date().getFullYear()
+  const yearOptions: number[] = []
+  for (let y = currentYear + 5; y >= 1950; y--) yearOptions.push(y)
+  if (!yearOptions.includes(year)) {
+    yearOptions.push(year)
+    yearOptions.sort((a, b) => b - a)
+  }
+
+  const headerSelect =
+    'appearance-none bg-transparent text-xs font-bold text-slate-800 rounded-md px-1 py-0.5 hover:bg-slate-100 focus:outline-none focus:ring-1 focus:ring-[#1565D8]/30 cursor-pointer'
+
   return (
     <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-lg w-[260px]">
       <div className="flex items-center justify-between mb-2">
@@ -82,9 +98,28 @@ export function Calendar({
         >
           <ChevronLeft size={16} />
         </button>
-        <span className="text-xs font-bold text-slate-800">
-          {monthNames[month]} {year}
-        </span>
+        <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
+          <select
+            aria-label="Month"
+            value={month}
+            onChange={e => setViewDate(new Date(year, Number(e.target.value), 1))}
+            className={headerSelect}
+          >
+            {monthNames.map((name, i) => (
+              <option key={name} value={i}>{name}</option>
+            ))}
+          </select>
+          <select
+            aria-label="Year"
+            value={year}
+            onChange={e => setViewDate(new Date(Number(e.target.value), month, 1))}
+            className={headerSelect}
+          >
+            {yearOptions.map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
         <button
           type="button"
           onClick={handleNext}
@@ -114,6 +149,7 @@ export function Calendar({
                 if (onSelect) {
                   onSelect(new Date(cell.dateStr))
                 }
+                closePopover?.()
               }}
               className={`h-7 w-7 text-xs rounded-md flex items-center justify-center transition cursor-pointer ${
                 isSelected

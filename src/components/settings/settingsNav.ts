@@ -3,10 +3,12 @@ import { institutionNoun } from '@/lib/institution'
 import {
   Bell,
   Building2,
+  CalendarCheck,
   CreditCard,
   GitMerge,
   CalendarDays,
   ClipboardList,
+  GraduationCap,
   Key,
   Receipt,
   BookOpen,
@@ -87,6 +89,12 @@ export function buildSettingsNav(opts: {
         ...(!isLearningCenter
           ? [
               {
+                name: 'Classes & Sections',
+                path: '/settings/classes',
+                icon: GraduationCap,
+                description: 'Classes and sections that power every class dropdown'
+              },
+              {
                 name: 'Admission Pipeline',
                 path: '/settings/pipeline',
                 icon: GitMerge,
@@ -101,10 +109,10 @@ export function buildSettingsNav(opts: {
             ]
           : [
               {
-                name: 'Courses',
+                name: 'Courses & Batches',
                 path: '/settings/courses',
                 icon: BookOpen,
-                description: 'Courses, pricing and billing frequency'
+                description: 'Courses, batches, pricing and billing frequency'
               }
             ]),
         {
@@ -112,6 +120,12 @@ export function buildSettingsNav(opts: {
           path: '/settings/admission-forms',
           icon: ClipboardList,
           description: 'Digital forms sent to parents for enquiries, admissions and campaigns'
+        },
+        {
+          name: 'Attendance',
+          path: '/settings/attendance',
+          icon: CalendarCheck,
+          description: 'Working days, holidays, teacher assignments and absence alerts'
         },
         {
           name: 'Duplicate Detection',

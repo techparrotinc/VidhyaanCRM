@@ -45,7 +45,8 @@ async function main() {
     'student_lifecycle',
     'api_access',
     'custom_domain',
-    'ai_copilot'
+    'ai_copilot',
+    'attendance'
   ]
 
   const modules = await Promise.all(
@@ -154,7 +155,8 @@ async function main() {
       'event_management',
       'forms_requests',
       'whatsapp_sms_notifications',
-      'advanced_reports'
+      'advanced_reports',
+      'attendance'
     ].map(slug => ({ planId: starterPlan.id, moduleSlug: slug }))
   })
 
@@ -165,7 +167,8 @@ async function main() {
       'student_lifecycle',
       'fee_management',
       'payment_gateway',
-      'whatsapp_sms_notifications'
+      'whatsapp_sms_notifications',
+      'attendance'
     ].map(slug => ({ planId: growthPlan.id, moduleSlug: slug }))
   })
 

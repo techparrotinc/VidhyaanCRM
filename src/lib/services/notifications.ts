@@ -22,6 +22,7 @@ export type NotificationType =
   | 'REVIEW_REPLY'
   | 'REVIEW_MODERATED'
   | 'ENQUIRY_RECEIVED'
+  | 'STUDENT_ABSENT'
 
 export interface CreateNotificationParams {
   orgId: string
@@ -69,6 +70,8 @@ export async function createNotification(params: CreateNotificationParams) {
       category = 'reviews'
     } else if (type === 'ENQUIRY_RECEIVED') {
       category = 'leads'
+    } else if (type === 'STUDENT_ABSENT') {
+      category = 'attendance'
     }
 
     // 4. Retrieve email address & check notification preferences

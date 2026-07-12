@@ -8,7 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
+import { getGradeLabel } from '@/constants/grades'
+import { useClassOptions } from '@/hooks/useClassOptions'
 import type { Applicant } from './shared'
 
 type ConvertToStudentModalProps = {
@@ -30,6 +31,13 @@ export default function ConvertToStudentModal({
   const [guardianName, setGuardianName] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { options: classOptions } = useClassOptions()
+
+  // Sections defined for the currently selected class (master-driven).
+  const selectedClass = classOptions.find(
+    c => c.gradeSlug === grade || c.name.toLowerCase() === getGradeLabel(grade).toLowerCase()
+  )
+  const sectionOptions = selectedClass?.sections ?? []
 
   useEffect(() => {
     if (applicant) {
@@ -131,10 +139,10 @@ export default function ConvertToStudentModal({
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
               >
                 <option value="">Select Class/Grade</option>
-                {GRADE_OPTIONS.map((g) => (
-                  <option key={g.value} value={g.value}>{g.label}</option>
+                {classOptions.map((c) => (
+                  <option key={c.gradeSlug + c.name} value={c.gradeSlug}>{c.name}</option>
                 ))}
-                {grade && !GRADE_OPTIONS.some(opt => opt.value === grade) && (
+                {grade && !classOptions.some(c => c.gradeSlug === grade) && (
                   <option value={grade}>{getGradeLabel(grade)}</option>
                 )}
               </select>
@@ -143,13 +151,26 @@ export default function ConvertToStudentModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-semibold text-slate-500 mb-1.5 block font-sans">Section (Optional)</label>
-                <input
-                  type="text"
-                  value={section}
-                  onChange={(e) => setSection(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                  placeholder="e.g. A"
-                />
+                {sectionOptions.length > 0 ? (
+                  <select
+                    value={section}
+                    onChange={(e) => setSection(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">No section</option>
+                    {sectionOptions.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={section}
+                    onChange={(e) => setSection(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                    placeholder="e.g. A"
+                  />
+                )}
               </div>
               <div>
                 <label className="text-xs font-semibold text-slate-500 mb-1.5 block font-sans">Roll Number (Optional)</label>

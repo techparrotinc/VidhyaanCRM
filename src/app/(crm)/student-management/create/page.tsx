@@ -6,7 +6,8 @@ import { mutate } from 'swr'
 import { ArrowLeft, Save, Loader2, AlertCircle, CalendarDays } from 'lucide-react'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { useAcademicYearStore } from '@/stores/academic-year.store'
-import { GRADE_OPTIONS } from '@/constants/grades'
+import { useClassOptions } from '@/hooks/useClassOptions'
+import { isLearningCentre } from '@/lib/institution'
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
 import { DedupDialog, DedupPayload } from "@/components/dedup/DedupDialog"
@@ -36,6 +37,7 @@ export default function CreateStudentPage() {
   const [formData, setFormData] = useState({
     name: '',
     gradeLabel: '',
+    section: '',
     rollNumber: '',
     gender: '',
     academicYearId: '',
@@ -43,8 +45,56 @@ export default function CreateStudentPage() {
     guardianPhone: '',
     guardianEmail: ''
   })
-  
+
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(undefined)
+
+  // Institution mode — schools pick class+section, centres pick course+batch.
+  const [isLC, setIsLC] = useState<boolean | null>(null)
+  useEffect(() => {
+    fetch('/api/v1/settings/org-type')
+      .then(r => r.json())
+      .then(json => setIsLC(isLearningCentre(json?.data?.institutionType)))
+      .catch(() => setIsLC(false))
+  }, [])
+
+  // School: class/section master (falls back to the static grade ladder).
+  const { options: classOptions } = useClassOptions(isLC === false)
+  const selectedClass = classOptions.find(c => c.name === formData.gradeLabel)
+  const sectionOptions = selectedClass?.sections ?? []
+
+  // School: fee plan matched to the chosen class (admins/accountants only —
+  // fetch failure just hides the card).
+  const [feePlans, setFeePlans] = useState<any[]>([])
+  useEffect(() => {
+    if (isLC !== false || !formData.gradeLabel) {
+      setFeePlans([])
+      return
+    }
+    // Fee plan templates store the grade SLUG ('class_5'), students the label.
+    const slug = selectedClass?.gradeSlug || formData.gradeLabel
+    fetch(`/api/v1/fees/plans?gradeLabel=${encodeURIComponent(slug)}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(json => setFeePlans(json?.data ?? []))
+      .catch(() => setFeePlans([]))
+  }, [isLC, formData.gradeLabel, selectedClass?.gradeSlug])
+
+  // LC: course catalog + batches for quick-enroll.
+  const [courses, setCourses] = useState<any[]>([])
+  const [batches, setBatches] = useState<any[]>([])
+  const [courseId, setCourseId] = useState('')
+  const [batchId, setBatchId] = useState('')
+  useEffect(() => {
+    if (isLC !== true) return
+    fetch('/api/v1/options/courses')
+      .then(r => r.json())
+      .then(json => setCourses(json?.data?.courses ?? []))
+      .catch(() => {})
+    fetch('/api/v1/options/batches')
+      .then(r => r.json())
+      .then(json => setBatches(json?.data?.batches ?? []))
+      .catch(() => {})
+  }, [isLC])
+  const selectedCourse = courses.find(c => c.id === courseId)
 
   // Default the academic year to the global switcher selection (else the
   // org's active year) so new students never land without a year scope.
@@ -77,6 +127,8 @@ export default function CreateStudentPage() {
           gender: formData.gender || undefined,
           dateOfBirth: dateOfBirth ? format(dateOfBirth, 'yyyy-MM-dd') : undefined,
           gradeLabel: formData.gradeLabel || undefined,
+          section: formData.section.trim() || undefined,
+          batchId: batchId || undefined,
           rollNumber: formData.rollNumber.trim() || undefined,
           academicYearId: formData.academicYearId || undefined,
           guardianName: formData.guardianName.trim() || undefined,
@@ -98,6 +150,23 @@ export default function CreateStudentPage() {
       }
 
       setDedup(null)
+
+      // LC quick-enroll: course chosen → enrolment + first invoice in one go.
+      // Failure is non-blocking; the student page has the enroll card.
+      if (isLC && courseId && json.data?.id) {
+        try {
+          await fetch(`/api/v1/students/${json.data.id}/enrollments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              courseId,
+              startDate: format(new Date(), 'yyyy-MM-dd')
+            })
+          })
+        } catch (err) {
+          console.error('Quick-enroll failed (student created):', err)
+        }
+      }
       // Invalidate student list cache
       await mutate(
         (key: string) =>
@@ -159,7 +228,7 @@ export default function CreateStudentPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="border border-slate-200 bg-white text-slate-600 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-slate-50 transition cursor-pointer h-10 sm:h-9"
+            className="border border-slate-200 bg-white text-slate-600 text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-slate-50 transition min-h-[42px] flex items-center justify-center cursor-pointer"
           >
             Cancel
           </button>
@@ -167,7 +236,7 @@ export default function CreateStudentPage() {
             type="button"
             onClick={handleSubmit}
             disabled={!isFormValid || isSubmitting}
-            className={`text-white text-sm font-semibold px-4 py-2 h-10 sm:h-9 rounded-lg flex items-center justify-center gap-2 transition ${
+            className={`text-white text-sm font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2 transition ${
               isSubmitting
                 ? 'opacity-70 cursor-not-allowed bg-[#1565D8]'
                 : isFormValid
@@ -178,7 +247,7 @@ export default function CreateStudentPage() {
             {isSubmitting ? (
               <>
                 <Loader2 className="animate-spin size-4" />
-                <span>Creating...</span>
+                <span>Saving...</span>
               </>
             ) : (
               <>
@@ -291,24 +360,57 @@ export default function CreateStudentPage() {
               </select>
             </div>
 
-            <div>
-              <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
-                Grade / Class
-              </label>
-              <select
-                name="gradeLabel"
-                value={formData.gradeLabel}
-                onChange={handleInputChange}
-                className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition"
-              >
-                <option value="">Select Grade</option>
-                {GRADE_OPTIONS.map(g => (
-                  <option key={g.value} value={g.label}>
-                    {g.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {isLC !== true && (
+              <>
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
+                    Class
+                  </label>
+                  <select
+                    name="gradeLabel"
+                    value={formData.gradeLabel}
+                    onChange={e => setFormData(prev => ({ ...prev, gradeLabel: e.target.value, section: '' }))}
+                    className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition"
+                  >
+                    <option value="">Select Class</option>
+                    {classOptions.map(c => (
+                      <option key={c.name} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
+                    Section
+                  </label>
+                  {sectionOptions.length > 0 ? (
+                    <select
+                      name="section"
+                      value={formData.section}
+                      onChange={handleInputChange}
+                      className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition"
+                    >
+                      <option value="">No section</option>
+                      {sectionOptions.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      name="section"
+                      value={formData.section}
+                      onChange={handleInputChange}
+                      placeholder={formData.gradeLabel ? 'e.g. A (optional)' : 'Pick a class first'}
+                      disabled={!formData.gradeLabel}
+                      className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] placeholder:text-slate-400 transition disabled:bg-slate-50"
+                    />
+                  )}
+                </div>
+              </>
+            )}
 
             <div>
               <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
@@ -325,6 +427,76 @@ export default function CreateStudentPage() {
             </div>
           </div>
         </div>
+
+        {/* LC: course enrolment + batch (quick-enroll) */}
+        {isLC === true && (
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 pb-2 border-b border-slate-100 mb-4">
+              Course Enrolment
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
+                  Course
+                </label>
+                <select
+                  value={courseId}
+                  onChange={e => setCourseId(e.target.value)}
+                  className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition"
+                >
+                  <option value="">Enroll later</option>
+                  {courses.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
+                  Batch
+                </label>
+                <select
+                  value={batchId}
+                  onChange={e => setBatchId(e.target.value)}
+                  className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition"
+                >
+                  <option value="">No batch</option>
+                  {batches.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}{b.course ? ` (${b.course.name})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {selectedCourse && (
+                <div className="sm:col-span-2 rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3">
+                  <p className="text-sm font-semibold text-slate-800">
+                    ₹{Number(selectedCourse.amount).toLocaleString('en-IN')}
+                    <span className="text-xs font-normal text-slate-500 ml-1">
+                      / {String(selectedCourse.frequency).toLowerCase().replace(/_/g, ' ')}
+                    </span>
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Saving will enroll the student and generate the first invoice automatically.
+                    Next invoices follow on day {selectedCourse.billingDay} of the billing period.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* School: fee plan matched to the chosen class */}
+        {isLC === false && formData.gradeLabel && feePlans.length > 0 && (
+          <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">
+              Fee plan for {formData.gradeLabel}
+            </p>
+            <p className="text-sm font-semibold text-slate-800">{feePlans[0].name}</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Invoices for this class use this plan — generate them from Fee Management after saving.
+            </p>
+          </div>
+        )}
 
         {/* Guardian Information Section */}
         <div>

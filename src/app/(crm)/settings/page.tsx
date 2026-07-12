@@ -7,7 +7,7 @@ import ProfileCompletionWidget from '@/components/shared/ProfileCompletionWidget
 import { buildSettingsNav } from '@/components/settings/settingsNav'
 
 export default function SettingsLandingPage() {
-  const [institutionType, setInstitutionType] = useState<'SCHOOL' | 'LEARNING_CENTER'>('SCHOOL')
+  const [institutionType, setInstitutionType] = useState<string>('SCHOOL')
   const [isWhatsappActive, setIsWhatsappActive] = useState(false)
   const [query, setQuery] = useState('')
 
@@ -25,7 +25,8 @@ export default function SettingsLandingPage() {
 
   const allSections = buildSettingsNav({
     isLearningCenter: institutionType === 'LEARNING_CENTER',
-    isWhatsappActive
+    isWhatsappActive,
+    institutionType
   })
 
   // Search filters across name + description; empty sections drop out

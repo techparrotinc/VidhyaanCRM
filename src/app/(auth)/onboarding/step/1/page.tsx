@@ -157,7 +157,7 @@ export default function OnboardingStep1() {
     return (
       <div className="flex flex-col items-center justify-center py-20 flex-1">
         <Loader2 className="w-8 h-8 text-[#1565D8] animate-spin mb-3" />
-        <p className="text-slate-500 text-sm font-semibold">Loading school info...</p>
+        <p className="text-slate-500 text-sm font-semibold">Loading...</p>
       </div>
     )
   }
@@ -187,7 +187,7 @@ export default function OnboardingStep1() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter school name"
+              placeholder={`Enter ${config.nameLabel.toLowerCase()} name`}
               disabled={saving}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm"
               required
@@ -315,7 +315,7 @@ export default function OnboardingStep1() {
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                School Description
+                {config.nameLabel} Description
               </label>
               <span className={`text-[10px] font-bold ${description.length > 500 ? 'text-red-500' : 'text-slate-400'}`}>
                 {description.length} / 500
@@ -324,7 +324,7 @@ export default function OnboardingStep1() {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value.slice(0, 500))}
-              placeholder="Tell parents about your school's vision, achievements and unique strengths..."
+              placeholder={`Tell parents about your ${config.nameLabel.toLowerCase()}'s vision, achievements and unique strengths...`}
               className="w-full min-h-[100px] px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm"
             />
           </div>

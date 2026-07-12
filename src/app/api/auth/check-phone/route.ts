@@ -48,33 +48,42 @@ export async function GET(req: NextRequest) {
     // before signIn — OTP codes are single-use, so the client needs the
     // assignment list up front to send assignmentId with the credentials.
     let assignments:
-      | { id: string; role: string; orgName: string | null }[]
+      | { id: string; role: string; orgName: string | null; institutionType: string | null }[]
       | undefined
     const activeAssignments = await prisma.userRoleAssignment.findMany({
       where: { userId: user.id, status: 'ACTIVE' },
       select: { id: true, role: true, orgId: true }
     })
+    const orgIds = [...new Set(activeAssignments.map(a => a.orgId).filter(Boolean))] as string[]
+    const orgs = orgIds.length
+      ? await prisma.organization.findMany({
+          where: { id: { in: orgIds } },
+          select: { id: true, name: true, institutionType: true }
+        })
+      : []
+    const orgById = new Map(orgs.map(o => [o.id, o]))
     if (activeAssignments.length > 1) {
-      const orgIds = [...new Set(activeAssignments.map(a => a.orgId).filter(Boolean))] as string[]
-      const orgs = orgIds.length
-        ? await prisma.organization.findMany({
-            where: { id: { in: orgIds } },
-            select: { id: true, name: true }
-          })
-        : []
-      const orgNameById = new Map(orgs.map(o => [o.id, o.name]))
       assignments = activeAssignments.map(a => ({
         id: a.id,
         role: a.role,
-        orgName: a.orgId ? orgNameById.get(a.orgId) ?? null : null
+        orgName: a.orgId ? orgById.get(a.orgId)?.name ?? null : null,
+        institutionType: a.orgId ? orgById.get(a.orgId)?.institutionType ?? null : null
       }))
     }
+
+    // Single-org users get their institution type up front so the login
+    // "role pill" can say "Learning Center Admin" instead of "School Admin".
+    const singleInstitutionType =
+      activeAssignments.length === 1 && activeAssignments[0].orgId
+        ? orgById.get(activeAssignments[0].orgId)?.institutionType ?? null
+        : null
 
     return NextResponse.json({
       exists: true,
       hasPin: user.pinHash !== null,
       name: user.name,
       role: resolvedRole,
+      institutionType: singleInstitutionType,
       ...(assignments ? { assignments } : {})
     })
 

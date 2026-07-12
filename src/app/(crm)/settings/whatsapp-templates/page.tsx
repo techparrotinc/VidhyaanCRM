@@ -6,11 +6,12 @@ import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
 import {
   Loader2, Plus, Trash2, Pencil, CheckCircle2, AlertCircle,
-  Lock, MessageCircle, RefreshCw, Send
+  Lock, MessageCircle, RefreshCw, Send, Search
 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import VariablesBuilder from '@/components/whatsapp/VariablesBuilder'
 import { previewTemplateBody } from '@/lib/campaign/templateParams'
+import { WA_TEMPLATE_CATEGORIES, waCategoryLabel } from '@/constants/whatsapp-template-categories'
 
 type OrgTemplate = {
   id: string
@@ -19,6 +20,7 @@ type OrgTemplate = {
   language: string
   body: string
   variables: string[] | null
+  category: string
   accountScope: 'VIDHYAAN' | 'OWN'
   status: 'DRAFT' | 'VERIFIED' | 'SYNCED'
   sharedTemplateId: string | null
@@ -31,6 +33,7 @@ type CatalogTemplate = {
   language: string
   body: string
   variables: string[] | null
+  category: string
   alreadyAdded: boolean
 }
 
@@ -39,7 +42,22 @@ const emptyForm = {
   msg91TemplateId: '',
   language: 'en',
   body: '',
-  variables: [] as string[]
+  variables: [] as string[],
+  category: 'GENERAL'
+}
+
+const matchesTemplate = (
+  t: { name: string; msg91TemplateId: string; body: string; category?: string | null },
+  q: string,
+  category: string
+): boolean => {
+  if (category !== 'ALL' && (t.category ?? 'GENERAL') !== category) return false
+  if (!q) return true
+  return (
+    t.name.toLowerCase().includes(q) ||
+    t.msg91TemplateId.toLowerCase().includes(q) ||
+    t.body.toLowerCase().includes(q)
+  )
 }
 
 const STATUS_BADGE: Record<string, { label: string; badge: string }> = {
@@ -68,9 +86,19 @@ export default function WhatsappTemplatesPage() {
   const byoVerified = waAddon?.provider?.status === 'VERIFIED'
 
   const myTemplates = mine.data?.data ?? []
-  const vidhyaanTemplates = myTemplates.filter(t => t.accountScope === 'VIDHYAAN')
-  const ownTemplates = myTemplates.filter(t => t.accountScope === 'OWN')
-  const catalogTemplates = catalog.data?.data?.templates ?? []
+  const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
+  const q = search.trim().toLowerCase()
+
+  const vidhyaanTemplates = myTemplates.filter(
+    t => t.accountScope === 'VIDHYAAN' && matchesTemplate(t, q, categoryFilter)
+  )
+  const ownTemplates = myTemplates.filter(
+    t => t.accountScope === 'OWN' && matchesTemplate(t, q, categoryFilter)
+  )
+  const allCatalogTemplates = catalog.data?.data?.templates ?? []
+  const catalogTemplates = allCatalogTemplates.filter(t => matchesTemplate(t, q, categoryFilter))
+  const filtering = q !== '' || categoryFilter !== 'ALL'
 
   const [busyId, setBusyId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -229,6 +257,34 @@ export default function WhatsappTemplatesPage() {
         </p>
       </div>
 
+      {/* Search + category filter (applies to both tabs) */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search templates…"
+            className="w-64 pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {[{ value: 'ALL', label: 'All' }, ...WA_TEMPLATE_CATEGORIES].map(c => (
+            <button
+              key={c.value}
+              onClick={() => setCategoryFilter(c.value)}
+              className={`px-3 py-1.5 text-[11px] font-semibold rounded-full border transition-colors ${
+                categoryFilter === c.value
+                  ? 'bg-[#1565D8] border-[#1565D8] text-white'
+                  : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <Tabs defaultValue="vidhyaan">
         <TabsList className="mb-5">
           <TabsTrigger value="vidhyaan">Vidhyaan Templates</TabsTrigger>
@@ -244,15 +300,18 @@ export default function WhatsappTemplatesPage() {
             <div className="h-24 bg-slate-100 rounded-xl animate-pulse" />
           ) : catalogTemplates.length === 0 ? (
             <p className="text-sm text-slate-400 bg-slate-50 rounded-xl p-6 text-center">
-              No templates published yet — Vidhyaan is preparing the catalog.
+              {filtering && allCatalogTemplates.length > 0
+                ? 'No templates match the current search / category filter.'
+                : 'No templates published yet — Vidhyaan is preparing the catalog.'}
             </p>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {catalogTemplates.map(t => (
                 <div key={t.id} className="bg-white rounded-xl border border-slate-200 p-5 space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <p className="text-sm font-bold text-slate-800 flex items-center gap-2 flex-wrap">
                       {t.name}
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{waCategoryLabel(t.category)}</span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{t.language}</span>
                     </p>
                     {t.alreadyAdded ? (
@@ -287,7 +346,10 @@ export default function WhatsappTemplatesPage() {
                 {vidhyaanTemplates.map(t => (
                   <div key={t.id} className="flex items-center justify-between px-4 py-3 gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-800">{t.name}</p>
+                      <p className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                        {t.name}
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{waCategoryLabel(t.category)}</span>
+                      </p>
                       <p className="text-xs font-mono text-slate-400">{t.msg91TemplateId} · {t.language}</p>
                     </div>
                     <button
@@ -369,6 +431,15 @@ export default function WhatsappTemplatesPage() {
                         <option key={l} value={l}>{l}</option>
                       ))}
                     </select>
+                    <select
+                      value={form.category}
+                      onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                      className={`${inputClass} bg-white`}
+                    >
+                      {WA_TEMPLATE_CATEGORIES.map(c => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))}
+                    </select>
                   </div>
                   <textarea
                     value={form.body}
@@ -402,7 +473,9 @@ export default function WhatsappTemplatesPage() {
 
               {ownTemplates.length === 0 && !showForm ? (
                 <p className="text-sm text-slate-400 bg-slate-50 rounded-xl p-6 text-center">
-                  No templates yet — sync from MSG91 or add one manually.
+                  {filtering
+                    ? 'No templates match the current search / category filter.'
+                    : 'No templates yet — sync from MSG91 or add one manually.'}
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -411,8 +484,9 @@ export default function WhatsappTemplatesPage() {
                     return (
                       <div key={t.id} className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
                         <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                          <p className="text-sm font-bold text-slate-800 flex items-center gap-2 flex-wrap">
                             {t.name}
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{waCategoryLabel(t.category)}</span>
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{t.language}</span>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.badge}`}>{badge.label}</span>
                           </p>
@@ -424,7 +498,8 @@ export default function WhatsappTemplatesPage() {
                                   msg91TemplateId: t.msg91TemplateId,
                                   language: t.language,
                                   body: t.body,
-                                  variables: Array.isArray(t.variables) ? t.variables : []
+                                  variables: Array.isArray(t.variables) ? t.variables : [],
+                                  category: t.category ?? 'GENERAL'
                                 })
                                 setEditingId(t.id)
                                 setShowForm(true)

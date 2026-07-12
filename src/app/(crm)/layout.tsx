@@ -108,7 +108,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
 
   // User details
   const user = session?.user
-  const name = user?.name || "School Admin"
+  const name = user?.name || "Admin"
   const email = user?.email || "admin@vidhyaan.com"
   const initials = name
     .split(' ')

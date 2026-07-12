@@ -12,7 +12,7 @@ export default function SettingsLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const [institutionType, setInstitutionType] = useState<'SCHOOL' | 'LEARNING_CENTER'>('SCHOOL')
+  const [institutionType, setInstitutionType] = useState<string>('SCHOOL')
   const [isWhatsappActive, setIsWhatsappActive] = useState(false)
 
   useEffect(() => {
@@ -33,7 +33,8 @@ export default function SettingsLayout({
 
   const sections = buildSettingsNav({
     isLearningCenter: institutionType === 'LEARNING_CENTER',
-    isWhatsappActive
+    isWhatsappActive,
+    institutionType
   })
 
   const isActive = (path: string) => {

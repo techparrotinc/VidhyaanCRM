@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
+import { institutionNoun } from '@/lib/institution'
 import {
   Bell,
   Building2,
@@ -39,8 +40,10 @@ export interface SettingsNavSection {
 export function buildSettingsNav(opts: {
   isLearningCenter: boolean
   isWhatsappActive: boolean
+  institutionType?: string | null
 }): SettingsNavSection[] {
-  const { isLearningCenter, isWhatsappActive } = opts
+  const { isLearningCenter, isWhatsappActive, institutionType } = opts
+  const noun = institutionNoun(institutionType)
 
   return [
     {
@@ -58,7 +61,7 @@ export function buildSettingsNav(opts: {
       label: 'General',
       items: [
         {
-          name: 'School Profile',
+          name: `${noun} Profile`,
           path: '/settings/school-profile',
           icon: Building2,
           description: 'Public profile, contact details, facilities and gallery'

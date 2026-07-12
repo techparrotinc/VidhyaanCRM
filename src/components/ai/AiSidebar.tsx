@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { X, Send, Square, RotateCcw, Sparkles, Minus, Copy, Check, ThumbsUp, ThumbsDown, History, Trash2, MessageSquare } from 'lucide-react'
+import { X, Send, Square, RotateCcw, Sparkles, Minus, Copy, Check, ThumbsUp, ThumbsDown, History, Trash2, MessageSquare, ShieldCheck, ExternalLink } from 'lucide-react'
 import type { useAiChat, AiMessage, FeedbackCategory } from './useAiChat'
 import { AiFeedbackDialog } from './AiFeedbackDialog'
 
@@ -261,6 +261,58 @@ export function AiSidebar({
                   >
                     {m.text}
                     {m.streaming && <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-slate-400 align-text-bottom" />}
+                    {m.action && (
+                      <div className="mt-2 rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                          <ShieldCheck className="h-3.5 w-3.5 text-[#1565D8]" />
+                          {m.action.humanSummary}
+                        </div>
+                        <dl className="mt-2 space-y-1">
+                          {m.action.fields.map((f) => (
+                            <div key={f.label} className="flex gap-2 text-xs">
+                              <dt className="w-24 shrink-0 font-medium text-slate-400">{f.label}</dt>
+                              <dd className="min-w-0 flex-1 break-words text-slate-700">{f.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                        {m.action.status === 'pending' && (
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              onClick={() => chat.confirmAction(m)}
+                              className="flex-1 rounded-lg bg-[#1565D8] px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                            >
+                              Confirm & create
+                            </button>
+                            <button
+                              onClick={() => chat.cancelAction(m)}
+                              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
+                        {m.action.status === 'confirming' && (
+                          <p className="mt-3 text-xs font-medium text-slate-400">Creating…</p>
+                        )}
+                        {m.action.status === 'done' && (
+                          <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-emerald-600">
+                            <Check className="h-3.5 w-3.5" />
+                            <span>{m.action.resultText}</span>
+                            {m.action.resultLink && (
+                              <a href={m.action.resultLink} className="inline-flex items-center gap-0.5 text-[#1565D8]">
+                                Open <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                          </div>
+                        )}
+                        {m.action.status === 'error' && (
+                          <p className="mt-3 text-xs font-medium text-red-500">{m.action.resultText}</p>
+                        )}
+                        {m.action.status === 'cancelled' && (
+                          <p className="mt-3 text-xs font-medium text-slate-400">Cancelled — nothing was saved.</p>
+                        )}
+                      </div>
+                    )}
                     {!m.streaming && m.citations && m.citations.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1.5 border-t border-slate-200 pt-2">
                         {m.citations.map((c) =>

@@ -7,6 +7,16 @@ const GATEWAY = process.env.NEXT_PUBLIC_AI_GATEWAY_URL ?? 'https://ai.vidhyaan.c
 
 export type AiCitation = { docId: string; title: string; appRoute: string }
 
+export type AiAction = {
+  actionId: string
+  humanSummary: string
+  fields: { label: string; value: string }[]
+  expiresAt: string
+  status: 'pending' | 'confirming' | 'done' | 'error' | 'cancelled'
+  resultText?: string
+  resultLink?: string
+}
+
 export type AiMessage = {
   id: string
   role: 'user' | 'assistant'
@@ -15,6 +25,7 @@ export type AiMessage = {
   citations?: AiCitation[]
   serverMessageId?: string // gateway message id — feedback targets this
   feedback?: 1 | -1
+  action?: AiAction
 }
 
 export type FeedbackCategory = 'didnt_answer' | 'inaccurate' | 'irrelevant_citations' | 'other'
@@ -165,6 +176,25 @@ export function useAiChat() {
                 )
               }))
             }
+            if (evt.type === 'actionProposal') {
+              setState((s) => ({
+                ...s,
+                messages: s.messages.map((m) =>
+                  m.id === assistantMsg.id
+                    ? {
+                        ...m,
+                        action: {
+                          actionId: evt.actionId,
+                          humanSummary: evt.humanSummary,
+                          fields: evt.fields,
+                          expiresAt: evt.expiresAt,
+                          status: 'pending'
+                        }
+                      }
+                    : m
+                )
+              }))
+            }
             if (evt.type === 'token') {
               acc += evt.text
               patchAssistant({ text: acc })
@@ -205,6 +235,45 @@ export function useAiChat() {
   )
 
   const stop = useCallback(() => abortRef.current?.abort(), [])
+
+  const patchAction = useCallback((msgId: string, patch: Partial<AiAction>) => {
+    setState((s) => ({
+      ...s,
+      messages: s.messages.map((m) =>
+        m.id === msgId && m.action ? { ...m, action: { ...m.action, ...patch } } : m
+      )
+    }))
+  }, [])
+
+  const confirmAction = useCallback(
+    async (msg: AiMessage) => {
+      if (!msg.action || msg.action.status !== 'pending') return
+      patchAction(msg.id, { status: 'confirming' })
+      try {
+        const token = await getToken()
+        if (!token) return
+        const res = await fetch(`${GATEWAY}/v1/ai/action`, {
+          method: 'POST',
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+          body: JSON.stringify({ actionId: msg.action.actionId, confirm: true, idempotencyKey: crypto.randomUUID() })
+        })
+        const json = await res.json().catch(() => null)
+        if (res.ok && json?.result) {
+          patchAction(msg.id, { status: 'done', resultText: json.result.summary, resultLink: json.result.link })
+        } else {
+          patchAction(msg.id, {
+            status: 'error',
+            resultText: json?.message ?? 'Could not complete this action.'
+          })
+        }
+      } catch {
+        patchAction(msg.id, { status: 'error', resultText: 'Network error — please try again.' })
+      }
+    },
+    [getToken, patchAction]
+  )
+
+  const cancelAction = useCallback((msg: AiMessage) => patchAction(msg.id, { status: 'cancelled' }), [patchAction])
 
   const authedFetch = useCallback(
     async (path: string, init?: RequestInit) => {
@@ -317,6 +386,8 @@ export function useAiChat() {
     sendFeedback,
     loadHistory,
     loadConversation,
-    deleteConversation
+    deleteConversation,
+    confirmAction,
+    cancelAction
   }
 }

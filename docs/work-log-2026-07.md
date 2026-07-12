@@ -7,6 +7,42 @@ Record of a review + hardening + performance session. Production branch is
 
 ## ✅ Done
 
+### Attendance + Class/Section master (2026-07-12, `8bc6d25`)
+- **Attendance module** (`/attendance`): single-table `AttendanceRecord` with composite
+  `sessionKey`; teacher scoping via `TeacherAssignment.targetKey`; manual marking +
+  biometric ingest. Migration applied to prod.
+- **Class/Section master**: masters drive dropdowns app-wide; record storage stays plain
+  strings (slug vs label conventions); quick-enroll from master screen.
+
+### AI assistant launch (2026-07-11→12, `313e820..3db1d12`)
+- "Ask AI" pill launcher in header (green sparkle, Neon-style top-right) + sidebar
+  (`src/components/ai/`); external gateway `ai.vidhyaan.com`, JWTs minted at
+  `/api/v1/ai/token`, JWKS at `/api/public/ai/jwks`.
+- Streaming chat w/ citations, **action confirmation cards** (review & confirm create
+  actions inline), feedback dialog, AI credit wallet + daily limit; admin
+  `ai-metrics`/`ai-usage` endpoints.
+
+### WhatsApp platform build-out (2026-07-10→12, `06b238b..d7fbbc0`)
+- **Direct Meta Cloud API** for platform sends (MSG91 dropped for shared account; OTP
+  path still MSG91); template categories + search; template sync.
+- **Workflow notification engine — 23 templates** across lead/admission/fee lifecycles
+  (`src/lib/whatsapp/notify.ts` + `emitters.ts`; template adoption = on/off switch;
+  fire-and-forget, never fails the triggering workflow). Lead-created parent ack;
+  go-live hardening of all template sends.
+- **Delivery webhook + opt-out compliance + inbound capture**; inbox + sent log with
+  read stats, staff prefs, admin ops card; log retention.
+- **WhatsApp OTP** w/ org channel setting; fee payment links; category-based credit
+  pricing; event announce channel; single form-send; intro dedup; guardians now
+  notified for cron-generated/activated invoices; marketing credit pricing disclosed.
+
+### Brand + compliance + QA (2026-07-10→11)
+- Vidhyaan asset-kit logos app-wide (`e30a356`); institution-type-aware labels
+  (`institutionNoun`) in login pill + settings nav (`6602784`).
+- Public `/privacy-policy`, `/terms-of-service`, `/data-deletion` (Meta compliance)
+  pages; footer 404 links fixed.
+- Browser-regression QA sweep (`2eee37e`): auth gap, validation, a11y, UX polish.
+- Shared `OtpInput` component; school-profile GET parallelized (`4c1525b`).
+
 ### Reports — Phase-2 gaps closed (2026-07-09)
 - **Marketplace Acquisition Funnel report** (15 reports total) — profile views → enquiries
   → CRM leads → converted, from `SchoolView`/`ParentEnquiry` linked via `School.orgId`;

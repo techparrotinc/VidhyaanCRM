@@ -273,8 +273,11 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
+            {/* Vidhyaan AI launcher mounts here (top-right, Neon-style) */}
+            <div id="ai-launcher-slot" className="flex items-center" />
+
             <NotificationBell />
-            
+
             {/* User Avatar Dropdown */}
             <div className="relative">
               <button

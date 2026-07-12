@@ -11,18 +11,18 @@ import { AiFeedbackDialog } from './AiFeedbackDialog'
 const SUGGESTIONS_BY_ROLE: Record<string, string[]> = {
   ORG_ADMIN: [
     'How do I promote students to the next academic year?',
-    'How do I customize the fee reminder email?',
-    'What are admission stages and how do I change them?'
+    'How do I set up WhatsApp OTP login for my team?',
+    'Which templates fire automatically for fees and admissions?'
   ],
   BRANCH_ADMIN: [
-    'How do I move an admission to the next stage?',
-    'How do I announce an event to parents?',
-    'How do I add a new user to my school?'
+    'How do I announce an event to parents on WhatsApp?',
+    'Where do I see parent replies and message delivery status?',
+    'How do I move an admission to the next stage?'
   ],
   COUNSELLOR: [
     'How do I follow up on admission leads effectively?',
-    'How do I convert a lead into an admission?',
-    'What does each lead status mean?'
+    'How many leads are open right now?',
+    'How do I convert a lead into an admission?'
   ],
   RECEPTIONIST: [
     'How do I register a new enquiry?',
@@ -30,8 +30,8 @@ const SUGGESTIONS_BY_ROLE: Record<string, string[]> = {
   ],
   ACCOUNTANT: [
     'How do I record an offline fee payment?',
-    'How do I send fee reminders to parents?',
-    'How do I export invoices as PDF?'
+    'How do I send fee reminders on WhatsApp?',
+    'How is our fee collection this month?'
   ],
   TEACHER: ['How do I view my students?', 'How do events and RSVPs work?']
 }

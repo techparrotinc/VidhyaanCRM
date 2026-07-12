@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/client'
 import { createNotification } from '@/lib/services/notifications'
+import { notifyBatchInvoices } from '@/lib/whatsapp/emitters'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
           'INV-' + year + '-' + String(count + 1).padStart(5, '0')
 
         // Create invoice
-        await prisma.invoice.create({
+        const createdInvoice = await prisma.invoice.create({
           data: {
             invoiceNumber,
             studentId: enrollment.studentId,
@@ -110,6 +111,9 @@ export async function GET(req: NextRequest) {
           data: { nextBillingDate: next }
         })
 
+        // WhatsApp fee notification to the guardian (fire-and-forget)
+        notifyBatchInvoices(enrollment.orgId, [createdInvoice.id]).catch(() => {})
+
         generated++
       } catch (err: any) {
         failed++
@@ -117,15 +121,18 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Activate SCHEDULED invoices
+    // Activate SCHEDULED invoices (ids captured first so the guardians get
+    // their WhatsApp fee notification on activation day, not creation day)
     const now = new Date()
-    const scheduledUpdateResult = await prisma.invoice.updateMany({
+    const toActivate = await prisma.invoice.findMany({
       where: {
         status: 'SCHEDULED',
-        scheduledDate: {
-          lte: now
-        }
+        scheduledDate: { lte: now }
       },
+      select: { id: true, orgId: true }
+    })
+    const scheduledUpdateResult = await prisma.invoice.updateMany({
+      where: { id: { in: toActivate.map(i => i.id) } },
       data: {
         status: 'UNPAID',
         scheduledDate: null
@@ -134,6 +141,15 @@ export async function GET(req: NextRequest) {
 
     const activatedCount = scheduledUpdateResult.count
     console.log(`Activated ${activatedCount} scheduled invoices.`)
+
+    // Group by org and notify guardians (fire-and-forget)
+    const byOrg = new Map<string, string[]>()
+    for (const inv of toActivate) {
+      byOrg.set(inv.orgId, [...(byOrg.get(inv.orgId) ?? []), inv.id])
+    }
+    for (const [orgId, ids] of byOrg) {
+      notifyBatchInvoices(orgId, ids).catch(() => {})
+    }
 
     // ── Activate scheduled campaigns ──────────────
     const scheduledCampaigns = await prisma.campaign.findMany({

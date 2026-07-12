@@ -37,7 +37,7 @@ export const ADDONS: AddonDefinition[] = [
     slug: MODULES.WHATSAPP_ADDON,
     name: 'WhatsApp',
     description:
-      'Send WhatsApp template messages via the Vidhyaan Business account. 25 free messages every month; buy credits for more, or connect your own account.',
+      'Send WhatsApp template messages via the Vidhyaan Business account. 25 free credits every month; buy credits for more, or connect your own account. Utility messages (fee reminders, admission updates) use 1 credit; marketing templates use 2.',
     channel: 'WHATSAPP',
     selfServe: false
   }

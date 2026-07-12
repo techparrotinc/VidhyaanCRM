@@ -398,6 +398,11 @@ export function StepThree({
                     </p>
                     <p className="text-xs text-slate-400 mt-2">
                       Template: {selectedTemplate.msg91TemplateId}
+                      {selectedTemplate.metaCategory === 'MARKETING' && (
+                        <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                          Marketing template · 2 credits per recipient
+                        </span>
+                      )}
                     </p>
                   </div>
                 )}

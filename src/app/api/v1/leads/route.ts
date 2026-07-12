@@ -408,7 +408,7 @@ export const POST = route({
     // Assigned at creation → counsellor introduction to parent + staff alert
     if (lead.assignedToId) {
       prisma.user
-        .findUnique({ where: { id: lead.assignedToId }, select: { name: true, phone: true } })
+        .findUnique({ where: { id: lead.assignedToId }, select: { id: true, name: true, phone: true } })
         .then((c) => c && onLeadAssigned(user.orgId, lead, c))
         .catch(() => {})
     }

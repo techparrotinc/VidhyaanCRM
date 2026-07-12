@@ -17,6 +17,7 @@ type SharedTemplate = {
   body: string
   variables: string[] | null
   category: string
+  metaCategory: string | null
   isActive: boolean
   sortOrder: number
 }
@@ -336,6 +337,13 @@ export default function AdminWhatsappTemplatesPage() {
                 <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
                   {t.name}
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{waCategoryLabel(t.category)}</span>
+                  {t.metaCategory && (
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      t.metaCategory === 'MARKETING' ? 'bg-amber-50 text-amber-700' : 'bg-teal-50 text-teal-700'
+                    }`}>
+                      {t.metaCategory === 'MARKETING' ? 'Marketing · 2 credits' : t.metaCategory.toLowerCase()}
+                    </span>
+                  )}
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{t.language}</span>
                   {!t.isActive && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">Hidden</span>

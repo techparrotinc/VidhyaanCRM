@@ -5,7 +5,7 @@
 
 import { format } from 'date-fns'
 import { prisma } from '@/lib/db/client'
-import { notifyWhatsApp, sendTemplateNotification, orgDisplayName, gradeValue } from './notify'
+import { notifyWhatsApp, sendTemplateNotification, staffWhatsAppAllowed, orgDisplayName, gradeValue } from './notify'
 
 export function formatInr(amount: unknown): string {
   const n = Number(amount)
@@ -29,6 +29,7 @@ interface LeadLike {
 }
 
 interface CounsellorLike {
+  id?: string | null
   name: string
   phone?: string | null
 }
@@ -50,18 +51,20 @@ export async function onLeadAssigned(
     ref: `lead_assigned_intro:${lead.id}`
   })
 
-  notifyWhatsApp({
-    orgId,
-    template: 'lead_assigned',
-    phone: counsellor.phone,
-    values: {
-      counsellorName: counsellor.name,
-      parentName: lead.parentName,
-      kidName: lead.kidName || '-',
-      grade
-    },
-    ref: `lead_assigned_staff:${lead.id}`
-  })
+  if (await staffWhatsAppAllowed(counsellor.id, 'LEAD_RECEIVED')) {
+    notifyWhatsApp({
+      orgId,
+      template: 'lead_assigned',
+      phone: counsellor.phone,
+      values: {
+        counsellorName: counsellor.name,
+        parentName: lead.parentName,
+        kidName: lead.kidName || '-',
+        grade
+      },
+      ref: `lead_assigned_staff:${lead.id}`
+    })
+  }
 }
 
 /** Lead marked not interested / closed → polite closure to the parent. */
@@ -152,6 +155,7 @@ export async function onAdmissionAssigned(
   admission: AdmissionLike,
   counsellor: CounsellorLike
 ): Promise<void> {
+  if (!(await staffWhatsAppAllowed(counsellor.id, 'ADMISSION_STAGE_CHANGED'))) return
   notifyWhatsApp({
     orgId,
     template: 'new_admission_assigned',

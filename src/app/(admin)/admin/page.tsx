@@ -78,6 +78,14 @@ interface Stats {
 export default function AdminDashboard() {
   const router = useRouter()
   const [stats, setStats] = useState<Stats | null>(null)
+  const [waStats, setWaStats] = useState<{
+    sends24h: number
+    failed24h: number
+    failureRate: number
+    optOuts: number
+    inbound24h: number
+    recentFailures: Array<{ templateName: string; error: string | null; createdAt: string }>
+  } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -93,6 +101,11 @@ export default function AdminDashboard() {
       const data = await res.json()
       setStats(data)
       setError(null)
+      // WhatsApp ops snapshot (non-blocking)
+      fetch('/api/admin/whatsapp-stats')
+        .then(r => r.json())
+        .then(j => setWaStats(j?.data ?? null))
+        .catch(() => {})
     } catch (err: any) {
       setError(err.message || 'An error occurred loading the dashboard.')
     } finally {
@@ -222,6 +235,53 @@ export default function AdminDashboard() {
           </button>
         </div>
       </div>
+
+      {/* WhatsApp ops snapshot */}
+      {waStats && (
+        <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
+              WhatsApp — last 24h
+            </h3>
+            {waStats.failureRate >= 10 && waStats.sends24h >= 10 && (
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-700">
+                High failure rate — check token / templates
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            <div>
+              <p className="text-[22px] font-bold tracking-tight text-slate-900 leading-none">{waStats.sends24h}</p>
+              <p className="text-xs text-slate-400 mt-1">Messages sent</p>
+            </div>
+            <div>
+              <p className={`text-[22px] font-bold tracking-tight leading-none ${waStats.failed24h > 0 ? 'text-red-600' : 'text-slate-900'}`}>{waStats.failed24h}</p>
+              <p className="text-xs text-slate-400 mt-1">Failed</p>
+            </div>
+            <div>
+              <p className="text-[22px] font-bold tracking-tight text-slate-900 leading-none">{waStats.failureRate}%</p>
+              <p className="text-xs text-slate-400 mt-1">Failure rate</p>
+            </div>
+            <div>
+              <p className="text-[22px] font-bold tracking-tight text-slate-900 leading-none">{waStats.inbound24h}</p>
+              <p className="text-xs text-slate-400 mt-1">Replies received</p>
+            </div>
+            <div>
+              <p className="text-[22px] font-bold tracking-tight text-slate-900 leading-none">{waStats.optOuts}</p>
+              <p className="text-xs text-slate-400 mt-1">Total opt-outs</p>
+            </div>
+          </div>
+          {waStats.recentFailures.length > 0 && (
+            <div className="mt-4 border-t border-slate-100 pt-3 space-y-1">
+              {waStats.recentFailures.map((f, i) => (
+                <p key={i} className="text-xs text-slate-500 truncate">
+                  <span className="font-semibold text-red-600">{f.templateName}</span> — {f.error ?? 'unknown error'}
+                </p>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* KPI Cards Row 1 */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

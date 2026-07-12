@@ -165,6 +165,13 @@ export function buildSettingsNav(opts: {
           icon: MessageCircle,
           description: 'Approved message templates for campaigns',
           locked: !isWhatsappActive
+        },
+        {
+          name: 'WhatsApp Messages',
+          path: '/settings/whatsapp-messages',
+          icon: MessageCircle,
+          description: 'Parent replies inbox and sent-message delivery log',
+          locked: !isWhatsappActive
         }
       ]
     },

@@ -35,11 +35,16 @@ export const GET = route({
 
     const totalRecipients = recipients.length
     const sent = recipients.filter((r) => r.status !== 'PENDING').length
-    const delivered = recipients.filter((r) => r.status === 'DELIVERED').length
+    // READ implies delivered — count both in the delivery funnel
+    const delivered = recipients.filter((r) => r.status === 'DELIVERED' || r.status === 'READ').length
+    const read = recipients.filter((r) => r.status === 'READ').length
     const failed = recipients.filter((r) => r.status === 'FAILED').length
 
     const deliveryRate = sent > 0
       ? Math.round((delivered / sent) * 100 * 10) / 10
+      : 0
+    const readRate = delivered > 0
+      ? Math.round((read / delivered) * 100 * 10) / 10
       : 0
 
     let openRate: number | null = null
@@ -69,8 +74,10 @@ export const GET = route({
         totalRecipients,
         sent,
         delivered,
+        read,
         failed,
         deliveryRate,
+        readRate,
         openRate,
         clickRate
       },
@@ -83,6 +90,7 @@ export const GET = route({
         status: r.status,
         sentAt: r.sentAt,
         deliveredAt: r.deliveredAt,
+        readAt: r.readAt,
         failureReason: r.failureReason
       }))
     })

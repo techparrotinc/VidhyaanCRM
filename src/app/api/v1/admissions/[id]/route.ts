@@ -335,7 +335,7 @@ export const PUT = route({
       updated.assignedToId !== existing.assignedToId
     ) {
       prisma.user
-        .findUnique({ where: { id: updated.assignedToId }, select: { name: true, phone: true } })
+        .findUnique({ where: { id: updated.assignedToId }, select: { id: true, name: true, phone: true } })
         .then(c => c && onAdmissionAssigned(user.orgId, updated, c))
         .catch(() => {})
     }

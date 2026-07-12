@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { format } from 'date-fns'
 import { prisma } from '@/lib/db/client'
 import { MODULES } from '@/constants/modules'
-import { sendTemplateNotification } from '@/lib/whatsapp/notify'
+import { sendTemplateNotification, staffWhatsAppAllowed } from '@/lib/whatsapp/notify'
 import { formatInr, invoiceItemsLabel } from '@/lib/whatsapp/emitters'
 
 // Daily WhatsApp workflow reminders. Idempotency strategies:
@@ -47,7 +47,7 @@ async function whatsappOrgIds(): Promise<string[]> {
   return rows.map(r => r.orgId)
 }
 
-async function orgAdmins(orgId: string): Promise<Array<{ name: string; phone: string | null }>> {
+async function orgAdmins(orgId: string): Promise<Array<{ id: string; name: string; phone: string | null }>> {
   return prisma.user.findMany({
     where: {
       orgId,
@@ -56,7 +56,7 @@ async function orgAdmins(orgId: string): Promise<Array<{ name: string; phone: st
       phone: { not: null },
       roleAssignments: { some: { role: 'ORG_ADMIN', status: 'ACTIVE' } }
     },
-    select: { name: true, phone: true },
+    select: { id: true, name: true, phone: true },
     take: 3
   })
 }
@@ -147,12 +147,13 @@ export async function GET(req: NextRequest) {
     },
     select: {
       id: true, orgId: true, parentName: true, kidName: true,
-      assignedTo: { select: { name: true, phone: true } }
+      assignedTo: { select: { id: true, name: true, phone: true } }
     },
     take: 500
   })
   for (const lead of slaLeads) {
     if (!lead.assignedTo?.phone) continue
+    if (!(await staffWhatsAppAllowed(lead.assignedTo.id, 'LEAD_FOLLOWUP_DUE'))) continue
     const sent = await sendTemplateNotification({
       orgId: lead.orgId,
       template: 'sla_breach_alert',
@@ -199,6 +200,7 @@ export async function GET(req: NextRequest) {
   for (const adm of slaAdmissions) {
     let any = false
     for (const admin of await orgAdmins(adm.orgId)) {
+      if (!(await staffWhatsAppAllowed(admin.id, 'ADMISSION_STAGE_CHANGED'))) continue
       const sent = await sendTemplateNotification({
         orgId: adm.orgId,
         template: 'admission_sla_alert',
@@ -310,6 +312,7 @@ export async function GET(req: NextRequest) {
   })
   for (const inv of escalations) {
     for (const admin of await orgAdmins(inv.orgId)) {
+      if (!(await staffWhatsAppAllowed(admin.id, 'FEE_OVERDUE'))) continue
       const sent = await sendTemplateNotification({
         orgId: inv.orgId,
         template: 'admin_fee_escalation',
@@ -343,6 +346,7 @@ export async function GET(req: NextRequest) {
       if (!agg._count.id) continue
       const outstanding = Number(agg._sum.totalAmount ?? 0) - Number(agg._sum.paidAmount ?? 0)
       for (const admin of await orgAdmins(orgId)) {
+        if (!(await staffWhatsAppAllowed(admin.id, 'FEE_REMINDER'))) continue
         const sent = await sendTemplateNotification({
           orgId,
           template: 'admin_fee_monthly_summary',

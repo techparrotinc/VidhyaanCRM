@@ -153,6 +153,7 @@ export default function AnalyticsDashboard({ id }: { id: string }) {
     if (status === 'PENDING') return 'bg-slate-100 text-slate-600'
     if (status === 'SENT') return 'bg-blue-50 text-blue-700'
     if (status === 'DELIVERED') return 'bg-green-50 text-green-700'
+    if (status === 'READ') return 'bg-emerald-100 text-emerald-800'
     if (status === 'FAILED') return 'bg-red-50 text-red-700'
     return 'bg-slate-100 text-slate-600'
   }
@@ -214,6 +215,26 @@ export default function AnalyticsDashboard({ id }: { id: string }) {
           iconColor="text-[#1565D8]"
         />
       </div>
+
+      {/* WHATSAPP READ STATS */}
+      {campaign.channel === 'WHATSAPP' && (
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard
+            label="Read"
+            value={stats.read ?? 0}
+            icon={CheckCircle}
+            iconBg="bg-emerald-50"
+            iconColor="text-emerald-600"
+          />
+          <StatCard
+            label="Read Rate"
+            value={`${stats.readRate ?? 0}%`}
+            icon={TrendingUp}
+            iconBg="bg-emerald-50"
+            iconColor="text-emerald-600"
+          />
+        </div>
+      )}
 
       {/* EMAIL SPECIFIC STATS */}
       {campaign.channel === 'EMAIL' && (

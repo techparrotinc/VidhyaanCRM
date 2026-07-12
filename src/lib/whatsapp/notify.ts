@@ -79,6 +79,27 @@ export async function orgDisplayName(orgId: string): Promise<string> {
   return org?.name || 'our institution'
 }
 
+/**
+ * Per-user WhatsApp preference for STAFF-facing alerts (Settings →
+ * Notifications toggles). No preference row = allowed (default on).
+ * Parent-facing sends never consult this — parents aren't platform users.
+ */
+export async function staffWhatsAppAllowed(
+  userId: string | null | undefined,
+  category: string
+): Promise<boolean> {
+  if (!userId) return true
+  try {
+    const pref = await prisma.notificationPreference.findUnique({
+      where: { userId_category: { userId, category } },
+      select: { whatsapp: true }
+    })
+    return pref ? pref.whatsapp : true
+  } catch {
+    return true
+  }
+}
+
 /** Institution-aware grade/course/batch value. */
 export function gradeValue(rec: {
   gradeSought?: string | null

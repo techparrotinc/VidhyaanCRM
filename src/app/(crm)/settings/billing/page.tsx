@@ -112,6 +112,12 @@ export default function BillingSettingsPage() {
     }
   }
 
+  // "Paid Active" needs an actual subscription — an org row can be ACTIVE
+  // while still on trial (or free listing), so derive the display status.
+  const hasPaidSub = !!subscription && ['ACTIVE', 'GRACE_PERIOD', 'PAST_DUE'].includes(subscription.status)
+  const onTrial = !hasPaidSub && org?.trialEndsAt && new Date(org.trialEndsAt).getTime() > Date.now()
+  const displayStatus = onTrial ? 'TRIAL' : hasPaidSub || org?.status !== 'ACTIVE' ? (org?.status || 'TRIAL') : 'FREE'
+
   if (loading && !org) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -169,18 +175,23 @@ export default function BillingSettingsPage() {
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Active Subscription</span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${
-                getStatusBadgeClass(org?.status || 'TRIAL')
+                getStatusBadgeClass(displayStatus)
               }`}>
-                {org?.status === 'ACTIVE' ? 'Paid Active'
-                  : org?.status === 'TRIAL' ? 'Free Trial'
-                  : org?.status === 'GRACE_PERIOD' ? 'Grace Period'
-                  : org?.status === 'TRIAL_EXPIRED' ? 'Trial Expired'
-                  : org?.status}
+                {displayStatus === 'ACTIVE' ? 'Paid Active'
+                  : displayStatus === 'TRIAL' ? 'Free Trial'
+                  : displayStatus === 'FREE' ? 'Free Plan'
+                  : displayStatus === 'GRACE_PERIOD' ? 'Grace Period'
+                  : displayStatus === 'TRIAL_EXPIRED' ? 'Trial Expired'
+                  : displayStatus}
               </span>
             </div>
             
             <h3 className="text-2xl font-black text-slate-900 mt-3 uppercase tracking-tight">
-              {subscription?.plan?.name || org?.plan?.name || 'Free Trial Plan'}
+              {hasPaidSub
+                ? (subscription?.plan?.name || org?.plan?.name)
+                : onTrial
+                  ? 'Free Trial — All Features'
+                  : (org?.plan?.name || 'Free Plan')}
             </h3>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
@@ -261,25 +272,27 @@ export default function BillingSettingsPage() {
           </div>
 
           <div className="mt-8 border-t border-slate-100 pt-4 flex items-center justify-between">
-            {org?.status === 'ACTIVE' && !subscription?.cancelAtPeriodEnd ? (
+            {hasPaidSub && !subscription?.cancelAtPeriodEnd ? (
               <button
                 onClick={() => setCancelModalOpen(true)}
                 className="text-xs text-red-600 hover:text-red-800 font-bold transition"
               >
                 Cancel Subscription
               </button>
-            ) : org?.status === 'TRIAL' ? (
+            ) : onTrial ? (
               <span className="text-xs text-slate-400 font-semibold">
-                Trial ends on {new Date(org.trialEndsAt).toLocaleDateString()}
+                Trial ends on {new Date(org.trialEndsAt).toLocaleDateString('en-IN')}
               </span>
             ) : (
               <span className="text-xs text-slate-400 font-semibold">No active billing cycles.</span>
             )}
-            
+
             <span className="text-xs text-slate-500 font-medium">
               {subscription?.currentPeriodEnd
-                ? `Renews on ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
-                : `Trial ends on ${new Date(org?.trialEndsAt || Date.now()).toLocaleDateString()}`}
+                ? `Renews on ${new Date(subscription.currentPeriodEnd).toLocaleDateString('en-IN')}`
+                : onTrial
+                  ? `Trial ends on ${new Date(org.trialEndsAt).toLocaleDateString('en-IN')}`
+                  : ''}
             </span>
           </div>
         </div>

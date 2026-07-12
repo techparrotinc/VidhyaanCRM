@@ -33,6 +33,7 @@ const ALL_MODULES = [
   'api_access',
   'custom_domain',
   'ai_copilot',
+  'attendance',
 ]
 
 const PLAN_UPDATES: {
@@ -44,10 +45,10 @@ const PLAN_UPDATES: {
 }[] = [
   {
     slug: 'free',
-    name: 'School / LC Listing',
+    name: 'Free Listing',
     description: 'Free public listing on the Vidhyaan directory with basic lead capture (up to 10 leads).',
     leadCap: 10,
-    modules: ['lead_management'],
+    modules: ['lead_management', 'advanced_reports'],
   },
   {
     slug: 'starter',
@@ -62,6 +63,8 @@ const PLAN_UPDATES: {
       'event_management',
       'forms_requests',
       'whatsapp_sms_notifications',
+      'advanced_reports',
+      'attendance',
     ],
   },
   {
@@ -75,6 +78,7 @@ const PLAN_UPDATES: {
       'fee_management',
       'payment_gateway',
       'whatsapp_sms_notifications',
+      'attendance',
     ],
   },
   {

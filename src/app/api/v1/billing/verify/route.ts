@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db/client'
 import { verifyPayment, fetchPayment } from '@/lib/integrations/razorpay'
 import { getEffectivePricing, priceForCycle } from '@/lib/pricing/effective'
 import { recordCouponRedemption } from '@/lib/billing/coupons'
-import { syncBundledAiAllowance } from '@/lib/billing/lifecycle'
+import { syncBundledAiAllowance, remapOrgModulesToPlan } from '@/lib/billing/lifecycle'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 import { AuditAction, SubscriptionStatus, BillingCycle } from '@prisma/client'
 import { redis } from '@/lib/redis'
@@ -164,37 +164,10 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // 7. Enable plan modules for organization
-    const planModules = await prisma.planModule.findMany({
-      where: { planId: plan.id }
-    })
-
-    for (const pm of planModules) {
-      const dbModule = await prisma.module.findUnique({
-        where: { slug: pm.moduleSlug }
-      })
-      if (dbModule) {
-        await prisma.organizationModule.upsert({
-          where: {
-            orgId_moduleId: {
-              orgId: user.orgId,
-              moduleId: dbModule.id
-            }
-          },
-          update: {
-            enabled: true,
-            enabledAt: new Date(),
-            disabledAt: null
-          },
-          create: {
-            orgId: user.orgId,
-            moduleId: dbModule.id,
-            enabled: true,
-            enabledAt: new Date()
-          }
-        })
-      }
-    }
+    // 7. Remap org modules to exactly the paid plan's set — enables the plan's
+    // modules AND revokes trial-granted extras (trials showcase all Enterprise
+    // modules; the first payment must lock access down to what was bought).
+    await remapOrgModulesToPlan(user.orgId, plan.id)
 
     // 7.5 Grant the slab's bundled monthly AI credit allowance
     await syncBundledAiAllowance(
@@ -287,12 +260,9 @@ export async function POST(req: NextRequest) {
       }
     }).catch(e => console.error('Failed to write verification audit log:', e))
 
-    // Invalidate organization and module caches
+    // Invalidate organization cache (module caches busted inside the remap)
     try {
       await redis.del(`org:${user.orgId}`)
-      await Promise.all(
-        planModules.map((pm) => redis.del(`org:${user.orgId}:module:${pm.moduleSlug}`))
-      )
     } catch (err) {
       console.error('Failed to invalidate billing caches:', err)
     }

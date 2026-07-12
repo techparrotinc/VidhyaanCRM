@@ -379,6 +379,25 @@ const authConfig: NextAuthConfig = {
         token.mustEnrol2fa = false
       }
 
+      // My Account edits (name/phone/email) — re-read from the DB so the
+      // header/sidebar reflect the change without a re-login. DB is the
+      // source of truth; the client only signals that something changed.
+      if (trigger === 'update' && (session as any)?.profileUpdated === true && token.userId) {
+        try {
+          const fresh = await prisma.user.findUnique({
+            where: { id: token.userId as string },
+            select: { name: true, phone: true, email: true }
+          })
+          if (fresh) {
+            token.name = fresh.name
+            token.phone = fresh.phone ?? ''
+            token.email = fresh.email ?? ''
+          }
+        } catch (e) {
+          console.error('jwt profile refresh error:', e)
+        }
+      }
+
       // Impersonation sessions hard-expire after 30 minutes: strip the role so
       // every role-gated route and API rejects the stale session.
       if (

@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
 import { Loader2, CheckCircle2, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 type Me = { id: string; name: string; email: string | null; phone: string | null }
 
 export default function AccountPage() {
+  const { update: updateSession } = useSession()
   const [me, setMe] = useState<Me | null>(null)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -44,6 +46,9 @@ export default function AccountPage() {
       const j = await res.json()
       if (!res.ok) throw new Error(err(j))
       setMe(j.data); setMsg({ ok: true, text: 'Saved' })
+      // Refresh the session JWT so the sidebar/header pick up the new name
+      // without a re-login (server re-reads the user row).
+      await updateSession({ profileUpdated: true }).catch(() => {})
     } catch (e: any) {
       setMsg({ ok: false, text: e.message })
     } finally { setSaving(false) }
@@ -75,6 +80,7 @@ export default function AccountPage() {
       if (!res.ok) throw new Error(err(j))
       setMe(j.data); setEmailMode('idle'); setNewEmail(''); setCode('')
       setEmailMsg({ ok: true, text: 'Email updated' })
+      await updateSession({ profileUpdated: true }).catch(() => {})
     } catch (e: any) {
       setEmailMsg({ ok: false, text: e.message })
     } finally { setEmailBusy(false) }

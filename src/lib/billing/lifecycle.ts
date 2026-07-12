@@ -32,6 +32,10 @@ export async function syncBundledAiAllowance(orgId: string, planId: string, slab
   })
 }
 
+// Org-level add-ons (credit-pack channels, enabled at org creation or via
+// purchase) live outside plan licensing — a plan change must never revoke them.
+const PLAN_INDEPENDENT_MODULES = new Set(['sms_addon', 'whatsapp_addon'])
+
 /** Remap an org's modules to exactly the given plan's module set. */
 export async function remapOrgModulesToPlan(orgId: string, planId: string): Promise<string[]> {
   const [planModules, allModules] = await Promise.all([
@@ -40,6 +44,7 @@ export async function remapOrgModulesToPlan(orgId: string, planId: string): Prom
   ])
   const planSlugs = new Set(planModules.map((pm) => pm.moduleSlug))
   for (const mod of allModules) {
+    if (PLAN_INDEPENDENT_MODULES.has(mod.slug)) continue
     const shouldEnable = planSlugs.has(mod.slug)
     await prisma.organizationModule.upsert({
       where: { orgId_moduleId: { orgId, moduleId: mod.id } },

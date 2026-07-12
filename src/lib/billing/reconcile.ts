@@ -2,7 +2,7 @@ import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
 import { fetchOrderPayments } from '@/lib/integrations/razorpay'
 import { recordCouponRedemption } from '@/lib/billing/coupons'
-import { syncBundledAiAllowance } from '@/lib/billing/lifecycle'
+import { syncBundledAiAllowance, remapOrgModulesToPlan } from '@/lib/billing/lifecycle'
 import { SubscriptionStatus, type BillingCycle } from '@prisma/client'
 
 /**
@@ -72,20 +72,7 @@ export async function applyPendingPlanChange(orgId: string): Promise<boolean> {
   }
 
   // Module set follows the new (smaller) plan: enable its modules, disable the rest
-  const planModuleSlugs = plan.planModules.map((pm) => pm.moduleSlug)
-  const allModules = await prisma.module.findMany({ select: { id: true, slug: true } })
-  for (const mod of allModules) {
-    const shouldEnable = planModuleSlugs.includes(mod.slug)
-    await prisma.organizationModule.upsert({
-      where: { orgId_moduleId: { orgId, moduleId: mod.id } },
-      update: shouldEnable
-        ? { enabled: true, enabledAt: new Date(), disabledAt: null }
-        : { enabled: false, disabledAt: new Date() },
-      create: shouldEnable
-        ? { orgId, moduleId: mod.id, enabled: true, enabledAt: new Date() }
-        : { orgId, moduleId: mod.id, enabled: false, disabledAt: new Date() }
-    })
-  }
+  await remapOrgModulesToPlan(orgId, plan.id)
 
   const { pendingPlanChange: _dropped, ...restSettings } = settings
   await prisma.organization.update({
@@ -98,7 +85,6 @@ export async function applyPendingPlanChange(orgId: string): Promise<boolean> {
 
   try {
     await redis.del(`org:${orgId}`)
-    await Promise.all(allModules.map((m) => redis.del(`org:${orgId}:module:${m.slug}`)))
   } catch (e) {
     console.error('pending plan change cache bust failed:', e)
   }
@@ -231,16 +217,8 @@ export async function reconcilePendingSubscriptions(orgId: string): Promise<numb
       console.error('AI allowance sync failed:', e)
     )
 
-    // Enable plan modules + activate org
-    for (const pm of plan.planModules) {
-      const dbModule = await prisma.module.findUnique({ where: { slug: pm.moduleSlug } })
-      if (!dbModule) continue
-      await prisma.organizationModule.upsert({
-        where: { orgId_moduleId: { orgId, moduleId: dbModule.id } },
-        update: { enabled: true, enabledAt: new Date(), disabledAt: null },
-        create: { orgId, moduleId: dbModule.id, enabled: true, enabledAt: new Date() }
-      })
-    }
+    // Remap modules to exactly the paid plan's set (revokes trial extras too)
+    await remapOrgModulesToPlan(orgId, plan.id)
     // Paid plan change supersedes any previously scheduled downgrade
     const orgRow = await prisma.organization.findUnique({ where: { id: orgId }, select: { settings: true } })
     const { pendingPlanChange: _superseded, ...cleanSettings } = ((orgRow?.settings as any) || {})
@@ -270,7 +248,6 @@ export async function reconcilePendingSubscriptions(orgId: string): Promise<numb
 
     try {
       await redis.del(`org:${orgId}`)
-      await Promise.all(plan.planModules.map((pm) => redis.del(`org:${orgId}:module:${pm.moduleSlug}`)))
     } catch (e) {
       console.error('reconcile cache bust failed:', e)
     }

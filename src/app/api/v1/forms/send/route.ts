@@ -10,7 +10,7 @@ const bodySchema = z.object({
   formId: z.string().optional(),
   targetType: z.enum(['ADMISSION', 'LEAD', 'ENQUIRY', 'STANDALONE']),
   targetId: z.string().optional().nullable(),
-  channel: z.enum(['EMAIL', 'SMS']),
+  channel: z.enum(['EMAIL', 'SMS', 'WHATSAPP']),
   // optional overrides — otherwise pulled from the target record
   email: z.string().email().optional().nullable(),
   phone: z.string().optional().nullable(),

@@ -20,6 +20,8 @@ export const TEMPLATE_TOKENS = [
   'count', // record counts (summaries)
   'reason', // free-form reason (holiday cause, rejection note)
   'resumeDate', // reopening date for holiday announcements
+  'event', // event title
+  'location', // event venue / meeting place
   'link' // per-recipient digital-form URL (campaign with an attached form)
 ] as const
 

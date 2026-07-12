@@ -35,6 +35,7 @@ export default function AnnounceModal({
   const [gradeLabel, setGradeLabel] = useState('')
   const [email, setEmail] = useState(true)
   const [sms, setSms] = useState(false)
+  const [whatsapp, setWhatsapp] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ recipients: number; sent: number; failed: number } | null>(null)
@@ -100,7 +101,7 @@ export default function AnnounceModal({
   const showCapacityWarning = !!capacity && recipientCount > capacity
 
   const send = async () => {
-    const channels = ['PORTAL', ...(email ? ['EMAIL'] : []), ...(sms ? ['SMS'] : [])]
+    const channels = ['PORTAL', ...(email ? ['EMAIL'] : []), ...(sms ? ['SMS'] : []), ...(whatsapp ? ['WHATSAPP'] : [])]
     setSending(true)
     setError(null)
     try {
@@ -287,9 +288,20 @@ export default function AnnounceModal({
                     >
                       <MessageSquare size={13} /> SMS {sms && <Check size={12} />}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setWhatsapp((v) => !v)}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+                        whatsapp
+                          ? 'bg-[#1565D8] border-[#1565D8] text-white'
+                          : 'bg-white border-slate-200 text-slate-500 hover:border-[#1565D8] hover:text-[#1565D8]'
+                      }`}
+                    >
+                      <MessageSquare size={13} /> WhatsApp {whatsapp && <Check size={12} />}
+                    </button>
                   </div>
                   <p className="mt-1.5 text-[11px] text-slate-400">
-                    Portal &amp; email are free · SMS uses 1 credit per message{sms && recipientCount > 0 ? ` (~${recipientCount} credits)` : ''} · WhatsApp via Campaigns
+                    Portal &amp; email are free · SMS &amp; WhatsApp use 1 credit per message{(sms || whatsapp) && recipientCount > 0 ? ` (~${recipientCount * ((sms ? 1 : 0) + (whatsapp ? 1 : 0))} credits)` : ''} · WhatsApp needs the &quot;event announcement&quot; template added from the catalog
                   </p>
                 </div>
 

@@ -24,6 +24,7 @@ export const WA_TEMPLATE_TRIGGERS: Record<string, string> = {
   final_reminder: 'Sends to the guardian automatically 14 days after an invoice falls overdue',
   payment_confirmation: 'Sends to the guardian automatically when a fee payment is recorded',
   review_request: 'Sends to the parent automatically when an admission is confirmed, inviting a marketplace review',
+  event_announcement: 'Used by Events → Announce when the WhatsApp channel is selected',
   lead_assigned: 'Staff alert — sends to the counsellor’s phone when a lead is assigned to them',
   sla_breach_alert: 'Staff alert — sends to the counsellor after 5 days with no activity on their assigned lead',
   new_admission_assigned: 'Staff alert — sends to the counsellor when an admission case is assigned to them',
@@ -34,3 +35,12 @@ export const WA_TEMPLATE_TRIGGERS: Record<string, string> = {
 
 export const waTemplateTrigger = (msg91TemplateId: string): string | null =>
   WA_TEMPLATE_TRIGGERS[msg91TemplateId] ?? null
+
+/**
+ * Canonical variable mappings applied automatically when the admin syncs a
+ * known template from Meta (instead of the var1..varN placeholder guess).
+ */
+export const WA_TEMPLATE_DEFAULT_VARIABLES: Record<string, string[]> = {
+  review_request: ['parentName', 'kidName', 'schoolName', 'link'],
+  event_announcement: ['parentName', 'schoolName', 'event', 'date', 'location']
+}

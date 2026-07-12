@@ -5,6 +5,7 @@ import { Errors } from '@/lib/api/errors'
 import { getMetaWhatsAppConfig } from '@/lib/platform-config'
 import { fetchMetaTemplates } from '@/lib/integrations/meta-whatsapp'
 import { guessWaTemplateCategory } from '@/constants/whatsapp-template-categories'
+import { WA_TEMPLATE_DEFAULT_VARIABLES } from '@/constants/whatsapp-template-triggers'
 
 const WRITE_ROLES = ['SUPER_ADMIN', 'OPERATIONS_ADMIN']
 
@@ -54,9 +55,10 @@ export async function POST() {
           category: guessWaTemplateCategory(tpl.name, tpl.body),
           metaCategory: tpl.category,
           variables:
-            tpl.variableCount > 0
+            WA_TEMPLATE_DEFAULT_VARIABLES[tpl.name] ??
+            (tpl.variableCount > 0
               ? Array.from({ length: tpl.variableCount }, (_, i) => `var${i + 1}`)
-              : undefined
+              : undefined)
         }
       })
       imported++

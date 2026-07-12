@@ -5,6 +5,34 @@ import { cleanPhoneNumber } from '@/lib/utils'
 import type { FormPurpose, FormChannel } from '@prisma/client'
 import { publicFormUrl, newFormToken } from './urls'
 import { getAdapter } from './targets'
+import { sendTemplateNotification } from '@/lib/whatsapp/notify'
+
+/** Parent/child display names for the WhatsApp form message. */
+async function resolveTargetNames(
+  targetType: FormPurpose,
+  targetId: string | null | undefined
+): Promise<{ parentName: string | null; kidName: string | null }> {
+  if (!targetId) return { parentName: null, kidName: null }
+  try {
+    if (targetType === 'LEAD') {
+      const lead = await prisma.lead.findUnique({
+        where: { id: targetId },
+        select: { parentName: true, kidName: true }
+      })
+      return { parentName: lead?.parentName ?? null, kidName: lead?.kidName ?? null }
+    }
+    if (targetType === 'ADMISSION') {
+      const adm = await prisma.admission.findUnique({
+        where: { id: targetId },
+        select: { parentName: true, applicantName: true }
+      })
+      return { parentName: adm?.parentName ?? null, kidName: adm?.applicantName ?? null }
+    }
+  } catch {
+    // fall through to generic names
+  }
+  return { parentName: null, kidName: null }
+}
 
 interface SendArgs {
   db: any // tenant-scoped client (stamps orgId on create)
@@ -78,6 +106,27 @@ export async function sendForm(args: SendArgs) {
         `${orgName}: please complete your application form: ${url}`,
         `form_instance:${instance.id}`,
       )
+    } else if (channel === 'WHATSAPP') {
+      if (!args.phone) throw new Error('No phone number on file for this record')
+      // Rides on the upload_documents_common template (parent, child, link) —
+      // the org must have adopted it from the catalog.
+      const target = await resolveTargetNames(targetType, targetId)
+      const delivered = await sendTemplateNotification({
+        orgId,
+        template: 'upload_documents_common',
+        phone: cleanPhoneNumber(args.phone) as string,
+        values: {
+          parentName: target.parentName || 'Parent',
+          kidName: target.kidName || 'your child',
+          link: url
+        },
+        ref: `form_instance:${instance.id}`
+      })
+      if (!delivered) {
+        throw new Error(
+          'WhatsApp form sends need the "upload documents" template — add it from the catalog in Settings → WhatsApp Templates.'
+        )
+      }
     } else {
       throw new Error(`Channel ${channel} is not supported for single sends yet`)
     }

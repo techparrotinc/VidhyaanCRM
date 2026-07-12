@@ -409,7 +409,7 @@ export const POST = route({
     if (lead.assignedToId) {
       prisma.user
         .findUnique({ where: { id: lead.assignedToId }, select: { id: true, name: true, phone: true } })
-        .then((c) => c && onLeadAssigned(user.orgId, lead, c))
+        .then((c) => c && onLeadAssigned(user.orgId, lead, c, { skipParentIntro: true }))
         .catch(() => {})
     }
 

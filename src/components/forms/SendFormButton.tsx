@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Send, X, Mail, MessageSquare, Copy, CheckCircle2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-type Channel = 'EMAIL' | 'SMS'
+type Channel = 'EMAIL' | 'SMS' | 'WHATSAPP'
 
 interface FormOption { id: string; name: string; purpose: string }
 
@@ -120,13 +120,15 @@ export function SendFormButton({
                   <div className="grid grid-cols-2 gap-2">
                     <ChannelBtn active={channel === 'EMAIL'} disabled={!hasEmail} onClick={() => setChannel('EMAIL')} icon={<Mail className="h-4 w-4" />} text="Email" />
                     <ChannelBtn active={channel === 'SMS'} disabled={!hasPhone} onClick={() => setChannel('SMS')} icon={<MessageSquare className="h-4 w-4" />} text="SMS" />
+                    <ChannelBtn active={channel === 'WHATSAPP'} disabled={!hasPhone} onClick={() => setChannel('WHATSAPP')} icon={<MessageSquare className="h-4 w-4" />} text="WhatsApp" />
                   </div>
                   {channel === 'SMS' && <p className="mt-1 text-xs text-slate-400">Uses 1 messaging credit (or your MSG91 account).</p>}
+                  {channel === 'WHATSAPP' && <p className="mt-1 text-xs text-slate-400">Uses 1 WhatsApp credit · needs the &quot;upload documents&quot; template added from the catalog.</p>}
                 </div>
 
                 {error && <p className="text-sm font-medium text-red-600">{error}</p>}
 
-                <Button className="w-full gap-2" disabled={sending || forms.length === 0 || (channel === 'EMAIL' && !hasEmail) || (channel === 'SMS' && !hasPhone)} onClick={send}>
+                <Button className="w-full gap-2" disabled={sending || forms.length === 0 || (channel === 'EMAIL' && !hasEmail) || (channel !== 'EMAIL' && !hasPhone)} onClick={send}>
                   {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   {sending ? 'Sending…' : 'Send'}
                 </Button>

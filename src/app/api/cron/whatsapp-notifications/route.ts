@@ -363,5 +363,16 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // ── 9. Retention: message logs older than 12 months
+  const cutoff = new Date()
+  cutoff.setMonth(cutoff.getMonth() - 12)
+  const [prunedOut, prunedIn] = await Promise.all([
+    prisma.whatsappMessage.deleteMany({ where: { createdAt: { lt: cutoff } } }),
+    prisma.whatsappInboundMessage.deleteMany({ where: { createdAt: { lt: cutoff } } })
+  ])
+  if (prunedOut.count || prunedIn.count) {
+    counters.pruned = prunedOut.count + prunedIn.count
+  }
+
   return NextResponse.json({ ok: true, counters })
 }

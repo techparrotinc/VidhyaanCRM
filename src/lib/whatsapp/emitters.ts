@@ -34,22 +34,30 @@ interface CounsellorLike {
   phone?: string | null
 }
 
-/** Lead assigned → parent gets a counsellor introduction; counsellor gets a work alert. */
+/**
+ * Lead assigned → parent gets a counsellor introduction; counsellor gets a
+ * work alert. `skipParentIntro` suppresses the introduction when the lead
+ * was assigned at creation — the parent just received the enquiry
+ * acknowledgement seconds earlier, and two instant messages read as spam.
+ */
 export async function onLeadAssigned(
   orgId: string,
   lead: LeadLike,
-  counsellor: CounsellorLike
+  counsellor: CounsellorLike,
+  opts?: { skipParentIntro?: boolean }
 ): Promise<void> {
   const schoolName = await orgDisplayName(orgId)
   const grade = gradeValue(lead)
 
-  notifyWhatsApp({
-    orgId,
-    template: 'counsellor_introduction',
-    phone: lead.phone,
-    values: { parentName: lead.parentName, counsellorName: counsellor.name, schoolName, grade },
-    ref: `lead_assigned_intro:${lead.id}`
-  })
+  if (!opts?.skipParentIntro) {
+    notifyWhatsApp({
+      orgId,
+      template: 'counsellor_introduction',
+      phone: lead.phone,
+      values: { parentName: lead.parentName, counsellorName: counsellor.name, schoolName, grade },
+      ref: `lead_assigned_intro:${lead.id}`
+    })
+  }
 
   if (await staffWhatsAppAllowed(counsellor.id, 'LEAD_RECEIVED')) {
     notifyWhatsApp({

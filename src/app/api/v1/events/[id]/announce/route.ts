@@ -6,6 +6,7 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db/client'
 import { sendMeteredSms } from '@/lib/credits/metered-send'
+import { sendTemplateNotification } from '@/lib/whatsapp/notify'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
 import { resolveOrgEmail, renderEmailHtml, replaceVars } from '@/lib/mail/org-templates'
 
@@ -16,7 +17,7 @@ const customRecipientSchema = z.object({
 
 const announceSchema = z.object({
   audience: z.enum(['PARENTS', 'LEADS', 'ALL', 'CUSTOM']),
-  channels: z.array(z.enum(['PORTAL', 'EMAIL', 'SMS'])).min(1),
+  channels: z.array(z.enum(['PORTAL', 'EMAIL', 'SMS', 'WHATSAPP'])).min(1),
   /** limit PARENTS/ALL to guardians of one class */
   gradeLabel: z.string().max(50).optional().nullable(),
   /** required for CUSTOM: hand-picked students/leads (contacts resolved server-side) */
@@ -200,6 +201,24 @@ export const POST = route({
         if (body.channels.includes('SMS') && r.phone) {
           attempted = true
           await sendMeteredSms(user.orgId, r.phone, msg.sms, `event:${event.id}`)
+        }
+        if (body.channels.includes('WHATSAPP') && r.phone) {
+          attempted = true
+          // Requires the org-adopted event_announcement template; skips
+          // silently otherwise (returns false, not counted as failure)
+          await sendTemplateNotification({
+            orgId: user.orgId,
+            template: 'event_announcement',
+            phone: r.phone,
+            values: {
+              parentName: r.name || 'Parent',
+              schoolName: orgName,
+              event: event.title,
+              date: eventVars.eventDate,
+              location: event.location ? ` at ${event.location}` : ' — details in the parent portal'
+            },
+            ref: `event:${event.id}`
+          })
         }
         if (attempted) sent++
       } catch (err) {

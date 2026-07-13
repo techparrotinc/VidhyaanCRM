@@ -5,6 +5,7 @@ import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { AuditAction, OtpChannel, OtpPurpose, UserRole, UserStatus, Prisma } from '@prisma/client'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { findOrCreateUserByPhone } from '@/lib/auth/findOrCreateUserByPhone'
+import { checkEmailDeliverable } from '@/lib/email/validate'
 
 const parentRegisterSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
@@ -34,6 +35,16 @@ export async function POST(req: NextRequest) {
 
     const { name, phone, email, city } = result.data
     const normalizedEmail = email && email.trim() !== '' ? email.trim().toLowerCase() : null
+
+    if (normalizedEmail) {
+      const emailCheck = await checkEmailDeliverable(normalizedEmail)
+      if (!emailCheck.ok) {
+        return NextResponse.json(
+          { success: false, error: emailCheck.message, suggestion: emailCheck.suggestion ?? null },
+          { status: 400 }
+        )
+      }
+    }
 
     // 2. Create or Find User
     let userResult

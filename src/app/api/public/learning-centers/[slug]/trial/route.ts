@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
 import { dedupFields } from '@/lib/dedup'
+import { checkEmailDeliverable } from '@/lib/email/validate'
 
 const trialBookingSchema = z.object({
   parentName: z.string().max(150).optional().nullable(),
@@ -79,11 +80,14 @@ export async function POST(
       )
     }
 
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json(
-        { success: false, error: 'Please enter a valid email address' },
-        { status: 400 }
-      )
+    if (email) {
+      const emailCheck = await checkEmailDeliverable(email)
+      if (!emailCheck.ok) {
+        return NextResponse.json(
+          { success: false, error: emailCheck.message, suggestion: emailCheck.suggestion ?? null },
+          { status: 400 }
+        )
+      }
     }
 
     // 2. Find Learning Center by slug

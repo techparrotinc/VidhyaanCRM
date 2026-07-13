@@ -8,6 +8,7 @@ import { getGradeLabel } from '@/constants/grades'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
 import { dedupFields } from '@/lib/dedup'
 import { resolveOrgEmail } from '@/lib/mail/org-templates'
+import { checkEmailDeliverable } from '@/lib/email/validate'
 
 export async function POST(
   req: NextRequest,
@@ -49,11 +50,14 @@ export async function POST(
       )
     }
 
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json(
-        { success: false, error: 'Please enter a valid email address' },
-        { status: 400 }
-      )
+    if (email) {
+      const emailCheck = await checkEmailDeliverable(email)
+      if (!emailCheck.ok) {
+        return NextResponse.json(
+          { success: false, error: emailCheck.message, suggestion: emailCheck.suggestion ?? null },
+          { status: 400 }
+        )
+      }
     }
 
     const { searchParams } = new URL(req.url)

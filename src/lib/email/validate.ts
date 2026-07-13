@@ -71,7 +71,7 @@ const MX_INVALID_TTL = 24 * 3600 // typo domains might get registered; recheck d
 const DNS_TIMEOUT_MS = 2500
 
 /** true = has MX (or A fallback), false = definitively none, null = DNS unavailable. */
-async function domainAcceptsMail(domain: string): Promise<boolean | null> {
+export async function domainAcceptsMail(domain: string): Promise<boolean | null> {
   const key = MX_CACHE_PREFIX + domain
   try {
     const cached = await redis.get(key)

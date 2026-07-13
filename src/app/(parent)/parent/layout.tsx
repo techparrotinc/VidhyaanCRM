@@ -4,26 +4,19 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
-import { 
+import {
   Shield,
-  LayoutDashboard,
-  FileText,
-  Receipt,
-  CalendarDays,
-  CalendarCheck,
-  Bookmark,
-  Star,
   User,
-  Bell,
-  LogOut, 
-  Settings, 
-  Menu, 
-  X,
+  LogOut,
+  Settings,
   ChevronDown
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-
 import { SessionProvider } from 'next-auth/react'
+import { useUIStore } from '@/stores/ui.store'
+import ParentSidebar from '@/components/parent/ParentSidebar'
+import ParentMobileNav from '@/components/parent/ParentMobileNav'
+import ParentNotificationBell from '@/components/parent/ParentNotificationBell'
 
 interface ParentLayoutProps {
   children: React.ReactNode
@@ -43,6 +36,7 @@ function ParentLayout({ children }: ParentLayoutProps) {
   const { data: session, status } = useSession()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const sidebarCollapsed = useUIStore((s) => s.parentSidebarCollapsed)
 
   useEffect(() => {
     setMounted(true)
@@ -76,7 +70,7 @@ function ParentLayout({ children }: ParentLayoutProps) {
           <Shield className="w-12 h-12 text-red-500 mx-auto mb-4" strokeWidth={1.5} />
           <h2 className="text-xl font-bold text-slate-800">Access Denied</h2>
           <p className="text-sm text-slate-500 mt-2">This portal is reserved for parents. Please sign in with a parent account.</p>
-          <Button 
+          <Button
             onClick={() => signOut({ callbackUrl: '/login' })}
             className="mt-6 bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-sm px-6 py-2.5 rounded-xl h-auto"
           >
@@ -90,62 +84,35 @@ function ParentLayout({ children }: ParentLayoutProps) {
   const parentName = session?.user?.name || 'Parent User'
   const parentInitials = parentName.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 
-  const navLinks = [
-    { label: 'Dashboard', href: '/parent/dashboard', icon: LayoutDashboard },
-    { label: 'My Applications', href: '/parent/applications', icon: FileText },
-    { label: 'Fees', href: '/parent/fees', icon: Receipt },
-    { label: 'Attendance', href: '/parent/attendance', icon: CalendarCheck },
-    { label: 'Events', href: '/parent/events', icon: CalendarDays },
-    { label: 'Saved Schools', href: '/parent/bookmarks', icon: Bookmark },
-    { label: 'My Reviews', href: '/parent/reviews', icon: Star },
-    { label: 'My Profile', href: '/parent/profile', icon: User }
-  ]
-
   return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col pb-16 md:pb-0 select-none">
-      
-      {/* 1. TOP NAV (Desktop) */}
-      <header className="sticky top-0 bg-white border-b border-slate-100 z-40 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          
-          {/* Logo */}
-          <Link href="/" className="flex items-center cursor-pointer">
+    <div
+      className={`min-h-screen bg-slate-50 font-sans flex flex-col pb-16 md:pb-0 select-none overflow-x-clip transition-[padding] duration-200 ${
+        sidebarCollapsed ? 'md:pl-16' : 'md:pl-64'
+      }`}
+    >
+
+      {/* 1. DESKTOP SIDEBAR (fixed, outside the padded flow) */}
+      <ParentSidebar />
+
+      {/* 2. TOP BAR */}
+      <header className="sticky top-0 bg-white border-b border-slate-100 z-30 shadow-sm">
+        <div className="px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+
+          {/* Mobile logo (sidebar hidden on mobile) */}
+          <Link href="/" className="flex items-center cursor-pointer md:hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/brand/vidhyaan-logo.svg" alt="Vidhyaan" className="h-8 w-auto" />
           </Link>
-
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1.5 text-sm font-semibold text-slate-600 h-full">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-4 py-2 rounded-xl transition-all ${
-                    isActive 
-                      ? 'text-[#1565D8] bg-blue-50 font-bold' 
-                      : 'hover:text-[#1565D8] hover:bg-slate-50'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              )
-            })}
-          </nav>
+          <div className="hidden md:block" />
 
           {/* Right Header items */}
           <div className="flex items-center gap-4">
-            
-            {/* Notification Bell */}
-            <button className="text-slate-400 hover:text-[#1565D8] p-1.5 hover:bg-slate-50 rounded-xl transition relative cursor-pointer">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
+
+            <ParentNotificationBell />
 
             {/* Avatar & Profile Dropdown */}
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center gap-2 cursor-pointer p-1 rounded-xl hover:bg-slate-50 transition"
               >
@@ -158,8 +125,8 @@ function ParentLayout({ children }: ParentLayoutProps) {
 
               {dropdownOpen && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-30" 
+                  <div
+                    className="fixed inset-0 z-30"
                     onClick={() => setDropdownOpen(false)}
                   />
                   <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl z-40 py-2 animate-fade-in">
@@ -200,32 +167,15 @@ function ParentLayout({ children }: ParentLayoutProps) {
         </div>
       </header>
 
-      {/* 2. BODY CONTENT */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        {children}
+      {/* 3. BODY CONTENT */}
+      <main className="flex-1 min-w-0">
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+          {children}
+        </div>
       </main>
 
-      {/* 3. MOBILE NAV TAB BAR (Sticky Bottom) */}
-      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-150/70 z-40 flex md:hidden items-center justify-around px-2 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
-        {navLinks.map((link) => {
-          const isActive = pathname === link.href
-          const Icon = link.icon
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all ${
-                isActive 
-                  ? 'text-[#1565D8]' 
-                  : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="text-[9px] font-black uppercase mt-1 tracking-wider">{link.label.replace('My ', '')}</span>
-            </Link>
-          )
-        })}
-      </nav>
+      {/* 4. MOBILE NAV TAB BAR */}
+      <ParentMobileNav />
 
     </div>
   )

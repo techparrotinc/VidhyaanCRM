@@ -6,6 +6,7 @@ import { Shield, Loader2, ArrowLeft, CheckCircle2, Lock, AlertCircle, Users, Bui
 import { signIn } from 'next-auth/react'
 import PinInput from '@/components/ui/PinInput'
 import OtpInput from '@/components/ui/otp-input'
+import GoogleSignInButton from '@/components/parent-auth/GoogleSignInButton'
 import { institutionNoun } from '@/lib/institution'
 
 type LoginState = 'phone' | 'workspace' | 'pin' | 'otp' | 'twofa'
@@ -635,6 +636,12 @@ export default function LoginPage() {
                   <div className="flex-1 h-px bg-slate-100" />
                   <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">or</span>
                   <div className="flex-1 h-px bg-slate-100" />
+                </div>
+
+                {/* Google SSO (parents) */}
+                <div className="space-y-1.5">
+                  <GoogleSignInButton />
+                  <p className="text-[10px] text-slate-400 font-medium text-center">For parent accounts</p>
                 </div>
 
                 {/* Footer links */}

@@ -29,7 +29,12 @@ const TENANT_MODELS = [
   'AttendanceRecord', 'AttendanceSession', 'TeacherAssignment', 'Holiday',
   'BiometricDevice', 'BiometricIdentity',
   // Class/section master (schools) — source for class+section dropdowns.
-  'SchoolClass', 'ClassSection'
+  'SchoolClass', 'ClassSection',
+  // Weekly school timetable (parent routes read via base client w/ explicit orgId).
+  'TimetableSlot',
+  // Parent-facing academics. Written by parent routes via the base client
+  // (explicit orgId); listed so staff reads stay org-scoped.
+  'LeaveRequest', 'ExamResult'
 ]
 
 const SOFT_DELETE_MODELS = [
@@ -45,7 +50,7 @@ const BRANCH_MODELS = [
   'Lead', 'LeadActivity', 'Admission', 'AdmissionActivity',
   'AdmissionCapacity', 'Student', 'StudentBatch', 'FeePlan', 'Invoice',
   'Payment', 'Event', 'Campaign', 'CounsellorTarget', 'DailyRollup', 'Form',
-  'AttendanceRecord', 'AttendanceSession', 'SchoolClass'
+  'AttendanceRecord', 'AttendanceSession', 'SchoolClass', 'TimetableSlot'
 ]
 
 const tenantModelSet = new Set(TENANT_MODELS.map(m => m.toLowerCase()))

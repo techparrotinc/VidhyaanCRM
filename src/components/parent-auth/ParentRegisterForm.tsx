@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
+import GoogleSignInButton from './GoogleSignInButton'
 
 const CITIES = [
   'Chennai',
@@ -28,7 +29,6 @@ export default function ParentRegisterForm({
 }: ParentRegisterFormProps) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
   const [city, setCity] = useState('Chennai')
   const [agreeTerms, setAgreeTerms] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -54,11 +54,6 @@ export default function ParentRegisterForm({
       return
     }
 
-    if (email.trim() !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email address')
-      return
-    }
-
     if (!agreeTerms) {
       setError('You must agree to the Terms of Service and Privacy Policy')
       return
@@ -72,7 +67,6 @@ export default function ParentRegisterForm({
         body: JSON.stringify({
           name: name.trim(),
           phone,
-          email: email.trim() || undefined,
           city
         })
       })
@@ -103,6 +97,16 @@ export default function ParentRegisterForm({
         <p className="text-xs text-slate-500 font-medium">
           Find and apply to the best schools near you
         </p>
+      </div>
+
+      {/* Google SSO — verified email, no bounce risk; phone collected once after */}
+      <div className="mb-4">
+        <GoogleSignInButton label="Sign up with Google" />
+        <div className="flex items-center gap-3 mt-4">
+          <div className="flex-1 h-px bg-slate-100" />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">or register with phone</span>
+          <div className="flex-1 h-px bg-slate-100" />
+        </div>
       </div>
 
       {error && (
@@ -149,24 +153,6 @@ export default function ParentRegisterForm({
               required
             />
           </div>
-        </div>
-
-        {/* Email Input */}
-        <div className="space-y-1">
-          <div className="flex justify-between items-center">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Email Address
-            </label>
-            <span className="text-[9px] font-medium text-slate-400">Optional but recommended</span>
-          </div>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="your@email.com"
-            disabled={loading}
-            className="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-[#1565D8] transition-all text-sm"
-          />
         </div>
 
         {/* City Selector */}

@@ -41,6 +41,8 @@ function isPublicRoute(pathname: string): boolean {
     '/parent/register',
     '/parent/verify-otp',
     '/parent/login',
+    '/parent/complete-signup', // Google SSO completion (Redis token-gated)
+    '/login/google', // Google SSO challenge-token handoff
     '/register',
     '/claim-profile',
     '/forgot-pin',
@@ -81,6 +83,7 @@ function isCRMRoute(pathname: string): boolean {
     '/campaign-management',
     '/event-management',
     '/reports',
+    '/timetable',
     '/settings'
   ]
   return prefixes.some((prefix) => pathname.startsWith(prefix))

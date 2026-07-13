@@ -16,6 +16,7 @@ import {
   Mail,
   Network,
   Puzzle,
+  ScrollText,
   ShieldCheck,
   Star,
   UserCircle,
@@ -197,6 +198,12 @@ export function buildSettingsNav(opts: {
           path: '/settings/security',
           icon: ShieldCheck,
           description: 'Authenticator app or SMS second factor, backup codes'
+        },
+        {
+          name: 'Data Privacy & Policy',
+          path: '/settings/data-privacy',
+          icon: ScrollText,
+          description: 'How your data is handled and protected — India (DPDP) and global (GDPR)'
         }
       ]
     },

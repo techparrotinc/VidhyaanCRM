@@ -9,7 +9,8 @@ import { cleanPhoneNumber } from '@/lib/utils'
 
 const profileUpdateSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(150),
-  email: z.string().email().max(200).optional().nullable().or(z.literal('')),
+  // email intentionally absent — parent emails come only from Google SSO
+  // (verified, never bounces); typed emails were a bounce source.
   city: z.string().max(100).optional().nullable(),
   phone: z.string().max(20).optional().nullable(),
   code: z.string().max(10).optional().nullable()
@@ -77,7 +78,7 @@ export async function PUT(req: NextRequest) {
       )
     }
     const body = parsedBody.data
-    const { name, email, city, phone: rawPhone } = body
+    const { name, city, phone: rawPhone } = body
     const phone = rawPhone ? (cleanPhoneNumber(rawPhone) as string) : undefined
 
     // Find Parent record
@@ -170,8 +171,6 @@ export async function PUT(req: NextRequest) {
       shouldUpdatePhone = true
     }
 
-    const normalizedEmail = email && email.trim() !== '' ? email.trim().toLowerCase() : null
-
     // Update parent and user records in a transaction
     const updatedParent = await prisma.$transaction(async (tx) => {
       // Update User
@@ -179,7 +178,6 @@ export async function PUT(req: NextRequest) {
         where: { id: session.user.id },
         data: {
           name,
-          email: normalizedEmail,
           phone: shouldUpdatePhone ? phone : undefined
         }
       })
@@ -189,7 +187,6 @@ export async function PUT(req: NextRequest) {
         where: { id: parent.id },
         data: {
           name,
-          email: normalizedEmail,
           city: city || null,
           phone: shouldUpdatePhone ? phone : undefined
         },

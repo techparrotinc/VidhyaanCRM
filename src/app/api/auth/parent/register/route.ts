@@ -5,12 +5,12 @@ import { createOTP, sendOTP } from '@/lib/auth/otp'
 import { AuditAction, OtpChannel, OtpPurpose, UserRole, UserStatus, Prisma } from '@prisma/client'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { findOrCreateUserByPhone } from '@/lib/auth/findOrCreateUserByPhone'
-import { checkEmailDeliverable } from '@/lib/email/validate'
 
 const parentRegisterSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
   phone: z.preprocess(cleanPhoneNumber, z.string().regex(/^[6-9]\d{9}$/, { message: 'Please enter a valid 10-digit mobile number' })),
-  email: z.string().email({ message: 'Please enter a valid email address' }).optional().or(z.literal('')),
+  // email intentionally absent — parent emails come only from Google SSO
+  // (verified, never bounces); typed emails were a bounce source.
   city: z.string().optional()
 })
 
@@ -33,39 +33,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { name, phone, email, city } = result.data
-    const normalizedEmail = email && email.trim() !== '' ? email.trim().toLowerCase() : null
-
-    if (normalizedEmail) {
-      const emailCheck = await checkEmailDeliverable(normalizedEmail)
-      if (!emailCheck.ok) {
-        return NextResponse.json(
-          { success: false, error: emailCheck.message, suggestion: emailCheck.suggestion ?? null },
-          { status: 400 }
-        )
-      }
-    }
+    const { name, phone, city } = result.data
 
     // 2. Create or Find User
-    let userResult
-    try {
-      userResult = await findOrCreateUserByPhone({
-        phone,
-        name,
-        email: normalizedEmail,
-        role: UserRole.PARENT,
-        orgId: null,
-        status: UserStatus.ACTIVE
-      })
-    } catch (err: any) {
-      if (err.code === 'P2002' && err.meta?.target?.includes('email')) {
-        return NextResponse.json(
-          { success: false, error: 'Email address is already registered.' },
-          { status: 409 }
-        )
-      }
-      throw err
-    }
+    const userResult = await findOrCreateUserByPhone({
+      phone,
+      name,
+      email: null,
+      role: UserRole.PARENT,
+      orgId: null,
+      status: UserStatus.ACTIVE
+    })
 
     const { user, isNewUser } = userResult
     if (!isNewUser) {
@@ -91,7 +69,6 @@ export async function POST(req: NextRequest) {
         data: {
           userId: user.id,
           name,
-          email: normalizedEmail || existingParent.email,
           city: city || existingParent.city
         }
       })
@@ -101,7 +78,7 @@ export async function POST(req: NextRequest) {
           userId: user.id,
           name,
           phone,
-          email: normalizedEmail,
+          email: null,
           city: city || null
         }
       })
@@ -133,7 +110,6 @@ export async function POST(req: NextRequest) {
         after: {
           name,
           phone,
-          email: normalizedEmail,
           role: UserRole.PARENT,
           parentId: parentRecord.id
         }

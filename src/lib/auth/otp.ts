@@ -12,6 +12,39 @@ export function generateOTP(): string {
   return String((array[0] % 9000) + 1000)
 }
 
+/**
+ * Verify a code against the newest unconsumed OTP for `identifier` and consume
+ * it. Mirrors the Credentials authorize() OTP block: 5-attempt cap, bcrypt
+ * compare, single-use. Dev bypass code 123456 outside production.
+ */
+export async function verifyAndConsumeOtp(identifier: string, code: string): Promise<boolean> {
+  if (process.env.NODE_ENV === 'development' && code === '123456') return true
+
+  const otpRecord = await prisma.otpCode.findFirst({
+    where: { identifier, consumedAt: null, expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: 'desc' }
+  })
+  if (!otpRecord) return false
+
+  if (otpRecord.attempts >= 5) {
+    await prisma.otpCode.delete({ where: { id: otpRecord.id } })
+    return false
+  }
+  await prisma.otpCode.update({
+    where: { id: otpRecord.id },
+    data: { attempts: { increment: 1 } }
+  })
+
+  const isValid = await bcrypt.compare(code, otpRecord.codeHash)
+  if (!isValid) return false
+
+  await prisma.otpCode.update({
+    where: { id: otpRecord.id },
+    data: { consumedAt: new Date() }
+  })
+  return true
+}
+
 export async function createOTP(
   identifier: string,
   channel: OtpChannel,

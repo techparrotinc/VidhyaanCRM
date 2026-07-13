@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { 
+import { useRouter } from 'next/navigation'
+import {
   Bell, 
   Check, 
   Clock, 
@@ -19,9 +20,24 @@ interface NotificationItem {
   body: string | null
   readAt: string | null
   createdAt: string
+  data?: { href?: string } | null
+}
+
+/** Deep-link target: explicit data.href wins, else infer from the title. */
+function notificationHref(n: NotificationItem): string | null {
+  if (n.data?.href && n.data.href.startsWith('/parent')) return n.data.href
+  const t = n.title.toLowerCase()
+  if (/fee|invoice|payment|₹/.test(t)) return '/parent/fees'
+  if (/event|ptm|meeting|annual day|fair/.test(t)) return '/parent/events'
+  if (/absent|attendance|leave/.test(t)) return '/parent/attendance'
+  if (/exam|result|marks|report card/.test(t)) return '/parent/results'
+  if (/class|timetable|schedule/.test(t)) return '/parent/timetable'
+  if (/application|admission/.test(t)) return '/parent/applications'
+  return null
 }
 
 export default function ParentNotificationsPage() {
+  const router = useRouter()
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -62,7 +78,7 @@ export default function ParentNotificationsPage() {
       const res = await fetch('/api/v1/notifications', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
+        body: JSON.stringify({ ids: [id] })
       })
       const json = await res.json()
       if (json.success) {
@@ -83,7 +99,7 @@ export default function ParentNotificationsPage() {
       const res = await fetch('/api/v1/notifications', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ markAllRead: true })
+        body: JSON.stringify({ all: true })
       })
       const json = await res.json()
       if (json.success) {
@@ -149,28 +165,14 @@ export default function ParentNotificationsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-16 max-w-3xl mx-auto">
-      
-      {/* 1. HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-5">
-        <div>
-          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Bell className="w-5 h-5 text-[#1565D8]" /> Notifications
-          </h2>
-          <p className="text-xs text-slate-400 font-bold mt-1">
-            You have {unreadCount} unread notifications
-          </p>
-        </div>
+    <div className="space-y-7 animate-fade-in pb-16">
 
-        {unreadCount > 0 && (
-          <Button
-            onClick={handleMarkAllRead}
-            variant="outline"
-            className="border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs px-4 py-2 rounded-xl h-auto flex items-center gap-1 shadow-sm"
-          >
-            <Check className="w-4 h-4" /> Mark all read
-          </Button>
-        )}
+      {/* 1. HEADER SECTION */}
+      <div>
+        <h1 className="text-[26px] font-black tracking-tight text-slate-900">Notifications</h1>
+        <p className="text-sm font-semibold text-slate-400 mt-0.5">
+          Updates from your child&apos;s school and Vidhyaan
+        </p>
       </div>
 
       {/* Floating Success Toast */}
@@ -184,18 +186,26 @@ export default function ParentNotificationsPage() {
         </div>
       )}
 
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-7 items-start">
+
       {/* 2. NOTIFICATIONS LIST */}
-      <div className="space-y-4">
+      <div className="lg:col-span-2 space-y-3">
         {notifications.length > 0 ? (
           notifications.map((n) => {
             const isUnread = !n.readAt
+            const href = notificationHref(n)
             return (
               <div
                 key={n.id}
-                onClick={() => isUnread && handleMarkAsRead(n.id)}
+                onClick={() => {
+                  if (isUnread) handleMarkAsRead(n.id)
+                  if (href) router.push(href)
+                }}
                 className={`border rounded-2xl p-4 flex items-start gap-4 transition duration-200 text-left ${
-                  isUnread 
-                    ? 'bg-blue-50/20 border-blue-100 hover:bg-blue-50/40 cursor-pointer shadow-sm' 
+                  href || isUnread ? 'cursor-pointer' : ''
+                } ${
+                  isUnread
+                    ? 'bg-blue-50/20 border-blue-100 hover:bg-blue-50/40 shadow-sm'
                     : 'bg-white border-slate-100 hover:border-slate-200'
                 }`}
               >
@@ -242,6 +252,36 @@ export default function ParentNotificationsPage() {
         )}
       </div>
 
+      {/* 3. RIGHT RAIL */}
+      <div className="space-y-6">
+        <div className="rounded-3xl bg-slate-900 text-white p-5 shadow-lg">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Unread</p>
+          <p className="text-3xl font-black tracking-tight mt-1">{unreadCount}</p>
+          <p className="text-xs text-slate-400 font-semibold mt-1">
+            {unreadCount > 0 ? 'notifications waiting for you' : 'you’re all caught up 🎉'}
+          </p>
+          {unreadCount > 0 && (
+            <button
+              onClick={handleMarkAllRead}
+              className="mt-4 w-full flex items-center justify-center gap-1.5 bg-white text-slate-900 text-sm font-black rounded-2xl py-3 hover:bg-slate-100 transition cursor-pointer"
+            >
+              <Check className="w-4 h-4" strokeWidth={3} /> Mark all read
+            </button>
+          )}
+        </div>
+
+        <div className="rounded-3xl bg-blue-50 border border-blue-100 p-5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-[#1565D8]">Tip</p>
+          <p className="text-[13px] font-semibold text-slate-600 leading-relaxed mt-2">
+            Choose how you get notified — email, SMS or WhatsApp — under{' '}
+            <a href="/parent/profile#settings" className="text-[#1565D8] font-bold hover:underline">
+              Profile → Preferences
+            </a>.
+          </p>
+        </div>
+      </div>
+
+      </div>
     </div>
   )
 }

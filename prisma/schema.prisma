@@ -707,6 +707,9 @@ model Organization {
   biometricIdentities   BiometricIdentity[]
   schoolClasses         SchoolClass[]
   classSections         ClassSection[]
+  timetableSlots        TimetableSlot[]
+  leaveRequests         LeaveRequest[]
+  examResults           ExamResult[]
 
   @@index([status])
   @@index([institutionType])
@@ -781,6 +784,8 @@ model User {
   twoFactor          UserTwoFactor?
   attendanceMarked   AttendanceRecord[]       @relation("AttendanceMarkedBy")
   teacherAssignments TeacherAssignment[]      @relation("TeacherAssignments")
+  timetableSlots     TimetableSlot[]          @relation("TimetableTeacher")
+  oauthAccounts      UserOAuthAccount[]
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -951,6 +956,24 @@ enum TwoFactorMethod {
   TOTP
   SMS
 
+  @@schema("platform")
+}
+
+/// External identity linked to a platform user (Google SSO for parents).
+/// Separate table (not a column on User) so more providers can slot in later.
+model UserOAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  provider          String // 'google'
+  providerAccountId String   @map("provider_account_id") // Google `sub`
+  email             String? // provider email at link time — display only
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@unique([userId, provider])
+  @@map("user_oauth_accounts")
   @@schema("platform")
 }
 
@@ -2079,6 +2102,8 @@ model Student {
   guardianLinks       StudentGuardianLink[]
   attendanceRecords   AttendanceRecord[]
   biometricIdentities BiometricIdentity[]
+  leaveRequests       LeaveRequest[]
+  examResults         ExamResult[]
 
   @@unique([orgId, studentCode])
   @@index([orgId, createdAt])
@@ -3878,6 +3903,91 @@ model ClassSection {
   @@unique([classId, name])
   @@index([orgId])
   @@map("class_sections")
+  @@schema("crm")
+}
+
+/// Parent-raised leave application for a linked student. Staff review flips
+/// status; APPROVED days are informational (attendance register stays the
+/// source of truth, marked by staff as LEAVE).
+model LeaveRequest {
+  id           String    @id @default(cuid())
+  orgId        String    @map("org_id")
+  studentId    String    @map("student_id")
+  parentId     String    @map("parent_id") // soft ref → marketplace.parents
+  fromDate     DateTime  @map("from_date") @db.Date
+  toDate       DateTime  @map("to_date") @db.Date
+  reason       String
+  status       String    @default("PENDING") // PENDING | APPROVED | REJECTED | CANCELLED
+  reviewNote   String?   @map("review_note")
+  reviewedById String?   @map("reviewed_by_id") // soft ref → platform.users
+  reviewedAt   DateTime? @map("reviewed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, studentId])
+  @@index([orgId, status])
+  @@map("leave_requests")
+  @@schema("crm")
+}
+
+/// A single subject mark in an exam. Grouped by examName for the parent
+/// report card; staff entry UI arrives later (bulk import/API for now).
+model ExamResult {
+  id             String    @id @default(cuid())
+  orgId          String    @map("org_id")
+  studentId      String    @map("student_id")
+  academicYearId String?   @map("academic_year_id")
+  termId         String?   @map("term_id") // soft ref — display only
+  examName       String    @map("exam_name") // "Mid-Term Exam", "Unit Test 1"
+  subject        String
+  maxMarks       Decimal   @default(100) @map("max_marks") @db.Decimal(6, 2)
+  marksObtained  Decimal   @map("marks_obtained") @db.Decimal(6, 2)
+  grade          String? // "A+", "B"...
+  remarks        String?
+  examDate       DateTime? @map("exam_date") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, examName, subject])
+  @@index([orgId, studentId])
+  @@map("exam_results")
+  @@schema("crm")
+}
+
+/// Weekly class timetable (schools). Grade/section stored as strings to
+/// match Student.gradeLabel/section — the class master only drives dropdowns.
+model TimetableSlot {
+  id             String   @id @default(cuid())
+  orgId          String   @map("org_id")
+  branchId       String?  @map("branch_id")
+  academicYearId String?  @map("academic_year_id")
+  gradeLabel     String   @map("grade_label")
+  section        String?
+  // section ?? 'ALL' — non-null stand-in so the unique constraint can dedupe
+  // whole-class slots (Postgres treats NULLs as distinct in uniques).
+  sectionKey     String   @default("ALL") @map("section_key")
+  dayOfWeek      Int      @map("day_of_week") // ISO: 1=Mon .. 7=Sun
+  startTime      String   @map("start_time") // HH:mm (matches StudentBatch)
+  endTime        String   @map("end_time") // HH:mm
+  subject        String
+  teacherId      String?  @map("teacher_id")
+  room           String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  teacher      User?        @relation("TimetableTeacher", fields: [teacherId], references: [id])
+
+  @@unique([orgId, gradeLabel, sectionKey, dayOfWeek, startTime])
+  @@index([orgId, gradeLabel, sectionKey])
+  @@index([orgId, teacherId])
+  @@map("timetable_slots")
   @@schema("crm")
 }
 

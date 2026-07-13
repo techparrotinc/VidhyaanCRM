@@ -1,6 +1,7 @@
 'use client'
 
 import { appAlert } from '@/components/ui/app-alert'
+import ConnectedAccountsCard from '@/components/parent/ConnectedAccountsCard'
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -187,7 +188,6 @@ export default function ParentProfilePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name.trim(),
-          email: formData.email.trim(),
           city: formData.city
         })
       })
@@ -223,7 +223,6 @@ export default function ParentProfilePage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: formData.name.trim(),
-            email: formData.email.trim(),
             city: formData.city,
             phone: newPhone
           })
@@ -264,7 +263,6 @@ export default function ParentProfilePage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: formData.name.trim(),
-            email: formData.email.trim(),
             city: formData.city,
             phone: newPhone,
             code: otpCode.trim()
@@ -507,12 +505,17 @@ export default function ParentProfilePage() {
                   <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
                   <input
                     type="email"
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200/80 rounded-xl py-2.5 pl-10 pr-4 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
-                    placeholder="Enter email address"
+                    value={formData.email || 'Not linked'}
+                    readOnly
+                    disabled
+                    className="w-full bg-slate-100/70 border border-slate-200/80 rounded-xl py-2.5 pl-10 pr-4 text-xs font-semibold text-slate-500 cursor-not-allowed"
                   />
                 </div>
+                <p className="text-[10px] font-medium text-slate-400 mt-1">
+                  {formData.email
+                    ? 'Verified via Google sign-in'
+                    : 'Sign in with Google once to link a verified email'}
+                </p>
               </div>
 
               <div>
@@ -785,6 +788,9 @@ export default function ParentProfilePage() {
                 </button>
               </div>
             </div>
+
+            {/* Connected accounts (Google SSO) */}
+            <ConnectedAccountsCard />
 
             {/* Danger Zone */}
             <div className="mt-8 pt-5 border-t border-red-100">

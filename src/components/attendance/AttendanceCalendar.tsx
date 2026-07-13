@@ -9,6 +9,7 @@ import { STATUS_META, type AttendanceStatusValue } from './StatusBadge'
 export type CalendarRecord = {
   date: string // YYYY-MM-DD
   status: AttendanceStatusValue
+  note?: string | null
   session?: {
     title: string | null
     course: { name: string } | null
@@ -86,22 +87,11 @@ export function AttendanceCalendar({
     : []
 
   return (
-    <div className="space-y-4">
-      {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {statTiles.map(t => (
-            <Card key={t.label}>
-              <CardContent className="p-4">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{t.label}</p>
-                <p className="text-2xl font-bold tracking-tight text-slate-900 mt-1">{t.value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      <Card>
-        <CardContent className="p-6 space-y-4">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+      {/* Calendar (left, 2/3) — stats ride the right rail so the month grid
+          stays above the fold on desktop. */}
+      <Card className="lg:col-span-2 lg:order-1 order-2">
+        <CardContent className="p-5 sm:p-6 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-900">{monthLabel(month)}</p>
             <div className="flex gap-1">
@@ -130,7 +120,7 @@ export function AttendanceCalendar({
                   title={dayRecords
                     .map(r => {
                       const ctx = r.session?.title || r.session?.course?.name || r.session?.batch?.name
-                      return `${STATUS_META[r.status].label}${ctx ? ` — ${ctx}` : ''}`
+                      return `${STATUS_META[r.status].label}${ctx ? ` — ${ctx}` : ''}${r.note ? ` · ${r.note}` : ''}`
                     })
                     .join('\n')}
                   className={`aspect-square rounded-lg border text-sm flex flex-col items-center justify-center gap-0.5 ${
@@ -162,6 +152,27 @@ export function AttendanceCalendar({
           </div>
         </CardContent>
       </Card>
+
+      {/* Stats rail */}
+      {stats && (
+        <div className="lg:order-2 order-1 space-y-3">
+          <div className="rounded-3xl bg-slate-900 text-white p-5 shadow-lg">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Attendance this month</p>
+            <p className="text-4xl font-black tracking-tight mt-1">
+              {stats.percentage != null ? `${stats.percentage}%` : '—'}
+            </p>
+            <p className="text-xs text-slate-400 font-semibold mt-1">{stats.workingDays} working days marked</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {statTiles.slice(1).map(t => (
+              <div key={t.label} className="rounded-3xl bg-white border border-slate-100 shadow-sm p-4">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t.label}</p>
+                <p className="text-2xl font-black tracking-tight text-slate-900 mt-1">{t.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

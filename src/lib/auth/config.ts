@@ -1,11 +1,26 @@
 import type { NextAuthConfig } from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
+import Google from 'next-auth/providers/google'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 import { resolveActiveRoleAssignment, MultiRoleSelectionRequiredError } from '@/lib/auth/resolveRoleAssignment'
 
 const authConfig: NextAuthConfig = {
   providers: [
+    // Google is an identity oracle for PARENTS only — its signIn callback
+    // always returns a redirect string, never a session. Every session is
+    // still minted through the Credentials challenge-token path below, so
+    // the 2FA gate cannot be bypassed via OAuth.
+    ...(process.env.GOOGLE_CLIENT_ID
+      ? [
+          Google({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            authorization: { params: { prompt: 'select_account' } }
+          })
+        ]
+      : []),
     Credentials({
       name: 'Credentials',
       credentials: {
@@ -337,6 +352,63 @@ const authConfig: NextAuthConfig = {
   ],
 
   callbacks: {
+    // Google branch never returns `true`: linked parents get a challenge-token
+    // redirect (redeemed by /login/google via the Credentials provider), new
+    // Google identities get parked in Redis and sent to complete-signup.
+    async signIn({ account, profile }) {
+      if (account?.provider !== 'google') return true
+
+      try {
+        const sub = account.providerAccountId
+        const email = (profile?.email as string | undefined) ?? null
+        const emailVerified = (profile as any)?.email_verified === true
+        if (!sub || !email || !emailVerified) {
+          return '/login?error=google_email_unverified'
+        }
+
+        const { redis } = await import('@/lib/redis')
+
+        const linked = await prisma.userOAuthAccount.findUnique({
+          where: { provider_providerAccountId: { provider: 'google', providerAccountId: sub } },
+          include: { user: { select: { id: true, status: true, deletedAt: true } } }
+        })
+
+        if (linked) {
+          if (linked.user.deletedAt || linked.user.status !== 'ACTIVE') {
+            return '/login?error=google_account_disabled'
+          }
+          // PARENT assignment only — org staff never log in via Google.
+          const assignment = await prisma.userRoleAssignment.findFirst({
+            where: { userId: linked.userId, role: 'PARENT', status: 'ACTIVE' }
+          })
+          if (!assignment) {
+            return '/login?error=google_parent_only'
+          }
+          const challengeToken = crypto.randomBytes(32).toString('hex')
+          await redis.set(
+            `mfa_challenge:${challengeToken}`,
+            JSON.stringify({ userId: linked.userId, assignmentId: assignment.id, requires2fa: false }),
+            'EX',
+            60
+          )
+          return `/login/google?ct=${challengeToken}`
+        }
+
+        // Unlinked Google identity → park it and collect phone + OTP once.
+        const pendingToken = crypto.randomBytes(32).toString('hex')
+        await redis.set(
+          `google_pending:${pendingToken}`,
+          JSON.stringify({ sub, email, name: (profile?.name as string | undefined) ?? '' }),
+          'EX',
+          600
+        )
+        return `/parent/complete-signup?t=${pendingToken}`
+      } catch (e) {
+        console.error('Google signIn callback error:', e)
+        return '/login?error=google_failed'
+      }
+    },
+
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.userId = user.id

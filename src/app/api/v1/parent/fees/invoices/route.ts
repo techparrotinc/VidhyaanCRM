@@ -35,7 +35,8 @@ export async function GET() {
       include: {
         payments: { where: { deletedAt: null } },
         term: { select: { name: true } },
-        course: { select: { name: true } }
+        course: { select: { name: true } },
+        items: { select: { head: true, amount: true, quantity: true }, orderBy: { createdAt: 'asc' } }
       },
       orderBy: [{ status: 'asc' }, { dueDate: 'asc' }]
     })
@@ -68,6 +69,7 @@ export async function GET() {
         balance,
         dueDate: invoice.dueDate,
         status: invoice.status,
+        items: invoice.items.map(i => ({ head: i.head, amount: Number(i.amount), quantity: i.quantity })),
         payable: isPayable(invoice.status) && balance > 0 && !!gateway,
         allowPartial: gateway?.allowPartial ?? false,
         minPartialAmount: gateway?.minPartialAmount ? Number(gateway.minPartialAmount) : null

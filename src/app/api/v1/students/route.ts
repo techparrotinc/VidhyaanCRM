@@ -11,6 +11,7 @@ import { getGradeLabel } from '@/constants/grades'
 import { assertFreeTierLimit } from '@/lib/billing/limits'
 import { findMatches, loadDedupConfig, dedupFields } from '@/lib/dedup'
 import { assertNotDuplicate } from '@/lib/dedup/guard'
+import { checkEmailDeliverable } from '@/lib/email/validate'
 
 export const GET = route({
   module: MODULES.STUDENT_MANAGEMENT,
@@ -115,7 +116,10 @@ const createStudentSchema = z.object({
   rollNumber: z.string().optional(),
   guardianName: z.string().optional(),
   guardianPhone: z.string().optional(),
-  guardianEmail: z.string().optional(),
+  guardianEmail: z.string().email()
+    .optional()
+    .or(z.literal(''))
+    .transform(v => v || undefined),
   academicYearId: z.string().optional(),
   admissionId: z.string().optional(),
   status: z.enum([
@@ -138,6 +142,12 @@ export const POST = route({
   ],
   handler: async ({ req, db, user, academicYearId }) => {
     const body = createStudentSchema.parse(await req.json())
+
+    // Deliverability gate — bad addresses here become bounces later.
+    if (body.guardianEmail) {
+      const emailCheck = await checkEmailDeliverable(body.guardianEmail)
+      if (!emailCheck.ok) throw Errors.businessRule(emailCheck.message)
+    }
 
     await assertFreeTierLimit(user.orgId, 'STUDENT')
 

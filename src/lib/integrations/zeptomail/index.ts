@@ -1,5 +1,6 @@
 import { SendMailClient } from 'zeptomail'
 import { getZeptoConfig } from '@/lib/platform-config'
+import { isEmailSuppressed } from '@/lib/email/suppression'
 
 const FROM_NAME = 'Vidhyaan'
 const CAMPAIGN_NAME = 'Vidhyaan Campaigns'
@@ -26,7 +27,11 @@ export async function sendTransactionalEmail({
   subject: string
   htmlBody: string
   textBody?: string
-}): Promise<{ success: boolean }> {
+}): Promise<{ success: boolean; suppressed?: boolean }> {
+  if (await isEmailSuppressed(to)) {
+    console.warn(`ZeptoMail: skipping suppressed address (transactional): ${to}`)
+    return { success: false, suppressed: true }
+  }
   try {
     const cfg = await getZeptoConfig()
     await clientForToken(cfg.token).sendMail({
@@ -70,7 +75,11 @@ export async function sendCampaignEmail({
   subject: string
   htmlBody: string
   textBody?: string
-}): Promise<{ success: boolean }> {
+}): Promise<{ success: boolean; suppressed?: boolean }> {
+  if (await isEmailSuppressed(to)) {
+    console.warn(`ZeptoMail: skipping suppressed address (campaign): ${to}`)
+    return { success: false, suppressed: true }
+  }
   try {
     const cfg = await getZeptoConfig()
     await clientForToken(cfg.token).sendMail({

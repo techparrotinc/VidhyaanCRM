@@ -16,6 +16,8 @@ import { findMatches, loadDedupConfig, dedupFields } from '@/lib/dedup'
 import { assertNotDuplicate } from '@/lib/dedup/guard'
 import { isPaidPlan } from '@/lib/billing/plan-status'
 import { parseQuery, paginationShape, enumParam, textParam } from '@/lib/api/query'
+import { Errors } from '@/lib/api/errors'
+import { checkEmailDeliverable } from '@/lib/email/validate'
 
 export const GET = route({
   module: MODULES.LEAD_MANAGEMENT,
@@ -221,6 +223,12 @@ export const POST = route({
   ],
   handler: async ({ req, db, user, org, academicYearId }) => {
     const body = createLeadSchema.parse(await req.json())
+
+    // Deliverability gate — bad addresses here become bounces later.
+    if (body.email) {
+      const emailCheck = await checkEmailDeliverable(body.email)
+      if (!emailCheck.ok) throw Errors.businessRule(emailCheck.message)
+    }
 
     const parentName = body.parentName
     // Fall back to the request's resolved academic year (switcher/active year)

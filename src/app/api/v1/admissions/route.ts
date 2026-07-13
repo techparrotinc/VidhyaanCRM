@@ -14,6 +14,7 @@ import { createAdmissionWithUniqueCode } from '@/lib/admission-code'
 import { createNotification } from '@/lib/services/notifications'
 import { findMatches, loadDedupConfig, dedupFields } from '@/lib/dedup'
 import { assertNotDuplicate } from '@/lib/dedup/guard'
+import { checkEmailDeliverable } from '@/lib/email/validate'
 
 export const GET = route({
   module: MODULES.ADMISSION_MANAGEMENT,
@@ -176,7 +177,7 @@ const createAdmissionSchema = z.object({
     .transform(v =>
       v === '' ? null : v
     ),
-  email: z.string()
+  email: z.string().email()
     .optional().nullable()
     .or(z.literal(''))
     .transform(v =>
@@ -247,6 +248,12 @@ export const POST = route({
   ],
   handler: async ({ req, db, user, org, academicYearId }) => {
     const body = createAdmissionSchema.parse(await req.json())
+
+    // Deliverability gate — bad addresses here become bounces later.
+    if (body.email) {
+      const emailCheck = await checkEmailDeliverable(body.email)
+      if (!emailCheck.ok) throw Errors.businessRule(emailCheck.message)
+    }
 
     // Get first stage if not provided
     let stageId = body.stageId

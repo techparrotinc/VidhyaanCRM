@@ -9,6 +9,7 @@ import { welcomeSchoolTemplate } from '@/lib/mail/templates'
 import { findOrCreateUserByPhone } from '@/lib/auth/findOrCreateUserByPhone'
 import { createDefaultAdmissionStages } from '@/lib/utils/createDefaultAdmissionStages'
 import { z } from 'zod'
+import { checkEmailDeliverable } from '@/lib/email/validate'
 
 const registerSchema = z.object({
   name: z.string().trim().min(1).max(150),
@@ -40,6 +41,16 @@ export async function POST(req: NextRequest) {
       )
     }
     const { name, phone, email, role, schoolId, schoolName, institutionType } = parsed.data
+
+    // Deliverability gate — OTP + welcome mail go to this address; a typo
+    // here locks the user out AND bounces on our sending domain.
+    const emailCheck = await checkEmailDeliverable(email)
+    if (!emailCheck.ok) {
+      return NextResponse.json(
+        { success: false, error: emailCheck.message, suggestion: emailCheck.suggestion ?? null },
+        { status: 422 }
+      )
+    }
 
 
 

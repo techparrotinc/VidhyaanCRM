@@ -3880,3 +3880,22 @@ model ClassSection {
   @@map("class_sections")
   @@schema("crm")
 }
+
+// ============================================================
+// EMAIL SUPPRESSION (platform-wide)
+// Hard-bounced addresses from the ZeptoMail webhook. Senders in
+// src/lib/integrations/zeptomail skip these to protect domain
+// reputation. Address is bad regardless of org → platform schema.
+// ============================================================
+
+model EmailSuppression {
+  id        String   @id @default(cuid())
+  email     String   @unique // stored lowercased
+  reason    String // hardbounce | complaint | manual
+  source    String? // zeptomail-webhook | admin
+  detail    String? // provider bounce reason text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("email_suppressions")
+  @@schema("platform")
+}

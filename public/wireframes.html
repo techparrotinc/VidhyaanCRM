@@ -1,0 +1,878 @@
+<title>Vidhyaan Mobile — P1 Wireframes</title>
+<style>
+:root{
+  --paper:#F8FAFC; --panel:#FFFFFF; --ink:#0F172A; --ink2:#475569; --ink3:#94A3B8;
+  --line:#CBD5E1; --line2:#E2E8F0; --fill:#E8F0FC; --fill2:#F1F5F9;
+  --hot:#1565D8; --hot-bg:rgba(21,101,216,.09);
+  --good:#16A34A; --good-bg:#EAF7EE; --bad:#DC2626; --bad-bg:#FDECEC; --warn:#B45309; --warn-bg:#FDF3E3;
+}
+@media (prefers-color-scheme: dark){:root{
+  --paper:#0F1520; --panel:#1A2230; --ink:#E8EEF7; --ink2:#A9B7CA; --ink3:#68788F;
+  --line:#3D4B60; --line2:#2A3547; --fill:#213047; --fill2:#212B3B;
+  --hot:#5B9BF0; --hot-bg:rgba(91,155,240,.14);
+  --good:#4ADE80; --good-bg:rgba(74,222,128,.13); --bad:#F87171; --bad-bg:rgba(248,113,113,.13); --warn:#FBBF24; --warn-bg:rgba(251,191,36,.13);
+}}
+:root[data-theme="dark"]{
+  --paper:#0F1520; --panel:#1A2230; --ink:#E8EEF7; --ink2:#A9B7CA; --ink3:#68788F;
+  --line:#3D4B60; --line2:#2A3547; --fill:#213047; --fill2:#212B3B;
+  --hot:#5B9BF0; --hot-bg:rgba(91,155,240,.14);
+  --good:#4ADE80; --good-bg:rgba(74,222,128,.13); --bad:#F87171; --bad-bg:rgba(248,113,113,.13); --warn:#FBBF24; --warn-bg:rgba(251,191,36,.13);
+}
+:root[data-theme="light"]{
+  --paper:#F8FAFC; --panel:#FFFFFF; --ink:#0F172A; --ink2:#475569; --ink3:#94A3B8;
+  --line:#CBD5E1; --line2:#E2E8F0; --fill:#E8F0FC; --fill2:#F1F5F9;
+  --hot:#1565D8; --hot-bg:rgba(21,101,216,.09);
+  --good:#16A34A; --good-bg:#EAF7EE; --bad:#DC2626; --bad-bg:#FDECEC; --warn:#B45309; --warn-bg:#FDF3E3;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+/* ===== chrome layout ===== */
+.wrap{display:grid;grid-template-columns:250px minmax(0,1fr) 300px;gap:0;min-height:100vh}
+.rail,.notes{padding:20px 18px;overflow-y:auto;max-height:100vh;position:sticky;top:0}
+.rail{border-right:1px solid var(--line2)}
+.notes{border-left:1px solid var(--line2)}
+.stage{display:flex;flex-direction:column;align-items:center;padding:26px 16px 40px;gap:14px}
+h1{font-size:15px;font-weight:700;margin:0 0 2px}
+.sub{font-size:12px;color:var(--ink2);margin:0 0 18px}
+.jname{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink3);margin:16px 0 6px}
+.slink{display:block;width:100%;text-align:left;background:none;border:0;color:var(--ink2);
+  padding:5px 8px;border-radius:6px;cursor:pointer;font:12px/1.3 ui-monospace,Menlo,monospace}
+.slink:hover{background:var(--fill2);color:var(--ink)}
+.slink.on{background:var(--hot-bg);color:var(--hot);font-weight:600}
+.notes h2{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink3);margin:0 0 10px}
+.notes .nid{font-size:12px;color:var(--hot);margin:0 0 4px;font-weight:600}
+.notes ul{margin:8px 0 0;padding-left:16px;color:var(--ink2);font-size:12.5px}
+.notes li{margin-bottom:7px}
+.legend{margin-top:26px;padding-top:14px;border-top:1px solid var(--line2);font-size:11.5px;color:var(--ink3)}
+.legend b{color:var(--hot);font-weight:600}
+
+/* ===== phone frame ===== */
+.phone{width:392px;max-width:100%;background:var(--panel);border:2px solid var(--line);
+  border-radius:34px;overflow:hidden;box-shadow:0 18px 44px rgba(20,30,48,.12)}
+.statusbar{display:flex;justify-content:space-between;padding:9px 22px 5px;
+  font-size:11px;color:var(--ink3)}
+.screen{height:730px;overflow-y:auto;display:flex;flex-direction:column}
+.crumbs{display:flex;gap:8px;align-items:center;padding:6px 4px 0;width:392px;max-width:100%}
+.crumbs button{border:1px solid var(--line2);background:var(--panel);color:var(--ink2);
+  border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer}
+.crumbs button:hover{border-color:var(--hot);color:var(--hot)}
+.crumbs .path{font-size:11px;color:var(--ink3);margin-left:auto}
+
+/* ===== wireframe primitives ===== */
+.hdr{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line2)}
+.hdr .t{font-size:17px;font-weight:700;flex:1}
+.back{width:30px;height:30px;border:1px solid var(--line);border-radius:8px;background:none;
+  color:var(--ink2);cursor:pointer;font-size:15px;line-height:1;flex:none}
+.bell{position:relative;width:34px;height:34px;border:1px solid var(--line);border-radius:50%;
+  background:none;color:var(--ink2);cursor:pointer;font-size:15px;flex:none}
+.bell .dot{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:9px;
+  background:var(--bad);color:#fff;font-size:10px;font-weight:700;line-height:17px;padding:0 4px}
+.bar{height:10px;border:1px solid var(--line2);border-radius:5px;background:
+  linear-gradient(to right,var(--hot) var(--w,60%),var(--fill2) var(--w,60%))}
+.body{padding:14px 16px;display:flex;flex-direction:column;gap:12px;flex:1}
+.card{border:1px solid var(--line);border-radius:12px;padding:13px 14px;background:var(--panel)}
+.row{display:flex;align-items:center;gap:11px}
+.grow{flex:1;min-width:0}
+.ava{width:40px;height:40px;border:1px solid var(--line2);border-radius:50%;flex:none;background:var(--fill)}
+.img{border:1px solid var(--line);border-radius:10px;background:
+  linear-gradient(to top right,transparent calc(50% - .5px),var(--line2) calc(50% - .5px),var(--line2) calc(50% + .5px),transparent calc(50% + .5px)),
+  linear-gradient(to bottom right,transparent calc(50% - .5px),var(--line2) calc(50% - .5px),var(--line2) calc(50% + .5px),transparent calc(50% + .5px)),var(--fill2)}
+.h2{font-size:15px;font-weight:700;margin:0}
+.h3{font-size:13.5px;font-weight:600;margin:0}
+.cap{font-size:12px;color:var(--ink2)}
+.tiny{font-size:11px;color:var(--ink3)}
+.lbl{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3)}
+.num{font-size:24px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:999px;
+  padding:2px 10px;font-size:11px;font-weight:600;color:var(--ink2)}
+.chip.g{color:var(--good);border-color:transparent;background:var(--good-bg)}
+.chip.r{color:var(--bad);border-color:transparent;background:var(--bad-bg)}
+.chip.y{color:var(--warn);border-color:transparent;background:var(--warn-bg)}
+.chip.sel{background:var(--hot);color:#fff;border-color:var(--hot)}
+.field{border:1px solid var(--line);border-radius:10px;padding:11px 13px;color:var(--ink3);
+  font-size:14px;background:var(--panel)}
+.field b{color:var(--ink);font-weight:500}
+.btn{display:block;width:100%;text-align:center;border:1.5px solid var(--hot);border-radius:11px;
+  padding:12px;font-size:14px;font-weight:700;color:var(--hot);background:var(--panel);cursor:pointer}
+.btn.pri{background:var(--hot);color:#fff}
+.btn.sm{padding:8px;font-size:13px;border-radius:9px;width:auto;flex:1}
+.hr{border:0;border-top:1px solid var(--line2);margin:2px 0}
+.otp{display:flex;gap:8px;justify-content:center}
+.otp span{width:42px;height:50px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.tabbar{display:flex;border-top:1px solid var(--line2);margin-top:auto;background:var(--panel)}
+.tab{flex:1;padding:9px 2px 11px;text-align:center;font-size:10.5px;color:var(--ink3);cursor:pointer;border:0;background:none}
+.tab .ic{display:block;width:22px;height:22px;border:1.5px solid currentColor;border-radius:6px;margin:0 auto 3px;opacity:.8}
+.tab.on{color:var(--hot);font-weight:700}
+.fab{position:sticky;bottom:14px;align-self:flex-end;width:52px;height:52px;border-radius:50%;
+  border:0;background:var(--hot);color:#fff;font-size:24px;cursor:pointer;box-shadow:0 6px 16px rgba(21,101,216,.35)}
+.grid7{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;text-align:center}
+.day{border:1px solid var(--line2);border-radius:7px;padding:6px 0;font-size:11.5px;font-variant-numeric:tabular-nums}
+.day.p{background:var(--good-bg);border-color:transparent;color:var(--good)}
+.day.a{border-color:var(--bad);color:var(--bad);font-weight:700}
+.day.h{color:var(--ink3);border-style:dashed}
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.stu{border:1px solid var(--line);border-radius:9px;padding:8px 3px;text-align:center;font-size:10.5px;cursor:pointer}
+.stu.ab{border-color:var(--bad);color:var(--bad);font-weight:700;background:var(--bad-bg)}
+.stu:not(.ab){background:var(--fill2)}
+.kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.split{display:flex;justify-content:space-between;align-items:baseline;font-size:13px}
+.split .v{font-weight:600;font-variant-numeric:tabular-nums}
+.check{width:64px;height:64px;border:2px solid var(--good);border-radius:50%;margin:14px auto 4px;
+  display:flex;align-items:center;justify-content:center;color:var(--good);font-size:30px}
+.sheet{margin-top:auto;border-top:2px solid var(--line);border-radius:18px 18px 0 0;
+  padding:16px;background:var(--panel);display:flex;flex-direction:column;gap:10px}
+.center{text-align:center}
+.logo{width:72px;height:72px;display:block;margin:0 auto}
+.logo-sm{width:26px;height:26px;vertical-align:-6px;margin-right:8px}
+.wordmark{font-size:21px;font-weight:800;letter-spacing:-.02em;color:var(--hot)}
+
+/* hotspot */
+[data-nav]{cursor:pointer;position:relative}
+[data-nav]:hover{outline:2px dashed var(--hot);outline-offset:2px}
+.hint [data-nav]{outline:2px dashed var(--hot);outline-offset:2px}
+.hotbar{display:flex;gap:8px;align-items:center}
+.hotbar label{font-size:11.5px;color:var(--ink3);display:flex;gap:5px;align-items:center;cursor:pointer}
+
+@media (max-width:1100px){
+  .wrap{grid-template-columns:1fr}
+  .rail,.notes{position:static;max-height:none;border:0;border-bottom:1px solid var(--line2)}
+  .rail{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+  .jname{margin:0}
+  .slink{width:auto}
+  .notes{order:3}
+  .phone{border-radius:22px}
+}
+:focus-visible{outline:2px solid var(--hot);outline-offset:2px}
+</style>
+
+<div class="wrap">
+  <nav class="rail" id="rail" aria-label="Screens"></nav>
+
+  <main class="stage">
+    <div class="crumbs">
+      <button id="backBtn" aria-label="Go back">← Back</button>
+      <span class="hotbar"><label><input type="checkbox" id="hintTgl"> show tap targets</label></span>
+      <span class="path mono" id="pathLbl"></span>
+    </div>
+    <div class="phone" id="phoneWrap">
+      <div class="statusbar"><span>9:41</span><span>▮▮▮ ⌁ 100%</span></div>
+      <div class="screen" id="screen"></div>
+    </div>
+    <p class="tiny center" style="max-width:392px">Branded wireframes · v3 · tap any dashed-blue element to walk the flow. Layout + navigation only — visual design comes in hi-fi phase.</p>
+  </main>
+
+  <aside class="notes" id="notes"></aside>
+</div>
+
+<script>
+/* ---------- tiny html helpers ---------- */
+const hdr=(t,back,bell)=>`<div class="hdr">${back?`<button class="back" data-nav="${back}">‹</button>`:''}<div class="t">${t}</div>${bell?`<button class="bell" data-nav="${bell}" aria-label="Notifications">🔔<span class="dot">3</span></button>`:''}</div>`;
+const tabs=(j,on)=>{
+  const def={parent:[['p-home','Home'],['p-fees','Fees'],['p-attend','Attendance'],['p-events','Events'],['p-profile','More']],
+             staff:[['s-home','Home'],['s-leads','Leads'],['s-classes','Attendance'],['s-defaulters','Fees'],['s-students','Students']],
+             admin:[['a-pulse','Pulse'],['a-approvals','Approvals']]};
+  return `<div class="tabbar">`+def[j].map(([id,l])=>
+    `<button class="tab ${id===on?'on':''}" data-nav="${id}"><span class="ic"></span>${l}</button>`).join('')+`</div>`;
+};
+const listRow=(nav,title,sub,right)=>`<div class="card row" ${nav?`data-nav="${nav}"`:''}>
+  <div class="ava"></div><div class="grow"><p class="h3">${title}</p><p class="cap">${sub}</p></div>${right||''}</div>`;
+const kpi=(lbl,val,nav)=>`<div class="card" ${nav?`data-nav="${nav}"`:''}><p class="lbl">${lbl}</p><p class="num">${val}</p></div>`;
+
+/* ---------- screen registry ---------- */
+const S={};
+const N={}; // notes
+
+/* ===== shared: auth ===== */
+S['login']=()=>`${''}
+<div class="body" style="justify-content:center;gap:16px">
+  <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTMgNDgxIiB3aWR0aD0iNTEzIiBoZWlnaHQ9IjQ4MSIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJWaWRoeWFhbiI+PHBhdGggZmlsbD0iIzAwN0FGRiIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMjM3LjUgMS4wTDI3My4wIDAuNUwyNzQuMCAxLjVMMjg0LjAgMS41TDI4NS4wIDIuNUwyOTIuMCAyLjVMMjkzLjAgMy41TDMwNC4wIDQuNUwzMDUuMCA1LjVMMzA5LjAgNS41TDMxMC4wIDYuNUwzMTMuMCA2LjVMMzE0LjAgNy41TDMxNy4wIDcuNUwzMTguMCA4LjVMMzI1LjAgOS41TDMyNi4wIDEwLjVMMzI4LjAgMTAuNUwzMzIuMCAxMi41TDMzOC4wIDEzLjVMMzQxLjAgMTUuNUwzNDYuMCAxNi41TDM0OS4wIDE4LjVMMzUxLjAgMTguNUwzNTQuMCAyMC41TDM1Ni4wIDIwLjVMMzYxLjAgMjMuNUwzNjMuMCAyMy41TDM3Ny4wIDMwLjVMMzc5LjAgMzIuNUwzODQuMCAzNC41TDM4Ni4wIDM2LjVMMzg5LjAgMzcuNUwzOTEuMCAzOS41TDM5NC4wIDQwLjVMMzk2LjAgNDIuNUw0MDAuMCA0NC41TDQwMy4wIDQ3LjVMNDA0LjAgNDcuNUw0MTAuMCA1Mi41TDQxMS4wIDUyLjVMNDIwLjAgNjAuNUw0MjEuMCA2MC41TDQyOC4wIDY3LjVMNDI5LjAgNjcuNUw0NDMuNSA4Mi4wTDQ0My41IDgzLjBMNDUwLjUgOTAuMEw0NTAuNSA5MS4wTDQ1NS41IDk2LjBMNDU1LjUgOTcuMEw0NjQuNSAxMDguMEw0NjQuNSAxMDkuMEw0NzIuNSAxMjAuMEw0NzYuNSAxMjguMEw0NzguNSAxMzAuMEw0OTAuNSAxNTQuMEw0OTAuNSAxNTYuMEw0OTIuNSAxNTkuMEw0OTIuNSAxNjEuMEw0OTQuNSAxNjQuMEw0OTQuNSAxNjYuMEw0OTYuNSAxNjkuMEw0OTYuNSAxNzEuMEw0OTcuNSAxNzIuMEw0OTcuNSAxNzQuMEw0OTguNSAxNzUuMEw0OTguNSAxNzcuMEw1MDAuNSAxODEuMEw1MDAuNSAxODQuMEw1MDIuNSAxODguMEw1MDIuNSAxOTEuMEw1MDMuNSAxOTIuMEw1MDMuNSAxOTUuMEw1MDQuNSAxOTYuMEw1MDQuNSAxOTkuMEw1MDUuNSAyMDAuMEw1MDUuNSAyMDMuMEw1MDYuNSAyMDQuMEw1MDcuNSAyMTQuMEw1MDguNSAyMTUuMEw1MDguNSAyMjEuMEw1MDkuNSAyMjIuMEw1MDkuNSAyMjkuMEw1MTAuNSAyMzAuMEw1MTAuNSAyNDIuMEw1MTEuNSAyNDMuMEw1MTEuNSAyNjkuMEw1MTAuNSAyNzAuMEw1MTAuNSAyODIuMEw1MDkuNSAyODMuMEw1MDkuNSAyOTAuMEw1MDguNSAyOTEuMEw1MDguNSAyOTcuMEw1MDcuNSAyOTguMEw1MDYuNSAzMDguMEw1MDUuNSAzMDkuMEw1MDQuNSAzMTcuMEw1MDMuNSAzMTguMEw1MDMuNSAzMjEuMEw1MDEuNSAzMjUuMEw1MDEuNSAzMjguMEw1MDAuNSAzMjkuMEw1MDAuNSAzMzEuMEw0OTkuNSAzMzIuMEw0OTkuNSAzMzQuMEw0OTguNSAzMzUuMEw0OTguNSAzMzcuMEw0OTcuNSAzMzguMEw0OTUuNSAzNDYuMEw0OTMuNSAzNDkuMEw0OTMuNSAzNTEuMEw0OTEuNSAzNTQuMEw0OTEuNSAzNTYuMEw0ODguNSAzNjEuMEw0ODguNSAzNjMuMEw0ODEuNSAzNzcuMEw0NzkuNSAzNzkuMEw0NzcuNSAzODQuMEw0NzUuNSAzODYuMEw0NzQuNSAzODkuMEw0NzIuNSAzOTEuMEw0NzEuNSAzOTQuMEw0NjkuNSAzOTYuMEw0NjcuNSA0MDAuMEw0NjQuNSA0MDMuMEw0NjQuNSA0MDQuMEw0NTYuNSA0MTQuMEw0NTYuNSA0MTUuMEw0NTEuNSA0MjAuMEw0NTEuNSA0MjEuMEw0NDQuNSA0MjguMEw0NDQuNSA0MjkuMEw0MjAuMCA0NTIuNUw0MTkuMCA0NTIuNUw0MDYuMCA0NjMuNUw0MDUuMCA0NjMuNUwzOTEuMCA0NzMuNUwzODguMCA0NzQuNUwzODYuMCA0NzYuNUwzODIuMCA0NzguNUwzODAuNSA0NzUuMEwzNzguNSA0NzMuMEwzNzYuNSA0NjguMEwzNzQuNSA0NjYuMEwzNzIuNSA0NjEuMEwzNzAuNSA0NTkuMEwzNjguNSA0NTQuMEwzNjYuNSA0NTIuMEwzNjUuNSA0NDkuMEwzNjkuMCA0NDYuNUwzNzIuMCA0NDUuNUwzNzQuMCA0NDMuNUwzNzcuMCA0NDIuNUwzNzkuMCA0NDAuNUwzODAuMCA0NDAuNUwzODMuMCA0MzcuNUwzODcuMCA0MzUuNUwzOTUuMCA0MjguNUwzOTYuMCA0MjguNUw0MDIuMCA0MjIuNUw0MDMuMCA0MjIuNUw0MjIuNSA0MDMuMEw0MjIuNSA0MDIuMEw0MjcuNSAzOTcuMEw0MjcuNSAzOTYuMEw0MzEuNSAzOTIuMEw0MzEuNSAzOTEuMEw0MzcuNSAzODQuMEw0MzcuNSAzODMuMEw0NDMuNSAzNzUuMEw0NDQuNSAzNzIuMEw0NDYuNSAzNzAuMEw0NDcuNSAzNjcuMEw0NDkuNSAzNjUuMEw0NTkuNSAzNDUuMEw0NTkuNSAzNDMuMEw0NjMuNSAzMzUuMEw0NjMuNSAzMzMuMEw0NjYuNSAzMjcuMEw0NjYuNSAzMjQuMEw0NjcuNSAzMjMuMEw0NjcuNSAzMjEuMEw0NjkuNSAzMTcuMEw0NjkuNSAzMTQuMEw0NzAuNSAzMTMuMEw0NzAuNSAzMTAuMEw0NzEuNSAzMDkuMEw0NzEuNSAzMDYuMEw0NzIuNSAzMDUuMEw0NzIuNSAzMDIuMEw0NzMuNSAzMDEuMEw0NzQuNSAyOTEuMEw0NzUuNSAyOTAuMEw0NzUuNSAyODQuMEw0NzYuNSAyODMuMEw0NzYuNSAyNzQuMEw0NzcuNSAyNzMuMEw0NzcuNSAyNDAuMEw0NzYuNSAyMzkuMEw0NzYuNSAyMzAuMEw0NzUuNSAyMjkuMEw0NzQuNSAyMTcuMEw0NzMuNSAyMTYuMEw0NzMuNSAyMTIuMEw0NzIuNSAyMTEuMEw0NzIuNSAyMDcuMEw0NzEuNSAyMDYuMEw0NzEuNSAyMDMuMEw0NzAuNSAyMDIuMEw0NjkuNSAxOTUuMEw0NjguNSAxOTQuMEw0NjguNSAxOTIuMEw0NjcuNSAxOTEuMEw0NjcuNSAxODkuMEw0NjYuNSAxODguMEw0NjYuNSAxODYuMEw0NjUuNSAxODUuMEw0NjMuNSAxNzcuMEw0NjEuNSAxNzQuMEw0NjEuNSAxNzIuMEw0NDYuNSAxNDIuMEw0NDQuNSAxNDAuMEw0NDQuNSAxMzkuMEw0NDIuNSAxMzcuMEw0NDIuNSAxMzYuMEw0NDAuNSAxMzQuMEw0MzYuNSAxMjcuMEw0MzAuNSAxMjAuMEw0MzAuNSAxMTkuMEw0MjEuNSAxMDkuMEw0MjEuNSAxMDguMEw0MDQuMCA5MC41TDQwMy4wIDkwLjVMMzkyLjAgODAuNUwzOTEuMCA4MC41TDM4NC4wIDc0LjVMMzgzLjAgNzQuNUwzNzUuMCA2OC41TDM3Mi4wIDY3LjVMMzcwLjAgNjUuNUwzNjcuMCA2NC41TDM2NS4wIDYyLjVMMzQ1LjAgNTIuNUwzNDMuMCA1Mi41TDMzOC4wIDQ5LjVMMzM2LjAgNDkuNUwzMzAuMCA0Ni41TDMyOC4wIDQ2LjVMMzI3LjAgNDUuNUwzMjUuMCA0NS41TDMyMS4wIDQzLjVMMzE4LjAgNDMuNUwzMTQuMCA0MS41TDMxMS4wIDQxLjVMMzEwLjAgNDAuNUwzMDcuMCA0MC41TDMwNi4wIDM5LjVMMzAyLjAgMzkuNUwzMDEuMCAzOC41TDI5OC4wIDM4LjVMMjk3LjAgMzcuNUwyOTIuMCAzNy41TDI5MS4wIDM2LjVMMjg1LjAgMzYuNUwyODQuMCAzNS41TDI3Ni4wIDM1LjVMMjc1LjAgMzQuNUwyMzYuMCAzNC41TDIzNS4wIDM1LjVMMjI3LjAgMzUuNUwyMjYuMCAzNi41TDIyMC4wIDM2LjVMMjE5LjAgMzcuNUwyMTQuMCAzNy41TDIxMy4wIDM4LjVMMjEwLjAgMzguNUwyMDkuMCAzOS41TDIwNS4wIDM5LjVMMjA0LjAgNDAuNUwxOTcuMCA0MS41TDE5My4wIDQzLjVMMTkwLjAgNDMuNUwxODkuMCA0NC41TDE4Ny4wIDQ0LjVMMTg2LjAgNDUuNUwxNzguMCA0Ny41TDE3MC4wIDUxLjVMMTY4LjAgNTEuNUwxNDYuMCA2Mi41TDE0NC4wIDY0LjVMMTM2LjAgNjguNUwxMzQuMCA3MC41TDEyNy4wIDc0LjVMMTI0LjAgNzcuNUwxMjMuMCA3Ny41TDEyMC4wIDgwLjVMMTE5LjAgODAuNUwxMTUuMCA4NC41TDExNC4wIDg0LjVMMTA5LjAgODkuNUwxMDguMCA4OS41TDg4LjUgMTA5LjBMODguNSAxMTAuMEw4My41IDExNS4wTDgzLjUgMTE2LjBMNzkuNSAxMjAuMEw3OS41IDEyMS4wTDczLjUgMTI4LjBMNzMuNSAxMjkuMEw2Ny41IDEzNy4wTDY2LjUgMTQwLjBMNjQuNSAxNDIuMEw2My41IDE0NS4wTDYxLjUgMTQ3LjBMNTEuNSAxNjcuMEw1MS41IDE2OS4wTDQ3LjUgMTc3LjBMNDcuNSAxNzkuMEw0Ni41IDE4MC4wTDQ2LjUgMTgyLjBMNDUuNSAxODMuMEw0NS41IDE4NS4wTDQ0LjUgMTg2LjBMNDQuNSAxODguMEw0My41IDE4OS4wTDQzLjUgMTkxLjBMNDEuNSAxOTUuMEw0MS41IDE5OC4wTDM5LjUgMjAyLjBMMzkuNSAyMDYuMEwzOC41IDIwNy4wTDM3LjUgMjE1LjBMMzYuNSAyMTYuMEwzNi41IDIyMS4wTDM1LjUgMjIyLjBMMzUuNSAyMjguMEwzNC41IDIyOS4wTDM0LjUgMjM3LjBMMzMuNSAyMzguMEwzMy41IDI3NC4wTDM0LjUgMjc1LjBMMzQuNSAyODMuMEwzNS41IDI4NC4wTDM2LjUgMjk2LjBMMzcuNSAyOTcuMEwzNy41IDMwMS4wTDM4LjUgMzAyLjBMMzguNSAzMDYuMEwzOS41IDMwNy4wTDQwLjUgMzE0LjBMNDIuNSAzMTguMEw0Mi41IDMyMS4wTDQzLjUgMzIyLjBMNDMuNSAzMjQuMEw0NC41IDMyNS4wTDQ2LjUgMzMzLjBMNDguNSAzMzYuMEw0OC41IDMzOC4wTDUwLjUgMzQxLjBMNTAuNSAzNDMuMEw1NC41IDM1MC4wTDU0LjUgMzUyLjBMNTcuNSAzNTguMEw1OS41IDM2MC4wTDYyLjUgMzY3LjBMNjQuNSAzNjkuMEw2NS41IDM3Mi4wTDY3LjUgMzc0LjBMNjcuNSAzNzUuMEw2OS41IDM3Ny4wTDY5LjUgMzc4LjBMNzEuNSAzODAuMEw3NS41IDM4Ny4wTDc4LjUgMzkwLjBMNzguNSAzOTEuMEw4Ny41IDQwMS4wTDg3LjUgNDAyLjBMMTA5LjAgNDIzLjVMMTEwLjAgNDIzLjVMMTE1LjAgNDI4LjVMMTE2LjAgNDI4LjVMMTIwLjAgNDMyLjVMMTIxLjAgNDMyLjVMMTI0LjAgNDM1LjVMMTI4LjAgNDM3LjVMMTMxLjAgNDQwLjVMMTMyLjAgNDQwLjVMMTM0LjAgNDQyLjVMMTM3LjAgNDQzLjVMMTQyLjAgNDQ3LjVMMTQ3LjAgNDQ5LjVMMTQ4LjUgNDUxLjBMMTQxLjUgNDY1LjBMMTM5LjUgNDY3LjBMMTM1LjUgNDc2LjBMMTMyLjAgNDgwLjVMMTI4LjAgNDc3LjVMMTIzLjAgNDc1LjVMMTIxLjAgNDczLjVMMTIwLjAgNDczLjVMMTE4LjAgNDcxLjVMMTE3LjAgNDcxLjVMMTE1LjAgNDY5LjVMMTE0LjAgNDY5LjVMMTEyLjAgNDY3LjVMMTA1LjAgNDYzLjVMOTIuMCA0NTIuNUw5MS4wIDQ1Mi41TDg1LjAgNDQ2LjVMODQuMCA0NDYuNUw2NS41IDQyOC4wTDY1LjUgNDI3LjBMNTguNSA0MjAuMEw1OC41IDQxOS4wTDQ3LjUgNDA2LjBMNDcuNSA0MDUuMEwzNy41IDM5MS4wTDM2LjUgMzg4LjBMMzQuNSAzODYuMEwzMS41IDM3OS4wTDI5LjUgMzc3LjBMMjIuNSAzNjMuMEwyMi41IDM2MS4wTDE5LjUgMzU2LjBMMTkuNSAzNTQuMEwxNy41IDM1MS4wTDE3LjUgMzQ5LjBMMTUuNSAzNDYuMEwxNC41IDM0MS4wTDExLjUgMzM1LjBMMTEuNSAzMzIuMEwxMC41IDMzMS4wTDEwLjUgMzI5LjBMOC41IDMyNS4wTDguNSAzMjIuMEw3LjUgMzIxLjBMNy41IDMxOC4wTDYuNSAzMTcuMEw2LjUgMzE0LjBMNS41IDMxMy4wTDUuNSAzMDkuMEw0LjUgMzA4LjBMNC41IDMwNC4wTDMuNSAzMDMuMEwzLjUgMjk5LjBMMi41IDI5OC4wTDIuNSAyOTIuMEwxLjUgMjkxLjBMMS41IDI4NC4wTDAuNSAyODMuMEwwLjUgMjcyLjBMLTAuNSAyNzEuMEwtMC41IDI0Mi4wTDAuNSAyNDEuMEwwLjUgMjI5LjBMMS41IDIyOC4wTDEuNSAyMjEuMEwyLjUgMjIwLjBMMy41IDIwOS4wTDQuNSAyMDguMEw0LjUgMjA0LjBMNS41IDIwMy4wTDUuNSAxOTkuMEw2LjUgMTk4LjBMNy41IDE5MS4wTDkuNSAxODcuMEw5LjUgMTg0LjBMMTAuNSAxODMuMEwxMC41IDE4MS4wTDExLjUgMTgwLjBMMTEuNSAxNzguMEwxMi41IDE3Ny4wTDEyLjUgMTc1LjBMMTMuNSAxNzQuMEwxNS41IDE2Ni4wTDE3LjUgMTYzLjBMMTcuNSAxNjEuMEwxOS41IDE1OC4wTDE5LjUgMTU2LjBMMjMuNSAxNDkuMEwyMy41IDE0Ny4wTDI5LjUgMTM1LjBMMzEuNSAxMzMuMEwzMy41IDEyOC4wTDM1LjUgMTI2LjBMMzYuNSAxMjMuMEwzOC41IDEyMS4wTDM5LjUgMTE4LjBMNDEuNSAxMTYuMEw0My41IDExMi4wTDQ2LjUgMTA5LjBMNDYuNSAxMDguMEw1NC41IDk4LjBMNTQuNSA5Ny4wTDU5LjUgOTIuMEw1OS41IDkxLjBMODIuMCA2Ny41TDgzLjAgNjcuNUw5MC4wIDYwLjVMOTEuMCA2MC41TDk2LjAgNTUuNUw5Ny4wIDU1LjVMMTA0LjAgNDkuNUwxMDUuMCA0OS41TDExMS4wIDQ0LjVMMTEyLjAgNDQuNUwxMTcuMCA0MC41TDEyMC4wIDM5LjVMMTI1LjAgMzUuNUwxMzAuMCAzMy41TDEzMi4wIDMxLjVMMTUwLjAgMjIuNUwxNTIuMCAyMi41TDE1Ny4wIDE5LjVMMTU5LjAgMTkuNUwxNjIuMCAxNy41TDE2Ny4wIDE2LjVMMTcwLjAgMTQuNUwxNzIuMCAxNC41TDE3My4wIDEzLjVMMTc1LjAgMTMuNUwxNzkuMCAxMS41TDE4Mi4wIDExLjVMMTg2LjAgOS41TDE4OS4wIDkuNUwxOTAuMCA4LjVMMTkzLjAgOC41TDE5NC4wIDcuNUwxOTcuMCA3LjVMMTk4LjAgNi41TDIwMS4wIDYuNUwyMDIuMCA1LjVMMjA2LjAgNS41TDIwNy4wIDQuNUwyMTIuMCA0LjVMMjEzLjAgMy41TDIxOC4wIDMuNUwyMTkuMCAyLjVMMjI2LjAgMi41TDIyNy4wIDEuNUwyMzcuNSAxLjBaTTI1MC41IDE0Mi4wTDI2MC4wIDE0MS41TDI2MS4wIDE0Mi41TDI2Ni4wIDE0Mi41TDI2Ny4wIDE0My41TDI3MC4wIDE0My41TDI3My4wIDE0NS41TDI3NS4wIDE0NS41TDI3OS4wIDE0Ny41TDI4MS4wIDE0OS41TDI4NS4wIDE1MS41TDI5Mi41IDE1OS4wTDI5Mi41IDE2MC4wTDI5Ni41IDE2NS4wTDI5OS41IDE3MS4wTDI5OS41IDE3My4wTDMwMS41IDE3Ny4wTDMwMS41IDE4MS4wTDMwMi41IDE4Mi4wTDMwMi41IDE5Ni4wTDMwMS41IDE5Ny4wTDMwMS41IDIwMS4wTDI5OC41IDIwNy4wTDI5OC41IDIwOS4wTDI5My41IDIxNi4wTDI5My41IDIxNy4wTDI4My4wIDIyNy41TDI4Mi4wIDIyNy41TDI4MC4wIDIyOS41TDI3NC4wIDIzMi41TDI3Mi4wIDIzMi41TDI2OC4wIDIzNC41TDI2NS4wIDIzNC41TDI2NC4wIDIzNS41TDI0Ny4wIDIzNS41TDI0Ni4wIDIzNC41TDI0My4wIDIzNC41TDI0Mi4wIDIzMy41TDIzNy4wIDIzMi41TDIyOC4wIDIyNy41TDIxNi41IDIxNi4wTDIxNS41IDIxMy4wTDIxMi41IDIwOS4wTDIxMi41IDIwNy4wTDIwOS41IDIwMS4wTDIwOS41IDE5Ny4wTDIwOC41IDE5Ni4wTDIwOC41IDE4MS4wTDIwOS41IDE4MC4wTDIwOS41IDE3Ny4wTDIxMC41IDE3Ni4wTDIxMS41IDE3MS4wTDIxNS41IDE2My4wTDIxOC41IDE2MC4wTDIxOC41IDE1OS4wTDIyNi4wIDE1MS41TDIyNy4wIDE1MS41TDIzMi4wIDE0Ny41TDIzOC4wIDE0NC41TDI0MC4wIDE0NC41TDI0MS4wIDE0My41TDI1MC41IDE0Mi4wWk0yNTIuMCAxNjEuNUwyNTEuMCAxNjIuNUwyNDguMCAxNjIuNUwyNDcuMCAxNjMuNUwyNDUuMCAxNjMuNUwyNDEuMCAxNjUuNUwyMzguMCAxNjguNUwyMzcuMCAxNjguNUwyMzIuNSAxNzQuMEwyMjkuNSAxODAuMEwyMjkuNSAxODMuMEwyMjguNSAxODQuMEwyMjguNSAxOTQuMEwyMjkuNSAxOTUuMEwyMjkuNSAxOTguMEwyMzMuNSAyMDUuMEwyNDIuMCAyMTIuNUwyNDYuMCAyMTQuNUwyNDguMCAyMTQuNUwyNDkuMCAyMTUuNUwyNjIuMCAyMTUuNUwyNzIuMCAyMTAuNUwyNzkuNSAyMDIuMEwyODAuNSAxOTguMEwyODEuNSAxOTcuMEwyODEuNSAxOTUuMEwyODIuNSAxOTQuMEwyODIuNSAxODQuMEwyODEuNSAxODMuMEwyODEuNSAxODAuMEwyNzguNSAxNzQuMEwyNzAuMCAxNjUuNUwyNjYuMCAxNjMuNUwyNjQuMCAxNjMuNUwyNjMuMCAxNjIuNUwyNjAuMCAxNjIuNUwyNTkuMCAxNjEuNUwyNTIuMCAxNjEuNVpNMTQxLjUgMTg3LjBMMTQ0LjAgMTg2LjVMMTQ1LjUgMTg4LjBMMTUyLjUgMjAzLjBMMTU0LjUgMjA1LjBMMTYwLjUgMjE4LjBMMTYyLjUgMjIwLjBMMTc3LjUgMjUwLjBMMTc5LjUgMjUyLjBMMTg1LjUgMjY1LjBMMTg3LjUgMjY3LjBMMTkzLjUgMjgwLjBMMTk1LjUgMjgyLjBMMjAyLjUgMjk3LjBMMjA0LjUgMjk5LjBMMjEwLjUgMzEyLjBMMjEyLjUgMzE0LjBMMjE4LjUgMzI3LjBMMjIwLjUgMzI5LjBMMjI3LjUgMzQ0LjBMMjI5LjUgMzQ2LjBMMjM1LjUgMzU5LjBMMjM3LjUgMzYxLjBMMjQzLjUgMzc0LjBMMjQ1LjUgMzc2LjBMMjUyLjUgMzkxLjBMMjU0LjUgMzkzLjBMMjU2LjAgMzk2LjVMMjU3LjUgMzk1LjBMMjYyLjUgMzg0LjBMMjY0LjUgMzgyLjBMMjcwLjUgMzY5LjBMMjcyLjUgMzY3LjBMMjc4LjUgMzU0LjBMMjgwLjUgMzUyLjBMMjk1LjUgMzIyLjBMMjk3LjUgMzIwLjBMMzAzLjUgMzA3LjBMMzA1LjUgMzA1LjBMMzIwLjUgMjc1LjBMMzIyLjUgMjczLjBMMzI4LjUgMjYwLjBMMzMxLjUgMjU2LjBMMzMxLjAgMjU0LjVMMzMwLjAgMjU0LjVMMzI4LjAgMjUyLjVMMzI3LjAgMjUyLjVMMzI1LjAgMjUwLjVMMzI0LjAgMjUwLjVMMzIyLjAgMjQ4LjVMMzIxLjAgMjQ4LjVMMzE5LjAgMjQ2LjVMMzE4LjAgMjQ2LjVMMzE2LjAgMjQ0LjVMMzE1LjAgMjQ0LjVMMzEzLjAgMjQyLjVMMzA2LjAgMjM4LjVMMzAxLjUgMjM0LjBMMzAwLjUgMjMyLjBMMzAwLjUgMjI1LjBMMzA0LjUgMjE4LjBMMzA4LjAgMjE0LjVMMzEwLjAgMjE0LjVMMzExLjAgMjEzLjVMMzE3LjAgMjEzLjVMMzIxLjAgMjE1LjVMMzQ0LjAgMjMxLjVMMzY4LjAgMTg2LjVMMzcwLjAgMTg2LjVMMzg0LjAgMTkzLjVMMzg2LjAgMTk1LjVMMzkzLjAgMTk4LjVMMzk0LjUgMjAwLjBMMzc5LjUgMjMwLjBMMzc3LjUgMjMyLjBMMzcxLjUgMjQ1LjBMMzY5LjUgMjQ3LjBMMzcwLjAgMjQ4LjVMMzcxLjAgMjQ4LjVMMzczLjAgMjUwLjVMMzc0LjAgMjUwLjVMMzc2LjAgMjUyLjVMMzc3LjAgMjUyLjVMMzc5LjAgMjU0LjVMMzgwLjAgMjU0LjVMMzgyLjAgMjU2LjVMMzg5LjAgMjYwLjVMMzkyLjUgMjY0LjBMMzk0LjUgMjY4LjBMMzk0LjUgMjc0LjBMMzkzLjUgMjc2LjBMMzg2LjAgMjg0LjVMMzg0LjAgMjg1LjVMMzc4LjAgMjg1LjVMMzc0LjAgMjgzLjVMMzYwLjAgMjczLjVMMzU3LjAgMjcyLjVMMzU1LjUgMjc0LjBMMzQ2LjUgMjkyLjBMMzQ0LjUgMjk0LjBMMzM4LjUgMzA3LjBMMzM2LjUgMzA5LjBMMzI5LjUgMzI0LjBMMzI3LjUgMzI2LjBMMzIxLjUgMzM5LjBMMzE5LjUgMzQxLjBMMzEzLjUgMzU0LjBMMzExLjUgMzU2LjBMMzA0LjUgMzcxLjBMMzAyLjUgMzczLjBMMjk2LjUgMzg2LjBMMjk0LjUgMzg4LjBMMjg4LjUgNDAxLjBMMjg2LjUgNDAzLjBMMjc5LjUgNDE4LjBMMjc3LjUgNDIwLjBMMjcxLjUgNDMzLjBMMjY5LjUgNDM1LjBMMjY4LjUgNDM4LjBMMjY3LjAgNDM5LjVMMjQ1LjAgNDM5LjVMMjQyLjUgNDM2LjBMMjM1LjUgNDIxLjBMMjMzLjUgNDE5LjBMMjI3LjUgNDA2LjBMMjI1LjUgNDA0LjBMMjE5LjUgMzkxLjBMMjE3LjUgMzg5LjBMMjEwLjUgMzc0LjBMMjA4LjUgMzcyLjBMMjAyLjUgMzU5LjBMMjAwLjUgMzU3LjBMMTk0LjUgMzQ0LjBMMTkyLjUgMzQyLjBMMTg1LjUgMzI3LjBMMTgzLjUgMzI1LjBMMTc3LjUgMzEyLjBMMTc1LjUgMzEwLjBMMTY5LjUgMjk3LjBMMTY3LjUgMjk1LjBMMTYwLjUgMjgwLjBMMTU4LjUgMjc4LjBMMTUyLjUgMjY1LjBMMTUwLjUgMjYzLjBMMTQ0LjUgMjUwLjBMMTQyLjUgMjQ4LjBMMTM1LjUgMjMzLjBMMTMzLjUgMjMxLjBMMTI3LjUgMjE4LjBMMTI1LjUgMjE2LjBMMTE5LjUgMjAzLjBMMTE3LjUgMjAxLjBMMTE3LjUgMjAwLjBMMTIxLjAgMTk3LjVMMTM2LjAgMTkwLjVMMTM4LjAgMTg4LjVMMTQxLjUgMTg3LjBaIj48L3BhdGg+PC9zdmc+" alt="Vidhyaan">
+  <div class="center"><p class="wordmark">Vidhyaan</p><p class="h2">Sign in</p><p class="cap">One account — parent, school &amp; admin</p></div>
+  <div class="field"><b>+91</b> · Phone number</div>
+  <button class="btn pri" data-nav="otp">Continue</button>
+  <p class="tiny center">OTP will be sent by SMS / WhatsApp</p>
+</div>`;
+N['login']=['Single entry point for all three journeys — no "I am a…" selector; server decides from memberships.','Phone-first, no email/password. Same OTP infra as web.','Logo placeholder top; brand applied in hi-fi.'];
+
+S['otp']=()=>`${hdr('Verify phone','login')}
+<div class="body" style="gap:16px">
+  <p class="cap">Enter the 6-digit code sent to <b>+91 98•••• ••42</b></p>
+  <div class="otp"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <p class="tiny center">Resend in 0:24</p>
+  <button class="btn pri" data-nav="picker">Verify</button>
+</div>`;
+N['otp']=['Reuses shared OtpInput pattern from web.','Auto-advance boxes; resend timer.','On verify: single-role users skip the picker, go straight to their home.'];
+
+S['picker']=()=>`${hdr('Choose workspace')}
+<div class="body">
+  <p class="cap">This number is linked to more than one workspace.</p>
+  ${listRow('p-home','Parent','Ananya · Dev — Greenfield Public School')}
+  ${listRow('s-home','Greenfield Public School','Admissions Counsellor')}
+  ${listRow('a-pulse','Vidhyaan Platform','Admin team')}
+  <p class="tiny">Switch anytime from the profile menu.</p>
+</div>`;
+N['picker']=['Mirrors web unified-login workspace picker.','Shown only for multi-role accounts.','Selection remembered; biometric unlock returns to last workspace.'];
+
+/* ===== parent ===== */
+S['p-home']=()=>`${hdr('Good morning, Priya',null,'p-notifs')}
+<div class="body">
+  <div class="card" data-nav="p-fees">
+    <div class="row"><div class="ava"></div><div class="grow"><p class="h3">Ananya Sharma</p><p class="cap">Class 5-A · Roll 14</p></div><span class="chip g">Present today</span></div>
+    <hr class="hr" style="margin:10px 0">
+    <div class="split"><span class="cap">Fee due — Term 2 Tuition</span><span class="v">₹12,500 · 15 May</span></div>
+    <div class="split"><span class="cap">Next event</span><span class="v">PTM · Sat 17 May</span></div>
+  </div>
+  <div class="card" data-nav="p-fees">
+    <div class="row"><div class="ava"></div><div class="grow"><p class="h3">Dev Sharma</p><p class="cap">Class 2-B · Roll 08</p></div><span class="chip r">Absent today</span></div>
+    <hr class="hr" style="margin:10px 0">
+    <div class="split"><span class="cap">Fee due</span><span class="v">Nothing pending</span></div>
+  </div>
+  <p class="lbl">Recent</p>
+  ${listRow('p-notifs','Fee reminder','Term 2 tuition for Ananya due in 3 days','<span class="tiny">2h</span>')}
+  ${listRow('p-notifs','Annual Day published','RSVP by 20 May','<span class="tiny">1d</span>')}
+</div>${tabs('parent','p-home')}`;
+N['p-home']=['One card per kid = whole day at a glance: attendance today, next due, next event.','Card tap → that kid\'s detail (wired to Fees here for demo).','Absent state is loud (red chip) — pairs with the morning absence push.','Feed below = last 2 notifications, tap through to full feed.'];
+
+S['p-fees']=()=>`${hdr('Fees')}
+<div class="body">
+  <div class="row"><span class="chip sel">Ananya</span><span class="chip">Dev</span></div>
+  <p class="lbl">Open</p>
+  <div class="card" data-nav="p-invoice">
+    <div class="split"><p class="h3">Term 2 Tuition · INV-0412</p><span class="chip y">Due 15 May</span></div>
+    <div class="split" style="margin-top:6px"><span class="cap">Amount</span><span class="v">₹12,500</span></div>
+  </div>
+  <div class="card" data-nav="p-invoice">
+    <div class="split"><p class="h3">Transport Apr · INV-0398</p><span class="chip r">Overdue 12d</span></div>
+    <div class="split" style="margin-top:6px"><span class="cap">Amount</span><span class="v">₹1,800</span></div>
+  </div>
+  <button class="btn pri" data-nav="p-pay">Pay all dues — ₹14,300</button>
+  <p class="lbl">Paid</p>
+  ${listRow('p-receipt','Term 1 Tuition · ₹12,500','Paid 12 Jan · UPI','<span class="tiny">receipt ›</span>')}
+</div>${tabs('parent','p-fees')}`;
+N['p-fees']=['Kid switcher chips at top — no dropdown.','Open before paid; overdue styled as alert.','Pay-all collapses multiple invoices into one checkout — server builds a combined order.','Paid rows go straight to shareable receipt.'];
+
+S['p-invoice']=()=>`${hdr('Term 2 Tuition','p-fees')}
+<div class="body">
+  <div class="card">
+    <p class="tiny mono">INV-0412 · Ananya Sharma · 5-A</p><hr class="hr" style="margin:8px 0">
+    <div class="split"><span class="cap">Tuition fee</span><span class="v">₹11,000</span></div>
+    <div class="split"><span class="cap">Lab &amp; library</span><span class="v">₹1,200</span></div>
+    <div class="split"><span class="cap">Late fee</span><span class="v">₹300</span></div>
+    <hr class="hr" style="margin:8px 0">
+    <div class="split"><span class="h3">Total due</span><span class="v" style="font-size:17px">₹12,500</span></div>
+  </div>
+  <p class="tiny">Due 15 May 2026 · Academic year 2026–27</p>
+</div>
+<div class="sheet"><button class="btn pri" data-nav="p-pay">Pay ₹12,500</button></div>`;
+N['p-invoice']=['Line items exactly as web invoice; read-only.','Single sticky action: Pay. Amount always computed server-side.'];
+
+S['p-pay']=()=>`${hdr('','p-invoice')}
+<div class="body" style="justify-content:flex-end"></div>
+<div class="sheet">
+  <p class="lbl">Razorpay · ₹12,500</p>
+  ${listRow('p-receipt','UPI','Google Pay, PhonePe, BHIM…')}
+  ${listRow('p-receipt','Card','Credit / debit')}
+  ${listRow('p-receipt','Netbanking','All major banks')}
+  <p class="tiny center">Native Razorpay checkout sheet (SDK-rendered)</p>
+  <button class="slink" style="text-align:center" data-nav="p-payfail">↳ view failure / pending state</button>
+</div>`;
+N['p-pay']=['This sheet is the actual Razorpay native SDK — we do not build it; wireframe shows the handoff.','Order created server-side before sheet opens; webhook confirms after.'];
+
+S['p-receipt']=()=>`${hdr('Payment received','p-fees')}
+<div class="body center" style="gap:10px">
+  <div class="check">✓</div>
+  <p class="num">₹12,500</p>
+  <p class="cap">Term 2 Tuition · Ananya Sharma<br>12 May 2026 · UPI · TXN 88213…</p>
+  <hr class="hr" style="width:100%">
+  <div class="row" style="width:100%"><button class="btn sm">Share on WhatsApp</button><button class="btn sm">Download PDF</button></div>
+</div>${tabs('parent','p-fees')}`;
+N['p-receipt']=['Receipt PDF = existing web export, shared via native share sheet.','Push "Payment confirmed" also lands here.'];
+
+S['p-attend']=()=>`${hdr('Attendance')}
+<div class="body">
+  <div class="row"><span class="chip sel">Ananya</span><span class="chip">Dev</span></div>
+  <div class="card">
+    <div class="split"><p class="h3">May 2026</p><span class="cap">‹ ›</span></div>
+    <div class="grid7" style="margin-top:10px">
+      ${'MTWTFSS'.split('').map(d=>`<span class="tiny">${d}</span>`).join('')}
+      ${Array.from({length:31},(_,i)=>{const n=i+1;const c=[4,11,18,25].includes(n)?'h':n===7?'a':n<=12?'p':'';return `<span class="day ${c}">${n}</span>`;}).join('')}
+    </div>
+    <div class="row" style="margin-top:10px;gap:14px">
+      <span class="tiny">▩ present</span><span class="tiny" style="color:var(--bad)">□ absent</span><span class="tiny">┄ holiday</span>
+    </div>
+  </div>
+  <div class="card split"><span class="cap">This month</span><span class="v">11 / 12 days · 92%</span></div>
+</div>${tabs('parent','p-attend')}`;
+N['p-attend']=['Read-only month grid; served by existing attendance records.','Absence push same morning → deep-links here.','Monthly % strip below, no charts in P1.'];
+
+S['p-events']=()=>`${hdr('Events')}
+<div class="body">
+  <div class="card" data-nav="p-event">
+    <div class="img" style="height:110px;margin-bottom:10px"></div>
+    <p class="h3">Annual Day 2026</p><p class="cap">Sat 24 May · 4:00 PM · Main ground</p>
+    <div class="row" style="margin-top:8px"><span class="chip g">Going</span><span class="tiny">RSVP by 20 May</span></div>
+  </div>
+  <div class="card" data-nav="p-event">
+    <p class="h3">Parent–Teacher Meeting</p><p class="cap">Sat 17 May · 9:00 AM · Class 5-A room</p>
+    <div class="row" style="margin-top:8px"><span class="chip">RSVP pending</span></div>
+  </div>
+</div>${tabs('parent','p-events')}`;
+N['p-events']=['Published events only; cover image when set.','RSVP state visible on the list card itself.'];
+
+S['p-event']=()=>`${hdr('Annual Day 2026','p-events')}
+<div class="body">
+  <div class="img" style="height:150px"></div>
+  <p class="cap">Sat 24 May · 4:00 PM – 7:30 PM · Main ground<br>All classes · Parents invited</p>
+  <p class="cap">Annual cultural evening — performances by every grade, prize distribution and dinner stalls. Gates open 3:30 PM.</p>
+  <div class="row"><button class="btn sm pri">Going</button><button class="btn sm">Not going</button></div>
+  <button class="btn">Add to calendar</button>
+</div>${tabs('parent','p-events')}`;
+N['p-event']=['RSVP = two buttons, one tap; syncs to existing portal RSVP.','"Add to calendar" = native calendar intent.'];
+
+S['p-notifs']=()=>`${hdr('Notifications')}
+<div class="body">
+  ${listRow('p-invoice','Fee reminder','Term 2 tuition for Ananya due in 3 days · ₹12,500','<span class="tiny">2h</span>')}
+  ${listRow('p-attend','Dev marked absent','2-B · 12 May, 9:05 AM','<span class="tiny">6h</span>')}
+  ${listRow('p-event','Annual Day published','RSVP by 20 May','<span class="tiny">1d</span>')}
+  ${listRow('p-receipt','Payment confirmed','₹12,500 · Term 1 Tuition','<span class="tiny">4mo</span>')}
+</div>${tabs('parent','p-home')}`;
+N['p-notifs']=['Unified feed = same data as portal notifications; each row deep-links to its object.','Push taps land on the target screen, not this list.'];
+
+S['p-profile']=()=>`${hdr('More')}
+<div class="body">
+  <div class="card row"><div class="ava"></div><div class="grow"><p class="h3">Priya Sharma</p><p class="cap">+91 98•••• ••42 · Greenfield Public School</p></div></div>
+  <p class="lbl">Kids</p>
+  ${listRow('','Ananya Sharma','5-A · documents, profile','<span class="tiny">›</span>')}
+  ${listRow('','Dev Sharma','2-B','<span class="tiny">›</span>')}
+  <p class="lbl">Settings</p>
+  ${listRow('','Notification preferences','Fees, attendance, events')}
+  ${listRow('','App lock','FaceID / fingerprint — on')}
+  ${listRow('picker','Switch workspace','Parent · Counsellor · Admin')}
+  ${listRow('s-support','Help &amp; support','WhatsApp · FAQs · diagnostics')}
+  ${listRow('p-delete','Delete account','Permanent · 30-day window')}
+  <button class="btn">Log out</button>
+</div>${tabs('parent','p-profile')}`;
+N['p-profile']=['Only settings that exist on mobile: notif prefs + app lock.','Kid document upload (camera → S3) lives under each kid — P2.','Workspace switcher here for multi-role users.'];
+
+/* ===== staff ===== */
+S['s-home']=()=>`${hdr('Greenfield Public School',null,'s-notifs')}
+<div class="body">
+  <div class="kpi">
+    ${kpi('New leads today','6','s-leads')}
+    ${kpi('Follow-ups due','4','s-leads')}
+    ${kpi('Collected today','₹48,200','s-defaulters')}
+    ${kpi('Classes marked','12 / 15','s-classes')}
+  </div>
+  <div class="row"><button class="btn sm" style="border-color:var(--hot);color:var(--hot)" data-nav="s-ai">✦ Ask AI</button><button class="btn sm" data-nav="s-search">🔍 Search</button></div>
+  <p class="lbl">Needs attention</p>
+  ${listRow('s-lead','Overdue follow-up · Rahul Verma','Lead · was due yesterday','<span class="chip r">1d late</span>')}
+  ${listRow('s-mark','5-C not marked','Attendance · 9:40 AM','<span class="chip y">pending</span>')}
+  ${listRow('s-defaulters','Big overdue · ₹34,000','Invoice INV-0361 · 28d','<span class="chip r">28d</span>')}
+</div>${tabs('staff','s-home')}`;
+N['s-home']=['Role-aware BFF endpoint: accountant sees money tiles, teacher sees classes.','"Needs attention" = the actual work queue; every row deep-links.','KPI tiles tap through to their tab.'];
+
+S['s-leads']=()=>`${hdr('Leads')}
+<div class="body">
+  <div class="field">🔍 Search name or phone</div>
+  <div class="row"><span class="chip sel">Open</span><span class="chip">Follow-up due</span><span class="chip">All</span></div>
+  ${listRow('s-lead','Rahul Verma','Class 3 · walk-in · 2d ago','<span class="chip y">Follow up</span>')}
+  ${listRow('s-lead','Meena Pillai','LKG · website · today','<span class="chip">New</span>')}
+  ${listRow('s-lead','Arjun Nair','Class 7 · referral · 5d ago','<span class="chip g">Qualified</span>')}
+  <button class="fab" data-nav="s-lead-add" aria-label="Add lead">+</button>
+</div>${tabs('staff','s-leads')}`;
+N['s-leads']=['Filter chips, not the web\'s column filters.','FAB = quick-add, the desk-counter flow.','Status chip mirrors web lead stages, read-only on list.'];
+
+S['s-lead-add']=()=>`${hdr('New lead','s-leads')}
+<div class="body">
+  <div class="field">Parent name</div>
+  <div class="field"><b>+91</b> · Phone</div>
+  <div class="field">Class interested ▾</div>
+  <div class="field">Source ▾ <span class="tiny">(walk-in default)</span></div>
+  <button class="btn pri" data-nav="s-lead">Save lead</button>
+  <button class="btn" data-nav="s-scan">📷 Scan paper form instead</button>
+  <p class="tiny center">Duplicate check on phone number runs on save</p>
+</div>`;
+N['s-lead-add']=['10-second capture: 3 required fields, source defaulted.','Dedup on phoneNormalized fires here — existing engine.','Lead code + follow-up defaults applied server-side.'];
+
+S['s-lead']=()=>`${hdr('Rahul Verma','s-leads')}
+<div class="body">
+  <div class="card row"><div class="ava"></div><div class="grow"><p class="h3">Rahul Verma</p><p class="cap">Class 3 · walk-in · LD-2026-0187</p></div><span class="chip y">Follow up</span></div>
+  <div class="row"><button class="btn sm pri">📞 Call</button><button class="btn sm">WhatsApp</button></div>
+  <p class="lbl">Log follow-up</p>
+  <div class="card">
+    <div class="row" style="flex-wrap:wrap;gap:6px"><span class="chip sel">Interested</span><span class="chip">Call back</span><span class="chip">Visit booked</span><span class="chip">Not interested</span></div>
+    <div class="field" style="margin-top:10px">Note (optional)</div>
+    <div class="field" style="margin-top:8px">Next follow-up · Tomorrow 10:00 ▾</div>
+    <button class="btn pri" style="margin-top:10px" data-nav="s-leads">Save</button>
+  </div>
+  <p class="lbl">Timeline</p>
+  ${listRow('','Called — interested, wants fee details','Anita · yesterday 4:12 PM')}
+  ${listRow('','Lead created (walk-in)','Anita · 2d ago')}
+</div>`;
+N['s-lead']=['Call / WhatsApp = native intents, the two highest-frequency actions.','Follow-up logging = outcome chips + optional note, not a form.','Next follow-up date feeds the push reminder.','Timeline read-only; full history on web.'];
+
+S['s-classes']=()=>`${hdr('Attendance')}
+<div class="body">
+  <div class="card row" style="border-color:var(--warn);padding:9px 12px"><span class="chip y">offline</span><span class="cap grow">1 class saved on this phone — will sync when back online</span></div>
+  <p class="cap">Tue 12 May · your classes</p>
+  ${listRow('s-mark','Class 5-A','32 students · 8:45 AM','<span class="chip g">Marked 30/32</span>')}
+  ${listRow('s-mark','Class 5-C','32 students · 9:30 AM','<span class="chip y">Not marked</span>')}
+  ${listRow('s-mark','Class 6-B','30 students · 11:15 AM','<span class="chip">Upcoming</span>')}
+</div>${tabs('staff','s-classes')}`;
+N['s-classes']=['Only classes from TeacherAssignment — no picker hunting.','State per session: marked / pending / upcoming.','Offline banner: queued sessions visible until synced — teacher never wonders if marking was lost.'];
+
+S['s-mark']=()=>`${hdr('5-C · Tue 12 May','s-classes')}
+<div class="body">
+  <div class="split"><span class="cap">Tap a student to mark <b style="color:var(--bad)">absent</b></span><span class="chip r">3 absent</span></div>
+  <div class="sgrid">
+    ${['Aarav','Diya','Ishaan','Kavya','Rohan','Ananya','Vivaan','Sara','Aditya','Myra','Kabir','Zara','Arnav','Pari','Reyansh','Anika','Vihaan','Navya','Ayaan','Riya','Krishna','Aadhya','Shaurya','Ira','Atharv','Kiara','Advait','Saanvi','Dhruv','Amaira','Yuvan','Tara']
+      .map((n,i)=>`<span class="stu ${[4,11,23].includes(i)?'ab':''}">${n}</span>`).join('')}
+  </div>
+</div>
+<div class="sheet"><button class="btn pri" data-nav="s-classes">Submit — 29 present · 3 absent</button><p class="tiny center">Saved offline · syncs when online</p></div>`;
+N['s-mark']=['All-present default; teacher only taps absentees. Target: <30s per class.','Submit label repeats the count — the confirmation IS the button.','Offline queue → idempotent sync on sessionKey; banner shows sync state.'];
+
+S['s-defaulters']=()=>`${hdr('Fees')}
+<div class="body">
+  <div class="kpi">${kpi('Collected today','₹48,200')}${kpi('Open dues','₹6.4L')}</div>
+  <p class="lbl">Defaulters</p>
+  <div class="row"><span class="chip sel">All classes</span><span class="chip">30d+</span><span class="chip">₹10k+</span></div>
+  ${listRow('s-collect','Ananya Sharma · 5-A','₹12,500 · 3d to due','<span class="chip y">due</span>')}
+  ${listRow('s-collect','Farhan Ali · 8-B','₹34,000 · 28d overdue','<span class="chip r">28d</span>')}
+  ${listRow('s-collect','Joseph K · 4-A','₹8,200 · 9d overdue','<span class="chip r">9d</span>')}
+</div>${tabs('staff','s-defaulters')}`;
+N['s-defaulters']=['Same defaulter data as the web report, cut to a list + 2 filters.','Row tap → collect / remind actions.','No invoice creation on mobile — web only.'];
+
+S['s-collect']=()=>`${hdr('Farhan Ali · 8-B','s-defaulters')}
+<div class="body">
+  <div class="card">
+    <div class="split"><span class="cap">INV-0361 · Term 2</span><span class="chip r">28d overdue</span></div>
+    <div class="split" style="margin-top:6px"><span class="h3">Balance</span><span class="v" style="font-size:17px">₹34,000</span></div>
+  </div>
+  <button class="btn pri" data-nav="s-record">Record payment (cash / UPI)</button>
+  <button class="btn">Send payment link on WhatsApp</button>
+  <button class="btn">📞 Call guardian</button>
+  <p class="tiny center">Payment link uses org WhatsApp credits (metered)</p>
+</div>`;
+N['s-collect']=['Three actions cover the counter + chase workflows.','Payment link = existing metered WhatsApp send.'];
+
+S['s-record']=()=>`${hdr('Record payment','s-collect')}
+<div class="body">
+  <div class="field">Amount · <b>₹34,000</b> <span class="tiny">(edit for partial)</span></div>
+  <div class="row"><span class="chip sel">Cash</span><span class="chip">UPI ref</span><span class="chip">Cheque</span></div>
+  <div class="field">Reference / note (optional)</div>
+  <button class="btn pri" data-nav="s-defaulters">Confirm ₹34,000 received</button>
+  <p class="tiny center">Receipt WhatsApped to guardian automatically</p>
+</div>`;
+N['s-record']=['Counter payment entered on the spot; partial allowed.','Posts to existing payments API — same ledger as web.','Auto-receipt via existing WhatsApp emitter.'];
+
+S['s-students']=()=>`${hdr('Students')}
+<div class="body">
+  <div class="field">🔍 Name, roll no, class</div>
+  <div class="row"><span class="chip sel">5-A</span><span class="chip">5-B</span><span class="chip">All</span></div>
+  ${listRow('s-student','Ananya Sharma','5-A · 14 · Priya Sharma','<span class="tiny">›</span>')}
+  ${listRow('s-student','Aarav Gupta','5-A · 01 · Neha Gupta','<span class="tiny">›</span>')}
+  ${listRow('s-student','Diya Menon','5-A · 02 · Suresh Menon','<span class="tiny">›</span>')}
+  <button class="fab" data-nav="s-enroll-1" aria-label="Enrol student">+</button>
+</div>${tabs('staff','s-students')}`;
+N['s-students']=['Directory = search + class chips.','FAB = enrol wizard (LC/coaching primary flow).','Guardian name on the row — staff mostly look up "whose parent".'];
+
+S['s-student']=()=>`${hdr('Ananya Sharma','s-students')}
+<div class="body">
+  <div class="card row"><div class="ava"></div><div class="grow"><p class="h3">Ananya Sharma</p><p class="cap">5-A · Roll 14 · STU-2024-0311</p></div></div>
+  <div class="row"><button class="btn sm pri">📞 Call guardian</button><button class="btn sm">WhatsApp</button></div>
+  <div class="card"><p class="lbl">Guardian</p><div class="split"><span class="cap">Priya Sharma (mother)</span><span class="v">+91 98•••• ••42</span></div></div>
+  <div class="card"><p class="lbl">Fees</p><div class="split"><span class="cap">Open balance</span><span class="v">₹12,500</span></div></div>
+  <div class="card"><p class="lbl">Attendance · May</p><div class="split"><span class="cap">11 / 12 days</span><span class="v">92%</span></div></div>
+</div>`;
+N['s-student']=['Profile = contact + 2 summary blocks; full record on web.','Call/WhatsApp guardian = again the top actions.'];
+
+S['s-home-lc']=()=>`${hdr('Brainwave Learning Centre',null,'s-notifs')}
+<div class="body">
+  <div class="kpi">
+    ${kpi('Collected this month','₹3.2L','s-collections')}
+    ${kpi('New enquiries today','8','s-leads')}
+    ${kpi('Follow-ups due','5','s-leads')}
+    ${kpi('Sessions today','6 · 4 left','s-schedule')}
+  </div>
+  <div class="card" data-nav="s-collections">
+    <div class="split"><p class="lbl">Collections</p><span class="tiny">details ›</span></div>
+    <div class="split" style="margin-top:8px"><span class="cap">May 2026</span><span class="v">₹3,20,400</span></div>
+    <div class="bar" style="--w:78%"></div>
+    <div class="split"><span class="cap">May 2025</span><span class="v">₹2,61,000</span></div>
+    <div class="bar" style="--w:63%"></div>
+    <p class="tiny" style="margin-top:6px;color:var(--good)">▲ 23% vs same month last year</p>
+  </div>
+  <button class="btn pri" data-nav="s-enroll-1">＋ Enrol student — course &amp; monthly plan</button>
+  <p class="lbl">Needs attention</p>
+  ${listRow('s-lead','Overdue follow-up · Nikhil J','Enquiry · JEE batch · due yesterday','<span class="chip r">1d late</span>')}
+  ${listRow('s-defaulters','Big overdue · ₹18,000','Rhea M · NEET weekend batch','<span class="chip r">21d</span>')}
+</div>${tabs('staff','s-home')}`;
+N['s-home-lc']=['Learning-centre variant of the org home — collections lead, not admissions.','Same BFF endpoint, institution-type + role decide the tile set (web dashboards already do this).','Collections card previews month vs same month last year; tap → full periods view.'];
+
+S['s-collections']=()=>`${hdr('Collections','s-home-lc')}
+<div class="body">
+  <div class="row"><span class="chip sel">Monthly</span><span class="chip">Quarterly</span><span class="chip">Yearly</span></div>
+  <div class="card">
+    <p class="lbl">This month · May 2026</p>
+    <p class="num">₹3,20,400</p>
+    <p class="tiny" style="color:var(--good)">▲ 23% vs May 2025 (₹2,61,000)</p>
+  </div>
+  <div class="card">
+    <p class="lbl">Quarter · Q1 FY 26–27</p>
+    <div class="split"><span class="cap">Apr – May (running)</span><span class="v">₹6,10,800</span></div>
+    <div class="bar" style="--w:70%"></div>
+    <div class="split"><span class="cap">Q1 FY 25–26 (full)</span><span class="v">₹7,92,000</span></div>
+    <div class="bar" style="--w:90%"></div>
+  </div>
+  <div class="card">
+    <p class="lbl">Year</p>
+    <div class="split"><span class="cap">FY 26–27 · to date</span><span class="v">₹6,10,800</span></div>
+    <div class="bar" style="--w:18%"></div>
+    <div class="split"><span class="cap">FY 25–26 · full year</span><span class="v">₹34,60,000</span></div>
+    <div class="bar" style="--w:100%"></div>
+  </div>
+  <p class="tiny">Numbers from existing fee-collection rollups (reporting.daily_rollups) · FY = Apr–Mar</p>
+</div>${tabs('staff','s-home')}`;
+N['s-collections']=['Key LC requirement: month / quarter / previous-FY vs current-FY comparison in one screen.','Period chips switch granularity; every block shows current vs previous period.','Data source exists — nightly report rollups; no new backend aggregation needed.','Lo-fi bars only; proper mini-charts in hi-fi.'];
+
+S['s-notifs']=()=>`${hdr('Notifications','s-home')}
+<div class="body">
+  <div class="row"><span class="chip sel">All</span><span class="chip">Leads</span><span class="chip">Fees</span><span class="chip">Attendance</span></div>
+  ${listRow('s-lead','New lead assigned to you','Meena Pillai · LKG · website','<span class="tiny">10m</span>')}
+  ${listRow('s-defaulters','Payment received · ₹12,500','Ananya Sharma · 5-A · UPI','<span class="tiny">1h</span>')}
+  ${listRow('s-mark','5-C attendance not marked','due 9:30 AM','<span class="tiny">2h</span>')}
+  ${listRow('','Low WhatsApp credits','82 left · top up on web','<span class="chip y">low</span>')}
+  ${listRow('s-lead','Follow-up due · Rahul Verma','Class 3 · walk-in','<span class="tiny">1d</span>')}
+</div>${tabs('staff','s-home')}`;
+N['s-notifs']=['Staff alert centre — bell + badge on home header opens this.','Role-routed events: lead assigned, payment received, unmarked class, low credits, follow-up due.','Each row deep-links to the object; push taps skip this list and land direct.','Category chips filter the feed.'];
+
+
+S['twofa']=()=>`${hdr('Two-step verification','otp')}
+<div class="body" style="gap:16px">
+  <p class="cap">Your organization requires a second step. Enter the code from your authenticator app.</p>
+  <div class="otp"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <button class="btn pri" data-nav="picker">Verify</button>
+  <button class="btn" data-nav="picker">Use SMS code instead</button>
+</div>`;
+N['twofa']=['Shown only when org policy demands 2FA (mustEnrol2fa) — same challenge-token gate as web.','TOTP first, SMS fallback — mirrors web exactly.','Not enrolled yet? Enrolment stays on web; mobile shows instruction screen.'];
+
+S['lock']=()=>`${hdr('Secure this app')}
+<div class="body" style="gap:14px;justify-content:center">
+  <div class="center"><p class="h2">Set a 4-digit PIN</p><p class="cap">Used when Face ID / fingerprint is unavailable</p></div>
+  <div class="otp" style="justify-content:center"><span></span><span></span><span></span><span></span></div>
+  <div class="card row"><div class="grow"><p class="h3">Unlock with Face ID</p><p class="cap">Fastest way back into the app</p></div><span class="chip sel">On</span></div>
+  <button class="btn pri" data-nav="push-prime">Continue</button>
+</div>`;
+N['lock']=['First-login only. PIN + biometric toggle in one step.','Wraps the stored refresh token (SecureStore/Keychain).','Fee + student data behind app lock — school-data privacy expectation.'];
+
+S['push-prime']=()=>`${hdr('')}
+<div class="body" style="justify-content:center;gap:16px">
+  <div class="img" style="width:80px;height:80px;margin:0 auto;border-radius:50%"></div>
+  <div class="center"><p class="h2">Stay in the loop</p>
+  <p class="cap">Absence alerts the same morning · fee reminders before due date · event invites. We never spam.</p></div>
+  <button class="btn pri" data-nav="p-home">Turn on notifications</button>
+  <button class="btn" style="border-color:var(--line);color:var(--ink2)" data-nav="p-home">Not now</button>
+</div>`;
+N['push-prime']=['Priming screen BEFORE the OS permission prompt — declining the OS prompt is near-irreversible, so we ask only after explaining value.','Copy is journey-specific: parents see absence/fee value, staff see lead/payment value.','"Not now" re-asks later at a high-intent moment (e.g. after first payment).'];
+
+S['no-account']=()=>`${hdr('','login')}
+<div class="body" style="justify-content:center;gap:14px">
+  <div class="center"><p class="h2">Number not registered</p>
+  <p class="cap">+91 98•••• ••10 isn\u2019t linked to any school or workspace yet.</p></div>
+  <div class="card"><p class="h3">Parent?</p><p class="cap">Ask your school to add this number as a guardian contact, then sign in again.</p></div>
+  <div class="card"><p class="h3">School / learning centre staff?</p><p class="cap">Ask your admin to invite you from Settings \u2192 Team on the web app.</p></div>
+  <button class="btn" data-nav="login">Try another number</button>
+</div>`;
+N['no-account']=['Dead-end avoided: tells each audience exactly who can link the number.','No self-serve org signup in the app (Play/App Store review simplicity) — org onboarding stays on web.','Marketplace parent self-registration can slot here in P3.'];
+
+S['p-payfail']=()=>`${hdr('Payment status','p-invoice')}
+<div class="body center" style="gap:10px;justify-content:center">
+  <div class="check" style="border-color:var(--warn);color:var(--warn)">!</div>
+  <p class="h2">Payment not confirmed yet</p>
+  <p class="cap">\u20b912,500 \u00b7 Term 2 Tuition \u00b7 UPI<br>If money left your account, it will auto-verify within 30 min \u2014 we\u2019ll notify you. Nothing is charged twice.</p>
+  <button class="btn pri" data-nav="p-pay">Retry payment</button>
+  <button class="btn" data-nav="p-fees">Back to fees</button>
+</div>${tabs('parent','p-fees')}`;
+N['p-payfail']=['UPI pending/failure is the most common real-world path \u2014 must be designed, not an afterthought.','Copy promises auto-verify: existing webhook + reconcile sweep does exactly this; push on final status.','Retry re-uses the same order (gatewayRef invariant \u2014 never overwritten).'];
+
+
+S['s-enroll-1']=()=>`${hdr('Enrol student · 1 of 3','s-students')}
+<div class="body">
+  <p class="lbl">Student</p>
+  <div class="field">Student name</div>
+  <div class="field">Class / grade ▾ <span class="tiny">(optional)</span></div>
+  <p class="lbl">Guardian</p>
+  <div class="field">Guardian name</div>
+  <div class="field"><b>+91</b> · Phone</div>
+  <div class="card row" style="border-color:var(--warn)"><span class="chip y">match</span>
+    <div class="grow"><p class="h3">Existing enquiry found — Nikhil J</p><p class="cap">Same phone · JEE batch enquiry · 12d ago</p></div>
+    <span class="chip sel">Link</span></div>
+  <button class="btn pri" data-nav="s-enroll-2">Continue</button>
+</div>`;
+N['s-enroll-1']=['Entry: FAB on Students tab + quick action on LC home.','Dedup fires live on phone number (phoneNormalized) — linking the enquiry converts it, funnel stays intact.','Four fields only; everything else editable later on web.'];
+
+S['s-enroll-2']=()=>`${hdr('Course & batch · 2 of 3','s-enroll-1')}
+<div class="body">
+  <p class="lbl">Course</p>
+  ${listRow('','JEE Foundation · Class 11','12 months · ₹3,500/mo','<span class="chip sel">✓</span>')}
+  ${listRow('','NEET Weekend','10 months · ₹4,200/mo','<span class="tiny">›</span>')}
+  ${listRow('','Class 10 Maths Tuition','till Mar 2027 · ₹2,000/mo','<span class="tiny">›</span>')}
+  <p class="lbl">Batch</p>
+  <div class="row" style="flex-wrap:wrap;gap:6px">
+    <span class="chip sel">Mon·Wed·Fri 5–7 PM · 6 seats left</span>
+    <span class="chip">Tue·Thu·Sat 6–8 PM · full</span>
+  </div>
+  <button class="btn pri" data-nav="s-enroll-3">Continue</button>
+</div>`;
+N['s-enroll-2']=['Courses come from the course/batch master; price shown from the course’s fee-plan template.','Full batches visible but disabled — capacity honest at the counter.','Multi-course enrol = repeat wizard; deliberately not multi-select (keeps invoice mapping 1:1).'];
+
+S['s-enroll-3']=()=>`${hdr('Fee plan · 3 of 3','s-enroll-2')}
+<div class="body">
+  <div class="card">
+    <p class="lbl">From course template — editable</p>
+    <div class="split"><span class="cap">Admission fee (one-time)</span><span class="v">₹2,000</span></div>
+    <div class="split"><span class="cap">Monthly fee</span><span class="v">₹3,500</span></div>
+    <div class="split"><span class="cap">Discount</span><span class="v">— none ▾</span></div>
+  </div>
+  <p class="lbl">Billing</p>
+  <div class="row"><span class="cap">Bill on day</span><span class="chip">1st</span><span class="chip sel">5th</span><span class="chip">10th</span></div>
+  <div class="field">Starts · June 2026 ▾</div>
+  <div class="field">Ends · with course (May 2027) ▾</div>
+  <div class="card" style="border-color:var(--hot);background:var(--hot-bg)">
+    <p class="h3">Preview</p>
+    <div class="split"><span class="cap">Today — admission + June</span><span class="v">₹5,500</span></div>
+    <div class="split"><span class="cap">Then monthly on the 5th</span><span class="v">₹3,500 × 11</span></div>
+  </div>
+  <button class="btn pri" data-nav="s-enroll-done">Enrol &amp; create first invoice</button>
+</div>`;
+N['s-enroll-3']=['Fee plan pre-filled from the course template (fee_plan_template_course) — counter staff edit, never build from scratch.','Recurring engine is the existing billing cron: plan generates invoice on billing day; WhatsApp fee-due notification already wired for cron-generated invoices.','Preview card = the contract in plain words; what parent is told at the counter.','All amounts computed server-side on submit.'];
+
+S['s-enroll-done']=()=>`${hdr('')}
+<div class="body center" style="gap:10px;justify-content:center">
+  <div class="check">✓</div>
+  <p class="h2">Nikhil J enrolled</p>
+  <p class="cap">JEE Foundation · Mon·Wed·Fri 5–7 PM<br>Invoice INV-0501 · ₹5,500 created · monthly plan active</p>
+  <hr class="hr" style="width:100%">
+  <button class="btn pri" data-nav="s-record">Collect ₹5,500 now</button>
+  <button class="btn">Send payment link on WhatsApp</button>
+  <button class="btn" style="border-color:var(--line);color:var(--ink2)" data-nav="s-students">Done</button>
+</div>`;
+N['s-enroll-done']=['The counter moment: collect cash/UPI now or WhatsApp the link — both one tap from success.','Enrolment + first invoice + recurring plan committed atomically server-side; success only after all three.','Guardian gets welcome + invoice WhatsApp via existing emitters automatically.'];
+
+
+S['s-schedule']=()=>`${hdr('Schedule',null,'s-notifs')}
+<div class="body">
+  <div class="row"><span class="chip">‹ Yesterday</span><span class="chip sel">Today · Tue 12 May</span><span class="chip">Tomorrow ›</span></div>
+  <div class="row"><span class="chip" data-nav="s-schedule-week">Week view</span><span class="chip">All teachers ▾</span></div>
+  ${listRow('s-session','4:00 PM · JEE Foundation','Batch A · Anup · 18 students','<span class="chip">1 hr</span>')}
+  <div class="card row" style="border-color:var(--good)"><div class="grow"><p class="h3">5:15 PM · NEET Weekend</p><p class="cap">Batch B · Divya · 12 students · ongoing</p></div><span class="chip g">45 min</span></div>
+  ${listRow('s-session','6:30 PM · Class 10 Maths','Batch C · Anup · 9 students','<span class="chip">30 min</span>')}
+  <div class="card row" style="opacity:.6"><div class="grow"><p class="h3" style="text-decoration:line-through">7:15 PM · Spoken English</p><p class="cap">Cancelled · teacher unavailable · students notified</p></div><span class="chip r">cancelled</span></div>
+  <div class="card row"><div class="grow"><p class="h3">7:00 AM · Class 12 Physics</p><p class="cap">Batch A · Divya · completed · 14/16 present</p></div><span class="chip g">done</span></div>
+</div>${tabs('staff','s-classes')}`;
+N['s-schedule']=['NEW module — exists in neither web nor mobile today; ships to both from one API.','Day list = the LC front-desk view: time, course, batch, teacher, headcount, duration chip (30m/45m/1h — any length).','Yesterday / Today / Tomorrow one tap; ongoing session highlighted live.','Teachers see only their own sessions (TeacherAssignment); admin sees all + teacher filter.','Completed rows show attendance result — links schedule to the attendance module (same sessionKey).'];
+
+S['s-schedule-week']=()=>`${hdr('This week','s-schedule')}
+<div class="body">
+  <div class="row"><span class="chip">‹ last week</span><span class="chip sel">12 – 17 May</span><span class="chip">next ›</span></div>
+  ${listRow('s-schedule','Mon 11','6 sessions · 5 done · 1 cancelled','<span class="chip g">94% att.</span>')}
+  ${listRow('s-schedule','Tue 12 · today','6 sessions · 1 done · 1 ongoing','<span class="chip">4 left</span>')}
+  ${listRow('s-schedule','Wed 13','7 sessions','<span class="tiny">›</span>')}
+  ${listRow('s-schedule','Thu 14','5 sessions','<span class="tiny">›</span>')}
+  ${listRow('s-schedule','Fri 15','7 sessions','<span class="tiny">›</span>')}
+  ${listRow('s-schedule','Sat 16','9 sessions · peak day','<span class="tiny">›</span>')}
+</div>${tabs('staff','s-classes')}`;
+N['s-schedule-week']=['Week = day rows with load + outcome summary, not an hour grid — hour grids fail on phones.','Past days show attendance %; today shows remaining count.','Tap any day → that day’s list.'];
+
+S['s-session']=()=>`${hdr('JEE Foundation · 4:00 PM','s-schedule')}
+<div class="body">
+  <div class="card">
+    <div class="split"><span class="cap">Today · Tue 12 May</span><span class="chip">1 hr · 4:00–5:00 PM</span></div>
+    <div class="split" style="margin-top:6px"><span class="cap">Batch A · Room 2</span><span class="v">Anup Menon</span></div>
+    <div class="split"><span class="cap">Students</span><span class="v">18 enrolled</span></div>
+    <div class="split"><span class="cap">Meeting link</span><span class="v" style="color:var(--hot)">meet.google.com/xkr-… ✎</span></div>
+  </div>
+  <button class="btn pri">Send reminder on WhatsApp — 18 guardians</button>
+  <p class="tiny center">Includes time + meeting link · metered send</p>
+  <div class="row"><button class="btn sm" data-nav="s-reschedule">Reschedule</button><button class="btn sm" style="border-color:var(--bad);color:var(--bad)">Cancel class</button></div>
+  <button class="btn" data-nav="s-mark">Mark attendance</button>
+</div>`;
+N['s-session']=['Admin actions in one place: remind (WhatsApp w/ meeting link), reschedule, cancel, attendance.','Meeting link editable inline — online/hybrid LC classes are normal now.','Cancel asks confirm + auto-notifies all guardians via WhatsApp template; row stays visible struck-through.','Reminder = new class_reminder WhatsApp template through existing metered-send.','Teacher role sees remind + attendance only — no reschedule/cancel.'];
+
+S['s-reschedule']=()=>`${hdr('Reschedule','s-session')}
+<div class="body">
+  <div class="card"><p class="cap">JEE Foundation · Batch A<br>currently Tue 12 May · 4:00–5:00 PM</p></div>
+  <div class="field">New date · Wed 13 May ▾</div>
+  <div class="field">New time · 5:00 PM ▾</div>
+  <div class="row"><span class="cap">Duration</span><span class="chip">30 min</span><span class="chip">45 min</span><span class="chip sel">1 hr</span><span class="chip">custom</span></div>
+  <div class="card row" style="border-color:var(--warn)"><span class="chip y">!</span><p class="cap grow">Clash: Anup has Class 10 Maths at 5:00 PM Wed. Pick another slot or teacher.</p></div>
+  <div class="card row"><div class="grow"><p class="h3">Notify students on WhatsApp</p><p class="cap">18 guardians · new time + meeting link</p></div><span class="chip sel">On</span></div>
+  <button class="btn pri" data-nav="s-schedule">Confirm reschedule</button>
+</div>`;
+N['s-reschedule']=['This session only — recurring pattern edits stay on web (batch schedule master).','Teacher-clash check server-side before confirm — the thing paper registers can’t do.','Notify toggle default ON; sends new time + link via WhatsApp template.','Duration editable per session: 30/45/60/custom minutes.'];
+
+
+S['s-ai']=()=>`${hdr('Ask AI','s-home')}
+<div class="body">
+  <div class="card" style="align-self:flex-end;max-width:85%;background:var(--hot-bg);border-color:transparent">
+    <p class="cap" style="color:var(--ink)">How are admissions this month vs last month?</p></div>
+  <div class="card" style="max-width:92%">
+    <p class="cap" style="color:var(--ink)">May so far: <b>14 admissions</b> vs 11 in April — up 27%. JEE Foundation drives most of it (6). Walk-ins convert best (43%).</p>
+    <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px"><span class="chip" style="color:var(--hot)">Admissions report ›</span><span class="chip" style="color:var(--hot)">Funnel ›</span></div>
+  </div>
+  <div class="card" style="align-self:flex-end;max-width:85%;background:var(--hot-bg);border-color:transparent">
+    <p class="cap" style="color:var(--ink)">🎤 "Add lead Rahul Verma, class three, phone nine eight…"</p></div>
+  <div class="card" style="border-color:var(--hot)">
+    <p class="lbl">Confirm action — create lead</p>
+    <div class="split"><span class="cap">Name</span><span class="v">Rahul Verma</span></div>
+    <div class="split"><span class="cap">Class</span><span class="v">Class 3</span></div>
+    <div class="split"><span class="cap">Phone</span><span class="v">+91 98•••• ••42</span></div>
+    <div class="row" style="margin-top:10px"><button class="btn sm pri" data-nav="s-lead">Confirm</button><button class="btn sm">Cancel</button></div>
+  </div>
+</div>
+<div class="sheet" style="padding:10px 16px">
+  <div class="row"><div class="field grow">Ask anything…</div><button class="bell" style="border-color:var(--hot);color:var(--hot)">🎤</button></div>
+  <p class="tiny center">142 credits · 18 free queries left today</p>
+</div>`;
+N['s-ai']=['Same gateway as web (ai.vidhyaan.com, JWT mint, citations, action cards, credit wallet) — port of useAiChat.','Mic = mobile upgrade: voice → lead capture hands-free; opens vernacular voice later.','Action card identical contract to web: AI never writes without explicit confirm.','Entry: ✦ button on staff home; morning AI digest push lands here with context.'];
+
+S['s-scan']=()=>`${hdr('Scan enquiry form','s-lead-add')}
+<div class="body">
+  <div class="img" style="height:220px"></div>
+  <p class="tiny center">Align the paper form or visiting card in the frame</p>
+  <div class="card" style="border-color:var(--hot)">
+    <p class="lbl">Extracted — check &amp; edit</p>
+    <div class="split"><span class="cap">Name</span><span class="v">Meera Krishnan</span></div>
+    <div class="split"><span class="cap">Phone</span><span class="v">+91 97•••• ••18</span></div>
+    <div class="split"><span class="cap">Class / course</span><span class="v">NEET Weekend</span></div>
+  </div>
+  <button class="btn pri" data-nav="s-lead">Create lead</button>
+</div>`;
+N['s-scan']=['Paper counter registers are reality — camera + AI extraction bridges them into the CRM.','Extraction runs via AI gateway; user always reviews before create (same confirm rule).','P3 feature; entry from quick-add screen ("scan instead").'];
+
+S['s-search']=()=>`${hdr('Search','s-home')}
+<div class="body">
+  <div class="field" style="border-color:var(--hot)"><b>🔍 nik</b></div>
+  <p class="lbl">Students</p>
+  ${listRow('s-student','Nikhil J','JEE Foundation · Batch A · enrolled 12 May','<span class="tiny">›</span>')}
+  <p class="lbl">Leads / enquiries</p>
+  ${listRow('s-lead','Nikhil Prasad','Class 8 · website · 3d ago','<span class="chip y">Follow up</span>')}
+  <p class="lbl">Invoices</p>
+  ${listRow('s-collect','INV-0501 · Nikhil J','₹5,500 · unpaid','<span class="chip y">due</span>')}
+  <p class="tiny">Searches students, leads, guardians, invoices — one box.</p>
+</div>${tabs('staff','s-home')}`;
+N['s-search']=['Global spotlight: one query across students / leads / guardians / invoice numbers.','Front-desk killer: "Nikhil who called?" answered in 5 seconds.','Server endpoint unions existing per-module search queries; grouped results, 5 per group.'];
+
+S['s-support']=()=>`${hdr('Help & support','p-profile')}
+<div class="body">
+  ${listRow('','WhatsApp Vidhyaan support','Typical reply within 2 hours','<span class="tiny">›</span>')}
+  ${listRow('','Email support','support@vidhyaan.com','<span class="tiny">›</span>')}
+  ${listRow('','FAQs & guides','Fees, attendance, login issues','<span class="tiny">›</span>')}
+  <div class="card row"><div class="grow"><p class="h3">Attach diagnostics</p><p class="cap">App version, device, last error — no personal data</p></div><span class="chip sel">On</span></div>
+  <p class="tiny center">App 1.4.2 (128) · Android 14</p>
+</div>`;
+N['s-support']=['One screen, both journeys (parent + staff).','WhatsApp-first support matches the audience.','Diagnostics toggle auto-attaches version/device/error trail — kills the "which version are you on" back-and-forth.'];
+
+S['p-delete']=()=>`${hdr('Delete account','p-profile')}
+<div class="body">
+  <div class="card" style="border-color:var(--bad)">
+    <p class="h3" style="color:var(--bad)">This is permanent</p>
+    <p class="cap">Your login, notification history and app data are deleted within 30 days. School records (fees paid, attendance) are kept by your school as required by law.</p>
+  </div>
+  <div class="card"><p class="h3">Just switching phones?</p><p class="cap">No need to delete — sign in on the new phone with the same number.</p></div>
+  <div class="field">Type DELETE to confirm</div>
+  <button class="btn" style="border-color:var(--bad);color:var(--bad)">Delete my account</button>
+</div>`;
+N['p-delete']=['Apple guideline 5.1.1(v): in-app account deletion is mandatory for App Store — web page alone fails review.','Copy separates app account vs school records (school is data controller for those).','Type-DELETE friction + 30-day window; server flow reuses /data-deletion policy.'];
+
+S['upgrade']=()=>`${hdr('')}
+<div class="body center" style="justify-content:center;gap:14px">
+  <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTMgNDgxIiB3aWR0aD0iNTEzIiBoZWlnaHQ9IjQ4MSIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJWaWRoeWFhbiI+PHBhdGggZmlsbD0iIzAwN0FGRiIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMjM3LjUgMS4wTDI3My4wIDAuNUwyNzQuMCAxLjVMMjg0LjAgMS41TDI4NS4wIDIuNUwyOTIuMCAyLjVMMjkzLjAgMy41TDMwNC4wIDQuNUwzMDUuMCA1LjVMMzA5LjAgNS41TDMxMC4wIDYuNUwzMTMuMCA2LjVMMzE0LjAgNy41TDMxNy4wIDcuNUwzMTguMCA4LjVMMzI1LjAgOS41TDMyNi4wIDEwLjVMMzI4LjAgMTAuNUwzMzIuMCAxMi41TDMzOC4wIDEzLjVMMzQxLjAgMTUuNUwzNDYuMCAxNi41TDM0OS4wIDE4LjVMMzUxLjAgMTguNUwzNTQuMCAyMC41TDM1Ni4wIDIwLjVMMzYxLjAgMjMuNUwzNjMuMCAyMy41TDM3Ny4wIDMwLjVMMzc5LjAgMzIuNUwzODQuMCAzNC41TDM4Ni4wIDM2LjVMMzg5LjAgMzcuNUwzOTEuMCAzOS41TDM5NC4wIDQwLjVMMzk2LjAgNDIuNUw0MDAuMCA0NC41TDQwMy4wIDQ3LjVMNDA0LjAgNDcuNUw0MTAuMCA1Mi41TDQxMS4wIDUyLjVMNDIwLjAgNjAuNUw0MjEuMCA2MC41TDQyOC4wIDY3LjVMNDI5LjAgNjcuNUw0NDMuNSA4Mi4wTDQ0My41IDgzLjBMNDUwLjUgOTAuMEw0NTAuNSA5MS4wTDQ1NS41IDk2LjBMNDU1LjUgOTcuMEw0NjQuNSAxMDguMEw0NjQuNSAxMDkuMEw0NzIuNSAxMjAuMEw0NzYuNSAxMjguMEw0NzguNSAxMzAuMEw0OTAuNSAxNTQuMEw0OTAuNSAxNTYuMEw0OTIuNSAxNTkuMEw0OTIuNSAxNjEuMEw0OTQuNSAxNjQuMEw0OTQuNSAxNjYuMEw0OTYuNSAxNjkuMEw0OTYuNSAxNzEuMEw0OTcuNSAxNzIuMEw0OTcuNSAxNzQuMEw0OTguNSAxNzUuMEw0OTguNSAxNzcuMEw1MDAuNSAxODEuMEw1MDAuNSAxODQuMEw1MDIuNSAxODguMEw1MDIuNSAxOTEuMEw1MDMuNSAxOTIuMEw1MDMuNSAxOTUuMEw1MDQuNSAxOTYuMEw1MDQuNSAxOTkuMEw1MDUuNSAyMDAuMEw1MDUuNSAyMDMuMEw1MDYuNSAyMDQuMEw1MDcuNSAyMTQuMEw1MDguNSAyMTUuMEw1MDguNSAyMjEuMEw1MDkuNSAyMjIuMEw1MDkuNSAyMjkuMEw1MTAuNSAyMzAuMEw1MTAuNSAyNDIuMEw1MTEuNSAyNDMuMEw1MTEuNSAyNjkuMEw1MTAuNSAyNzAuMEw1MTAuNSAyODIuMEw1MDkuNSAyODMuMEw1MDkuNSAyOTAuMEw1MDguNSAyOTEuMEw1MDguNSAyOTcuMEw1MDcuNSAyOTguMEw1MDYuNSAzMDguMEw1MDUuNSAzMDkuMEw1MDQuNSAzMTcuMEw1MDMuNSAzMTguMEw1MDMuNSAzMjEuMEw1MDEuNSAzMjUuMEw1MDEuNSAzMjguMEw1MDAuNSAzMjkuMEw1MDAuNSAzMzEuMEw0OTkuNSAzMzIuMEw0OTkuNSAzMzQuMEw0OTguNSAzMzUuMEw0OTguNSAzMzcuMEw0OTcuNSAzMzguMEw0OTUuNSAzNDYuMEw0OTMuNSAzNDkuMEw0OTMuNSAzNTEuMEw0OTEuNSAzNTQuMEw0OTEuNSAzNTYuMEw0ODguNSAzNjEuMEw0ODguNSAzNjMuMEw0ODEuNSAzNzcuMEw0NzkuNSAzNzkuMEw0NzcuNSAzODQuMEw0NzUuNSAzODYuMEw0NzQuNSAzODkuMEw0NzIuNSAzOTEuMEw0NzEuNSAzOTQuMEw0NjkuNSAzOTYuMEw0NjcuNSA0MDAuMEw0NjQuNSA0MDMuMEw0NjQuNSA0MDQuMEw0NTYuNSA0MTQuMEw0NTYuNSA0MTUuMEw0NTEuNSA0MjAuMEw0NTEuNSA0MjEuMEw0NDQuNSA0MjguMEw0NDQuNSA0MjkuMEw0MjAuMCA0NTIuNUw0MTkuMCA0NTIuNUw0MDYuMCA0NjMuNUw0MDUuMCA0NjMuNUwzOTEuMCA0NzMuNUwzODguMCA0NzQuNUwzODYuMCA0NzYuNUwzODIuMCA0NzguNUwzODAuNSA0NzUuMEwzNzguNSA0NzMuMEwzNzYuNSA0NjguMEwzNzQuNSA0NjYuMEwzNzIuNSA0NjEuMEwzNzAuNSA0NTkuMEwzNjguNSA0NTQuMEwzNjYuNSA0NTIuMEwzNjUuNSA0NDkuMEwzNjkuMCA0NDYuNUwzNzIuMCA0NDUuNUwzNzQuMCA0NDMuNUwzNzcuMCA0NDIuNUwzNzkuMCA0NDAuNUwzODAuMCA0NDAuNUwzODMuMCA0MzcuNUwzODcuMCA0MzUuNUwzOTUuMCA0MjguNUwzOTYuMCA0MjguNUw0MDIuMCA0MjIuNUw0MDMuMCA0MjIuNUw0MjIuNSA0MDMuMEw0MjIuNSA0MDIuMEw0MjcuNSAzOTcuMEw0MjcuNSAzOTYuMEw0MzEuNSAzOTIuMEw0MzEuNSAzOTEuMEw0MzcuNSAzODQuMEw0MzcuNSAzODMuMEw0NDMuNSAzNzUuMEw0NDQuNSAzNzIuMEw0NDYuNSAzNzAuMEw0NDcuNSAzNjcuMEw0NDkuNSAzNjUuMEw0NTkuNSAzNDUuMEw0NTkuNSAzNDMuMEw0NjMuNSAzMzUuMEw0NjMuNSAzMzMuMEw0NjYuNSAzMjcuMEw0NjYuNSAzMjQuMEw0NjcuNSAzMjMuMEw0NjcuNSAzMjEuMEw0NjkuNSAzMTcuMEw0NjkuNSAzMTQuMEw0NzAuNSAzMTMuMEw0NzAuNSAzMTAuMEw0NzEuNSAzMDkuMEw0NzEuNSAzMDYuMEw0NzIuNSAzMDUuMEw0NzIuNSAzMDIuMEw0NzMuNSAzMDEuMEw0NzQuNSAyOTEuMEw0NzUuNSAyOTAuMEw0NzUuNSAyODQuMEw0NzYuNSAyODMuMEw0NzYuNSAyNzQuMEw0NzcuNSAyNzMuMEw0NzcuNSAyNDAuMEw0NzYuNSAyMzkuMEw0NzYuNSAyMzAuMEw0NzUuNSAyMjkuMEw0NzQuNSAyMTcuMEw0NzMuNSAyMTYuMEw0NzMuNSAyMTIuMEw0NzIuNSAyMTEuMEw0NzIuNSAyMDcuMEw0NzEuNSAyMDYuMEw0NzEuNSAyMDMuMEw0NzAuNSAyMDIuMEw0NjkuNSAxOTUuMEw0NjguNSAxOTQuMEw0NjguNSAxOTIuMEw0NjcuNSAxOTEuMEw0NjcuNSAxODkuMEw0NjYuNSAxODguMEw0NjYuNSAxODYuMEw0NjUuNSAxODUuMEw0NjMuNSAxNzcuMEw0NjEuNSAxNzQuMEw0NjEuNSAxNzIuMEw0NDYuNSAxNDIuMEw0NDQuNSAxNDAuMEw0NDQuNSAxMzkuMEw0NDIuNSAxMzcuMEw0NDIuNSAxMzYuMEw0NDAuNSAxMzQuMEw0MzYuNSAxMjcuMEw0MzAuNSAxMjAuMEw0MzAuNSAxMTkuMEw0MjEuNSAxMDkuMEw0MjEuNSAxMDguMEw0MDQuMCA5MC41TDQwMy4wIDkwLjVMMzkyLjAgODAuNUwzOTEuMCA4MC41TDM4NC4wIDc0LjVMMzgzLjAgNzQuNUwzNzUuMCA2OC41TDM3Mi4wIDY3LjVMMzcwLjAgNjUuNUwzNjcuMCA2NC41TDM2NS4wIDYyLjVMMzQ1LjAgNTIuNUwzNDMuMCA1Mi41TDMzOC4wIDQ5LjVMMzM2LjAgNDkuNUwzMzAuMCA0Ni41TDMyOC4wIDQ2LjVMMzI3LjAgNDUuNUwzMjUuMCA0NS41TDMyMS4wIDQzLjVMMzE4LjAgNDMuNUwzMTQuMCA0MS41TDMxMS4wIDQxLjVMMzEwLjAgNDAuNUwzMDcuMCA0MC41TDMwNi4wIDM5LjVMMzAyLjAgMzkuNUwzMDEuMCAzOC41TDI5OC4wIDM4LjVMMjk3LjAgMzcuNUwyOTIuMCAzNy41TDI5MS4wIDM2LjVMMjg1LjAgMzYuNUwyODQuMCAzNS41TDI3Ni4wIDM1LjVMMjc1LjAgMzQuNUwyMzYuMCAzNC41TDIzNS4wIDM1LjVMMjI3LjAgMzUuNUwyMjYuMCAzNi41TDIyMC4wIDM2LjVMMjE5LjAgMzcuNUwyMTQuMCAzNy41TDIxMy4wIDM4LjVMMjEwLjAgMzguNUwyMDkuMCAzOS41TDIwNS4wIDM5LjVMMjA0LjAgNDAuNUwxOTcuMCA0MS41TDE5My4wIDQzLjVMMTkwLjAgNDMuNUwxODkuMCA0NC41TDE4Ny4wIDQ0LjVMMTg2LjAgNDUuNUwxNzguMCA0Ny41TDE3MC4wIDUxLjVMMTY4LjAgNTEuNUwxNDYuMCA2Mi41TDE0NC4wIDY0LjVMMTM2LjAgNjguNUwxMzQuMCA3MC41TDEyNy4wIDc0LjVMMTI0LjAgNzcuNUwxMjMuMCA3Ny41TDEyMC4wIDgwLjVMMTE5LjAgODAuNUwxMTUuMCA4NC41TDExNC4wIDg0LjVMMTA5LjAgODkuNUwxMDguMCA4OS41TDg4LjUgMTA5LjBMODguNSAxMTAuMEw4My41IDExNS4wTDgzLjUgMTE2LjBMNzkuNSAxMjAuMEw3OS41IDEyMS4wTDczLjUgMTI4LjBMNzMuNSAxMjkuMEw2Ny41IDEzNy4wTDY2LjUgMTQwLjBMNjQuNSAxNDIuMEw2My41IDE0NS4wTDYxLjUgMTQ3LjBMNTEuNSAxNjcuMEw1MS41IDE2OS4wTDQ3LjUgMTc3LjBMNDcuNSAxNzkuMEw0Ni41IDE4MC4wTDQ2LjUgMTgyLjBMNDUuNSAxODMuMEw0NS41IDE4NS4wTDQ0LjUgMTg2LjBMNDQuNSAxODguMEw0My41IDE4OS4wTDQzLjUgMTkxLjBMNDEuNSAxOTUuMEw0MS41IDE5OC4wTDM5LjUgMjAyLjBMMzkuNSAyMDYuMEwzOC41IDIwNy4wTDM3LjUgMjE1LjBMMzYuNSAyMTYuMEwzNi41IDIyMS4wTDM1LjUgMjIyLjBMMzUuNSAyMjguMEwzNC41IDIyOS4wTDM0LjUgMjM3LjBMMzMuNSAyMzguMEwzMy41IDI3NC4wTDM0LjUgMjc1LjBMMzQuNSAyODMuMEwzNS41IDI4NC4wTDM2LjUgMjk2LjBMMzcuNSAyOTcuMEwzNy41IDMwMS4wTDM4LjUgMzAyLjBMMzguNSAzMDYuMEwzOS41IDMwNy4wTDQwLjUgMzE0LjBMNDIuNSAzMTguMEw0Mi41IDMyMS4wTDQzLjUgMzIyLjBMNDMuNSAzMjQuMEw0NC41IDMyNS4wTDQ2LjUgMzMzLjBMNDguNSAzMzYuMEw0OC41IDMzOC4wTDUwLjUgMzQxLjBMNTAuNSAzNDMuMEw1NC41IDM1MC4wTDU0LjUgMzUyLjBMNTcuNSAzNTguMEw1OS41IDM2MC4wTDYyLjUgMzY3LjBMNjQuNSAzNjkuMEw2NS41IDM3Mi4wTDY3LjUgMzc0LjBMNjcuNSAzNzUuMEw2OS41IDM3Ny4wTDY5LjUgMzc4LjBMNzEuNSAzODAuMEw3NS41IDM4Ny4wTDc4LjUgMzkwLjBMNzguNSAzOTEuMEw4Ny41IDQwMS4wTDg3LjUgNDAyLjBMMTA5LjAgNDIzLjVMMTEwLjAgNDIzLjVMMTE1LjAgNDI4LjVMMTE2LjAgNDI4LjVMMTIwLjAgNDMyLjVMMTIxLjAgNDMyLjVMMTI0LjAgNDM1LjVMMTI4LjAgNDM3LjVMMTMxLjAgNDQwLjVMMTMyLjAgNDQwLjVMMTM0LjAgNDQyLjVMMTM3LjAgNDQzLjVMMTQyLjAgNDQ3LjVMMTQ3LjAgNDQ5LjVMMTQ4LjUgNDUxLjBMMTQxLjUgNDY1LjBMMTM5LjUgNDY3LjBMMTM1LjUgNDc2LjBMMTMyLjAgNDgwLjVMMTI4LjAgNDc3LjVMMTIzLjAgNDc1LjVMMTIxLjAgNDczLjVMMTIwLjAgNDczLjVMMTE4LjAgNDcxLjVMMTE3LjAgNDcxLjVMMTE1LjAgNDY5LjVMMTE0LjAgNDY5LjVMMTEyLjAgNDY3LjVMMTA1LjAgNDYzLjVMOTIuMCA0NTIuNUw5MS4wIDQ1Mi41TDg1LjAgNDQ2LjVMODQuMCA0NDYuNUw2NS41IDQyOC4wTDY1LjUgNDI3LjBMNTguNSA0MjAuMEw1OC41IDQxOS4wTDQ3LjUgNDA2LjBMNDcuNSA0MDUuMEwzNy41IDM5MS4wTDM2LjUgMzg4LjBMMzQuNSAzODYuMEwzMS41IDM3OS4wTDI5LjUgMzc3LjBMMjIuNSAzNjMuMEwyMi41IDM2MS4wTDE5LjUgMzU2LjBMMTkuNSAzNTQuMEwxNy41IDM1MS4wTDE3LjUgMzQ5LjBMMTUuNSAzNDYuMEwxNC41IDM0MS4wTDExLjUgMzM1LjBMMTEuNSAzMzIuMEwxMC41IDMzMS4wTDEwLjUgMzI5LjBMOC41IDMyNS4wTDguNSAzMjIuMEw3LjUgMzIxLjBMNy41IDMxOC4wTDYuNSAzMTcuMEw2LjUgMzE0LjBMNS41IDMxMy4wTDUuNSAzMDkuMEw0LjUgMzA4LjBMNC41IDMwNC4wTDMuNSAzMDMuMEwzLjUgMjk5LjBMMi41IDI5OC4wTDIuNSAyOTIuMEwxLjUgMjkxLjBMMS41IDI4NC4wTDAuNSAyODMuMEwwLjUgMjcyLjBMLTAuNSAyNzEuMEwtMC41IDI0Mi4wTDAuNSAyNDEuMEwwLjUgMjI5LjBMMS41IDIyOC4wTDEuNSAyMjEuMEwyLjUgMjIwLjBMMy41IDIwOS4wTDQuNSAyMDguMEw0LjUgMjA0LjBMNS41IDIwMy4wTDUuNSAxOTkuMEw2LjUgMTk4LjBMNy41IDE5MS4wTDkuNSAxODcuMEw5LjUgMTg0LjBMMTAuNSAxODMuMEwxMC41IDE4MS4wTDExLjUgMTgwLjBMMTEuNSAxNzguMEwxMi41IDE3Ny4wTDEyLjUgMTc1LjBMMTMuNSAxNzQuMEwxNS41IDE2Ni4wTDE3LjUgMTYzLjBMMTcuNSAxNjEuMEwxOS41IDE1OC4wTDE5LjUgMTU2LjBMMjMuNSAxNDkuMEwyMy41IDE0Ny4wTDI5LjUgMTM1LjBMMzEuNSAxMzMuMEwzMy41IDEyOC4wTDM1LjUgMTI2LjBMMzYuNSAxMjMuMEwzOC41IDEyMS4wTDM5LjUgMTE4LjBMNDEuNSAxMTYuMEw0My41IDExMi4wTDQ2LjUgMTA5LjBMNDYuNSAxMDguMEw1NC41IDk4LjBMNTQuNSA5Ny4wTDU5LjUgOTIuMEw1OS41IDkxLjBMODIuMCA2Ny41TDgzLjAgNjcuNUw5MC4wIDYwLjVMOTEuMCA2MC41TDk2LjAgNTUuNUw5Ny4wIDU1LjVMMTA0LjAgNDkuNUwxMDUuMCA0OS41TDExMS4wIDQ0LjVMMTEyLjAgNDQuNUwxMTcuMCA0MC41TDEyMC4wIDM5LjVMMTI1LjAgMzUuNUwxMzAuMCAzMy41TDEzMi4wIDMxLjVMMTUwLjAgMjIuNUwxNTIuMCAyMi41TDE1Ny4wIDE5LjVMMTU5LjAgMTkuNUwxNjIuMCAxNy41TDE2Ny4wIDE2LjVMMTcwLjAgMTQuNUwxNzIuMCAxNC41TDE3My4wIDEzLjVMMTc1LjAgMTMuNUwxNzkuMCAxMS41TDE4Mi4wIDExLjVMMTg2LjAgOS41TDE4OS4wIDkuNUwxOTAuMCA4LjVMMTkzLjAgOC41TDE5NC4wIDcuNUwxOTcuMCA3LjVMMTk4LjAgNi41TDIwMS4wIDYuNUwyMDIuMCA1LjVMMjA2LjAgNS41TDIwNy4wIDQuNUwyMTIuMCA0LjVMMjEzLjAgMy41TDIxOC4wIDMuNUwyMTkuMCAyLjVMMjI2LjAgMi41TDIyNy4wIDEuNUwyMzcuNSAxLjBaTTI1MC41IDE0Mi4wTDI2MC4wIDE0MS41TDI2MS4wIDE0Mi41TDI2Ni4wIDE0Mi41TDI2Ny4wIDE0My41TDI3MC4wIDE0My41TDI3My4wIDE0NS41TDI3NS4wIDE0NS41TDI3OS4wIDE0Ny41TDI4MS4wIDE0OS41TDI4NS4wIDE1MS41TDI5Mi41IDE1OS4wTDI5Mi41IDE2MC4wTDI5Ni41IDE2NS4wTDI5OS41IDE3MS4wTDI5OS41IDE3My4wTDMwMS41IDE3Ny4wTDMwMS41IDE4MS4wTDMwMi41IDE4Mi4wTDMwMi41IDE5Ni4wTDMwMS41IDE5Ny4wTDMwMS41IDIwMS4wTDI5OC41IDIwNy4wTDI5OC41IDIwOS4wTDI5My41IDIxNi4wTDI5My41IDIxNy4wTDI4My4wIDIyNy41TDI4Mi4wIDIyNy41TDI4MC4wIDIyOS41TDI3NC4wIDIzMi41TDI3Mi4wIDIzMi41TDI2OC4wIDIzNC41TDI2NS4wIDIzNC41TDI2NC4wIDIzNS41TDI0Ny4wIDIzNS41TDI0Ni4wIDIzNC41TDI0My4wIDIzNC41TDI0Mi4wIDIzMy41TDIzNy4wIDIzMi41TDIyOC4wIDIyNy41TDIxNi41IDIxNi4wTDIxNS41IDIxMy4wTDIxMi41IDIwOS4wTDIxMi41IDIwNy4wTDIwOS41IDIwMS4wTDIwOS41IDE5Ny4wTDIwOC41IDE5Ni4wTDIwOC41IDE4MS4wTDIwOS41IDE4MC4wTDIwOS41IDE3Ny4wTDIxMC41IDE3Ni4wTDIxMS41IDE3MS4wTDIxNS41IDE2My4wTDIxOC41IDE2MC4wTDIxOC41IDE1OS4wTDIyNi4wIDE1MS41TDIyNy4wIDE1MS41TDIzMi4wIDE0Ny41TDIzOC4wIDE0NC41TDI0MC4wIDE0NC41TDI0MS4wIDE0My41TDI1MC41IDE0Mi4wWk0yNTIuMCAxNjEuNUwyNTEuMCAxNjIuNUwyNDguMCAxNjIuNUwyNDcuMCAxNjMuNUwyNDUuMCAxNjMuNUwyNDEuMCAxNjUuNUwyMzguMCAxNjguNUwyMzcuMCAxNjguNUwyMzIuNSAxNzQuMEwyMjkuNSAxODAuMEwyMjkuNSAxODMuMEwyMjguNSAxODQuMEwyMjguNSAxOTQuMEwyMjkuNSAxOTUuMEwyMjkuNSAxOTguMEwyMzMuNSAyMDUuMEwyNDIuMCAyMTIuNUwyNDYuMCAyMTQuNUwyNDguMCAyMTQuNUwyNDkuMCAyMTUuNUwyNjIuMCAyMTUuNUwyNzIuMCAyMTAuNUwyNzkuNSAyMDIuMEwyODAuNSAxOTguMEwyODEuNSAxOTcuMEwyODEuNSAxOTUuMEwyODIuNSAxOTQuMEwyODIuNSAxODQuMEwyODEuNSAxODMuMEwyODEuNSAxODAuMEwyNzguNSAxNzQuMEwyNzAuMCAxNjUuNUwyNjYuMCAxNjMuNUwyNjQuMCAxNjMuNUwyNjMuMCAxNjIuNUwyNjAuMCAxNjIuNUwyNTkuMCAxNjEuNUwyNTIuMCAxNjEuNVpNMTQxLjUgMTg3LjBMMTQ0LjAgMTg2LjVMMTQ1LjUgMTg4LjBMMTUyLjUgMjAzLjBMMTU0LjUgMjA1LjBMMTYwLjUgMjE4LjBMMTYyLjUgMjIwLjBMMTc3LjUgMjUwLjBMMTc5LjUgMjUyLjBMMTg1LjUgMjY1LjBMMTg3LjUgMjY3LjBMMTkzLjUgMjgwLjBMMTk1LjUgMjgyLjBMMjAyLjUgMjk3LjBMMjA0LjUgMjk5LjBMMjEwLjUgMzEyLjBMMjEyLjUgMzE0LjBMMjE4LjUgMzI3LjBMMjIwLjUgMzI5LjBMMjI3LjUgMzQ0LjBMMjI5LjUgMzQ2LjBMMjM1LjUgMzU5LjBMMjM3LjUgMzYxLjBMMjQzLjUgMzc0LjBMMjQ1LjUgMzc2LjBMMjUyLjUgMzkxLjBMMjU0LjUgMzkzLjBMMjU2LjAgMzk2LjVMMjU3LjUgMzk1LjBMMjYyLjUgMzg0LjBMMjY0LjUgMzgyLjBMMjcwLjUgMzY5LjBMMjcyLjUgMzY3LjBMMjc4LjUgMzU0LjBMMjgwLjUgMzUyLjBMMjk1LjUgMzIyLjBMMjk3LjUgMzIwLjBMMzAzLjUgMzA3LjBMMzA1LjUgMzA1LjBMMzIwLjUgMjc1LjBMMzIyLjUgMjczLjBMMzI4LjUgMjYwLjBMMzMxLjUgMjU2LjBMMzMxLjAgMjU0LjVMMzMwLjAgMjU0LjVMMzI4LjAgMjUyLjVMMzI3LjAgMjUyLjVMMzI1LjAgMjUwLjVMMzI0LjAgMjUwLjVMMzIyLjAgMjQ4LjVMMzIxLjAgMjQ4LjVMMzE5LjAgMjQ2LjVMMzE4LjAgMjQ2LjVMMzE2LjAgMjQ0LjVMMzE1LjAgMjQ0LjVMMzEzLjAgMjQyLjVMMzA2LjAgMjM4LjVMMzAxLjUgMjM0LjBMMzAwLjUgMjMyLjBMMzAwLjUgMjI1LjBMMzA0LjUgMjE4LjBMMzA4LjAgMjE0LjVMMzEwLjAgMjE0LjVMMzExLjAgMjEzLjVMMzE3LjAgMjEzLjVMMzIxLjAgMjE1LjVMMzQ0LjAgMjMxLjVMMzY4LjAgMTg2LjVMMzcwLjAgMTg2LjVMMzg0LjAgMTkzLjVMMzg2LjAgMTk1LjVMMzkzLjAgMTk4LjVMMzk0LjUgMjAwLjBMMzc5LjUgMjMwLjBMMzc3LjUgMjMyLjBMMzcxLjUgMjQ1LjBMMzY5LjUgMjQ3LjBMMzcwLjAgMjQ4LjVMMzcxLjAgMjQ4LjVMMzczLjAgMjUwLjVMMzc0LjAgMjUwLjVMMzc2LjAgMjUyLjVMMzc3LjAgMjUyLjVMMzc5LjAgMjU0LjVMMzgwLjAgMjU0LjVMMzgyLjAgMjU2LjVMMzg5LjAgMjYwLjVMMzkyLjUgMjY0LjBMMzk0LjUgMjY4LjBMMzk0LjUgMjc0LjBMMzkzLjUgMjc2LjBMMzg2LjAgMjg0LjVMMzg0LjAgMjg1LjVMMzc4LjAgMjg1LjVMMzc0LjAgMjgzLjVMMzYwLjAgMjczLjVMMzU3LjAgMjcyLjVMMzU1LjUgMjc0LjBMMzQ2LjUgMjkyLjBMMzQ0LjUgMjk0LjBMMzM4LjUgMzA3LjBMMzM2LjUgMzA5LjBMMzI5LjUgMzI0LjBMMzI3LjUgMzI2LjBMMzIxLjUgMzM5LjBMMzE5LjUgMzQxLjBMMzEzLjUgMzU0LjBMMzExLjUgMzU2LjBMMzA0LjUgMzcxLjBMMzAyLjUgMzczLjBMMjk2LjUgMzg2LjBMMjk0LjUgMzg4LjBMMjg4LjUgNDAxLjBMMjg2LjUgNDAzLjBMMjc5LjUgNDE4LjBMMjc3LjUgNDIwLjBMMjcxLjUgNDMzLjBMMjY5LjUgNDM1LjBMMjY4LjUgNDM4LjBMMjY3LjAgNDM5LjVMMjQ1LjAgNDM5LjVMMjQyLjUgNDM2LjBMMjM1LjUgNDIxLjBMMjMzLjUgNDE5LjBMMjI3LjUgNDA2LjBMMjI1LjUgNDA0LjBMMjE5LjUgMzkxLjBMMjE3LjUgMzg5LjBMMjEwLjUgMzc0LjBMMjA4LjUgMzcyLjBMMjAyLjUgMzU5LjBMMjAwLjUgMzU3LjBMMTk0LjUgMzQ0LjBMMTkyLjUgMzQyLjBMMTg1LjUgMzI3LjBMMTgzLjUgMzI1LjBMMTc3LjUgMzEyLjBMMTc1LjUgMzEwLjBMMTY5LjUgMjk3LjBMMTY3LjUgMjk1LjBMMTYwLjUgMjgwLjBMMTU4LjUgMjc4LjBMMTUyLjUgMjY1LjBMMTUwLjUgMjYzLjBMMTQ0LjUgMjUwLjBMMTQyLjUgMjQ4LjBMMTM1LjUgMjMzLjBMMTMzLjUgMjMxLjBMMTI3LjUgMjE4LjBMMTI1LjUgMjE2LjBMMTE5LjUgMjAzLjBMMTE3LjUgMjAxLjBMMTE3LjUgMjAwLjBMMTIxLjAgMTk3LjVMMTM2LjAgMTkwLjVMMTM4LjAgMTg4LjVMMTQxLjUgMTg3LjBaIj48L3BhdGg+PC9zdmc+" alt="Vidhyaan">
+  <p class="h2">Update required</p>
+  <p class="cap">This version is no longer supported. Update to keep fees, attendance and schedules in sync.</p>
+  <button class="btn pri">Update on Play Store</button>
+</div>`;
+N['upgrade']=['Server min-version check on launch (config endpoint); below floor → this blocking screen.','Design day 1 — retrofitting force-upgrade into old builds is impossible by definition.','Soft-nudge variant (dismissible banner) for non-breaking updates.'];
+
+/* ===== admin ===== */
+S['a-pulse']=()=>`${hdr('Platform pulse')}
+<div class="body">
+  <div class="kpi">
+    ${kpi('Signups this week','9','a-approvals')}
+    ${kpi('Active orgs','214')}
+    ${kpi('MRR','₹4.6L')}
+    ${kpi('Uptime 30d','99.97%')}
+  </div>
+  <p class="lbl">Billing alerts</p>
+  ${listRow('','Renewal failed · Sunrise Academy','Growth plan · retry 2/3','<span class="chip r">failed</span>')}
+  ${listRow('','Grace period · Little Steps LC','expires in 3d','<span class="chip y">grace</span>')}
+  <p class="lbl">Pending</p>
+  ${listRow('a-approvals','4 org approvals waiting','oldest 2d','<span class="chip y">4</span>')}
+</div>${tabs('admin','a-pulse')}`;
+N['a-pulse']=['Internal tab set — visible only to platform roles.','Tiles from existing admin stats routes; alerts from billing cron data.','Purpose: chase problems before lockout, not manage the platform.'];
+
+S['a-approvals']=()=>`${hdr('Org approvals')}
+<div class="body">
+  ${listRow('a-approval','Sunrise Coaching Centre','Coaching · Kochi · 2d ago','<span class="chip y">pending</span>')}
+  ${listRow('a-approval','St. Mary’s High School','School · Pune · 1d ago','<span class="chip y">pending</span>')}
+  ${listRow('a-approval','Brainwave Learning','LC · Bengaluru · 6h ago','<span class="chip y">pending</span>')}
+</div>${tabs('admin','a-approvals')}`;
+N['a-approvals']=['Queue ordered oldest-first; push fires on new registration.','Kills approval lag — the whole point of admin-on-mobile.'];
+
+S['a-approval']=()=>`${hdr('Sunrise Coaching Centre','a-approvals')}
+<div class="body">
+  <div class="card">
+    <p class="lbl">Registration</p>
+    <div class="split"><span class="cap">Type</span><span class="v">Coaching centre</span></div>
+    <div class="split"><span class="cap">City</span><span class="v">Kochi, KL</span></div>
+    <div class="split"><span class="cap">Contact</span><span class="v">Anup R · +91 9•••</span></div>
+    <div class="split"><span class="cap">Requested plan</span><span class="v">Starter</span></div>
+  </div>
+  <div class="field">Note to applicant (optional)</div>
+  <div class="row"><button class="btn sm pri" data-nav="a-approvals">Approve</button><button class="btn sm" data-nav="a-approvals">Reject</button></div>
+</div>`;
+N['a-approval']=['Same approve/reject as web admin, nothing more.','Impersonation deliberately absent from mobile.'];
+
+/* ---------- notes registry / journeys ---------- */
+const J=[
+ ['Shared · login',['login','otp','twofa','no-account','picker','lock','push-prime','upgrade']],
+ ['Parent journey',['p-home','p-fees','p-invoice','p-pay','p-payfail','p-receipt','p-attend','p-events','p-event','p-notifs','p-profile','p-delete']],
+ ['Organization journey',['s-home','s-home-lc','s-collections','s-notifs','s-leads','s-lead-add','s-lead','s-classes','s-mark','s-defaulters','s-collect','s-record','s-students','s-student','s-enroll-1','s-enroll-2','s-enroll-3','s-enroll-done','s-schedule','s-schedule-week','s-session','s-reschedule','s-ai','s-scan','s-search','s-support']],
+ ['Vidhyaan admin journey',['a-pulse','a-approvals','a-approval']],
+];
+const TITLE={upgrade:'Force upgrade',login:'Login — phone',otp:'Login — OTP',twofa:'2FA challenge','no-account':'Number not registered',picker:'Workspace picker',lock:'App lock setup','push-prime':'Notification priming',
+'p-home':'Home (kid cards)','p-fees':'Fees','p-invoice':'Invoice detail','p-pay':'Pay (Razorpay)','p-payfail':'Payment failed / pending','p-receipt':'Receipt','p-attend':'Attendance calendar','p-events':'Events','p-event':'Event + RSVP','p-notifs':'Notifications','p-profile':'More / profile','p-delete':'Delete account (Apple req.)',
+'s-home':'Staff home — school','s-home-lc':'Staff home — learning centre','s-collections':'Collections (M/Q/Y)','s-notifs':'Staff notifications','s-leads':'Leads list','s-lead-add':'Quick-add lead','s-lead':'Lead detail + follow-up','s-classes':'My classes','s-mark':'Mark attendance','s-defaulters':'Fees / defaulters','s-collect':'Collect actions','s-record':'Record payment','s-students':'Student directory','s-student':'Student profile','s-enroll-1':'Enrol — student & guardian','s-enroll-2':'Enrol — course & batch','s-enroll-3':'Enrol — fee plan (recurring)','s-enroll-done':'Enrol — done + collect','s-schedule':'Schedule — today (NEW)','s-schedule-week':'Schedule — week','s-session':'Session detail + actions','s-reschedule':'Reschedule session','s-ai':'Ask AI — chat + voice','s-scan':'Scan form (AI extract)','s-search':'Global search','s-support':'Help & support',
+'a-pulse':'Platform pulse','a-approvals':'Approvals queue','a-approval':'Approval detail'};
+
+/* ---------- runtime ---------- */
+const scr=document.getElementById('screen'),rail=document.getElementById('rail'),
+      notes=document.getElementById('notes'),pathLbl=document.getElementById('pathLbl');
+let stack=['login'];
+function go(id,push=true){
+  if(!S[id])return;
+  if(push&&stack[stack.length-1]!==id)stack.push(id);
+  if(stack.length>40)stack.shift();
+  scr.innerHTML=S[id]();
+  scr.scrollTop=0;
+  pathLbl.textContent=id;
+  document.querySelectorAll('.slink').forEach(b=>b.classList.toggle('on',b.dataset.s===id));
+  notes.innerHTML=`<h2>Annotations</h2><p class="nid mono">${id} — ${TITLE[id]}</p>
+    <ul>${(N[id]||[]).map(n=>`<li>${n}</li>`).join('')}</ul>
+    <div class="legend"><b>Dashed blue</b> = tappable hotspot (toggle above phone).<br><br>
+    Branded wireframe pass (v3): Vidhyaan blue + semantic colors applied. Final typography (CircularXX) &amp; polish come in the hi-fi Figma pass. Page follows your device light/dark setting.</div>`;
+}
+rail.innerHTML=`<h1><img class="logo-sm" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTMgNDgxIiB3aWR0aD0iNTEzIiBoZWlnaHQ9IjQ4MSIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJWaWRoeWFhbiI+PHBhdGggZmlsbD0iIzAwN0FGRiIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMjM3LjUgMS4wTDI3My4wIDAuNUwyNzQuMCAxLjVMMjg0LjAgMS41TDI4NS4wIDIuNUwyOTIuMCAyLjVMMjkzLjAgMy41TDMwNC4wIDQuNUwzMDUuMCA1LjVMMzA5LjAgNS41TDMxMC4wIDYuNUwzMTMuMCA2LjVMMzE0LjAgNy41TDMxNy4wIDcuNUwzMTguMCA4LjVMMzI1LjAgOS41TDMyNi4wIDEwLjVMMzI4LjAgMTAuNUwzMzIuMCAxMi41TDMzOC4wIDEzLjVMMzQxLjAgMTUuNUwzNDYuMCAxNi41TDM0OS4wIDE4LjVMMzUxLjAgMTguNUwzNTQuMCAyMC41TDM1Ni4wIDIwLjVMMzYxLjAgMjMuNUwzNjMuMCAyMy41TDM3Ny4wIDMwLjVMMzc5LjAgMzIuNUwzODQuMCAzNC41TDM4Ni4wIDM2LjVMMzg5LjAgMzcuNUwzOTEuMCAzOS41TDM5NC4wIDQwLjVMMzk2LjAgNDIuNUw0MDAuMCA0NC41TDQwMy4wIDQ3LjVMNDA0LjAgNDcuNUw0MTAuMCA1Mi41TDQxMS4wIDUyLjVMNDIwLjAgNjAuNUw0MjEuMCA2MC41TDQyOC4wIDY3LjVMNDI5LjAgNjcuNUw0NDMuNSA4Mi4wTDQ0My41IDgzLjBMNDUwLjUgOTAuMEw0NTAuNSA5MS4wTDQ1NS41IDk2LjBMNDU1LjUgOTcuMEw0NjQuNSAxMDguMEw0NjQuNSAxMDkuMEw0NzIuNSAxMjAuMEw0NzYuNSAxMjguMEw0NzguNSAxMzAuMEw0OTAuNSAxNTQuMEw0OTAuNSAxNTYuMEw0OTIuNSAxNTkuMEw0OTIuNSAxNjEuMEw0OTQuNSAxNjQuMEw0OTQuNSAxNjYuMEw0OTYuNSAxNjkuMEw0OTYuNSAxNzEuMEw0OTcuNSAxNzIuMEw0OTcuNSAxNzQuMEw0OTguNSAxNzUuMEw0OTguNSAxNzcuMEw1MDAuNSAxODEuMEw1MDAuNSAxODQuMEw1MDIuNSAxODguMEw1MDIuNSAxOTEuMEw1MDMuNSAxOTIuMEw1MDMuNSAxOTUuMEw1MDQuNSAxOTYuMEw1MDQuNSAxOTkuMEw1MDUuNSAyMDAuMEw1MDUuNSAyMDMuMEw1MDYuNSAyMDQuMEw1MDcuNSAyMTQuMEw1MDguNSAyMTUuMEw1MDguNSAyMjEuMEw1MDkuNSAyMjIuMEw1MDkuNSAyMjkuMEw1MTAuNSAyMzAuMEw1MTAuNSAyNDIuMEw1MTEuNSAyNDMuMEw1MTEuNSAyNjkuMEw1MTAuNSAyNzAuMEw1MTAuNSAyODIuMEw1MDkuNSAyODMuMEw1MDkuNSAyOTAuMEw1MDguNSAyOTEuMEw1MDguNSAyOTcuMEw1MDcuNSAyOTguMEw1MDYuNSAzMDguMEw1MDUuNSAzMDkuMEw1MDQuNSAzMTcuMEw1MDMuNSAzMTguMEw1MDMuNSAzMjEuMEw1MDEuNSAzMjUuMEw1MDEuNSAzMjguMEw1MDAuNSAzMjkuMEw1MDAuNSAzMzEuMEw0OTkuNSAzMzIuMEw0OTkuNSAzMzQuMEw0OTguNSAzMzUuMEw0OTguNSAzMzcuMEw0OTcuNSAzMzguMEw0OTUuNSAzNDYuMEw0OTMuNSAzNDkuMEw0OTMuNSAzNTEuMEw0OTEuNSAzNTQuMEw0OTEuNSAzNTYuMEw0ODguNSAzNjEuMEw0ODguNSAzNjMuMEw0ODEuNSAzNzcuMEw0NzkuNSAzNzkuMEw0NzcuNSAzODQuMEw0NzUuNSAzODYuMEw0NzQuNSAzODkuMEw0NzIuNSAzOTEuMEw0NzEuNSAzOTQuMEw0NjkuNSAzOTYuMEw0NjcuNSA0MDAuMEw0NjQuNSA0MDMuMEw0NjQuNSA0MDQuMEw0NTYuNSA0MTQuMEw0NTYuNSA0MTUuMEw0NTEuNSA0MjAuMEw0NTEuNSA0MjEuMEw0NDQuNSA0MjguMEw0NDQuNSA0MjkuMEw0MjAuMCA0NTIuNUw0MTkuMCA0NTIuNUw0MDYuMCA0NjMuNUw0MDUuMCA0NjMuNUwzOTEuMCA0NzMuNUwzODguMCA0NzQuNUwzODYuMCA0NzYuNUwzODIuMCA0NzguNUwzODAuNSA0NzUuMEwzNzguNSA0NzMuMEwzNzYuNSA0NjguMEwzNzQuNSA0NjYuMEwzNzIuNSA0NjEuMEwzNzAuNSA0NTkuMEwzNjguNSA0NTQuMEwzNjYuNSA0NTIuMEwzNjUuNSA0NDkuMEwzNjkuMCA0NDYuNUwzNzIuMCA0NDUuNUwzNzQuMCA0NDMuNUwzNzcuMCA0NDIuNUwzNzkuMCA0NDAuNUwzODAuMCA0NDAuNUwzODMuMCA0MzcuNUwzODcuMCA0MzUuNUwzOTUuMCA0MjguNUwzOTYuMCA0MjguNUw0MDIuMCA0MjIuNUw0MDMuMCA0MjIuNUw0MjIuNSA0MDMuMEw0MjIuNSA0MDIuMEw0MjcuNSAzOTcuMEw0MjcuNSAzOTYuMEw0MzEuNSAzOTIuMEw0MzEuNSAzOTEuMEw0MzcuNSAzODQuMEw0MzcuNSAzODMuMEw0NDMuNSAzNzUuMEw0NDQuNSAzNzIuMEw0NDYuNSAzNzAuMEw0NDcuNSAzNjcuMEw0NDkuNSAzNjUuMEw0NTkuNSAzNDUuMEw0NTkuNSAzNDMuMEw0NjMuNSAzMzUuMEw0NjMuNSAzMzMuMEw0NjYuNSAzMjcuMEw0NjYuNSAzMjQuMEw0NjcuNSAzMjMuMEw0NjcuNSAzMjEuMEw0NjkuNSAzMTcuMEw0NjkuNSAzMTQuMEw0NzAuNSAzMTMuMEw0NzAuNSAzMTAuMEw0NzEuNSAzMDkuMEw0NzEuNSAzMDYuMEw0NzIuNSAzMDUuMEw0NzIuNSAzMDIuMEw0NzMuNSAzMDEuMEw0NzQuNSAyOTEuMEw0NzUuNSAyOTAuMEw0NzUuNSAyODQuMEw0NzYuNSAyODMuMEw0NzYuNSAyNzQuMEw0NzcuNSAyNzMuMEw0NzcuNSAyNDAuMEw0NzYuNSAyMzkuMEw0NzYuNSAyMzAuMEw0NzUuNSAyMjkuMEw0NzQuNSAyMTcuMEw0NzMuNSAyMTYuMEw0NzMuNSAyMTIuMEw0NzIuNSAyMTEuMEw0NzIuNSAyMDcuMEw0NzEuNSAyMDYuMEw0NzEuNSAyMDMuMEw0NzAuNSAyMDIuMEw0NjkuNSAxOTUuMEw0NjguNSAxOTQuMEw0NjguNSAxOTIuMEw0NjcuNSAxOTEuMEw0NjcuNSAxODkuMEw0NjYuNSAxODguMEw0NjYuNSAxODYuMEw0NjUuNSAxODUuMEw0NjMuNSAxNzcuMEw0NjEuNSAxNzQuMEw0NjEuNSAxNzIuMEw0NDYuNSAxNDIuMEw0NDQuNSAxNDAuMEw0NDQuNSAxMzkuMEw0NDIuNSAxMzcuMEw0NDIuNSAxMzYuMEw0NDAuNSAxMzQuMEw0MzYuNSAxMjcuMEw0MzAuNSAxMjAuMEw0MzAuNSAxMTkuMEw0MjEuNSAxMDkuMEw0MjEuNSAxMDguMEw0MDQuMCA5MC41TDQwMy4wIDkwLjVMMzkyLjAgODAuNUwzOTEuMCA4MC41TDM4NC4wIDc0LjVMMzgzLjAgNzQuNUwzNzUuMCA2OC41TDM3Mi4wIDY3LjVMMzcwLjAgNjUuNUwzNjcuMCA2NC41TDM2NS4wIDYyLjVMMzQ1LjAgNTIuNUwzNDMuMCA1Mi41TDMzOC4wIDQ5LjVMMzM2LjAgNDkuNUwzMzAuMCA0Ni41TDMyOC4wIDQ2LjVMMzI3LjAgNDUuNUwzMjUuMCA0NS41TDMyMS4wIDQzLjVMMzE4LjAgNDMuNUwzMTQuMCA0MS41TDMxMS4wIDQxLjVMMzEwLjAgNDAuNUwzMDcuMCA0MC41TDMwNi4wIDM5LjVMMzAyLjAgMzkuNUwzMDEuMCAzOC41TDI5OC4wIDM4LjVMMjk3LjAgMzcuNUwyOTIuMCAzNy41TDI5MS4wIDM2LjVMMjg1LjAgMzYuNUwyODQuMCAzNS41TDI3Ni4wIDM1LjVMMjc1LjAgMzQuNUwyMzYuMCAzNC41TDIzNS4wIDM1LjVMMjI3LjAgMzUuNUwyMjYuMCAzNi41TDIyMC4wIDM2LjVMMjE5LjAgMzcuNUwyMTQuMCAzNy41TDIxMy4wIDM4LjVMMjEwLjAgMzguNUwyMDkuMCAzOS41TDIwNS4wIDM5LjVMMjA0LjAgNDAuNUwxOTcuMCA0MS41TDE5My4wIDQzLjVMMTkwLjAgNDMuNUwxODkuMCA0NC41TDE4Ny4wIDQ0LjVMMTg2LjAgNDUuNUwxNzguMCA0Ny41TDE3MC4wIDUxLjVMMTY4LjAgNTEuNUwxNDYuMCA2Mi41TDE0NC4wIDY0LjVMMTM2LjAgNjguNUwxMzQuMCA3MC41TDEyNy4wIDc0LjVMMTI0LjAgNzcuNUwxMjMuMCA3Ny41TDEyMC4wIDgwLjVMMTE5LjAgODAuNUwxMTUuMCA4NC41TDExNC4wIDg0LjVMMTA5LjAgODkuNUwxMDguMCA4OS41TDg4LjUgMTA5LjBMODguNSAxMTAuMEw4My41IDExNS4wTDgzLjUgMTE2LjBMNzkuNSAxMjAuMEw3OS41IDEyMS4wTDczLjUgMTI4LjBMNzMuNSAxMjkuMEw2Ny41IDEzNy4wTDY2LjUgMTQwLjBMNjQuNSAxNDIuMEw2My41IDE0NS4wTDYxLjUgMTQ3LjBMNTEuNSAxNjcuMEw1MS41IDE2OS4wTDQ3LjUgMTc3LjBMNDcuNSAxNzkuMEw0Ni41IDE4MC4wTDQ2LjUgMTgyLjBMNDUuNSAxODMuMEw0NS41IDE4NS4wTDQ0LjUgMTg2LjBMNDQuNSAxODguMEw0My41IDE4OS4wTDQzLjUgMTkxLjBMNDEuNSAxOTUuMEw0MS41IDE5OC4wTDM5LjUgMjAyLjBMMzkuNSAyMDYuMEwzOC41IDIwNy4wTDM3LjUgMjE1LjBMMzYuNSAyMTYuMEwzNi41IDIyMS4wTDM1LjUgMjIyLjBMMzUuNSAyMjguMEwzNC41IDIyOS4wTDM0LjUgMjM3LjBMMzMuNSAyMzguMEwzMy41IDI3NC4wTDM0LjUgMjc1LjBMMzQuNSAyODMuMEwzNS41IDI4NC4wTDM2LjUgMjk2LjBMMzcuNSAyOTcuMEwzNy41IDMwMS4wTDM4LjUgMzAyLjBMMzguNSAzMDYuMEwzOS41IDMwNy4wTDQwLjUgMzE0LjBMNDIuNSAzMTguMEw0Mi41IDMyMS4wTDQzLjUgMzIyLjBMNDMuNSAzMjQuMEw0NC41IDMyNS4wTDQ2LjUgMzMzLjBMNDguNSAzMzYuMEw0OC41IDMzOC4wTDUwLjUgMzQxLjBMNTAuNSAzNDMuMEw1NC41IDM1MC4wTDU0LjUgMzUyLjBMNTcuNSAzNTguMEw1OS41IDM2MC4wTDYyLjUgMzY3LjBMNjQuNSAzNjkuMEw2NS41IDM3Mi4wTDY3LjUgMzc0LjBMNjcuNSAzNzUuMEw2OS41IDM3Ny4wTDY5LjUgMzc4LjBMNzEuNSAzODAuMEw3NS41IDM4Ny4wTDc4LjUgMzkwLjBMNzguNSAzOTEuMEw4Ny41IDQwMS4wTDg3LjUgNDAyLjBMMTA5LjAgNDIzLjVMMTEwLjAgNDIzLjVMMTE1LjAgNDI4LjVMMTE2LjAgNDI4LjVMMTIwLjAgNDMyLjVMMTIxLjAgNDMyLjVMMTI0LjAgNDM1LjVMMTI4LjAgNDM3LjVMMTMxLjAgNDQwLjVMMTMyLjAgNDQwLjVMMTM0LjAgNDQyLjVMMTM3LjAgNDQzLjVMMTQyLjAgNDQ3LjVMMTQ3LjAgNDQ5LjVMMTQ4LjUgNDUxLjBMMTQxLjUgNDY1LjBMMTM5LjUgNDY3LjBMMTM1LjUgNDc2LjBMMTMyLjAgNDgwLjVMMTI4LjAgNDc3LjVMMTIzLjAgNDc1LjVMMTIxLjAgNDczLjVMMTIwLjAgNDczLjVMMTE4LjAgNDcxLjVMMTE3LjAgNDcxLjVMMTE1LjAgNDY5LjVMMTE0LjAgNDY5LjVMMTEyLjAgNDY3LjVMMTA1LjAgNDYzLjVMOTIuMCA0NTIuNUw5MS4wIDQ1Mi41TDg1LjAgNDQ2LjVMODQuMCA0NDYuNUw2NS41IDQyOC4wTDY1LjUgNDI3LjBMNTguNSA0MjAuMEw1OC41IDQxOS4wTDQ3LjUgNDA2LjBMNDcuNSA0MDUuMEwzNy41IDM5MS4wTDM2LjUgMzg4LjBMMzQuNSAzODYuMEwzMS41IDM3OS4wTDI5LjUgMzc3LjBMMjIuNSAzNjMuMEwyMi41IDM2MS4wTDE5LjUgMzU2LjBMMTkuNSAzNTQuMEwxNy41IDM1MS4wTDE3LjUgMzQ5LjBMMTUuNSAzNDYuMEwxNC41IDM0MS4wTDExLjUgMzM1LjBMMTEuNSAzMzIuMEwxMC41IDMzMS4wTDEwLjUgMzI5LjBMOC41IDMyNS4wTDguNSAzMjIuMEw3LjUgMzIxLjBMNy41IDMxOC4wTDYuNSAzMTcuMEw2LjUgMzE0LjBMNS41IDMxMy4wTDUuNSAzMDkuMEw0LjUgMzA4LjBMNC41IDMwNC4wTDMuNSAzMDMuMEwzLjUgMjk5LjBMMi41IDI5OC4wTDIuNSAyOTIuMEwxLjUgMjkxLjBMMS41IDI4NC4wTDAuNSAyODMuMEwwLjUgMjcyLjBMLTAuNSAyNzEuMEwtMC41IDI0Mi4wTDAuNSAyNDEuMEwwLjUgMjI5LjBMMS41IDIyOC4wTDEuNSAyMjEuMEwyLjUgMjIwLjBMMy41IDIwOS4wTDQuNSAyMDguMEw0LjUgMjA0LjBMNS41IDIwMy4wTDUuNSAxOTkuMEw2LjUgMTk4LjBMNy41IDE5MS4wTDkuNSAxODcuMEw5LjUgMTg0LjBMMTAuNSAxODMuMEwxMC41IDE4MS4wTDExLjUgMTgwLjBMMTEuNSAxNzguMEwxMi41IDE3Ny4wTDEyLjUgMTc1LjBMMTMuNSAxNzQuMEwxNS41IDE2Ni4wTDE3LjUgMTYzLjBMMTcuNSAxNjEuMEwxOS41IDE1OC4wTDE5LjUgMTU2LjBMMjMuNSAxNDkuMEwyMy41IDE0Ny4wTDI5LjUgMTM1LjBMMzEuNSAxMzMuMEwzMy41IDEyOC4wTDM1LjUgMTI2LjBMMzYuNSAxMjMuMEwzOC41IDEyMS4wTDM5LjUgMTE4LjBMNDEuNSAxMTYuMEw0My41IDExMi4wTDQ2LjUgMTA5LjBMNDYuNSAxMDguMEw1NC41IDk4LjBMNTQuNSA5Ny4wTDU5LjUgOTIuMEw1OS41IDkxLjBMODIuMCA2Ny41TDgzLjAgNjcuNUw5MC4wIDYwLjVMOTEuMCA2MC41TDk2LjAgNTUuNUw5Ny4wIDU1LjVMMTA0LjAgNDkuNUwxMDUuMCA0OS41TDExMS4wIDQ0LjVMMTEyLjAgNDQuNUwxMTcuMCA0MC41TDEyMC4wIDM5LjVMMTI1LjAgMzUuNUwxMzAuMCAzMy41TDEzMi4wIDMxLjVMMTUwLjAgMjIuNUwxNTIuMCAyMi41TDE1Ny4wIDE5LjVMMTU5LjAgMTkuNUwxNjIuMCAxNy41TDE2Ny4wIDE2LjVMMTcwLjAgMTQuNUwxNzIuMCAxNC41TDE3My4wIDEzLjVMMTc1LjAgMTMuNUwxNzkuMCAxMS41TDE4Mi4wIDExLjVMMTg2LjAgOS41TDE4OS4wIDkuNUwxOTAuMCA4LjVMMTkzLjAgOC41TDE5NC4wIDcuNUwxOTcuMCA3LjVMMTk4LjAgNi41TDIwMS4wIDYuNUwyMDIuMCA1LjVMMjA2LjAgNS41TDIwNy4wIDQuNUwyMTIuMCA0LjVMMjEzLjAgMy41TDIxOC4wIDMuNUwyMTkuMCAyLjVMMjI2LjAgMi41TDIyNy4wIDEuNUwyMzcuNSAxLjBaTTI1MC41IDE0Mi4wTDI2MC4wIDE0MS41TDI2MS4wIDE0Mi41TDI2Ni4wIDE0Mi41TDI2Ny4wIDE0My41TDI3MC4wIDE0My41TDI3My4wIDE0NS41TDI3NS4wIDE0NS41TDI3OS4wIDE0Ny41TDI4MS4wIDE0OS41TDI4NS4wIDE1MS41TDI5Mi41IDE1OS4wTDI5Mi41IDE2MC4wTDI5Ni41IDE2NS4wTDI5OS41IDE3MS4wTDI5OS41IDE3My4wTDMwMS41IDE3Ny4wTDMwMS41IDE4MS4wTDMwMi41IDE4Mi4wTDMwMi41IDE5Ni4wTDMwMS41IDE5Ny4wTDMwMS41IDIwMS4wTDI5OC41IDIwNy4wTDI5OC41IDIwOS4wTDI5My41IDIxNi4wTDI5My41IDIxNy4wTDI4My4wIDIyNy41TDI4Mi4wIDIyNy41TDI4MC4wIDIyOS41TDI3NC4wIDIzMi41TDI3Mi4wIDIzMi41TDI2OC4wIDIzNC41TDI2NS4wIDIzNC41TDI2NC4wIDIzNS41TDI0Ny4wIDIzNS41TDI0Ni4wIDIzNC41TDI0My4wIDIzNC41TDI0Mi4wIDIzMy41TDIzNy4wIDIzMi41TDIyOC4wIDIyNy41TDIxNi41IDIxNi4wTDIxNS41IDIxMy4wTDIxMi41IDIwOS4wTDIxMi41IDIwNy4wTDIwOS41IDIwMS4wTDIwOS41IDE5Ny4wTDIwOC41IDE5Ni4wTDIwOC41IDE4MS4wTDIwOS41IDE4MC4wTDIwOS41IDE3Ny4wTDIxMC41IDE3Ni4wTDIxMS41IDE3MS4wTDIxNS41IDE2My4wTDIxOC41IDE2MC4wTDIxOC41IDE1OS4wTDIyNi4wIDE1MS41TDIyNy4wIDE1MS41TDIzMi4wIDE0Ny41TDIzOC4wIDE0NC41TDI0MC4wIDE0NC41TDI0MS4wIDE0My41TDI1MC41IDE0Mi4wWk0yNTIuMCAxNjEuNUwyNTEuMCAxNjIuNUwyNDguMCAxNjIuNUwyNDcuMCAxNjMuNUwyNDUuMCAxNjMuNUwyNDEuMCAxNjUuNUwyMzguMCAxNjguNUwyMzcuMCAxNjguNUwyMzIuNSAxNzQuMEwyMjkuNSAxODAuMEwyMjkuNSAxODMuMEwyMjguNSAxODQuMEwyMjguNSAxOTQuMEwyMjkuNSAxOTUuMEwyMjkuNSAxOTguMEwyMzMuNSAyMDUuMEwyNDIuMCAyMTIuNUwyNDYuMCAyMTQuNUwyNDguMCAyMTQuNUwyNDkuMCAyMTUuNUwyNjIuMCAyMTUuNUwyNzIuMCAyMTAuNUwyNzkuNSAyMDIuMEwyODAuNSAxOTguMEwyODEuNSAxOTcuMEwyODEuNSAxOTUuMEwyODIuNSAxOTQuMEwyODIuNSAxODQuMEwyODEuNSAxODMuMEwyODEuNSAxODAuMEwyNzguNSAxNzQuMEwyNzAuMCAxNjUuNUwyNjYuMCAxNjMuNUwyNjQuMCAxNjMuNUwyNjMuMCAxNjIuNUwyNjAuMCAxNjIuNUwyNTkuMCAxNjEuNUwyNTIuMCAxNjEuNVpNMTQxLjUgMTg3LjBMMTQ0LjAgMTg2LjVMMTQ1LjUgMTg4LjBMMTUyLjUgMjAzLjBMMTU0LjUgMjA1LjBMMTYwLjUgMjE4LjBMMTYyLjUgMjIwLjBMMTc3LjUgMjUwLjBMMTc5LjUgMjUyLjBMMTg1LjUgMjY1LjBMMTg3LjUgMjY3LjBMMTkzLjUgMjgwLjBMMTk1LjUgMjgyLjBMMjAyLjUgMjk3LjBMMjA0LjUgMjk5LjBMMjEwLjUgMzEyLjBMMjEyLjUgMzE0LjBMMjE4LjUgMzI3LjBMMjIwLjUgMzI5LjBMMjI3LjUgMzQ0LjBMMjI5LjUgMzQ2LjBMMjM1LjUgMzU5LjBMMjM3LjUgMzYxLjBMMjQzLjUgMzc0LjBMMjQ1LjUgMzc2LjBMMjUyLjUgMzkxLjBMMjU0LjUgMzkzLjBMMjU2LjAgMzk2LjVMMjU3LjUgMzk1LjBMMjYyLjUgMzg0LjBMMjY0LjUgMzgyLjBMMjcwLjUgMzY5LjBMMjcyLjUgMzY3LjBMMjc4LjUgMzU0LjBMMjgwLjUgMzUyLjBMMjk1LjUgMzIyLjBMMjk3LjUgMzIwLjBMMzAzLjUgMzA3LjBMMzA1LjUgMzA1LjBMMzIwLjUgMjc1LjBMMzIyLjUgMjczLjBMMzI4LjUgMjYwLjBMMzMxLjUgMjU2LjBMMzMxLjAgMjU0LjVMMzMwLjAgMjU0LjVMMzI4LjAgMjUyLjVMMzI3LjAgMjUyLjVMMzI1LjAgMjUwLjVMMzI0LjAgMjUwLjVMMzIyLjAgMjQ4LjVMMzIxLjAgMjQ4LjVMMzE5LjAgMjQ2LjVMMzE4LjAgMjQ2LjVMMzE2LjAgMjQ0LjVMMzE1LjAgMjQ0LjVMMzEzLjAgMjQyLjVMMzA2LjAgMjM4LjVMMzAxLjUgMjM0LjBMMzAwLjUgMjMyLjBMMzAwLjUgMjI1LjBMMzA0LjUgMjE4LjBMMzA4LjAgMjE0LjVMMzEwLjAgMjE0LjVMMzExLjAgMjEzLjVMMzE3LjAgMjEzLjVMMzIxLjAgMjE1LjVMMzQ0LjAgMjMxLjVMMzY4LjAgMTg2LjVMMzcwLjAgMTg2LjVMMzg0LjAgMTkzLjVMMzg2LjAgMTk1LjVMMzkzLjAgMTk4LjVMMzk0LjUgMjAwLjBMMzc5LjUgMjMwLjBMMzc3LjUgMjMyLjBMMzcxLjUgMjQ1LjBMMzY5LjUgMjQ3LjBMMzcwLjAgMjQ4LjVMMzcxLjAgMjQ4LjVMMzczLjAgMjUwLjVMMzc0LjAgMjUwLjVMMzc2LjAgMjUyLjVMMzc3LjAgMjUyLjVMMzc5LjAgMjU0LjVMMzgwLjAgMjU0LjVMMzgyLjAgMjU2LjVMMzg5LjAgMjYwLjVMMzkyLjUgMjY0LjBMMzk0LjUgMjY4LjBMMzk0LjUgMjc0LjBMMzkzLjUgMjc2LjBMMzg2LjAgMjg0LjVMMzg0LjAgMjg1LjVMMzc4LjAgMjg1LjVMMzc0LjAgMjgzLjVMMzYwLjAgMjczLjVMMzU3LjAgMjcyLjVMMzU1LjUgMjc0LjBMMzQ2LjUgMjkyLjBMMzQ0LjUgMjk0LjBMMzM4LjUgMzA3LjBMMzM2LjUgMzA5LjBMMzI5LjUgMzI0LjBMMzI3LjUgMzI2LjBMMzIxLjUgMzM5LjBMMzE5LjUgMzQxLjBMMzEzLjUgMzU0LjBMMzExLjUgMzU2LjBMMzA0LjUgMzcxLjBMMzAyLjUgMzczLjBMMjk2LjUgMzg2LjBMMjk0LjUgMzg4LjBMMjg4LjUgNDAxLjBMMjg2LjUgNDAzLjBMMjc5LjUgNDE4LjBMMjc3LjUgNDIwLjBMMjcxLjUgNDMzLjBMMjY5LjUgNDM1LjBMMjY4LjUgNDM4LjBMMjY3LjAgNDM5LjVMMjQ1LjAgNDM5LjVMMjQyLjUgNDM2LjBMMjM1LjUgNDIxLjBMMjMzLjUgNDE5LjBMMjI3LjUgNDA2LjBMMjI1LjUgNDA0LjBMMjE5LjUgMzkxLjBMMjE3LjUgMzg5LjBMMjEwLjUgMzc0LjBMMjA4LjUgMzcyLjBMMjAyLjUgMzU5LjBMMjAwLjUgMzU3LjBMMTk0LjUgMzQ0LjBMMTkyLjUgMzQyLjBMMTg1LjUgMzI3LjBMMTgzLjUgMzI1LjBMMTc3LjUgMzEyLjBMMTc1LjUgMzEwLjBMMTY5LjUgMjk3LjBMMTY3LjUgMjk1LjBMMTYwLjUgMjgwLjBMMTU4LjUgMjc4LjBMMTUyLjUgMjY1LjBMMTUwLjUgMjYzLjBMMTQ0LjUgMjUwLjBMMTQyLjUgMjQ4LjBMMTM1LjUgMjMzLjBMMTMzLjUgMjMxLjBMMTI3LjUgMjE4LjBMMTI1LjUgMjE2LjBMMTE5LjUgMjAzLjBMMTE3LjUgMjAxLjBMMTE3LjUgMjAwLjBMMTIxLjAgMTk3LjVMMTM2LjAgMTkwLjVMMTM4LjAgMTg4LjVMMTQxLjUgMTg3LjBaIj48L3BhdGg+PC9zdmc+" alt="">Vidhyaan Mobile</h1><p class="sub">P1 wireframes · 50 screens · tap-through</p>`+
+ J.map(([name,ids])=>`<p class="jname">${name}</p>`+ids.map(id=>
+  `<button class="slink" data-s="${id}">${TITLE[id]}</button>`).join('')).join('');
+rail.addEventListener('click',e=>{const b=e.target.closest('.slink');if(b){stack=[b.dataset.s];go(b.dataset.s,false);}});
+scr.addEventListener('click',e=>{const t=e.target.closest('[data-nav]');if(t)go(t.dataset.nav);});
+document.getElementById('backBtn').addEventListener('click',()=>{if(stack.length>1){stack.pop();go(stack[stack.length-1],false);}});
+document.getElementById('hintTgl').addEventListener('change',e=>scr.classList.toggle('hint',e.target.checked));
+go('login',false);
+</script>

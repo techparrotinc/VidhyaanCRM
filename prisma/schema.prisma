@@ -281,6 +281,8 @@ enum CustomFieldType {
 
 enum FeeFrequency {
   ONE_TIME
+  WEEKLY
+  BI_MONTHLY
   MONTHLY
   QUARTERLY
   HALF_YEARLY
@@ -702,6 +704,7 @@ model Organization {
   attendanceRecords     AttendanceRecord[]
   attendanceSessions    AttendanceSession[]
   teacherAssignments    TeacherAssignment[]
+  courseSessions        CourseSession[]
   holidays              Holiday[]
   biometricDevices      BiometricDevice[]
   biometricIdentities   BiometricIdentity[]
@@ -786,6 +789,7 @@ model User {
   teacherAssignments TeacherAssignment[]      @relation("TeacherAssignments")
   timetableSlots     TimetableSlot[]          @relation("TimetableTeacher")
   oauthAccounts      UserOAuthAccount[]
+  mobileDevices      MobileDevice[]
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -2180,23 +2184,27 @@ model StudentCustomField {
 
 /// Batch/cohort grouping (primarily Learning Centers).
 model StudentBatch {
-  id             String    @id @default(cuid())
-  orgId          String    @map("org_id")
-  branchId       String?   @map("branch_id")
-  academicYearId String?   @map("academic_year_id")
-  courseId       String?   @map("course_id") // optional link to the course this batch runs
-  name           String
-  programme      String?
-  daysOfWeek     String[]  @default([]) @map("days_of_week") // Mon..Sun
-  startTime      String?   @map("start_time") // HH:mm
-  endTime        String?   @map("end_time") // HH:mm
-  startDate      DateTime? @map("start_date")
-  endDate        DateTime? @map("end_date")
-  capacity       Int?
-  isActive       Boolean   @default(true) @map("is_active")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  deletedAt      DateTime? @map("deleted_at")
+  id                 String    @id @default(cuid())
+  orgId              String    @map("org_id")
+  branchId           String?   @map("branch_id")
+  academicYearId     String?   @map("academic_year_id")
+  courseId           String?   @map("course_id") // optional link to the course this batch runs
+  name               String
+  programme          String?
+  daysOfWeek         String[]  @default([]) @map("days_of_week") // Mon..Sun
+  startTime          String?   @map("start_time") // HH:mm
+  endTime            String?   @map("end_time") // HH:mm
+  // Explicit session length for the schedule module (30/45/60/custom). Falls
+  // back to the startTime/endTime diff, then 60, when null — see
+  // src/lib/schedule/materialize.ts effectiveDurationMin().
+  sessionDurationMin Int?      @map("session_duration_min")
+  startDate          DateTime? @map("start_date")
+  endDate            DateTime? @map("end_date")
+  capacity           Int?
+  isActive           Boolean   @default(true) @map("is_active")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
 
   organization       Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch             Branch?             @relation(fields: [branchId], references: [id])
@@ -2205,6 +2213,7 @@ model StudentBatch {
   students           Student[]
   attendanceSessions AttendanceSession[]
   teacherAssignments TeacherAssignment[]
+  courseSessions     CourseSession[]
 
   @@index([orgId])
   @@index([branchId])
@@ -2238,6 +2247,7 @@ model FeePlanTemplate {
   orgId           String    @map("org_id")
   name            String
   gradeLabel      String?   @map("grade_label")
+  courseId        String?   @map("course_id")
   institutionType String?   @map("institution_type")
   structure       Json // array of { head, amount, frequency }
   createdAt       DateTime  @default(now()) @map("created_at")
@@ -2245,9 +2255,11 @@ model FeePlanTemplate {
   deletedAt       DateTime? @map("deleted_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  course       Course?      @relation(fields: [courseId], references: [id])
   feePlans     FeePlan[]
 
   @@index([orgId])
+  @@index([courseId])
   @@map("fee_plan_templates")
   @@schema("crm")
 }
@@ -3270,6 +3282,8 @@ model Course {
   attendanceSessions AttendanceSession[]
   batches            StudentBatch[]
   teacherAssignments TeacherAssignment[]
+  feePlanTemplates   FeePlanTemplate[]
+  courseSessions     CourseSession[]
 
   @@index([orgId])
   @@map("courses")
@@ -3774,6 +3788,52 @@ model TeacherAssignment {
   @@schema("crm")
 }
 
+enum CourseSessionStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+
+  @@schema("crm")
+}
+
+/// One occurrence of a batch's recurring class. Materialized ~2 weeks ahead
+/// from StudentBatch.daysOfWeek/startTime/sessionDurationMin (see
+/// src/lib/schedule/materialize.ts), idempotent on (batchId, startsAt).
+/// One-off reschedule/cancel edits mutate this row only — they never touch
+/// the batch pattern, so the next materializer run keeps generating the
+/// untouched future occurrences.
+model CourseSession {
+  id                  String              @id @default(cuid())
+  orgId               String              @map("org_id")
+  branchId            String?             @map("branch_id")
+  academicYearId      String?             @map("academic_year_id")
+  courseId            String?             @map("course_id")
+  batchId             String              @map("batch_id")
+  teacherId           String?             @map("teacher_id") // soft reference (User) — set from TeacherAssignment at materialize time, editable via reschedule
+  startsAt            DateTime            @map("starts_at")
+  durationMin         Int                 @map("duration_min")
+  status              CourseSessionStatus @default(SCHEDULED)
+  meetingLink         String?             @map("meeting_link")
+  rescheduledFromId   String?             @map("rescheduled_from_id") // soft reference (CourseSession) — set on the new row when a reschedule creates one
+  cancelReason        String?             @map("cancel_reason")
+  attendanceSessionId String?             @map("attendance_session_id") // soft reference (AttendanceSession) — 1:1, created alongside the session
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+  deletedAt           DateTime?           @map("deleted_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  course       Course?      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  batch        StudentBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, startsAt])
+  @@index([orgId, startsAt])
+  @@index([teacherId, startsAt])
+  @@index([courseId])
+  @@map("course_sessions")
+  @@schema("crm")
+}
+
 model Holiday {
   id             String   @id @default(cuid())
   orgId          String   @map("org_id")
@@ -4007,5 +4067,31 @@ model EmailSuppression {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("email_suppressions")
+  @@schema("platform")
+}
+
+/// One row per (user, device) mobile app session. Holds the rotating
+/// refresh-token hash (raw token never stored) and the Expo push token.
+model MobileDevice {
+  id                   String    @id @default(cuid())
+  userId               String    @map("user_id")
+  deviceId             String    @map("device_id") // stable client-generated id
+  platform             String // ios | android
+  deviceName           String?   @map("device_name")
+  pushToken            String?   @map("push_token") // Expo push token
+  assignmentId         String?   @map("assignment_id") // last selected workspace
+  refreshTokenHash     String?   @map("refresh_token_hash")
+  prevRefreshTokenHash String?   @map("prev_refresh_token_hash") // reuse detection only
+  refreshExpiresAt     DateTime? @map("refresh_expires_at")
+  lastSeenAt           DateTime  @default(now()) @map("last_seen_at")
+  revokedAt            DateTime? @map("revoked_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+  @@index([deviceId])
+  @@map("mobile_devices")
   @@schema("platform")
 }

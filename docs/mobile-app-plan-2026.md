@@ -94,11 +94,12 @@ Roles reuse web roles; each role sees only its tabs.
 | Home dashboard: today's KPIs (new leads, follow-ups due, fees collected today, attendance %) | P1 | all | 4–6 stat tiles + "needs attention" list, powered by one BFF endpoint |
 | **Learning-centre home variant**: collections lead the screen — monthly / quarterly / previous-FY vs current-FY comparison (data from existing report rollups) | P1 | LC-type orgs | Institution type + role decide tile set, same BFF endpoint |
 | Staff notification centre: bell + badge on home → role-routed alert feed (lead assigned, payment received, unmarked class, low credits, follow-up due), category filters | P1 | all | Rows deep-link to objects; push taps land direct |
-| **Today's schedule / timetable**: class-course + subject + time for the day (org admin, teacher, counsellor views). **Not in web — needs new Timetable model server-side.** Parked 2026-07-12. | **P2 (parked)** | admin, teacher, counsellor | Mobile-first feature; web reuses same API later |
+| **Course schedule & sessions (NEW MODULE — web + mobile)**: daily session list (yesterday/today/tomorrow + week view), variable durations (30/45/60/custom min), ongoing-session highlight; admin actions — reschedule (teacher-clash check), cancel (auto-notify), **WhatsApp reminder with meeting link** to all guardians; teacher sees own sessions, remind + attendance only. Supersedes the parked timetable item (2026-07-14). | P2 — first item | admin, teacher, counsellor | Backend spec below §4.8; ships to web + mobile from one API |
 | Leads: list/search, quick-add (name+phone+class), one-tap **call / WhatsApp**, log follow-up, snooze | P1 | counsellor, admin | No inline table edit, no bulk ops; capture + act |
 | Follow-up push reminders | P1 | counsellor | From existing follow-up data |
 | **Attendance marking**: class/section picker → tap grid (present default) → submit; works offline, syncs later | P1 | teacher | Reuses `sessionKey` idempotency for safe re-sync |
-| Fees: defaulter list, record offline payment (cash/UPI ref), **send payment link** (WhatsApp), receipt share | P1 | accountant, admin | No invoice creation/editing; collect + remind only |
+| Fees: defaulter list, record offline payment (cash/UPI ref), **send payment link** (WhatsApp), receipt share | P1 | accountant, admin | No ad-hoc invoice creation/editing; collect + remind only (enrolment wizard below is the exception) |
+| **Enrolment wizard (LC/coaching primary flow)**: add student + guardian (live dedup) → pick course + batch (capacity shown) → fee plan pre-filled from course template, billing day, recurring monthly → first invoice created + collect now / WhatsApp payment link. Atomic server-side; recurring via existing billing cron + fee_plan_template_course | P1 | counsellor, admin (LC-type) | 3-step wizard, counter-speed; plan editing stays web |
 | Students: directory, profile, call/WhatsApp guardian | P1 | all | Read-only + contact actions |
 | Push events: lead assigned, payment received, form submitted, low credits | P1 | role-routed | Mirrors existing emitters |
 | Admissions: simplified pipeline list, move stage, **camera document capture** | P2 | counsellor | No kanban drag; stage picker + doc camera |
@@ -109,6 +110,32 @@ Roles reuse web roles; each role sees only its tabs.
 | Credits wallet balance + low-credit alert (buy → web deep link) | P2 | admin | View only; purchase stays web (avoids store IAP ambiguity) |
 | Digital form submissions review | P3 | counsellor | Approve/convert only |
 | Announcements/broadcast composer | P3 | admin | Template picker + audience count |
+
+### 3.2.1 AI on mobile
+
+Server side already exists (gateway, JWT mint, citations, action cards, credit wallet).
+
+| Feature | Phase | Notes |
+|---|---|---|
+| Ask AI chat (streaming, citations, action-confirmation cards, credits) | P2 | RN port of `useAiChat`; SSE via expo/fetch streaming |
+| AI morning digest push (role-aware daily briefing → opens chat with context) | P2 | Cron + push; no gateway change |
+| Voice input (mic → speech-to-text → AI action, e.g. hands-free lead capture) | P3 | Opens vernacular voice later |
+| Camera scan: paper enquiry form / visiting card → AI-extracted lead (review before create) | P3 | Gateway extraction endpoint needed |
+
+### 3.2.2 Ops & compliance features (cross-journey)
+
+| Feature | Phase | Why |
+|---|---|---|
+| **In-app account deletion** (type-DELETE confirm, 30-day window; app account vs school-records distinction) | P1 | Apple 5.1.1(v) — mandatory, rejection risk without it |
+| **Min-version force upgrade** (config endpoint on launch → blocking screen; soft-nudge variant) | P1 | Impossible to retrofit into shipped builds |
+| Deep-link / universal-link routing table (push taps, WhatsApp links → exact screen) | P1 | Every feature uses it; design once |
+| Global search (students / leads / guardians / invoices, grouped results) | P2 | Front-desk speed; unions existing search queries |
+| Help & support screen (WhatsApp-first + FAQs + auto-diagnostics attach) | P2 | Cuts support back-and-forth |
+| Product analytics events (PostHog/Firebase) | P1 scaffold | Funnel visibility from day 1 |
+| Push quiet hours (server-side send window) | P2 | No fee reminders at 11 PM |
+
+Consciously skipped: parent–teacher chat (moderation burden; WhatsApp exists), staff
+leave management, homework/diary module, in-app credit purchase (IAP policy risk).
 
 ### 3.3 Vidhyaan admin team (tab set inside Partner app, platform-role gated)
 
@@ -216,7 +243,33 @@ Camera/document capture → request S3 presigned PUT from server (reuse `storage
 conventions, `uploads/{orgId}/{category}/`) → direct upload. No file bytes through the
 API.
 
-### 4.8 Security checklist
+### 4.8 Course schedule & sessions module (new backend — serves web AND mobile)
+
+Requirement (2026-07-14): LCs run daily classes of varying lengths; admins must track,
+reschedule, cancel, and remind; teachers must see their day. Exists in neither surface
+today.
+
+- **Models** (`crm` schema): `CourseSession` — orgId, courseId, batchId, teacherId,
+  `startsAt`, `durationMin` (30/45/60/custom), `status`
+  (scheduled/ongoing/completed/cancelled), `meetingLink`, `rescheduledFromId`,
+  `cancelReason`. Batch carries the recurring pattern (days-of-week + time + duration);
+  a **materializer cron** rolls sessions ~2 weeks ahead (idempotent on
+  batchId+startsAt), so one-off edits (reschedule/cancel) live on the session row and
+  never fight the pattern.
+- **Attendance link**: session maps 1:1 to the attendance `sessionKey` — completed
+  sessions show marked %, "Mark attendance" jumps straight in.
+- **APIs**: `GET /schedule?date|week`, `PATCH /sessions/[id]` (reschedule — server-side
+  teacher-clash check), `POST /sessions/[id]/cancel`, `POST /sessions/[id]/remind`
+  (WhatsApp `class_reminder` template with time + meeting link via metered-send;
+  cancel/reschedule auto-notify guardians the same way).
+- **Roles**: admin full; teacher own sessions, remind + attendance only; counsellor
+  read (front-desk "when is the next JEE batch" answers).
+- **Web UI**: `/schedule` page (day list + week), same API. Mobile screens already
+  wireframed (`s-schedule`, `s-schedule-week`, `s-session`, `s-reschedule`).
+- Recurring-pattern editing (change batch timings wholesale) = web only, on the batch
+  master.
+
+### 4.9 Security checklist
 
 - Access JWT 15 min; refresh rotation + reuse detection; tokens in SecureStore/Keychain.
 - Tenant isolation: identical — everything flows through the fail-closed `$extends`

@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth'
 import { configEdge } from '@/lib/auth/config.edge'
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyMobileAccessToken } from '@/lib/mobile-auth/jwt'
 
 const { auth } = NextAuth(configEdge)
 
@@ -165,6 +166,58 @@ export default async function middleware(request: NextRequest) {
       requestHeaders.set('x-org-id', acting.orgId)
       requestHeaders.set('x-user-name', 'Vidhyaan AI (on behalf)')
       return passThrough()
+    }
+  }
+
+  // CORS for token-authenticated mobile endpoints. Native apps never send
+  // CORS preflights — this exists solely for the Expo web dev preview.
+  // Safe with '*' because these endpoints are cookie-free (Bearer only).
+  const mobileCors = (res: NextResponse) => {
+    res.headers.set('Access-Control-Allow-Origin', '*')
+    res.headers.set('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
+    res.headers.set('Access-Control-Allow-Headers', 'content-type, authorization')
+    return res
+  }
+
+  // Mobile auth endpoints enforce their own auth (OTP / refresh / Bearer).
+  if (pathname.startsWith('/api/mobile/')) {
+    if (request.method === 'OPTIONS') {
+      return mobileCors(new NextResponse(null, { status: 204 }))
+    }
+    return mobileCors(passThrough())
+  }
+
+  // Mobile app path: a valid mobile access JWT (minted by /api/mobile/v1/auth)
+  // sets the identity headers from its VERIFIED claims — the same trust model
+  // as the AI service token above. route() then applies its normal
+  // revocation/RBAC/module checks unchanged, so every existing /api/v1 route
+  // is mobile-callable with no per-route work.
+  if (pathname.startsWith('/api/v1/')) {
+    const authz = request.headers.get('authorization')
+    // Preflight for Bearer requests from the Expo web dev preview: the
+    // Authorization header itself triggers OPTIONS, which carries no authz.
+    if (
+      request.method === 'OPTIONS' &&
+      request.headers.get('access-control-request-headers')?.toLowerCase().includes('authorization')
+    ) {
+      return mobileCors(new NextResponse(null, { status: 204 }))
+    }
+    if (authz?.startsWith('Bearer ')) {
+      const claims = await verifyMobileAccessToken(authz.slice(7))
+      if (!claims) {
+        return mobileCors(
+          NextResponse.json(
+            { success: false, code: 'TOKEN_EXPIRED', error: 'invalid or expired token' },
+            { status: 401 }
+          )
+        )
+      }
+      requestHeaders.set('x-user-id', claims.userId)
+      requestHeaders.set('x-user-role', claims.role)
+      requestHeaders.set('x-org-id', claims.orgId ?? '')
+      requestHeaders.set('x-user-name', claims.name)
+      requestHeaders.set('x-active-role-assignment-id', claims.assignmentId)
+      return mobileCors(passThrough())
     }
   }
 

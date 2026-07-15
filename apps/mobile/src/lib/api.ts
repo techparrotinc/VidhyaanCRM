@@ -36,6 +36,13 @@ async function refreshAccessToken(): Promise<string | null> {
   return refreshInFlight
 }
 
+/** Valid access token for requests that bypass `api()` (e.g. file downloads). */
+export async function ensureAccessToken(): Promise<string> {
+  const token = useAuthStore.getState().accessToken ?? (await refreshAccessToken())
+  if (!token) throw new ApiError(401, 'Session expired')
+  return token
+}
+
 export async function api<T = unknown>(
   path: string,
   init: RequestInit = {}

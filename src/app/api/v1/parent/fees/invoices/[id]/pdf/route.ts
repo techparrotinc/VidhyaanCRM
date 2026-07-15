@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { requireParent, linkedStudentsWhere } from '@/lib/parent-portal'
+import { requireParentFromRequest, linkedStudentsWhere } from '@/lib/parent-portal'
 import { renderInvoicePdf } from '@/lib/pdf/invoice-pdf'
 
 /**
@@ -8,9 +8,9 @@ import { renderInvoicePdf } from '@/lib/pdf/invoice-pdf'
  * Same invoice PDF the school generates, gated on the parent's link to the
  * student (ACTIVE guardian link or contact match; revoked links block).
  */
-export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const parent = await requireParent()
+    const parent = await requireParentFromRequest(req)
     if (!parent) {
       return NextResponse.json({ success: false, error: 'Unauthorized. Parent role required.' }, { status: 401 })
     }

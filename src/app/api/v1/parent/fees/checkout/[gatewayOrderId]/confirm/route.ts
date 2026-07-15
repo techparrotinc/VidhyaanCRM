@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { requireParent } from '@/lib/parent-portal'
+import { requireParentFromRequest } from '@/lib/parent-portal'
 import { confirmCheckout, CheckoutError } from '@/lib/payments/checkout'
 
 /**
@@ -10,7 +10,7 @@ import { confirmCheckout, CheckoutError } from '@/lib/payments/checkout'
  */
 export async function POST(req: NextRequest, context: { params: Promise<{ gatewayOrderId: string }> }) {
   try {
-    const parent = await requireParent()
+    const parent = await requireParentFromRequest(req)
     if (!parent) {
       return NextResponse.json({ success: false, error: 'Unauthorized. Parent role required.' }, { status: 401 })
     }

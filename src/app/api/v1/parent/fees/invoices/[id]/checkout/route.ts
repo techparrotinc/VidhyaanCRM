@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
-import { requireParent, linkedStudentsWhere } from '@/lib/parent-portal'
+import { requireParentFromRequest, linkedStudentsWhere } from '@/lib/parent-portal'
 import { windowLimiter } from '@/lib/ratelimit'
 import { createCheckout, CheckoutError } from '@/lib/payments/checkout'
 
@@ -12,7 +12,7 @@ import { createCheckout, CheckoutError } from '@/lib/payments/checkout'
  */
 export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const parent = await requireParent()
+    const parent = await requireParentFromRequest(req)
     if (!parent) {
       return NextResponse.json({ success: false, error: 'Unauthorized. Parent role required.' }, { status: 401 })
     }

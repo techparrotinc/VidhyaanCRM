@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db/client'
-import { requireParent, linkedStudentsWhere } from '@/lib/parent-portal'
+import { requireParentFromRequest, linkedStudentsWhere } from '@/lib/parent-portal'
 import { createNotification } from '@/lib/services/notifications'
 
 const rsvpSchema = z.object({
   status: z.enum(['GOING', 'NOT_GOING'])
 })
 
-/** Parent RSVP to a published event of their kid's school. */
+/** Parent RSVP to a published event of their kid's school. Dual-mode auth. */
 export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const parent = await requireParent()
+    const parent = await requireParentFromRequest(req)
     if (!parent) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }

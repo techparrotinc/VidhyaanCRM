@@ -1,14 +1,14 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/client'
-import { requireParent, linkedStudentsWhere } from '@/lib/parent-portal'
+import { requireParentFromRequest, linkedStudentsWhere } from '@/lib/parent-portal'
 
 /**
  * Published events from every org the parent's kids belong to. The parent
- * portal events tab — no CRM auth, parent session only.
+ * portal events tab — dual-mode auth (web session or mobile Bearer JWT).
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const parent = await requireParent()
+    const parent = await requireParentFromRequest(req)
     if (!parent) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }

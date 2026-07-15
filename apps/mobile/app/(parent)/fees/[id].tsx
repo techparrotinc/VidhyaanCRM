@@ -58,7 +58,7 @@ export default function InvoiceDetail() {
             <Text className="text-sm font-semibold text-ink">
               {paid ? 'Total paid' : 'Total due'}
             </Text>
-            <Text className="text-lg font-bold text-ink">
+            <Text className={`text-lg font-bold ${paid ? 'text-good' : 'text-fees'}`}>
               ₹{(paid ? invoice.paidAmount : invoice.balance).toLocaleString('en-IN')}
             </Text>
           </View>

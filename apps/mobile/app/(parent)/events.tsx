@@ -1,6 +1,6 @@
 import { Text, View, Image, ScrollView, ActivityIndicator, Pressable } from 'react-native'
 import { router } from 'expo-router'
-import { Screen, PageTitle, Card, Chip } from '@/components/ui'
+import { Screen, GradientHeader, Card, Chip, IconCircle } from '@/components/ui'
 import { useParentEvents, type ParentEvent } from '@/lib/parent-events'
 
 function formatWhen(e: ParentEvent): string {
@@ -22,7 +22,11 @@ function EventCard({ event }: { event: ParentEvent }) {
       <Card className="mt-3">
         {event.imageUrl ? (
           <Image source={{ uri: event.imageUrl }} className="mb-3 h-28 w-full rounded-lg" resizeMode="cover" />
-        ) : null}
+        ) : (
+          <View className="mb-3 flex-row">
+            <IconCircle accent="events" size={48} />
+          </View>
+        )}
         <Text className="text-sm font-semibold text-ink">{event.title}</Text>
         <Text className="mt-0.5 text-xs text-ink-secondary">{formatWhen(event)}</Text>
         <View className="mt-2 flex-row items-center gap-2">{rsvpChip(event)}</View>
@@ -35,8 +39,15 @@ export default function Events() {
   const { data: events, isLoading, isError, refetch, isRefetching } = useParentEvents()
 
   return (
-    <Screen>
-      <PageTitle>Events</PageTitle>
+    <Screen
+      header={
+        <GradientHeader
+          title="Events"
+          subtitle={events && events.length > 0 ? `${events.length} upcoming` : undefined}
+          accent="events"
+        />
+      }
+    >
       <ScrollView showsVerticalScrollIndicator={false} className="mt-3">
         {isLoading ? (
           <View className="mt-8 items-center">

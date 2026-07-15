@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Text, View, ScrollView, ActivityIndicator, Pressable } from 'react-native'
 import { router } from 'expo-router'
-import { Screen, PageTitle, Card, Chip } from '@/components/ui'
+import { Screen, GradientHeader, Card, Chip } from '@/components/ui'
 import { useParentInvoices, OPEN_STATUSES, type ParentInvoice } from '@/lib/parent-fees'
 
 function formatDate(d: Date | string | null): string {
@@ -61,10 +61,18 @@ export default function Fees() {
   )
   const open = filtered.filter((i) => (OPEN_STATUSES as readonly string[]).includes(i.status))
   const paid = filtered.filter((i) => i.status === 'PAID')
+  const totalDue = open.reduce((sum, i) => sum + i.balance, 0)
 
   return (
-    <Screen>
-      <PageTitle>Fees</PageTitle>
+    <Screen
+      header={
+        <GradientHeader
+          title="Fees"
+          subtitle={totalDue > 0 ? `₹${totalDue.toLocaleString('en-IN')} due across ${open.length} invoice${open.length > 1 ? 's' : ''}` : 'All caught up'}
+          accent="fees"
+        />
+      }
+    >
       <ScrollView showsVerticalScrollIndicator={false} className="mt-3">
         {kidNames.length > 1 ? (
           <View className="flex-row flex-wrap gap-2">

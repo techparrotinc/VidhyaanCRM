@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Text, View, Pressable, ActivityIndicator } from 'react-native'
-import { Screen, PageTitle, Card, Chip } from '@/components/ui'
+import { Screen, GradientHeader, Card, Chip } from '@/components/ui'
 import { useAttendanceStudents, useAttendanceMonth, type AttendanceRecord } from '@/lib/parent-attendance'
 
 function currentMonth(): string {
@@ -56,9 +56,15 @@ export default function Attendance() {
   const days = buildDays(month)
 
   return (
-    <Screen>
-      <PageTitle>Attendance</PageTitle>
-
+    <Screen
+      header={
+        <GradientHeader
+          title="Attendance"
+          subtitle={data?.stats.percentage != null ? `${data.stats.percentage}% present this month` : monthLabel(month)}
+          accent="attend"
+        />
+      }
+    >
       {studentsLoading ? (
         <View className="mt-8 items-center">
           <ActivityIndicator color="#1565D8" />

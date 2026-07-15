@@ -1,6 +1,6 @@
 import { Text, View, ScrollView, ActivityIndicator, Pressable } from 'react-native'
 import { router } from 'expo-router'
-import { Screen, PageTitle, Card, Chip } from '@/components/ui'
+import { Screen, GradientHeader, Card, Chip, IconCircle } from '@/components/ui'
 import { useAuthStore } from '@/lib/auth-store'
 import { useParentHome, type ParentHomeKid } from '@/lib/parent-home'
 
@@ -25,7 +25,7 @@ function KidCard({ kid }: { kid: ParentHomeKid }) {
     <Pressable onPress={() => router.push('/(parent)/fees')} className="active:opacity-80">
       <Card className="mt-3">
         <View className="flex-row items-center gap-3">
-          <View className="h-10 w-10 rounded-full bg-brand-soft" />
+          <IconCircle accent="brand" />
           <View className="flex-1">
             <Text className="text-sm font-semibold text-ink">{kid.name}</Text>
             <Text className="text-xs text-ink-secondary">
@@ -62,10 +62,16 @@ export default function ParentHome() {
   const { data: kids, isLoading, isError, refetch, isRefetching } = useParentHome()
 
   return (
-    <Screen>
+    <Screen
+      header={
+        <GradientHeader
+          title={`Good morning, ${user?.name?.split(' ')[0] ?? 'there'}`}
+          subtitle={kids && kids.length > 0 ? `${kids.length} kid${kids.length > 1 ? 's' : ''} linked` : undefined}
+          accent="brand"
+        />
+      }
+    >
       <ScrollView showsVerticalScrollIndicator={false}>
-        <PageTitle>Good morning, {user?.name?.split(' ')[0] ?? 'there'}</PageTitle>
-
         {isLoading ? (
           <View className="mt-8 items-center">
             <ActivityIndicator color="#1565D8" />

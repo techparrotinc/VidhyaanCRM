@@ -1,5 +1,5 @@
 import { Text, Alert } from 'react-native'
-import { Screen, PageTitle, Card, Button, ListRow } from '@/components/ui'
+import { Screen, GradientHeader, Card, Button, ListRow, IconCircle } from '@/components/ui'
 import { useAuthStore } from '@/lib/auth-store'
 import { api } from '@/lib/api'
 import { router } from 'expo-router'
@@ -18,11 +18,16 @@ export default function More() {
   }
 
   return (
-    <Screen>
-      <PageTitle>More</PageTitle>
-      <Card className="mt-4">
-        <Text className="text-sm font-semibold text-ink">{user?.name}</Text>
-        <Text className="text-xs text-ink-secondary">{user?.phone}</Text>
+    <Screen header={<GradientHeader title="More" accent="brand" />}>
+      <Card className="mt-4 flex-row items-center gap-3">
+        <IconCircle accent="brand" size={44} />
+        <Text
+          className="flex-1 text-sm font-semibold text-ink"
+        >
+          {user?.name}
+          {'\n'}
+          <Text className="text-xs font-normal text-ink-secondary">{user?.phone}</Text>
+        </Text>
       </Card>
       <ListRow
         title="Delete account"

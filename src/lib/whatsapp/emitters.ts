@@ -5,7 +5,15 @@
 
 import { format } from 'date-fns'
 import { prisma } from '@/lib/db/client'
+import { sendPush } from '@/lib/push/send'
 import { notifyWhatsApp, sendTemplateNotification, staffWhatsAppAllowed, orgDisplayName, gradeValue } from './notify'
+
+/** Mobile push piggybacks on the guardian's WhatsApp phone — same fire-and-forget rule. */
+async function pushToGuardian(phone: string | null | undefined, payload: Parameters<typeof sendPush>[1]): Promise<void> {
+  if (!phone) return
+  const parent = await prisma.parent.findUnique({ where: { phone }, select: { userId: true } }).catch(() => null)
+  if (parent?.userId) void sendPush([parent.userId], payload)
+}
 
 export function formatInr(amount: unknown): string {
   const n = Number(amount)
@@ -222,6 +230,12 @@ export async function onInvoiceCreated(args: InvoiceNotifyArgs): Promise<void> {
       ref: `fee_invoice:${args.invoiceId}`
     })
   }
+
+  void pushToGuardian(args.guardianPhone, {
+    title: 'New fee due',
+    body: `${values.plan} · ${values.amount}${args.dueDate ? ` due ${values.date}` : ''} at ${schoolName}.`,
+    data: { url: '/(parent)/fees', invoiceId: args.invoiceId }
+  })
 }
 
 /** Batch invoice run → per-guardian fee notifications for active invoices. */
@@ -265,5 +279,11 @@ export async function onPaymentRecorded(args: {
       schoolName
     },
     ref: `payment_confirmation:${args.paymentId}`
+  })
+
+  void pushToGuardian(args.guardianPhone, {
+    title: 'Payment received',
+    body: `${args.plan} · payment confirmed at ${schoolName}.`,
+    data: { url: '/(parent)/fees' }
   })
 }

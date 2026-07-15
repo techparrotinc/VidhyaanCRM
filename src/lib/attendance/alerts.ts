@@ -4,6 +4,7 @@
 
 import { prisma } from '@/lib/db/client'
 import { createNotification } from '@/lib/services/notifications'
+import { sendPush } from '@/lib/push/send'
 import { sendMeteredSms, sendMeteredWhatsApp } from '@/lib/credits/metered-send'
 import { buildTemplateParameters } from '@/lib/campaign/templateParams'
 import { istDateString } from '@/lib/reports/rollup'
@@ -58,7 +59,7 @@ export async function sendAbsenceAlerts(
               ...(student.guardianPhone ? [{ phone: student.guardianPhone }] : [])
             ]
           },
-          select: { id: true }
+          select: { id: true, userId: true }
         })
         if (parent) {
           await createNotification({
@@ -70,6 +71,13 @@ export async function sendAbsenceAlerts(
             body: `${student.name} was marked absent at ${org.name} on ${displayDate}. If this is unexpected, please contact the office.`,
             data: { href: '/parent/attendance', studentId: student.id, date: dateStr }
           })
+          if (parent.userId) {
+            void sendPush([parent.userId], {
+              title: `${student.name} was marked absent`,
+              body: `Absent at ${org.name} on ${displayDate}.`,
+              data: { url: '/(parent)/attendance', studentId: student.id }
+            })
+          }
         }
       }
 

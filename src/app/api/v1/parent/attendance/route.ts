@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { requireParent, linkedStudentsWhere } from '@/lib/parent-portal'
+import { requireParentFromRequest, linkedStudentsWhere } from '@/lib/parent-portal'
 import { MONTH_RE, monthRange, dbDateToString } from '@/lib/attendance/dates'
 import { computeStats } from '@/lib/attendance/stats'
 
@@ -8,10 +8,11 @@ import { computeStats } from '@/lib/attendance/stats'
  * GET /api/v1/parent/attendance?studentId=&month=YYYY-MM
  * Without studentId: linked students that have any attendance (kid picker).
  * With studentId + month: that student's month of records + stats.
+ * Dual-mode auth (web session or mobile Bearer JWT) via requireParentFromRequest.
  */
 export async function GET(req: NextRequest) {
   try {
-    const parent = await requireParent()
+    const parent = await requireParentFromRequest(req)
     if (!parent) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized. Parent role required.' },

@@ -19,6 +19,7 @@ function isPublicRoute(pathname: string): boolean {
     pathname === '/products' ||
     pathname === '/for-schools' ||
     pathname === '/for-parents' ||
+    pathname === '/wireframes.html' || // mobile-app design prototype (team review)
     pathname === '/favicon.ico' ||
     pathname === '/icon.png' ||
     pathname === '/apple-icon.png' ||

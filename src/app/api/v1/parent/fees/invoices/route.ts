@@ -1,17 +1,18 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { requireParent, linkedStudentsWhere } from '@/lib/parent-portal'
+import { requireParentFromRequest, linkedStudentsWhere } from '@/lib/parent-portal'
 import { sumSuccessfulPayments, remainingBalance } from '@/lib/fees'
 import { getActiveGatewayConfig, isPayable } from '@/lib/payments/checkout'
 
 /**
  * GET /api/v1/parent/fees/invoices
  * Invoices for all students linked to the signed-in parent, with balance and
- * the school's online-payment policy.
+ * the school's online-payment policy. Dual-mode auth: web session cookie or
+ * mobile Bearer JWT (requireParentFromRequest) — one endpoint serves both.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const parent = await requireParent()
+    const parent = await requireParentFromRequest(req)
     if (!parent) {
       return NextResponse.json({ success: false, error: 'Unauthorized. Parent role required.' }, { status: 401 })
     }

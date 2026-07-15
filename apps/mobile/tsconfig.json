@@ -5,12 +5,6 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "@vidhyaan/shared": [
-        "../../packages/shared/src/index.ts"
-      ],
-      "@vidhyaan/shared/*": [
-        "../../packages/shared/src/*"
       ]
     }
   },
@@ -19,7 +13,6 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "../../packages/shared/src/**/*.ts",
     "nativewind-env.d.ts"
   ]
 }

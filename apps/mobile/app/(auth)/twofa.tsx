@@ -5,7 +5,7 @@ import { apiPublic } from '@/lib/api'
 import { useAuthStore } from '@/lib/auth-store'
 import { Button, Screen } from '@/components/ui'
 import { OtpInput } from '@/components/OtpInput'
-import type { TokensResponse } from '@vidhyaan/shared'
+import type { TokensResponse } from '@/shared-contract'
 
 export default function TwoFactor() {
   const { challengeToken } = useLocalSearchParams<{ challengeToken: string }>()

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import * as storage from './secure-storage'
-import type { AuthUser } from '@vidhyaan/shared'
+import type { AuthUser } from '@/shared-contract'
 
 /**
  * Auth state. Refresh token + user live in SecureStore (Keychain/Keystore);
@@ -22,12 +22,27 @@ interface AuthState {
   signOut: () => Promise<void>
 }
 
+function randomHex(bytes: number): string {
+  // globalThis.crypto exists on web; React Native lacks it — Math.random is
+  // fine here: the device id needs uniqueness, not cryptographic strength
+  // (all auth security lives in the server-issued tokens).
+  const g: any = globalThis as any
+  if (g.crypto?.getRandomValues) {
+    return Array.from(g.crypto.getRandomValues(new Uint8Array(bytes)) as Uint8Array)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+  }
+  let out = ''
+  for (let i = 0; i < bytes; i++) {
+    out += Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
+  }
+  return out
+}
+
 export async function getDeviceId(): Promise<string> {
   let id = await storage.getItem(KEY_DEVICE)
   if (!id) {
-    id = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
+    id = randomHex(16)
     await storage.setItem(KEY_DEVICE, id)
   }
   return id

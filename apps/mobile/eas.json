@@ -7,19 +7,29 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "android": { "buildType": "apk" },
-      "env": { "EXPO_PUBLIC_API_URL": "http://192.168.1.10:3000" }
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://192.168.1.10:3000"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" },
+      "android": {
+        "buildType": "apk"
+      },
       "channel": "preview",
-      "env": { "EXPO_PUBLIC_API_URL": "https://SET-YOUR-VERCEL-DOMAIN" }
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://app-dev.vidhyaan.com"
+      }
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
-      "env": { "EXPO_PUBLIC_API_URL": "https://SET-YOUR-VERCEL-DOMAIN" }
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://app-dev.vidhyaan.com"
+      }
     }
   },
   "submit": {

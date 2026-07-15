@@ -13,7 +13,11 @@
     },
     "android": {
       "package": "com.vidhyaan.app",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -32,8 +36,22 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "SET_AFTER_eas_init"
+        "projectId": "85a525e3-3fc9-45ba-8cf8-7ea0fc9c8388"
       }
-    }
+    },
+    "owner": "vimalcainadath",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/85a525e3-3fc9-45ba-8cf8-7ea0fc9c8388",
+      "checkAutomatically": "ON_ERROR_RECOVERY",
+      "fallbackToCacheTimeout": 0
+    },
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ]
   }
 }

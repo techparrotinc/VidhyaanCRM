@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { apiPublic } from '@/lib/api'
 import { useAuthStore } from '@/lib/auth-store'
 import { ListRow, Screen, PageTitle } from '@/components/ui'
-import type { Workspace, TokensResponse } from '@vidhyaan/shared'
+import type { Workspace, TokensResponse } from '@/shared-contract'
 
 export default function Picker() {
   const params = useLocalSearchParams<{ selectionToken: string; workspaces: string }>()

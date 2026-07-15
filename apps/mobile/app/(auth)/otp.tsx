@@ -5,7 +5,7 @@ import { apiPublic } from '@/lib/api'
 import { useAuthStore, getDeviceId } from '@/lib/auth-store'
 import { Button, Screen } from '@/components/ui'
 import { OtpInput } from '@/components/OtpInput'
-import type { VerifyResponse } from '@vidhyaan/shared'
+import type { VerifyResponse } from '@/shared-contract'
 
 export default function Otp() {
   const { phone } = useLocalSearchParams<{ phone: string }>()

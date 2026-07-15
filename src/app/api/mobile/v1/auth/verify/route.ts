@@ -44,8 +44,17 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Env-gated test bypass: numbers listed in MOBILE_TEST_PHONES (comma-
+  // separated) accept 123456. For QA against orgs like "test" where the
+  // number has no real SIM. Empty/unset = no bypass, prod-safe default.
+  const testPhones = (process.env.MOBILE_TEST_PHONES ?? '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)
+  const isTestBypass = testPhones.includes(user.phone) && body.code === '123456'
+
   // Verify against the canonical stored phone — same identifier OTP was sent with.
-  const valid = await verifyAndConsumeOtp(user.phone, body.code)
+  const valid = isTestBypass || (await verifyAndConsumeOtp(user.phone, body.code))
   if (!valid) {
     return NextResponse.json(
       { success: false, error: 'Incorrect or expired code' },

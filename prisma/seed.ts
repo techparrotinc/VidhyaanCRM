@@ -46,7 +46,8 @@ async function main() {
     'api_access',
     'custom_domain',
     'ai_copilot',
-    'attendance'
+    'attendance',
+    'course_schedule'
   ]
 
   const modules = await Promise.all(
@@ -156,7 +157,8 @@ async function main() {
       'forms_requests',
       'whatsapp_sms_notifications',
       'advanced_reports',
-      'attendance'
+      'attendance',
+      'course_schedule'
     ].map(slug => ({ planId: starterPlan.id, moduleSlug: slug }))
   })
 
@@ -168,7 +170,8 @@ async function main() {
       'fee_management',
       'payment_gateway',
       'whatsapp_sms_notifications',
-      'attendance'
+      'attendance',
+      'course_schedule'
     ].map(slug => ({ planId: growthPlan.id, moduleSlug: slug }))
   })
 

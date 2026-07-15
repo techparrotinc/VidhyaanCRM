@@ -2,16 +2,14 @@
 // reviews (PRD: schools flag, Vidhyaan removes).
 
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import type { ReviewStatus } from '@prisma/client'
-
-const ADMIN_ROLES = ['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN']
+import { resolveAdminUser } from '@/lib/admin-auth'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user || !ADMIN_ROLES.includes(session.user.role || '')) {
+    const admin = await resolveAdminUser(req)
+    if (!admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

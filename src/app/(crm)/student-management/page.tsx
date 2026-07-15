@@ -6,7 +6,7 @@ import { format } from 'date-fns'
 import {
   Plus, Download, Search,
   Mail, MessageCircle, Phone,
-  MoreVertical
+  MoreVertical, UserPlus
 } from 'lucide-react'
 import { useStudents } from '@/hooks/useStudents'
 import { GRADE_OPTIONS } from '@/constants/grades'
@@ -66,8 +66,10 @@ export default function StudentListingPage() {
   const { data: session } = useSession()
   const confirm = useConfirm()
   const isOrgAdmin = session?.user?.role === 'ORG_ADMIN'
+  const canInviteToPortal = ['ORG_ADMIN', 'BRANCH_ADMIN'].includes(session?.user?.role ?? '')
   const [bulkBusy, setBulkBusy] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const [inviteBusyId, setInviteBusyId] = useState<string | null>(null)
 
   const selectedYearId = useAcademicYearStore((s) => s.selectedYearId)
 
@@ -129,6 +131,37 @@ export default function StudentListingPage() {
       mutate()
       setActionMenuId(null)
     }, [mutate, confirm]
+  )
+
+  const handleInviteToPortal = useCallback(
+    async (id: string) => {
+      const student = students.find(s => s.id === id)
+      if (!student?.guardianPhone) {
+        setToastMsg('Guardian phone required to invite to portal')
+        setTimeout(() => setToastMsg(null), 3000)
+        setActionMenuId(null)
+        return
+      }
+      setActionMenuId(null)
+      setInviteBusyId(id)
+      try {
+        const res = await fetch(
+          `/api/v1/students/${id}/parent-access`,
+          { method: 'POST' }
+        )
+        const json = await res.json()
+        if (!res.ok || json.success === false) {
+          throw new Error(json.error?.message || json.error || 'Invite failed')
+        }
+        setToastMsg('Parent invited to portal')
+        mutate()
+      } catch (e: any) {
+        setToastMsg(e.message || 'Invite failed')
+      } finally {
+        setInviteBusyId(null)
+        setTimeout(() => setToastMsg(null), 3000)
+      }
+    }, [students, mutate]
   )
 
   const handleBulkDelete = useCallback(async () => {
@@ -610,7 +643,7 @@ export default function StudentListingPage() {
             />
             {/* Menu */}
             <div
-              className="fixed z-50 bg-white rounded-xl shadow-lg border border-slate-200 py-1 w-40"
+              className="fixed z-50 bg-white rounded-xl shadow-lg border border-slate-200 py-1 w-48"
               style={{
                 top: menuPosition.top,
                 left: menuPosition.left
@@ -631,6 +664,15 @@ export default function StudentListingPage() {
                 className="w-full px-4 py-2 text-sm text-left text-slate-700 hover:bg-slate-50 transition-colors">
                 Edit
               </button>
+              {canInviteToPortal && (
+                <button
+                  onClick={() => handleInviteToPortal(actionMenuId)}
+                  disabled={inviteBusyId === actionMenuId}
+                  className="w-full flex items-center gap-1.5 px-4 py-2 text-sm text-left text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50">
+                  <UserPlus className="w-3.5 h-3.5" />
+                  {inviteBusyId === actionMenuId ? 'Inviting…' : 'Invite to Portal'}
+                </button>
+              )}
               {isOrgAdmin && (
                 <button
                   onClick={() => handleDelete(actionMenuId)}

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { format } from 'date-fns'
 import { Mail, MessageCircle, Phone } from 'lucide-react'
 import { InvoiceStatusBadge, invoiceStatusConfig } from './InvoiceStatusBadge'
+import { INVOICE_TYPE_LABELS } from '@/lib/fees'
 
 export type InvoiceRow = {
   id: string
@@ -199,9 +200,9 @@ export function InvoiceTable({
                     {/* Type / Term */}
                     <td className="px-3 py-2.5 font-sans">
                       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        {inv.invoiceType}
+                        {INVOICE_TYPE_LABELS[inv.invoiceType] ?? inv.invoiceType}
                       </span>
-                      {(inv.term || inv.invoiceType === 'TERM') && (
+                      {(inv.term || (inv.invoiceType === 'TERM' && !inv.course)) && (
                         <p className="text-xs text-slate-400 mt-0.5">
                           {inv.term?.name || '—'}
                         </p>

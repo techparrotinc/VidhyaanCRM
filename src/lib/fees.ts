@@ -4,6 +4,14 @@
 
 export type InvoicePaymentStatus = 'PAID' | 'PARTIALLY_PAID' | 'UNPAID'
 
+// COURSE invoices are LC/coaching's recurring course billing — shown to
+// admins as "Recurring" rather than the raw enum name.
+export const INVOICE_TYPE_LABELS: Record<string, string> = {
+  TERM: 'Term',
+  ADHOC: 'Adhoc',
+  COURSE: 'Recurring'
+}
+
 const round2 = (n: number) => Math.round(n * 100) / 100
 
 /** Sum of SUCCESS payments against an invoice. */

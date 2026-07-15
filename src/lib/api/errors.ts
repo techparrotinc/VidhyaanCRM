@@ -68,11 +68,12 @@ export const Errors = {
       msg,
       422
     ),
-  conflict: (msg: string) =>
+  conflict: (msg: string, details?: unknown) =>
     new AppError(
       ErrorCode.CONFLICT,
       msg,
-      409
+      409,
+      details
     ),
   validation: (details: unknown) =>
     new AppError(

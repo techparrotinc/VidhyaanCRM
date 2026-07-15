@@ -14,6 +14,7 @@
     "android": {
       "package": "com.vidhyaan.app",
       "edgeToEdgeEnabled": true,
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT"
@@ -27,6 +28,15 @@
         "expo-notifications",
         {
           "defaultChannel": "default"
+        }
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow Vidhyaan to access your camera to capture admission documents."
         }
       ]
     ],

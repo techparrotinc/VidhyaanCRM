@@ -192,8 +192,10 @@ export default async function middleware(request: NextRequest) {
   // sets the identity headers from its VERIFIED claims — the same trust model
   // as the AI service token above. route() then applies its normal
   // revocation/RBAC/module checks unchanged, so every existing /api/v1 route
-  // is mobile-callable with no per-route work.
-  if (pathname.startsWith('/api/v1/')) {
+  // is mobile-callable with no per-route work. /api/admin/* is included too
+  // (platform-role JWTs, orgId claim empty) — those routes predate route()
+  // and read x-user-id/x-user-role directly rather than through it.
+  if (pathname.startsWith('/api/v1/') || pathname.startsWith('/api/admin/')) {
     const authz = request.headers.get('authorization')
     // Preflight for Bearer requests from the Expo web dev preview: the
     // Authorization header itself triggers OPTIONS, which carries no authz.

@@ -20,6 +20,11 @@ export default function AdminLayout() {
     >
       <Tabs.Screen name="pulse" options={{ title: 'Pulse', tabBarIcon: ({ focused }) => icon(focused) }} />
       <Tabs.Screen name="approvals" options={{ title: 'Approvals', tabBarIcon: ({ focused }) => icon(focused) }} />
+      {/* Pushed from Pulse, not tabs themselves. */}
+      <Tabs.Screen name="billing-alerts" options={{ href: null }} />
+      <Tabs.Screen name="templates" options={{ href: null }} />
+      <Tabs.Screen name="review-flags" options={{ href: null }} />
+      <Tabs.Screen name="announce" options={{ href: null }} />
     </Tabs>
   )
 }

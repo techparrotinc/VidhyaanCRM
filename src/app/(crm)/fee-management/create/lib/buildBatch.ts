@@ -4,7 +4,8 @@
 
 export interface BatchTermSection {
   termId: string | null
-  invoiceType: 'TERM' | 'ADHOC'
+  invoiceType: 'TERM' | 'ADHOC' | 'COURSE'
+  courseId?: string | null
   dueDate: string
   scheduleType: 'now' | 'date'
   scheduledDate: string
@@ -13,8 +14,9 @@ export interface BatchTermSection {
 
 export interface BatchInvoiceInput {
   studentId: string
-  invoiceType: 'TERM' | 'ADHOC'
+  invoiceType: 'TERM' | 'ADHOC' | 'COURSE'
   termId: string | null
+  courseId?: string | null
   items: { name: string; quantity: number; unitPrice: number }[]
   dueDate: string
   scheduledDate: string | null
@@ -34,6 +36,7 @@ export function buildBatchInvoices(
         studentId: stdId,
         invoiceType: sec.invoiceType,
         termId: sec.termId,
+        ...(sec.courseId ? { courseId: sec.courseId } : {}),
         items: sec.feeHeads.map(h => ({
           name: h.name,
           quantity: 1,

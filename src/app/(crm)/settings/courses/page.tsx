@@ -19,6 +19,8 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const FREQUENCY_LABELS: Record<string, string> = {
   ONE_TIME: 'One Time',
+  WEEKLY: 'Weekly',
+  BI_MONTHLY: 'Bi-Monthly',
   MONTHLY: 'Monthly',
   QUARTERLY: 'Quarterly',
   HALF_YEARLY: 'Half Yearly',
@@ -28,6 +30,8 @@ const FREQUENCY_LABELS: Record<string, string> = {
 
 const FREQUENCY_COLORS: Record<string, string> = {
   ONE_TIME: 'bg-slate-100 text-slate-600',
+  WEEKLY: 'bg-teal-50 text-teal-700',
+  BI_MONTHLY: 'bg-indigo-50 text-indigo-700',
   MONTHLY: 'bg-blue-50 text-blue-700',
   QUARTERLY: 'bg-purple-50 text-purple-700',
   HALF_YEARLY: 'bg-amber-50 text-amber-700',

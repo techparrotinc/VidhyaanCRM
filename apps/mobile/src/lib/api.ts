@@ -84,6 +84,34 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Multipart file upload — separate from `api()` because that helper always
+ * forces `content-type: application/json`, which breaks FormData's
+ * multipart boundary. No manual content-type here; fetch sets it.
+ */
+export async function uploadFile(args: {
+  uri: string
+  fileName: string
+  mimeType: string
+  category: string
+}): Promise<{ url: string; key: string }> {
+  const token = await ensureAccessToken()
+  const form = new FormData()
+  form.append('file', { uri: args.uri, name: args.fileName, type: args.mimeType } as any)
+  form.append('category', args.category)
+
+  const res = await fetch(`${API_URL}/api/v1/files/upload`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+    body: form
+  })
+  const json = await res.json().catch(() => null)
+  if (!res.ok || json?.success === false) {
+    throw new ApiError(res.status, json?.error ?? `Upload failed (${res.status})`)
+  }
+  return { url: json.url, key: json.key }
+}
+
 /** Unauthenticated helper for the login endpoints. */
 export async function apiPublic<T = unknown>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {

@@ -28,6 +28,8 @@ const TENANT_MODELS = [
   // boundary) via the base client.
   'AttendanceRecord', 'AttendanceSession', 'TeacherAssignment', 'Holiday',
   'BiometricDevice', 'BiometricIdentity',
+  // Course schedule & sessions (crm/course_schedule module).
+  'CourseSession',
   // Class/section master (schools) — source for class+section dropdowns.
   'SchoolClass', 'ClassSection',
   // Weekly school timetable (parent routes read via base client w/ explicit orgId).
@@ -39,7 +41,7 @@ const TENANT_MODELS = [
 
 const SOFT_DELETE_MODELS = [
   'Lead', 'Admission', 'Student', 'Invoice', 'Campaign', 'Event',
-  'PaymentGatewayConfig', 'Form'
+  'PaymentGatewayConfig', 'Form', 'CourseSession'
 ]
 
 // Models carrying a nullable branchId column. When a branch context is
@@ -50,7 +52,8 @@ const BRANCH_MODELS = [
   'Lead', 'LeadActivity', 'Admission', 'AdmissionActivity',
   'AdmissionCapacity', 'Student', 'StudentBatch', 'FeePlan', 'Invoice',
   'Payment', 'Event', 'Campaign', 'CounsellorTarget', 'DailyRollup', 'Form',
-  'AttendanceRecord', 'AttendanceSession', 'SchoolClass', 'TimetableSlot'
+  'AttendanceRecord', 'AttendanceSession', 'SchoolClass', 'TimetableSlot',
+  'CourseSession'
 ]
 
 const tenantModelSet = new Set(TENANT_MODELS.map(m => m.toLowerCase()))

@@ -12,6 +12,7 @@ import { startOfMonth, endOfMonth, parseISO } from 'date-fns'
 import { InvoiceStatus, InvoiceType } from '@prisma/client'
 import { asEnum } from '@/lib/api/query'
 import { sumLineItems, resolveScheduleStatus } from '@/lib/fees'
+import { computeNextBillingDate } from '@/lib/billing/nextBillingDate'
 
 export const GET = route({
   module: MODULES.FEE_MANAGEMENT,
@@ -260,6 +261,35 @@ export const POST = route({
               }
             }
           })
+
+          // COURSE invoices (Create Invoice → Course/Recurring mode) link to
+          // the student's CourseEnrollment so the auto-invoice cron takes
+          // over billing for the next cycle — without this, "Recurring"
+          // would only ever generate the one invoice created here.
+          if (inv.invoiceType === 'COURSE' && inv.courseId && invoice.dueDate) {
+            const course = await tx.course.findUnique({
+              where: { id: inv.courseId },
+              select: { frequency: true }
+            })
+            if (course) {
+              const nextBillingDate = computeNextBillingDate(invoice.dueDate, course.frequency)
+              await tx.courseEnrollment.upsert({
+                where: { studentId_courseId: { studentId: inv.studentId, courseId: inv.courseId } },
+                create: {
+                  orgId: user.orgId,
+                  studentId: inv.studentId,
+                  courseId: inv.courseId,
+                  startDate: invoice.dueDate,
+                  status: nextBillingDate ? 'ACTIVE' : 'COMPLETED',
+                  nextBillingDate
+                },
+                update: {
+                  status: nextBillingDate ? 'ACTIVE' : 'COMPLETED',
+                  nextBillingDate
+                }
+              })
+            }
+          }
 
           invoicesList.push({
             id: invoice.id,

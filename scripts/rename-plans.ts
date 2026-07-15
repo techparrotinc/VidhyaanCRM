@@ -34,6 +34,7 @@ const ALL_MODULES = [
   'custom_domain',
   'ai_copilot',
   'attendance',
+  'course_schedule',
 ]
 
 const PLAN_UPDATES: {

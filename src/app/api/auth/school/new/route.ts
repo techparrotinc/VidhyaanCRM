@@ -6,6 +6,7 @@ import { createDefaultCourses } from '@/lib/utils/createDefaultCourses'
 import { createDefaultAdmissionStages } from '@/lib/utils/createDefaultAdmissionStages'
 import { findOrCreateUserByPhone } from '@/lib/auth/findOrCreateUserByPhone'
 import { z } from 'zod'
+import { ENTERPRISE_MODULE_SLUGS } from '@/constants/modules'
 
 const numLike = z.union([z.string().max(20), z.number()]).transform((v) => String(v)).optional().nullable()
 
@@ -254,15 +255,7 @@ export async function POST(req: NextRequest) {
       const isSchool = mappedInstType !== 'LEARNING_CENTER'
       const coreModuleSlugs = enterprisePlan?.planModules.length
         ? enterprisePlan.planModules.map((pm) => pm.moduleSlug)
-        : [
-            'lead_management',
-            'student_management',
-            'fee_management',
-            'campaign_management',
-            'event_management',
-            'advanced_reports',
-            ...(isSchool ? ['admission_management'] : [])
-          ]
+        : ENTERPRISE_MODULE_SLUGS.filter(slug => isSchool || slug !== 'admission_management')
       const dbModules = await prisma.module.findMany({
         where: { slug: { in: coreModuleSlugs } }
       })

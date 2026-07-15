@@ -119,7 +119,7 @@ export const POST = route({
     prisma.student
       .findFirst({
         where: { id: invoice.studentId, orgId: user.orgId },
-        select: { guardianName: true, guardianPhone: true }
+        select: { name: true, guardianName: true, guardianPhone: true }
       })
       .then(async (student) => {
         if (!student) return
@@ -132,6 +132,7 @@ export const POST = route({
           paymentId: payment.id,
           guardianName: student.guardianName,
           guardianPhone: student.guardianPhone,
+          studentName: student.name,
           plan: `${invoiceItemsLabel(items)} (${formatInr(body.amount)})`
         })
       })

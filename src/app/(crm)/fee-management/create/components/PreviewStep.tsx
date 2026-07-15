@@ -38,6 +38,8 @@ interface PreviewStepProps {
   mode: 'class' | 'student'
   grade?: string
   selectedGradeLabel?: string
+  courseId?: string
+  selectedCourseLabel?: string
   student?: Student
   invoiceType: 'TERM' | 'ADHOC'
   selectedTerms: Term[]
@@ -50,6 +52,8 @@ export default function PreviewStep({
   mode,
   grade,
   selectedGradeLabel,
+  courseId,
+  selectedCourseLabel,
   student,
   invoiceType,
   selectedTerms,
@@ -58,6 +62,8 @@ export default function PreviewStep({
   onBack
 }: PreviewStepProps) {
   const resolvedGradeLabel = selectedGradeLabel || (grade ? getGradeLabel(mapGradeValue(grade)) : '')
+  const isCourseTarget = mode === 'class' && !!courseId
+  const targetDisplayLabel = isCourseTarget ? (selectedCourseLabel || '') : resolvedGradeLabel
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittingProgressText, setSubmittingProgressText] = useState('')
@@ -78,7 +84,11 @@ export default function PreviewStep({
 
   // Get active student count using the lightweight API call we modified
   const { data: studentCountData } = useSWR<{ success: boolean; data?: { count: number }; count?: number }>(
-    mode === 'class' && grade ? `/api/v1/students?gradeLabel=${encodeURIComponent(resolvedGradeLabel)}&status=ACTIVE&limit=1&countOnly=true` : null,
+    mode === 'class'
+      ? (isCourseTarget
+          ? `/api/v1/students?courseId=${encodeURIComponent(courseId!)}&status=ACTIVE&limit=1&countOnly=true`
+          : (grade ? `/api/v1/students?gradeLabel=${encodeURIComponent(resolvedGradeLabel)}&status=ACTIVE&limit=1&countOnly=true` : null))
+      : null,
     fetcher
   )
   const studentCount = mode === 'class' ? (studentCountData?.data?.count ?? studentCountData?.count ?? 0) : 1
@@ -269,14 +279,16 @@ export default function PreviewStep({
       let finalStudentIds: string[] = []
 
       if (mode === 'class') {
-        // Fetch all active students in class up to 500 limit
+        // Fetch all active students in class/course up to 500 limit
         const stdRes = await fetch(
-          `/api/v1/students?gradeLabel=${encodeURIComponent(resolvedGradeLabel)}&status=ACTIVE&limit=500`
+          isCourseTarget
+            ? `/api/v1/students?courseId=${encodeURIComponent(courseId!)}&status=ACTIVE&limit=500`
+            : `/api/v1/students?gradeLabel=${encodeURIComponent(resolvedGradeLabel)}&status=ACTIVE&limit=500`
         )
         const stdData = await stdRes.json()
         const students: Student[] = stdData.data || []
         if (students.length === 0) {
-          throw new Error(`No active students found in Grade ${resolvedGradeLabel}`)
+          throw new Error(`No active students found in ${isCourseTarget ? targetDisplayLabel : `Grade ${resolvedGradeLabel}`}`)
         }
         finalStudentIds = students.map(s => s.id)
       } else if (student) {
@@ -288,8 +300,13 @@ export default function PreviewStep({
       // Generate batch payload (pure builder — see tests/build-batch.test.ts)
       const invoices = buildBatchInvoices(
         sections.map(s => ({
-          termId: s.invoiceType === 'ADHOC' ? null : s.term.id,
-          invoiceType: s.invoiceType,
+          // LC/coaching "Recurring" sections use a synthetic term (no real
+          // Term row exists for them) — never send that id as termId. Tag
+          // these as COURSE (not TERM) and carry courseId so the batch route
+          // can link/advance the student's CourseEnrollment for auto-billing.
+          termId: s.invoiceType === 'ADHOC' || isCourseTarget ? null : s.term.id,
+          invoiceType: isCourseTarget && s.invoiceType === 'TERM' ? 'COURSE' as const : s.invoiceType,
+          courseId: isCourseTarget ? courseId : undefined,
           dueDate: s.dueDate,
           scheduleType: s.scheduleType,
           scheduledDate: s.scheduledDate,
@@ -336,7 +353,7 @@ export default function PreviewStep({
       <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 pt-2 pb-4">
         <p className="text-xs text-slate-500 font-medium truncate select-none">
           {mode === 'class'
-            ? `Grade ${grade} · ${studentCount} students · ${invoiceType === 'ADHOC' ? 'Adhoc' : `${sections.length} terms`} · ${totalInvoices} invoices total`
+            ? `${isCourseTarget ? 'Course' : 'Grade'} ${targetDisplayLabel} · ${studentCount} students · ${invoiceType === 'ADHOC' ? 'Adhoc' : (isCourseTarget ? 'Recurring' : `${sections.length} terms`)} · ${totalInvoices} invoices total`
             : `${student?.name} · ${invoiceType === 'ADHOC' ? 'Adhoc' : `${sections.length} terms`} · ${totalInvoices} invoices total`}
         </p>
       </div>
@@ -367,7 +384,7 @@ export default function PreviewStep({
                     <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
                       {section.term.name}
                     </h2>
-                    {section.invoiceType === 'TERM' && (
+                    {section.invoiceType === 'TERM' && section.term.startDate && (
                       <p className="text-xs text-slate-400 font-semibold mt-0.5">
                         {formatDate(section.term.startDate)} – {formatDate(section.term.endDate)}
                       </p>

@@ -1,9 +1,11 @@
+import { NextRequest } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { ok, created, errorResponse } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { z } from 'zod'
 import { WA_CATEGORY_VALUES, guessWaTemplateCategory } from '@/constants/whatsapp-template-categories'
+import { resolveAdminUser } from '@/lib/admin-auth'
 
 const READ_ROLES = ['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN']
 const WRITE_ROLES = ['SUPER_ADMIN', 'OPERATIONS_ADMIN']
@@ -20,11 +22,11 @@ const templateSchema = z.object({
 })
 
 /** GET — full catalog of templates approved on Vidhyaan's shared WABA. */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) throw Errors.unauthenticated()
-    if (!READ_ROLES.includes(session.user.role)) {
+    const admin = await resolveAdminUser(req)
+    if (!admin) throw Errors.unauthenticated()
+    if (!READ_ROLES.includes(admin.role)) {
       throw Errors.forbidden('Platform admin access required')
     }
 

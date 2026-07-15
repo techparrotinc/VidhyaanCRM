@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { getUptimeRobotKey } from '@/lib/platform-config'
+import { resolveAdminUser } from '@/lib/admin-auth'
 
 // Average uptime % from UptimeRobot (last 7 days) when a key is configured.
 // Fail-safe: returns null on any error/timeout so the dashboard degrades.
@@ -32,9 +32,8 @@ async function fetchUptimePct(): Promise<number | null> {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    const role = session?.user?.role
-    if (!session?.user || !['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN'].includes(role || '')) {
+    const admin = await resolveAdminUser(req)
+    if (!admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

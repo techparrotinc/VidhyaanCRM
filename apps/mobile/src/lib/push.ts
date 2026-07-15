@@ -2,6 +2,7 @@ import { Platform } from 'react-native'
 import * as Notifications from 'expo-notifications'
 import Constants from 'expo-constants'
 import { api } from './api'
+import { recordError } from './crash-reporting'
 
 /**
  * Registers this device for Expo push once per sign-in. Non-fatal by
@@ -36,5 +37,6 @@ export async function registerForPushNotifications(): Promise<void> {
     })
   } catch (err) {
     console.warn('Push registration failed (non-fatal):', err)
+    recordError(err, 'push-registration-failed')
   }
 }

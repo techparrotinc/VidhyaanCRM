@@ -5,10 +5,22 @@ import { uploadObject, UPLOAD_CATEGORIES, type UploadCategory } from '@/lib/stor
 const MAX_FILE_BYTES = 10 * 1024 * 1024 // 10MB
 const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx'])
 
+/** Predates the route() composer — reads x-org-id set by middleware's mobile
+ *  Bearer rewrite first, falling back to the NextAuth cookie session for
+ *  web (same pattern as /api/v1/notifications). */
+async function resolveOrgId(req: NextRequest): Promise<string | null> {
+  const headerOrgId = req.headers.get('x-org-id')
+  const headerUserId = req.headers.get('x-user-id')
+  if (headerOrgId && headerUserId) return headerOrgId
+  const session = await auth()
+  if (!session?.user?.id) return null
+  return session.user.orgId ?? session.user.id
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
+    const orgId = await resolveOrgId(req)
+    if (!orgId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -44,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     const body = Buffer.from(await file.arrayBuffer())
     const { url, key } = await uploadObject({
-      orgId: session.user.orgId ?? session.user.id,
+      orgId,
       fileName: file.name,
       contentType: file.type || 'application/octet-stream',
       body,

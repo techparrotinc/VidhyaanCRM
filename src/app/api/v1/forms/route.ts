@@ -7,7 +7,10 @@ import { enabledModuleSlugs } from '@/lib/forms/modules'
 import { createFormSchema, assertUniqueFieldKeys, schemaHasContactPhone } from '@/lib/forms/validation'
 
 export const GET = route({
-  roles: [ROLES.ORG_ADMIN, ROLES.BRANCH_ADMIN],
+  // Read-only metadata (name/purpose/status/counts, no schema editing) — also
+  // used by the mobile submissions-review screen (mobile-app-plan §3.2),
+  // which is counsellor-facing.
+  roles: [ROLES.ORG_ADMIN, ROLES.BRANCH_ADMIN, ROLES.COUNSELLOR],
   handler: async ({ db, user }) => {
     const forms = await db.form.findMany({
       where: { orgId: user.orgId },

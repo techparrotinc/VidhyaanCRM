@@ -8,6 +8,7 @@ import { ROLES } from '@/constants/roles'
 const feePlanSchema = z.object({
   name: z.string().min(1),
   gradeLabel: z.string().nullable().optional(),
+  courseId: z.string().nullable().optional(),
   institutionType: z.string().nullable().optional(),
   structure: z.object({
     heads: z.array(z.object({
@@ -93,6 +94,7 @@ export const PUT = route({
       data: {
         name: body.name,
         gradeLabel: body.gradeLabel !== undefined ? body.gradeLabel : undefined,
+        courseId: body.courseId !== undefined ? body.courseId : undefined,
         institutionType: body.institutionType !== undefined ? body.institutionType : undefined,
         structure: body.structure !== undefined ? (body.structure || { heads: [] }) : undefined
       }

@@ -4,10 +4,10 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { recomputeSchoolRating } from '@/lib/reviews/aggregate'
 import { createNotification } from '@/lib/services/notifications'
+import { resolveAdminUser } from '@/lib/admin-auth'
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'OPERATIONS_ADMIN']
 
@@ -21,8 +21,8 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user || !ADMIN_ROLES.includes(session.user.role || '')) {
+    const admin = await resolveAdminUser(req)
+    if (!admin || !ADMIN_ROLES.includes(admin.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

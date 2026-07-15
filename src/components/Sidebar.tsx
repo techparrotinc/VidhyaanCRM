@@ -14,6 +14,7 @@ import {
   CalendarDays,
   CalendarCheck,
   CalendarClock,
+  CalendarRange,
   BarChart2,
   UserCog,
   ShieldCheck,
@@ -139,6 +140,7 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
     { name: 'Student Management', href: '/student-management', icon: GraduationCap, module: 'student_management', section: 'Main' },
     { name: 'Fee Management', href: '/fee-management', icon: CreditCard, module: 'fee_management', section: 'Main' },
     { name: 'Attendance', href: '/attendance', icon: CalendarCheck, module: 'attendance', section: 'Main', roles: ['ORG_ADMIN', 'BRANCH_ADMIN', 'TEACHER'] },
+    { name: 'Schedule', href: '/schedule', icon: CalendarRange, module: 'course_schedule', section: 'Main', roles: ['ORG_ADMIN', 'BRANCH_ADMIN', 'TEACHER', 'COUNSELLOR', 'RECEPTIONIST'] },
     { name: 'Timetable', href: '/timetable', icon: CalendarClock, section: 'Main', roles: ['ORG_ADMIN', 'BRANCH_ADMIN', 'TEACHER'] },
 
     // Section 2: Engagement

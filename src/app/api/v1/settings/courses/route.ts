@@ -14,7 +14,7 @@ const courseSchema = z.object({
   ]).optional(),
   amount: z.number().min(0),
   frequency: z.enum([
-    'ONE_TIME', 'MONTHLY', 'QUARTERLY',
+    'ONE_TIME', 'WEEKLY', 'BI_MONTHLY', 'MONTHLY', 'QUARTERLY',
     'HALF_YEARLY', 'ANNUAL', 'CUSTOM'
   ]).default('MONTHLY'),
   billingDay: z.number().min(1).max(28).default(1),

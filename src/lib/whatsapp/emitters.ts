@@ -81,6 +81,17 @@ export async function onLeadAssigned(
       ref: `lead_assigned_staff:${lead.id}`
     })
   }
+
+  // Staff in-app/push alert — separate channel from the WhatsApp opt-in
+  // above (mobile-app-plan §4.4: push events are role-routed, not gated by
+  // the WhatsApp preference toggle).
+  if (counsellor.id) {
+    void sendPush([counsellor.id], {
+      title: 'New lead assigned',
+      body: `${lead.parentName}${lead.kidName ? ` (${lead.kidName})` : ''} — ${grade}`,
+      data: { url: '/(org)/leads' }
+    })
+  }
 }
 
 /** Lead marked not interested / closed → polite closure to the parent. */
@@ -261,11 +272,27 @@ export async function notifyBatchInvoices(orgId: string, invoiceIds: string[]): 
 }
 
 /** Payment recorded → confirmation to the guardian. */
+/** Org staff who should hear about money moving — same role set as the fees tab. */
+async function financeStaffIds(orgId: string): Promise<string[]> {
+  const staff = await prisma.user.findMany({
+    where: {
+      orgId,
+      deletedAt: null,
+      status: 'ACTIVE',
+      roleAssignments: { some: { role: { in: ['ORG_ADMIN', 'BRANCH_ADMIN', 'ACCOUNTANT'] }, status: 'ACTIVE' } }
+    },
+    select: { id: true },
+    take: 20
+  })
+  return staff.map((s) => s.id)
+}
+
 export async function onPaymentRecorded(args: {
   orgId: string
   paymentId: string
   guardianName?: string | null
   guardianPhone?: string | null
+  studentName?: string | null
   plan: string
 }): Promise<void> {
   const schoolName = await orgDisplayName(args.orgId)
@@ -285,5 +312,14 @@ export async function onPaymentRecorded(args: {
     title: 'Payment received',
     body: `${args.plan} · payment confirmed at ${schoolName}.`,
     data: { url: '/(parent)/fees' }
+  })
+
+  void financeStaffIds(args.orgId).then((ids) => {
+    if (ids.length === 0) return
+    void sendPush(ids, {
+      title: 'Payment received',
+      body: `${args.studentName ?? 'A student'} · ${args.plan}`,
+      data: { url: '/(org)/fees' }
+    })
   })
 }

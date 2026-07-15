@@ -43,6 +43,12 @@ export const GET = route({
             name: true,
             order: true
           }
+        },
+        course: {
+          select: {
+            id: true,
+            name: true
+          }
         }
       },
       orderBy: [
@@ -74,6 +80,10 @@ export const GET = route({
       term: invoice.term ? {
         id: invoice.term.id,
         name: invoice.term.name
+      } : null,
+      course: invoice.course ? {
+        id: invoice.course.id,
+        name: invoice.course.name
       } : null
     }))
 

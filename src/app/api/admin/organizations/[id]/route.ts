@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { OrgStatus, AuditAction, UserStatus, InstitutionType } from '@prisma/client'
+import { resolveAdminUser } from '@/lib/admin-auth'
 
 const orgUpdateSchema = z.object({
   // Core profile fields
@@ -25,9 +25,8 @@ import { remapOrgModulesToPlan } from '@/lib/billing/lifecycle'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await auth()
-    const role = session?.user?.role
-    if (!session?.user || !['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN'].includes(role || '')) {
+    const admin = await resolveAdminUser(req)
+    if (!admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -129,9 +128,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await auth()
-    const role = session?.user?.role
-    if (!session?.user || !['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN'].includes(role || '')) {
+    const admin = await resolveAdminUser(req)
+    if (!admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -182,10 +180,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
       // Verify allowed transitions
       // ACTIVE → SUSPENDED, ACTIVE → CANCELLED, SUSPENDED → ACTIVE, PENDING_VERIFICATION → ACTIVE, TRIAL → ACTIVE
-      const isAllowed = 
+      // PENDING_VERIFICATION → SUSPENDED = reject (approvals queue "reject with note" —
+      // the note lands in internalNotes via the `notes` field on this same request)
+      const isAllowed =
         (oldStatus === 'ACTIVE' && (newStatus === 'SUSPENDED' || newStatus === 'CANCELLED')) ||
         (oldStatus === 'SUSPENDED' && newStatus === 'ACTIVE') ||
-        (oldStatus === 'PENDING_VERIFICATION' && newStatus === 'ACTIVE') ||
+        (oldStatus === 'PENDING_VERIFICATION' && (newStatus === 'ACTIVE' || newStatus === 'SUSPENDED')) ||
         (oldStatus === 'TRIAL' && newStatus === 'ACTIVE')
 
       if (!isAllowed) {
@@ -318,7 +318,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         auditLogsToCreate.map((change) =>
           prisma.auditLog.create({
             data: {
-              userId: session.user.id,
+              userId: admin.id,
               orgId: id,
               action: AuditAction.UPDATE,
               entityType: 'ORGANIZATION',

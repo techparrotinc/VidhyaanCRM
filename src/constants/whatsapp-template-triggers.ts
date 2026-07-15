@@ -30,7 +30,10 @@ export const WA_TEMPLATE_TRIGGERS: Record<string, string> = {
   new_admission_assigned: 'Staff alert — sends to the counsellor when an admission case is assigned to them',
   admission_sla_alert: 'Admin alert — sends to org admins when an application sits idle for 5 days',
   admin_fee_escalation: 'Admin alert — sends to org admins when an invoice stays unpaid 30 days past due',
-  admin_fee_monthly_summary: 'Admin alert — monthly pending-fees summary sent to org admins on the 1st'
+  admin_fee_monthly_summary: 'Admin alert — monthly pending-fees summary sent to org admins on the 1st',
+  class_reminder: 'Sends to enrolled guardians when staff tap "Send reminder" on a session — includes time and meeting link',
+  class_cancelled: 'Sends to enrolled guardians automatically when a session is cancelled',
+  class_rescheduled: 'Sends to enrolled guardians automatically when a session is rescheduled'
 }
 
 export const waTemplateTrigger = (msg91TemplateId: string): string | null =>
@@ -42,5 +45,8 @@ export const waTemplateTrigger = (msg91TemplateId: string): string | null =>
  */
 export const WA_TEMPLATE_DEFAULT_VARIABLES: Record<string, string[]> = {
   review_request: ['parentName', 'kidName', 'schoolName', 'link'],
-  event_announcement: ['parentName', 'schoolName', 'event', 'date', 'location']
+  event_announcement: ['parentName', 'schoolName', 'event', 'date', 'location'],
+  class_reminder: ['parentName', 'kidName', 'batch', 'date', 'time', 'link', 'schoolName'],
+  class_cancelled: ['parentName', 'kidName', 'batch', 'date', 'time', 'reason', 'schoolName'],
+  class_rescheduled: ['parentName', 'kidName', 'batch', 'oldDate', 'date', 'time', 'schoolName']
 }

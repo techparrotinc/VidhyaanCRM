@@ -3,6 +3,7 @@ import { route } from '@/lib/api/compose'
 import { ok, created } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { ROLES } from '@/constants/roles'
+import { materializeBatch, defaultTeacherId } from '@/lib/schedule/materialize'
 
 // StudentBatch CRUD for LC/coaching orgs (batch = recurring cohort with an
 // optional linked course + weekly schedule). Structural settings — role-gated.
@@ -32,6 +33,7 @@ const batchSchema = z.object({
   daysOfWeek: z.array(z.enum(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])).max(7).default([]),
   startTime: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
   endTime: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
+  sessionDurationMin: z.number().int().min(5).max(480).nullable().optional(),
   capacity: z.number().int().min(1).max(10000).nullable().optional(),
   isActive: z.boolean().default(true)
 })
@@ -54,12 +56,19 @@ export const POST = route({
         daysOfWeek: body.daysOfWeek,
         startTime: body.startTime ?? null,
         endTime: body.endTime ?? null,
+        sessionDurationMin: body.sessionDurationMin ?? null,
         capacity: body.capacity ?? null,
         isActive: body.isActive,
         academicYearId
       },
       include: batchInclude
     })
+
+    if (batch.isActive && batch.startTime && batch.daysOfWeek.length > 0) {
+      await materializeBatch(db, batch, { teacherId: await defaultTeacherId(db, batch) })
+        .catch(err => console.error('Schedule materialize (batch create):', err))
+    }
+
     return created({ batch })
   }
 })

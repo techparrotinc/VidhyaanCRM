@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
 import { Pressable, Text, View, ActivityIndicator, StyleSheet } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 /**
  * Base UI kit — direct translation of the validated wireframe primitives
@@ -131,6 +132,7 @@ export function GradientHeader({
   right?: ReactNode
 }) {
   const [from, to] = ACCENT_GRADIENT[accent]
+  const insets = useSafeAreaInsets()
   return (
     <View className="overflow-hidden rounded-b-3xl">
       <LinearGradient
@@ -139,7 +141,12 @@ export function GradientHeader({
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject}
       />
-      <View className="flex-row items-center justify-between px-5 pb-6 pt-4">
+      {/* Gradient itself bleeds under the status bar (edge-to-edge looks
+          intentional); only the text content drops below it. */}
+      <View
+        className="flex-row items-center justify-between px-5 pb-6 pt-4"
+        style={{ paddingTop: insets.top + 16 }}
+      >
         <View className="flex-1">
           <Text className="text-2xl font-bold tracking-tight text-white">{title}</Text>
           {subtitle ? <Text className="mt-0.5 text-sm text-white/80">{subtitle}</Text> : null}
@@ -226,10 +233,16 @@ export function Screen({
   className?: string
   header?: ReactNode
 }) {
+  const insets = useSafeAreaInsets()
   return (
     <View className="flex-1 bg-brand-bg">
       {header}
-      <View className={`flex-1 px-4 ${header ? 'pt-4' : 'pt-2'} ${className}`}>{children}</View>
+      <View
+        className={`flex-1 px-4 ${header ? 'pt-4' : ''} ${className}`}
+        style={header ? undefined : { paddingTop: insets.top + 8 }}
+      >
+        {children}
+      </View>
     </View>
   )
 }

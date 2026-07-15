@@ -14,6 +14,7 @@ import {
   Clock, AlertCircle, X,
   Download, Mail, Ban
 } from 'lucide-react'
+import { INVOICE_TYPE_LABELS } from '@/lib/fees'
 
 const STATUS_CONFIG = {
   UNPAID: {
@@ -414,7 +415,7 @@ export default function InvoiceDetailPage() {
                 {config.label}
               </span>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 bg-slate-100 text-slate-600">
-                {invoice.invoiceType}
+                {INVOICE_TYPE_LABELS[invoice.invoiceType] ?? invoice.invoiceType}
               </span>
             </div>
 
@@ -560,7 +561,7 @@ export default function InvoiceDetailPage() {
                 },
                 {
                   label: 'Invoice Type',
-                  value: invoice.invoiceType
+                  value: INVOICE_TYPE_LABELS[invoice.invoiceType] ?? invoice.invoiceType
                 },
                 {
                   label: 'Due Date',

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/client'
 import { createNotification } from '@/lib/services/notifications'
 import { notifyBatchInvoices } from '@/lib/whatsapp/emitters'
+import { computeNextBillingDate } from '@/lib/billing/nextBillingDate'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,31 +85,19 @@ export async function GET(req: NextRequest) {
           }
         })
 
-        // Calculate next billing date based on course frequency
+        // Calculate next billing date based on course frequency. ONE_TIME
+        // (and unmapped CUSTOM) courses bill once — don't reschedule, or
+        // the enrollment would double-bill on its own due date every cron run.
         const current = enrollment.nextBillingDate ?? new Date()
-        let next = new Date(current)
+        const next = computeNextBillingDate(current, enrollment.course.frequency)
 
-        switch (enrollment.course.frequency) {
-          case 'MONTHLY':
-            next.setMonth(next.getMonth() + 1)
-            break
-          case 'QUARTERLY':
-            next.setMonth(next.getMonth() + 3)
-            break
-          case 'HALF_YEARLY':
-            next.setMonth(next.getMonth() + 6)
-            break
-          case 'ANNUAL':
-            next.setFullYear(next.getFullYear() + 1)
-            break
-          default:
-            next.setMonth(next.getMonth() + 1)
-        }
-
-        // Update enrollment with next billing date
+        // Update enrollment with next billing date (or close it out if it
+        // doesn't recur, so it stops showing up in future cron sweeps)
         await prisma.courseEnrollment.update({
           where: { id: enrollment.id },
-          data: { nextBillingDate: next }
+          data: next
+            ? { nextBillingDate: next }
+            : { nextBillingDate: null, status: 'COMPLETED' }
         })
 
         // WhatsApp fee notification to the guardian (fire-and-forget)

@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { OrgStatus, InstitutionType } from '@prisma/client'
 import { parseQuery, paginationShape, enumParam, textParam } from '@/lib/api/query'
 import { AppError } from '@/lib/api/errors'
 import { errorResponse } from '@/lib/api/respond'
+import { resolveAdminUser } from '@/lib/admin-auth'
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    const role = session?.user?.role
-    if (!session?.user || !['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN'].includes(role || '')) {
+    const admin = await resolveAdminUser(req)
+    if (!admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

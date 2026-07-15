@@ -503,7 +503,7 @@ export default function FeeManagementPage() {
                       Student
                     </th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-1/5">
-                      Term
+                      Term / Course
                     </th>
                     <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 w-1/5">
                       Amount
@@ -538,7 +538,7 @@ export default function FeeManagementPage() {
                             </p>
                           </td>
                           <td className="px-3 py-2.5 text-sm text-slate-600 font-semibold font-sans">
-                            {inv.term?.name || 'Adhoc'}
+                            {inv.term?.name ?? inv.course?.name ?? 'Adhoc'}
                           </td>
                           <td className="px-3 py-2.5 text-sm font-bold text-slate-900 font-sans">
                             ₹{Number(inv.totalAmount).toLocaleString('en-IN')}

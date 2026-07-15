@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "766092069324",
+    "project_id": "vidhyaan-mobile",
+    "storage_bucket": "vidhyaan-mobile.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:766092069324:android:df84c4e8482aabfb063569",
+        "android_client_info": {
+          "package_name": "com.vidhyaan.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCz8d2lXWKP3dGUMe1Yax1nMk9gx3Fbf2c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

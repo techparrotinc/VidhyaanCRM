@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, DollarSign, X } from 'lucide-react'
 import { useClassOptions } from '@/hooks/useClassOptions'
+import { useCourseOptions } from '@/hooks/useCourseOptions'
+import { isLearningCentre } from '@/lib/institution'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -45,15 +47,26 @@ type FeePlan = {
   id: string
   name: string
   gradeLabel: string | null
+  courseId: string | null
   institutionType: string | null
   structure: { heads: FeeHead[] } | null
   createdAt: string
 }
 
 export default function FeePlansSettingsPage() {
-  // Class master drives the grade dropdown; plans keep storing the SLUG
-  // value (class-mode invoicing matches on it).
-  const { options: classOptions } = useClassOptions()
+  // School: class master drives the grade dropdown; plans keep storing the
+  // SLUG value (class-mode invoicing matches on it).
+  // LC/coaching/college: course master drives the course dropdown instead.
+  const [isLC, setIsLC] = useState<boolean | null>(null)
+  useEffect(() => {
+    fetch('/api/v1/settings/org-type')
+      .then(r => r.json())
+      .then(json => setIsLC(isLearningCentre(json?.data?.institutionType)))
+      .catch(() => setIsLC(false))
+  }, [])
+
+  const { options: classOptions } = useClassOptions(isLC === false)
+  const { options: courseOptions } = useCourseOptions(isLC === true)
   const [plans, setPlans] = useState<FeePlan[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -64,7 +77,8 @@ export default function FeePlansSettingsPage() {
 
   const [form, setForm] = useState({
     name: '',
-    gradeLabel: ''
+    gradeLabel: '',
+    courseId: ''
   })
 
   const [heads, setHeads] = useState<FeeHead[]>([])
@@ -152,7 +166,8 @@ export default function FeePlansSettingsPage() {
         },
         body: JSON.stringify({
           name: form.name,
-          gradeLabel: form.gradeLabel || undefined,
+          gradeLabel: isLC ? undefined : (form.gradeLabel || undefined),
+          courseId: isLC ? (form.courseId || undefined) : undefined,
           structure: { heads }
         })
       })
@@ -172,7 +187,7 @@ export default function FeePlansSettingsPage() {
   }
 
   const resetForm = () => {
-    setForm({ name: '', gradeLabel: '' })
+    setForm({ name: '', gradeLabel: '', courseId: '' })
     setHeads([])
     setNewHead({
       name: '',
@@ -191,7 +206,8 @@ export default function FeePlansSettingsPage() {
     setEditingPlan(plan)
     setForm({
       name: plan.name,
-      gradeLabel: plan.gradeLabel ?? ''
+      gradeLabel: plan.gradeLabel ?? '',
+      courseId: plan.courseId ?? ''
     })
     setHeads(plan.structure?.heads ?? [])
     setShowForm(true)
@@ -253,23 +269,43 @@ export default function FeePlansSettingsPage() {
               />
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-slate-600">
-                Applicable Grade
-              </label>
-              <select
-                value={form.gradeLabel}
-                onChange={e => setForm(prev => ({ ...prev, gradeLabel: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="">All Grades / Not grade-specific</option>
-                {classOptions.map(c => (
-                  <option key={c.gradeSlug + c.name} value={c.gradeSlug}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {isLC ? (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-slate-600">
+                  Applicable Course
+                </label>
+                <select
+                  value={form.courseId}
+                  onChange={e => setForm(prev => ({ ...prev, courseId: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">All Courses / Not course-specific</option>
+                  {courseOptions.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-slate-600">
+                  Applicable Grade
+                </label>
+                <select
+                  value={form.gradeLabel}
+                  onChange={e => setForm(prev => ({ ...prev, gradeLabel: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">All Grades / Not grade-specific</option>
+                  {classOptions.map(c => (
+                    <option key={c.gradeSlug + c.name} value={c.gradeSlug}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* ── FEE HEADS ── */}
@@ -492,6 +528,11 @@ export default function FeePlansSettingsPage() {
                     {plan.gradeLabel && (
                       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 flex-shrink-0">
                         {plan.gradeLabel}
+                      </span>
+                    )}
+                    {plan.courseId && (
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 flex-shrink-0">
+                        {courseOptions.find(c => c.id === plan.courseId)?.name ?? 'Course'}
                       </span>
                     )}
                   </div>

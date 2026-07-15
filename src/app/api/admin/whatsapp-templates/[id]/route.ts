@@ -1,9 +1,10 @@
-import { auth } from '@/auth'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
 import { ok, errorResponse } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { z } from 'zod'
 import { WA_CATEGORY_VALUES } from '@/constants/whatsapp-template-categories'
+import { resolveAdminUser } from '@/lib/admin-auth'
 
 const WRITE_ROLES = ['SUPER_ADMIN', 'OPERATIONS_ADMIN']
 
@@ -19,13 +20,13 @@ const updateSchema = z.object({
 })
 
 export async function PUT(
-  req: Request,
+  req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) throw Errors.unauthenticated()
-    if (!WRITE_ROLES.includes(session.user.role)) {
+    const admin = await resolveAdminUser(req)
+    if (!admin) throw Errors.unauthenticated()
+    if (!WRITE_ROLES.includes(admin.role)) {
       throw Errors.forbidden('Platform admin write access required')
     }
 
@@ -47,7 +48,7 @@ export async function PUT(
 
     await prisma.auditLog.create({
       data: {
-        userId: session.user.id,
+        userId: admin.id,
         action: 'UPDATE',
         entityType: 'SharedWhatsappTemplate',
         entityId: id,
@@ -62,13 +63,13 @@ export async function PUT(
 }
 
 export async function DELETE(
-  req: Request,
+  req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    if (!session?.user) throw Errors.unauthenticated()
-    if (!WRITE_ROLES.includes(session.user.role)) {
+    const admin = await resolveAdminUser(req)
+    if (!admin) throw Errors.unauthenticated()
+    if (!WRITE_ROLES.includes(admin.role)) {
       throw Errors.forbidden('Platform admin write access required')
     }
 
@@ -80,7 +81,7 @@ export async function DELETE(
 
     await prisma.auditLog.create({
       data: {
-        userId: session.user.id,
+        userId: admin.id,
         action: 'DELETE',
         entityType: 'SharedWhatsappTemplate',
         entityId: id

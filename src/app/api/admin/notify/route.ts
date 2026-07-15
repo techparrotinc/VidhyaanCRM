@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/db/client'
 import { AuditAction } from '@prisma/client'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
+import { resolveAdminUser } from '@/lib/admin-auth'
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    const role = session?.user?.role
-
-    if (!session?.user || !['SUPER_ADMIN', 'OPERATIONS_ADMIN', 'SUPPORT_ADMIN'].includes(role || '')) {
+    const admin = await resolveAdminUser(req)
+    if (!admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

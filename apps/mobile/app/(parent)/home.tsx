@@ -3,6 +3,22 @@ import { router } from 'expo-router'
 import { Screen, GradientHeader, Card, Chip, IconCircle } from '@/components/ui'
 import { useAuthStore } from '@/lib/auth-store'
 import { useParentHome, type ParentHomeKid } from '@/lib/parent-home'
+import { useUnreadNotificationCount } from '@/lib/parent-notifications'
+
+function NotificationBell() {
+  const unread = useUnreadNotificationCount()
+  return (
+    <Pressable
+      onPress={() => router.push('/(parent)/notifications')}
+      className="h-10 w-10 items-center justify-center rounded-full bg-white/20 active:opacity-70"
+    >
+      <View className="h-4 w-4 rounded-full border-2 border-white" />
+      {unread > 0 ? (
+        <View className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border border-white bg-events" />
+      ) : null}
+    </Pressable>
+  )
+}
 
 function formatDate(d: Date | string | null): string {
   if (!d) return ''
@@ -68,6 +84,7 @@ export default function ParentHome() {
           title={`Good morning, ${user?.name?.split(' ')[0] ?? 'there'}`}
           subtitle={kids && kids.length > 0 ? `${kids.length} kid${kids.length > 1 ? 's' : ''} linked` : undefined}
           accent="brand"
+          right={<NotificationBell />}
         />
       }
     >

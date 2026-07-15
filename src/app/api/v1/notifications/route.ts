@@ -4,11 +4,27 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
 
+/**
+ * This route predates the route() composer and calls auth() directly, so it
+ * doesn't get the composer's header-based identity for free. The mobile
+ * Bearer JWT is verified in middleware.ts and rewritten to x-user-id/
+ * x-user-role there (same trust model as every /api/v1 route) — read those
+ * first, falling back to the NextAuth cookie session for web.
+ */
+async function resolveUser(req: NextRequest): Promise<{ id: string; role: string } | null> {
+  const headerId = req.headers.get('x-user-id')
+  const headerRole = req.headers.get('x-user-role')
+  if (headerId && headerRole) return { id: headerId, role: headerRole }
+  const session = await auth()
+  if (!session?.user?.id) return null
+  return { id: session.user.id, role: session.user.role }
+}
+
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
+    const user = await resolveUser(req)
 
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -25,9 +41,9 @@ export async function GET(req: NextRequest) {
       deletedAt: null
     }
 
-    if (session.user.role === 'PARENT') {
+    if (user.role === 'PARENT') {
       const parent = await prisma.parent.findUnique({
-        where: { userId: session.user.id }
+        where: { userId: user.id }
       })
       if (!parent) {
         return NextResponse.json(
@@ -39,7 +55,7 @@ export async function GET(req: NextRequest) {
       where.recipientId = parent.id
     } else {
       where.recipientType = 'USER'
-      where.recipientId = session.user.id
+      where.recipientId = user.id
     }
 
     if (unreadOnly) {
@@ -133,9 +149,9 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const session = await auth()
+    const user = await resolveUser(req)
 
-    if (!session?.user?.id) {
+    if (!user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -158,11 +174,11 @@ export async function PUT(req: NextRequest) {
       deletedAt: null
     }
 
-    let recipientId = session.user.id
+    let recipientId = user.id
 
-    if (session.user.role === 'PARENT') {
+    if (user.role === 'PARENT') {
       const parent = await prisma.parent.findUnique({
-        where: { userId: session.user.id }
+        where: { userId: user.id }
       })
       if (!parent) {
         return NextResponse.json(
@@ -175,7 +191,7 @@ export async function PUT(req: NextRequest) {
       recipientId = parent.id
     } else {
       where.recipientType = 'USER'
-      where.recipientId = session.user.id
+      where.recipientId = user.id
     }
 
     if (all) {

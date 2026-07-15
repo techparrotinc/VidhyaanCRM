@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import * as storage from './secure-storage'
+import { biometricAvailable } from './biometric'
 import type { AuthUser } from '@/shared-contract'
 
 /**
@@ -16,10 +17,16 @@ interface AuthState {
   accessToken: string | null
   user: AuthUser | null
   deviceId: string | null
+  /** Biometric app-lock gate — only meaningful when status === 'signedIn'.
+   *  true = show the lock screen; false = biometric unavailable/unenrolled
+   *  (fail-open) or already unlocked this session. */
+  locked: boolean
   hydrate: () => Promise<void>
   signIn: (tokens: { accessToken: string; refreshToken: string; user: AuthUser }) => Promise<void>
   setAccessToken: (token: string) => void
   signOut: () => Promise<void>
+  lock: () => void
+  unlock: () => void
 }
 
 function randomHex(bytes: number): string {
@@ -61,6 +68,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   user: null,
   deviceId: null,
+  locked: false,
 
   hydrate: async () => {
     const [refresh, userJson, deviceId] = await Promise.all([
@@ -69,7 +77,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       getDeviceId()
     ])
     if (refresh && userJson) {
-      set({ status: 'signedIn', user: JSON.parse(userJson), deviceId })
+      // Gate a resumed session behind biometrics when available; a fresh
+      // sign-in (via signIn() below) never locks — the OTP+device just
+      // proved identity.
+      const locked = await biometricAvailable()
+      set({ status: 'signedIn', user: JSON.parse(userJson), deviceId, locked })
     } else {
       set({ status: 'signedOut', deviceId })
     }
@@ -80,7 +92,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       storage.setItem(KEY_REFRESH, refreshToken),
       storage.setItem(KEY_USER, JSON.stringify(user))
     ])
-    set({ status: 'signedIn', accessToken, user })
+    set({ status: 'signedIn', accessToken, user, locked: false })
   },
 
   setAccessToken: (token) => set({ accessToken: token }),
@@ -90,6 +102,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       storage.deleteItem(KEY_REFRESH),
       storage.deleteItem(KEY_USER)
     ])
-    set({ status: 'signedOut', accessToken: null, user: null })
-  }
+    set({ status: 'signedOut', accessToken: null, user: null, locked: false })
+  },
+
+  lock: () => set({ locked: true }),
+  unlock: () => set({ locked: false })
 }))

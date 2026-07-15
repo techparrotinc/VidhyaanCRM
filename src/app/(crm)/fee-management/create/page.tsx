@@ -27,6 +27,8 @@ export default function FeeManagementCreatePage() {
       mode: 'class',
       grade: data.grade,
       selectedGradeLabel: data.selectedGradeLabel,
+      courseId: data.courseId,
+      selectedCourseLabel: data.selectedCourseLabel,
       invoiceType: data.invoiceType,
       selectedTerms: data.selectedTerms,
       selectedPlanId: data.selectedPlanId,
@@ -109,6 +111,8 @@ export default function FeeManagementCreatePage() {
             mode={previewPayload.mode}
             grade={previewPayload.grade}
             selectedGradeLabel={previewPayload.selectedGradeLabel}
+            courseId={previewPayload.courseId}
+            selectedCourseLabel={previewPayload.selectedCourseLabel}
             student={previewPayload.student}
             invoiceType={previewPayload.invoiceType}
             selectedTerms={previewPayload.selectedTerms}

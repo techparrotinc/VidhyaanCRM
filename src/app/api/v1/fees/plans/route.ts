@@ -7,6 +7,7 @@ import { ROLES } from '@/constants/roles'
 const feePlanSchema = z.object({
   name: z.string().min(1),
   gradeLabel: z.string().nullable().optional(),
+  courseId: z.string().nullable().optional(),
   institutionType: z.string().nullable().optional(),
   structure: z.object({
     heads: z.array(z.object({
@@ -45,6 +46,7 @@ export const GET = route({
   handler: async ({ req, db, user }) => {
     const { searchParams } = new URL(req.url)
     const gradeLabel = searchParams.get('gradeLabel') ?? undefined
+    const courseId = searchParams.get('courseId') ?? undefined
 
     const where: any = {
       orgId: user.orgId,
@@ -52,6 +54,9 @@ export const GET = route({
     }
     if (gradeLabel) {
       where.gradeLabel = gradeLabel
+    }
+    if (courseId) {
+      where.courseId = courseId
     }
 
     const plans = await db.feePlanTemplate.findMany({
@@ -92,6 +97,7 @@ export const POST = route({
         orgId: user.orgId,
         name: body.name,
         gradeLabel: body.gradeLabel || null,
+        courseId: body.courseId || null,
         institutionType: instType,
         structure: body.structure || { heads: [] }
       }

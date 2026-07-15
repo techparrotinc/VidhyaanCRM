@@ -31,6 +31,7 @@ export const GET = route({
     })
     const rawGradeParam = searchParams.get('gradeLabel') ?? searchParams.get('grade') ?? undefined
     const gradeLabel = rawGradeParam ? getGradeLabel(rawGradeParam) : undefined
+    const courseId = searchParams.get('courseId') ?? undefined
     const search = searchParams.get('search') ?? undefined
     const academicYearId = searchParams.get('academicYearId') ?? undefined
     const section = searchParams.get('section') ?? undefined
@@ -42,6 +43,9 @@ export const GET = route({
     if (status) where.status = status
     if (gradeLabel) {
       where.gradeLabel = gradeLabel
+    }
+    if (courseId) {
+      where.courseEnrollments = { some: { courseId, status: 'ACTIVE' } }
     }
     if (academicYearId) {
       // Legacy students predate AY stamping — include them under every year.

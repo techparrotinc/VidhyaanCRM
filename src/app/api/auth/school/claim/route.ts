@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { createOTP, generateOTP } from '@/lib/auth/otp'
 import { createDefaultAdmissionStages } from '@/lib/utils/createDefaultAdmissionStages'
 import bcrypt from 'bcryptjs'
+import { ENTERPRISE_MODULE_SLUGS } from '@/constants/modules'
 
 const claimSchema = z.object({
   schoolId: z.string().min(1).max(50),
@@ -112,15 +113,7 @@ export async function POST(req: NextRequest) {
       // Auto-create core modules
       try {
         const isSchool = school.institutionType !== 'LEARNING_CENTER'
-        const coreModuleSlugs = [
-          'lead_management',
-          'student_management',
-          'fee_management',
-          'campaign_management',
-          'event_management',
-          'advanced_reports',
-          ...(isSchool ? ['admission_management'] : [])
-        ]
+        const coreModuleSlugs = ENTERPRISE_MODULE_SLUGS.filter(slug => isSchool || slug !== 'admission_management')
         const dbModules = await prisma.module.findMany({
           where: { slug: { in: coreModuleSlugs } }
         })
@@ -271,15 +264,7 @@ export async function POST(req: NextRequest) {
       // Auto-create core modules
       try {
         const isSchool = school.institutionType !== 'LEARNING_CENTER'
-        const coreModuleSlugs = [
-          'lead_management',
-          'student_management',
-          'fee_management',
-          'campaign_management',
-          'event_management',
-          'advanced_reports',
-          ...(isSchool ? ['admission_management'] : [])
-        ]
+        const coreModuleSlugs = ENTERPRISE_MODULE_SLUGS.filter(slug => isSchool || slug !== 'admission_management')
         const dbModules = await prisma.module.findMany({
           where: { slug: { in: coreModuleSlugs } }
         })

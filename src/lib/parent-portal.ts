@@ -2,6 +2,7 @@ import { Prisma, type Parent } from '@prisma/client'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { activatePendingLinks } from '@/lib/parent-access'
+import { verifyMobileAccessToken } from '@/lib/mobile-auth/jwt'
 
 /**
  * Parent-portal helpers. Students are linked to parent accounts two ways:
@@ -15,12 +16,37 @@ import { activatePendingLinks } from '@/lib/parent-access'
 export async function requireParent(): Promise<Parent | null> {
   const session = await auth()
   if (!session?.user || session.user.role !== 'PARENT') return null
-  const parent = await prisma.parent.findUnique({ where: { userId: session.user.id } })
+  return requireParentFromUserId(session.user.id)
+}
+
+/** Resolve a Parent row from an already-authenticated userId (session or JWT claims). */
+export async function requireParentFromUserId(userId: string): Promise<Parent | null> {
+  const parent = await prisma.parent.findUnique({ where: { userId } })
   if (parent) {
     // The parent has authenticated via OTP — pending invites are now proven.
     await activatePendingLinks(parent.id)
   }
   return parent
+}
+
+/**
+ * Dual-mode parent resolution for routes callable from both the web portal
+ * (NextAuth cookie session) and the mobile app (Bearer access JWT) — used by
+ * existing session-based `/api/v1/parent/*` routes we extend for mobile
+ * rather than fork. `/api/mobile/v1/*` routes should call
+ * `requireParentFromUserId` directly against verified JWT claims instead.
+ */
+export async function requireParentFromRequest(req: Request): Promise<Parent | null> {
+  const session = await auth()
+  if (session?.user && session.user.role === 'PARENT') {
+    return requireParentFromUserId(session.user.id)
+  }
+  const authz = req.headers.get('authorization')
+  const token = authz?.startsWith('Bearer ') ? authz.slice(7) : null
+  if (!token) return null
+  const claims = await verifyMobileAccessToken(token)
+  if (!claims || claims.role !== 'PARENT') return null
+  return requireParentFromUserId(claims.userId)
 }
 
 /** Where-clause matching crm students visible to this parent account. */

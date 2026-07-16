@@ -1,14 +1,7 @@
 import { Tabs } from 'expo-router'
-import { View } from 'react-native'
 import { useAuthStore } from '@/lib/auth-store'
-
-const icon = (focused: boolean) => (
-  <View
-    className={`h-6 w-6 rounded-md border-[1.5px] ${
-      focused ? 'border-brand bg-brand-soft' : 'border-ink-faint'
-    }`}
-  />
-)
+import { sharedTabScreenOptions, tabBarIcon } from '@/components/tab-bar'
+import type { FeatureKey } from '@/lib/icons'
 
 /** Tabs visible per role — matches each screen's own backend role gate, so a
  *  role never sees a tab that just 403s (mobile-app-plan §3.2 "each role
@@ -26,31 +19,25 @@ export default function OrgLayout() {
   const role = useAuthStore((s) => s.user?.role ?? '')
   const allowed = ROLE_TABS[role] ?? ['home', 'students'] // unknown role: safest common ground
 
-  const tab = (name: string, title: string) => (
+  const tab = (name: string, title: string, feature: FeatureKey) => (
     <Tabs.Screen
       name={name}
       options={{
         title,
-        tabBarIcon: ({ focused }) => icon(focused),
+        tabBarIcon: tabBarIcon(feature),
         href: allowed.includes(name) ? undefined : null
       }}
     />
   )
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: '#1565D8',
-        tabBarInactiveTintColor: '#94A3B8'
-      }}
-    >
-      {tab('home', 'Home')}
-      {tab('leads', 'Leads')}
-      {tab('attendance', 'Attendance')}
-      {tab('fees', 'Fees')}
-      {tab('students', 'Students')}
-      {tab('more', 'More')}
+    <Tabs screenOptions={sharedTabScreenOptions}>
+      {tab('home', 'Home', 'home')}
+      {tab('leads', 'Leads', 'leads')}
+      {tab('attendance', 'Attendance', 'attendance')}
+      {tab('fees', 'Fees', 'fees')}
+      {tab('students', 'Students', 'students')}
+      {tab('more', 'More', 'more')}
       {/* Pushed from More, not tabs themselves. */}
       <Tabs.Screen name="admissions" options={{ href: null }} />
       <Tabs.Screen name="whatsapp-inbox" options={{ href: null }} />

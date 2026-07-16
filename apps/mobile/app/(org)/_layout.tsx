@@ -12,8 +12,9 @@ const ROLE_TABS: Record<string, string[]> = {
   BRANCH_ADMIN: ['home', 'leads', 'attendance', 'fees', 'students', 'more'],
   COUNSELLOR: ['home', 'leads', 'students', 'more'],
   RECEPTIONIST: ['home', 'leads', 'students', 'more'],
-  ACCOUNTANT: ['home', 'fees', 'students'],
-  TEACHER: ['home', 'attendance', 'students']
+  // More is every role's path to Schedule/support — never drop it.
+  ACCOUNTANT: ['home', 'fees', 'students', 'more'],
+  TEACHER: ['home', 'attendance', 'students', 'more']
 }
 
 /** Module licence per tab — a tab whose backend would 403 must not show.

@@ -327,8 +327,8 @@ async function teacherTiles(orgId: string, userId: string): Promise<{ tiles: Til
 
   return {
     tiles: [
-      { key: 'sessions_today', label: "Today's sessions", value: String(sessions.length) },
-      { key: 'unmarked_sessions', label: 'Unmarked attendance', value: String(unmarked.length) }
+      { key: 'sessions_today', label: "Today's sessions", value: String(sessions.length), route: '/schedule' },
+      { key: 'unmarked_sessions', label: 'Unmarked attendance', value: String(unmarked.length), route: '/attendance' }
     ],
     attention: unmarked.slice(0, 5).map((s) => ({
       id: s.id,
@@ -337,6 +337,68 @@ async function teacherTiles(orgId: string, userId: string): Promise<{ tiles: Til
       subtitle: `${s.startsAt.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })} · attendance not marked`,
       route: s.attendanceSessionId ? `/attendance/sessions/${s.attendanceSessionId}` : '/attendance'
     }))
+  }
+}
+
+/** Accountant home = the money desk (wireframe note: "accountant sees money tiles"). */
+async function accountantTiles(orgId: string): Promise<{ tiles: Tile[]; attention: AttentionItem[] }> {
+  const today = startOfToday()
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  const [feesToday, feesMonth, openAgg, topOverdue] = await Promise.all([
+    prisma.payment.aggregate({
+      where: { orgId, status: 'SUCCESS', deletedAt: null, paidAt: { gte: today } },
+      _sum: { amount: true }
+    }),
+    prisma.payment.aggregate({
+      where: { orgId, status: 'SUCCESS', deletedAt: null, paidAt: { gte: monthStart } },
+      _sum: { amount: true }
+    }),
+    prisma.invoice.aggregate({
+      where: { orgId, deletedAt: null, status: { in: ['UNPAID', 'PARTIALLY_PAID', 'OVERDUE'] } },
+      _sum: { totalAmount: true, paidAmount: true },
+      _count: true
+    }),
+    prisma.invoice.findMany({
+      where: {
+        orgId,
+        deletedAt: null,
+        status: { in: ['UNPAID', 'PARTIALLY_PAID', 'OVERDUE'] },
+        dueDate: { lt: now }
+      },
+      orderBy: { dueDate: 'asc' },
+      take: 5,
+      select: {
+        id: true,
+        invoiceNumber: true,
+        totalAmount: true,
+        paidAmount: true,
+        dueDate: true,
+        student: { select: { name: true } }
+      }
+    })
+  ])
+
+  const openDues = Number(openAgg._sum.totalAmount ?? 0) - Number(openAgg._sum.paidAmount ?? 0)
+  return {
+    tiles: [
+      { key: 'fees_today', label: 'Collected today', value: inr(Number(feesToday._sum.amount ?? 0)), route: '/fees' },
+      { key: 'fees_month', label: 'Collected this month', value: inr(Number(feesMonth._sum.amount ?? 0)), route: '/collections' },
+      { key: 'open_dues', label: 'Open dues', value: inr(openDues), route: '/fees' },
+      { key: 'open_invoices', label: 'Open invoices', value: String(openAgg._count), route: '/fees' }
+    ],
+    attention: topOverdue.map((inv) => {
+      const days = inv.dueDate ? Math.floor((now.getTime() - inv.dueDate.getTime()) / 86_400_000) : 0
+      const balance = Number(inv.totalAmount) - Number(inv.paidAmount)
+      return {
+        id: inv.id,
+        type: 'invoice_overdue',
+        title: `Overdue · ₹${Math.round(balance).toLocaleString('en-IN')}`,
+        subtitle: `${inv.student.name} · ${inv.invoiceNumber} · ${days}d`,
+        route: '/fees'
+      }
+    })
   }
 }
 
@@ -372,7 +434,9 @@ export async function GET(req: NextRequest) {
       ? await teacherTiles(orgId, userId)
       : role === ROLES.COUNSELLOR
         ? await counsellorTiles(orgId, userId)
-        : { tiles: [], attention: [] } // RECEPTIONIST/ACCOUNTANT: no tiles yet, not a crash
+        : role === ROLES.ACCOUNTANT
+          ? await accountantTiles(orgId)
+          : { tiles: [], attention: [] } // RECEPTIONIST: no tiles yet, not a crash
 
   return NextResponse.json({
     success: true,

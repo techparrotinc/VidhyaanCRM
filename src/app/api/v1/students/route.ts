@@ -20,7 +20,10 @@ export const GET = route({
     ROLES.BRANCH_ADMIN,
     ROLES.COUNSELLOR,
     ROLES.RECEPTIONIST,
-    ROLES.TEACHER
+    ROLES.TEACHER,
+    // Accountant's mobile Students tab is a read-only directory (fee
+    // context: "whose invoice is this") — list access matches that.
+    ROLES.ACCOUNTANT
   ],
   handler: async ({ req, db }) => {
     const { searchParams } = new URL(req.url)

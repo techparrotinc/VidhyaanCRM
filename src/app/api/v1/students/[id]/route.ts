@@ -67,7 +67,11 @@ export const GET = route({
     ROLES.ORG_ADMIN,
     ROLES.BRANCH_ADMIN,
     ROLES.COUNSELLOR,
-    ROLES.RECEPTIONIST
+    ROLES.RECEPTIONIST,
+    // Read-only profile view: teachers reach it from their class lists,
+    // accountants from fee rows — the list endpoint already allows both.
+    ROLES.TEACHER,
+    ROLES.ACCOUNTANT
   ],
   handler: async ({ db, params }) => {
     const resolvedParams = await params

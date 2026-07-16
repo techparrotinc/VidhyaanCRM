@@ -16,15 +16,15 @@ export function OtpInput({
 
   return (
     <Pressable onPress={() => inputRef.current?.focus()}>
-      <View className="flex-row justify-center gap-2">
+      <View className="flex-row justify-center gap-2.5">
         {digits.map((d, i) => (
           <View
             key={i}
-            className={`h-12 w-10 items-center justify-center rounded-lg border bg-white ${
-              i === value.length ? 'border-brand' : 'border-line'
+            className={`h-14 w-11 items-center justify-center rounded-2xl border-[1.5px] ${
+              i === value.length ? 'border-brand bg-brand-soft' : 'border-line bg-white'
             }`}
           >
-            <Text className="text-lg font-bold text-ink">{d.trim()}</Text>
+            <Text className="text-xl font-bold text-ink">{d.trim()}</Text>
           </View>
         ))}
       </View>

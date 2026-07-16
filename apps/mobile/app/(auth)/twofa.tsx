@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { Text, Platform } from 'react-native'
+import { Text, View, Platform } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
+import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { apiPublic } from '@/lib/api'
 import { useAuthStore } from '@/lib/auth-store'
@@ -34,12 +36,24 @@ export default function TwoFactor() {
 
   return (
     <Screen className="justify-center gap-5">
-      <Text className="text-center text-2xl font-bold tracking-tight text-ink">
-        Two-step verification
-      </Text>
-      <Text className="text-center text-sm text-ink-secondary">
-        Enter the code from your authenticator app
-      </Text>
+      <View className="items-center gap-3">
+        <View className="h-16 w-16 overflow-hidden rounded-3xl">
+          <LinearGradient
+            colors={['#1565D8', '#3B82F6']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            className="h-full w-full items-center justify-center"
+          >
+            <Ionicons name="keypad" size={26} color="#fff" />
+          </LinearGradient>
+        </View>
+        <Text className="text-center text-2xl font-bold tracking-tight text-ink">
+          Two-step verification
+        </Text>
+        <Text className="text-center text-sm text-ink-secondary">
+          Enter the code from your authenticator app
+        </Text>
+      </View>
       <OtpInput value={code} onChange={setCode} />
       {error ? <Text className="text-center text-sm text-bad">{error}</Text> : null}
       <Button label="Verify" onPress={submit} loading={loading} disabled={code.length < 6} />

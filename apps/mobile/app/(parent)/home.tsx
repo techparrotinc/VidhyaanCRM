@@ -1,9 +1,18 @@
 import { Text, View, ScrollView, ActivityIndicator, Pressable } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { Screen, GradientHeader, Card, Chip, IconCircle } from '@/components/ui'
+import { Screen, GradientHeader, Card, Chip, Avatar, IconPill, EmptyState } from '@/components/ui'
 import { useAuthStore } from '@/lib/auth-store'
 import { useParentHome, type ParentHomeKid } from '@/lib/parent-home'
 import { useUnreadNotificationCount } from '@/lib/parent-notifications'
+import { FEATURE_ICONS } from '@/lib/icons'
+
+const QUICK_ACTIONS = [
+  { key: 'fees', label: 'Fees', route: '/(parent)/fees', feature: 'fees' },
+  { key: 'attendance', label: 'Attendance', route: '/(parent)/attendance', feature: 'attendance' },
+  { key: 'events', label: 'Events', route: '/(parent)/events', feature: 'events' },
+  { key: 'notifications', label: 'Updates', route: '/(parent)/notifications', feature: 'notices' }
+] as const
 
 function NotificationBell() {
   const unread = useUnreadNotificationCount()
@@ -12,7 +21,7 @@ function NotificationBell() {
       onPress={() => router.push('/(parent)/notifications')}
       className="h-10 w-10 items-center justify-center rounded-full bg-white/20 active:opacity-70"
     >
-      <View className="h-4 w-4 rounded-full border-2 border-white" />
+      <Ionicons name="notifications-outline" size={20} color="#fff" />
       {unread > 0 ? (
         <View className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border border-white bg-events" />
       ) : null}
@@ -41,7 +50,7 @@ function KidCard({ kid }: { kid: ParentHomeKid }) {
     <Pressable onPress={() => router.push('/(parent)/fees')} className="active:opacity-80">
       <Card className="mt-3">
         <View className="flex-row items-center gap-3">
-          <IconCircle accent="brand" />
+          <Avatar name={kid.name} accent="brand" />
           <View className="flex-1">
             <Text className="text-sm font-semibold text-ink">{kid.name}</Text>
             <Text className="text-xs text-ink-secondary">
@@ -50,9 +59,12 @@ function KidCard({ kid }: { kid: ParentHomeKid }) {
           </View>
           {attendanceChip(kid.attendanceToday)}
         </View>
-        <View className="mt-3 border-t border-line pt-3">
+        <View className="mt-3 gap-2 border-t border-line pt-3">
           <View className="flex-row items-center justify-between">
-            <Text className="text-xs text-ink-faint">Fee due</Text>
+            <View className="flex-row items-center gap-1.5">
+              <Ionicons name="cash-outline" size={14} color="#94A3B8" />
+              <Text className="text-xs text-ink-faint">Fee due</Text>
+            </View>
             <Text className="text-sm font-medium text-ink">
               {kid.nextFeeDue
                 ? `₹${kid.nextFeeDue.balance.toLocaleString('en-IN')} · ${formatDate(kid.nextFeeDue.dueDate)}`
@@ -60,8 +72,11 @@ function KidCard({ kid }: { kid: ParentHomeKid }) {
             </Text>
           </View>
           {kid.nextEvent ? (
-            <View className="mt-2 flex-row items-center justify-between">
-              <Text className="text-xs text-ink-faint">Next event</Text>
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-1.5">
+                <Ionicons name="sparkles-outline" size={14} color="#94A3B8" />
+                <Text className="text-xs text-ink-faint">Next event</Text>
+              </View>
               <Text className="text-sm font-medium text-ink">
                 {kid.nextEvent.title} · {formatDate(kid.nextEvent.date)}
               </Text>
@@ -89,6 +104,18 @@ export default function ParentHome() {
       }
     >
       <ScrollView showsVerticalScrollIndicator={false}>
+        <View className="mt-4 flex-row justify-between">
+          {QUICK_ACTIONS.map((action) => (
+            <IconPill
+              key={action.key}
+              icon={FEATURE_ICONS[action.feature].icon}
+              label={action.label}
+              accent={FEATURE_ICONS[action.feature].accent}
+              onPress={() => router.push(action.route as any)}
+            />
+          ))}
+        </View>
+
         {isLoading ? (
           <View className="mt-8 items-center">
             <ActivityIndicator color="#1565D8" />
@@ -105,9 +132,11 @@ export default function ParentHome() {
         ) : kids && kids.length > 0 ? (
           kids.map((kid) => <KidCard key={kid.studentId} kid={kid} />)
         ) : (
-          <Card className="mt-4">
-            <Text className="text-sm text-ink-secondary">No linked kids on this account yet.</Text>
-          </Card>
+          <EmptyState
+            icon="people-outline"
+            title="No linked kids yet"
+            subtitle="Ask your school to add you as a guardian."
+          />
         )}
       </ScrollView>
     </Screen>

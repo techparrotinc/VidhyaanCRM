@@ -349,19 +349,21 @@ export function SegmentedControl<T extends string>({
 }
 
 /** Pastel-background stat card — reuses the existing -soft accent tokens. */
+/** Flat white/bordered KPI card — plain black number on white, no accent
+ *  color wash, matching the reference dashboard wireframe exactly. */
 export function PastelStat({
   label,
-  value,
-  accent = 'brand'
+  value
 }: {
   label: string
   value: string | number
+  /** Unused — kept so existing call sites don't need to change. */
   accent?: Accent
 }) {
   return (
-    <View className={`flex-1 rounded-2xl p-4 ${ACCENT_SOFT_BG[accent]}`}>
-      <Text className="text-xs font-medium text-ink-secondary">{label}</Text>
-      <Text className="mt-1 text-3xl font-bold text-ink">{value}</Text>
+    <View className="flex-1 rounded-2xl border border-line bg-white p-4">
+      <Text className="text-[11px] font-bold uppercase tracking-widest text-ink-faint">{label}</Text>
+      <Text className="mt-2 text-3xl font-bold tracking-tight text-ink">{value}</Text>
     </View>
   )
 }

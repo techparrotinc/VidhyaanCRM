@@ -4,10 +4,12 @@ import {
   Screen,
   GradientHeader,
   Card,
+  Chip,
   PastelStat,
-  ActivityTile,
+  IconCircle,
   IconPill,
   Avatar,
+  Button,
   EmptyState,
   type Accent
 } from '@/components/ui'
@@ -28,6 +30,28 @@ function attentionAccent(type: string): Accent {
 
 function attentionIcon(type: string): IconName {
   return type === 'unmarked_attendance' ? FEATURE_ICONS.attendance.icon : FEATURE_ICONS.leads.icon
+}
+
+/** No "days late" number comes from the backend yet — approximate the
+ *  wireframe's urgency pill from the item type until that's added. */
+function attentionStatus(type: string): { label: string; tone: 'bad' | 'warn' } {
+  return type === 'unmarked_attendance' ? { label: 'pending', tone: 'warn' } : { label: 'overdue', tone: 'bad' }
+}
+
+function AttentionRow({ item }: { item: StaffAttentionItem }) {
+  const status = attentionStatus(item.type)
+  return (
+    <Pressable onPress={() => router.push(tabFor(item.type) as any)} className="active:opacity-80">
+      <Card className="mt-2.5 flex-row items-center gap-3">
+        <IconCircle accent={attentionAccent(item.type)} icon={attentionIcon(item.type)} />
+        <View className="flex-1">
+          <Text className="text-sm font-semibold text-ink">{item.title}</Text>
+          <Text className="text-xs text-ink-secondary">{item.subtitle}</Text>
+        </View>
+        <Chip label={status.label} tone={status.tone} />
+      </Card>
+    </Pressable>
+  )
 }
 
 /** Backend only sends key/label/value — infer a stat card accent from the key so
@@ -75,6 +99,15 @@ export default function StaffHome() {
           ))}
         </View>
 
+        <View className="mt-4 flex-row gap-2.5">
+          <View className="flex-1">
+            <Button label="✦ Ask AI" variant="outline" onPress={() => router.push('/(org)/ai-chat')} />
+          </View>
+          <View className="flex-1">
+            <Button label="Search" variant="outline" onPress={() => router.push('/(org)/leads')} />
+          </View>
+        </View>
+
         {isLoading ? (
           <View className="mt-8 items-center">
             <ActivityIndicator color="#1565D8" />
@@ -101,19 +134,9 @@ export default function StaffHome() {
                 <Text className="mt-4 text-[11px] font-bold uppercase tracking-widest text-ink-faint">
                   Needs attention
                 </Text>
-                <View className="mt-2 flex-row flex-wrap gap-3">
-                  {data.attention.map((item) => (
-                    <View key={`${item.type}-${item.id}`} style={{ minWidth: '46%', flexGrow: 1 }}>
-                      <ActivityTile
-                        icon={attentionIcon(item.type)}
-                        label={item.title}
-                        meta={item.subtitle}
-                        accent={attentionAccent(item.type)}
-                        onPress={() => router.push(tabFor(item.type) as any)}
-                      />
-                    </View>
-                  ))}
-                </View>
+                {data.attention.map((item) => (
+                  <AttentionRow key={`${item.type}-${item.id}`} item={item} />
+                ))}
               </View>
             ) : (
               <EmptyState

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
-import { Screen, GradientHeader, Card, Chip } from '@/components/ui'
+import { Screen, GradientHeader, Card, Chip, EmptyState } from '@/components/ui'
 import { useForms, useFormSubmissions, useReviewSubmission, type FormSummary, type FormSubmission } from '@/lib/forms-review'
 
 function statusTone(status: string | null): 'neutral' | 'good' | 'bad' | 'warn' {
@@ -72,11 +72,7 @@ function FormList({ onSelect }: { onSelect: (form: FormSummary) => void }) {
     )
   }
   if (!data || data.length === 0) {
-    return (
-      <Card className="mt-4">
-        <Text className="text-sm text-ink-secondary">No forms set up for this org.</Text>
-      </Card>
-    )
+    return <EmptyState icon="clipboard-outline" title="No forms set up" subtitle="Nothing configured for this org." />
   }
   return (
     <>
@@ -117,9 +113,7 @@ function SubmissionsList({ form, onBack }: { form: FormSummary; onBack: () => vo
       ) : data && data.submissions.length > 0 ? (
         data.submissions.map((s) => <SubmissionRow key={s.id} formId={form.id} submission={s} />)
       ) : (
-        <Card className="mt-4">
-          <Text className="text-sm text-ink-secondary">No submissions yet.</Text>
-        </Card>
+        <EmptyState icon="clipboard-outline" title="No submissions yet" />
       )}
     </>
   )

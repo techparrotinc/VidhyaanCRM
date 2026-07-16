@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { Screen, GradientHeader, Card, Button } from '@/components/ui'
+import { Screen, GradientHeader, Card, EmptyState } from '@/components/ui'
 import { useAiChat, type AiMessage } from '@/lib/ai-chat'
 
 function ActionCard({ msg, onConfirm, onCancel }: { msg: AiMessage; onConfirm: () => void; onCancel: () => void }) {
@@ -92,15 +93,13 @@ export default function AiChat() {
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView ref={scrollRef} onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })} showsVerticalScrollIndicator={false}>
           {chat.entitled === false ? (
-            <Card className="mt-4">
-              <Text className="text-sm text-ink-secondary">AI Copilot isn't enabled for your school yet.</Text>
-            </Card>
+            <EmptyState icon="chatbubble-ellipses-outline" title="AI Copilot isn't enabled" subtitle="Not available for your school yet." />
           ) : chat.messages.length === 0 ? (
-            <Card className="mt-4">
-              <Text className="text-sm text-ink-secondary">
-                Ask about leads, admissions, fees, or attendance — e.g. "How many leads came in this week?"
-              </Text>
-            </Card>
+            <EmptyState
+              icon="chatbubble-ellipses-outline"
+              title="Ask me anything"
+              subtitle='e.g. "How many leads came in this week?"'
+            />
           ) : (
             chat.messages.map((m) => (
               <MessageBubble key={m.id} msg={m} onConfirm={() => chat.confirmAction(m)} onCancel={() => chat.cancelAction(m)} />
@@ -125,7 +124,7 @@ export default function AiChat() {
             </Pressable>
           ) : (
             <Pressable onPress={submit} disabled={!input.trim()} className="h-10 w-10 items-center justify-center rounded-full bg-brand disabled:opacity-40">
-              <Text className="text-base font-bold text-white">→</Text>
+              <Ionicons name="arrow-up" size={18} color="#fff" />
             </Pressable>
           )}
         </View>

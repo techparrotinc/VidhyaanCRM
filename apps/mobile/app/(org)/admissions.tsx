@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
-import { Screen, GradientHeader, Card, Chip } from '@/components/ui'
+import { Screen, GradientHeader, Card, Chip, SearchBar, EmptyState } from '@/components/ui'
 import {
   useAdmissionStages,
   useAdmissions,
@@ -136,12 +136,7 @@ export default function Admissions() {
       }
     >
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Search applicant, parent, code…"
-          className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-ink"
-        />
+        <SearchBar value={search} onChangeText={setSearch} placeholder="Search applicant, parent, code…" />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3">
           <View className="flex-row gap-2">
@@ -176,9 +171,7 @@ export default function Admissions() {
         ) : data && data.admissions.length > 0 ? (
           data.admissions.map((a) => <AdmissionRow key={a.id} admission={a} />)
         ) : (
-          <Card className="mt-4">
-            <Text className="text-sm text-ink-secondary">No admissions found.</Text>
-          </Card>
+          <EmptyState icon="document-text-outline" title="No admissions found" />
         )}
       </ScrollView>
     </Screen>

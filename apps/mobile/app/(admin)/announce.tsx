@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { Screen, GradientHeader, Card, Button } from '@/components/ui'
 import { useSendAnnouncement } from '@/lib/admin'
@@ -50,8 +51,9 @@ export default function Announce() {
     >
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {sent ? (
-          <Card className="mt-4 items-center border-good/40 bg-good-bg">
-            <Text className="text-sm font-semibold text-good">Announcement published ✓</Text>
+          <Card className="mt-4 items-center gap-2 border-good/40 bg-good-bg">
+            <Ionicons name="checkmark-circle" size={28} color="#16A34A" />
+            <Text className="text-sm font-semibold text-good">Announcement published</Text>
           </Card>
         ) : (
           <Card className="mt-3 gap-2.5">

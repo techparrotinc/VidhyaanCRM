@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
-import { Screen, GradientHeader, Card, IconCircle } from '@/components/ui'
+import { Screen, GradientHeader, Card, IconCircle, EmptyState } from '@/components/ui'
 import { useWhatsAppInbox, type InboundMessage } from '@/lib/wa-inbox'
 
 function timeAgo(d: Date): string {
@@ -15,7 +15,7 @@ function timeAgo(d: Date): string {
 function MessageRow({ msg }: { msg: InboundMessage }) {
   return (
     <Card className="mt-3 flex-row items-start gap-3">
-      <IconCircle accent="attend" />
+      <IconCircle accent="attend" icon="logo-whatsapp" />
       <View className="flex-1">
         <View className="flex-row items-center justify-between">
           <Text className="text-sm font-semibold text-ink">{msg.contactName ?? msg.phone}</Text>
@@ -67,9 +67,7 @@ export default function WhatsAppInbox() {
         ) : data && data.length > 0 ? (
           data.map((m) => <MessageRow key={m.id} msg={m} />)
         ) : (
-          <Card className="mt-4">
-            <Text className="text-sm text-ink-secondary">No messages yet.</Text>
-          </Card>
+          <EmptyState icon="logo-whatsapp" title="No messages yet" />
         )}
       </ScrollView>
     </Screen>

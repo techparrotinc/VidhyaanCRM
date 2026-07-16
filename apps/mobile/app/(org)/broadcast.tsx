@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { Screen, GradientHeader, Card, Button } from '@/components/ui'
 import { useAdoptedTemplates, useAudienceCount, useSendBroadcast, audiencePool, type AudiencePool } from '@/lib/broadcast'
@@ -45,8 +46,9 @@ export default function Broadcast() {
     >
       <ScrollView showsVerticalScrollIndicator={false}>
         {sent ? (
-          <Card className="mt-4 items-center border-good/40 bg-good-bg">
-            <Text className="text-sm font-semibold text-good">Broadcast sent ✓</Text>
+          <Card className="mt-4 items-center gap-2 border-good/40 bg-good-bg">
+            <Ionicons name="checkmark-circle" size={28} color="#16A34A" />
+            <Text className="text-sm font-semibold text-good">Broadcast sent</Text>
           </Card>
         ) : (
           <>

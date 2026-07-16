@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { Screen, GradientHeader, Card, Button } from '@/components/ui'
@@ -79,8 +80,14 @@ function CreateForm({ onCreated }: { onCreated: (event: StaffEvent) => void }) {
         placeholder="Location (optional)"
         className="rounded-xl border border-line px-3 py-2.5 text-sm text-ink"
       />
-      <Pressable onPress={pickCover} className="items-center rounded-xl border border-dashed border-line py-3 active:opacity-70">
-        <Text className="text-xs font-semibold text-ink-secondary">{coverUri ? 'Cover photo added ✓ — tap to retake' : 'Add cover photo (optional)'}</Text>
+      <Pressable
+        onPress={pickCover}
+        className="flex-row items-center justify-center gap-1.5 rounded-xl border border-dashed border-line py-3 active:opacity-70"
+      >
+        <Ionicons name={coverUri ? 'checkmark-circle' : 'camera-outline'} size={16} color={coverUri ? '#16A34A' : '#475569'} />
+        <Text className="text-xs font-semibold text-ink-secondary">
+          {coverUri ? 'Cover photo added — tap to retake' : 'Add cover photo (optional)'}
+        </Text>
       </Pressable>
       {error ? <Text className="text-xs text-bad">{error}</Text> : null}
       <Button label={busy ? 'Creating…' : 'Create draft'} onPress={submit} loading={busy} />

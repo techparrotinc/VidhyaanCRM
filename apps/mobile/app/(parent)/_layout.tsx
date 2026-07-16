@@ -1,9 +1,10 @@
 import { Tabs } from 'expo-router'
-import { sharedTabScreenOptions, tabBarIcon } from '@/components/tab-bar'
+import { useSharedTabScreenOptions, tabBarIcon } from '@/components/tab-bar'
 
 export default function ParentLayout() {
+  const screenOptions = useSharedTabScreenOptions()
   return (
-    <Tabs screenOptions={sharedTabScreenOptions}>
+    <Tabs screenOptions={screenOptions}>
       <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: tabBarIcon('home') }} />
       <Tabs.Screen name="fees" options={{ title: 'Fees', tabBarIcon: tabBarIcon('fees') }} />
       <Tabs.Screen name="attendance" options={{ title: 'Attendance', tabBarIcon: tabBarIcon('attendance') }} />

@@ -6,6 +6,7 @@ import { Stack, router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Ionicons } from '@expo/vector-icons'
 import {
   useFonts,
   Poppins_400Regular,
@@ -34,7 +35,8 @@ export default function RootLayout() {
     Poppins_500Medium,
     Poppins_600SemiBold,
     Poppins_700Bold,
-    Poppins_800ExtraBold
+    Poppins_800ExtraBold,
+    ...Ionicons.font
   })
   const hydrate = useAuthStore((s) => s.hydrate)
   const status = useAuthStore((s) => s.status)

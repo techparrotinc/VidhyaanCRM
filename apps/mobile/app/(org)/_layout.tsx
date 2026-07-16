@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router'
 import { useAuthStore } from '@/lib/auth-store'
-import { sharedTabScreenOptions, tabBarIcon } from '@/components/tab-bar'
+import { useSharedTabScreenOptions, tabBarIcon } from '@/components/tab-bar'
 import type { FeatureKey } from '@/lib/icons'
 
 /** Tabs visible per role — matches each screen's own backend role gate, so a
@@ -18,6 +18,7 @@ const ROLE_TABS: Record<string, string[]> = {
 export default function OrgLayout() {
   const role = useAuthStore((s) => s.user?.role ?? '')
   const allowed = ROLE_TABS[role] ?? ['home', 'students'] // unknown role: safest common ground
+  const screenOptions = useSharedTabScreenOptions()
 
   const tab = (name: string, title: string, feature: FeatureKey) => (
     <Tabs.Screen
@@ -31,7 +32,7 @@ export default function OrgLayout() {
   )
 
   return (
-    <Tabs screenOptions={sharedTabScreenOptions}>
+    <Tabs screenOptions={screenOptions}>
       {tab('home', 'Home', 'home')}
       {tab('leads', 'Leads', 'leads')}
       {tab('attendance', 'Attendance', 'attendance')}

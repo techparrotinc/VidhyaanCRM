@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Text, View, ScrollView, ActivityIndicator, Pressable } from 'react-native'
 import { router } from 'expo-router'
-import { Screen, GradientHeader, Card, Chip } from '@/components/ui'
+import { Screen, GradientHeader, Card, Chip, EmptyState } from '@/components/ui'
 import { useParentInvoices, OPEN_STATUSES, type ParentInvoice } from '@/lib/parent-fees'
 
 function formatDate(d: Date | string | null): string {
@@ -108,9 +108,7 @@ export default function Fees() {
             {open.length > 0 ? (
               open.map((inv) => <InvoiceCard key={inv.id} invoice={inv} />)
             ) : (
-              <Card className="mt-3">
-                <Text className="text-sm text-ink-secondary">No open invoices.</Text>
-              </Card>
+              <EmptyState icon="checkmark-circle-outline" title="No open invoices" />
             )}
 
             <Text className="mt-6 text-[11px] font-bold uppercase tracking-widest text-ink-faint">
@@ -119,9 +117,7 @@ export default function Fees() {
             {paid.length > 0 ? (
               paid.map((inv) => <InvoiceCard key={inv.id} invoice={inv} />)
             ) : (
-              <Card className="mt-3">
-                <Text className="text-sm text-ink-secondary">No paid invoices yet.</Text>
-              </Card>
+              <EmptyState icon="receipt-outline" title="No paid invoices yet" />
             )}
           </>
         )}

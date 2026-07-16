@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, ScrollView, Switch, Text, View } from 'react-native'
 import { router } from 'expo-router'
-import { Screen, GradientHeader, Card, Chip } from '@/components/ui'
+import { Screen, GradientHeader, Card, Chip, EmptyState } from '@/components/ui'
 import { useSharedTemplates, useToggleTemplate, type SharedTemplate } from '@/lib/admin'
 
 function TemplateRow({ tpl }: { tpl: SharedTemplate }) {
@@ -63,9 +63,7 @@ export default function Templates() {
         ) : data && data.length > 0 ? (
           data.map((t) => <TemplateRow key={t.id} tpl={t} />)
         ) : (
-          <Card className="mt-4">
-            <Text className="text-sm text-ink-secondary">No shared templates yet.</Text>
-          </Card>
+          <EmptyState icon="copy-outline" title="No shared templates yet" />
         )}
       </ScrollView>
     </Screen>

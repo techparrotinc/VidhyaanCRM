@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
-import { Screen, GradientHeader, Card, Button } from '@/components/ui'
+import { Screen, GradientHeader, Card, Button, EmptyState } from '@/components/ui'
 import {
   useParentNotifications,
   useMarkNotificationsRead,
@@ -80,9 +80,7 @@ export default function Notifications() {
         ) : data && data.items.length > 0 ? (
           data.items.map((item) => <NotificationRow key={item.id} item={item} onOpen={onOpen} />)
         ) : (
-          <Card className="mt-4">
-            <Text className="text-sm text-ink-secondary">No notifications yet.</Text>
-          </Card>
+          <EmptyState icon="mail-outline" title="No notifications yet" />
         )}
       </ScrollView>
     </Screen>

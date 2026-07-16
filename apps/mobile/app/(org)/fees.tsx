@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
-import { Screen, GradientHeader, Card, Button, Chip } from '@/components/ui'
+import { Screen, GradientHeader, Card, Button, Chip, EmptyState } from '@/components/ui'
 import {
   useOverdueInvoices,
   useRecordPayment,
@@ -174,9 +174,7 @@ export default function Fees() {
         ) : data && data.invoices.length > 0 ? (
           data.invoices.map((inv) => <InvoiceRow key={inv.id} invoice={inv} />)
         ) : (
-          <Card className="mt-4">
-            <Text className="text-sm text-ink-secondary">No overdue invoices. Nice.</Text>
-          </Card>
+          <EmptyState icon="checkmark-circle-outline" title="No overdue invoices" subtitle="Nice." />
         )}
       </ScrollView>
     </Screen>

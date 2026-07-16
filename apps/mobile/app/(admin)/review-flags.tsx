@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { router } from 'expo-router'
-import { Screen, GradientHeader, Card } from '@/components/ui'
+import { Screen, GradientHeader, Card, EmptyState } from '@/components/ui'
 import { useFlaggedReviews, useModerateReview, type FlaggedReview } from '@/lib/admin'
 
 function confirmAsync(title: string, message: string, confirmLabel: string, destructive: boolean): Promise<boolean> {
@@ -112,9 +112,7 @@ export default function ReviewFlags() {
         ) : data && data.reviews.length > 0 ? (
           data.reviews.map((r) => <ReviewRow key={r.id} review={r} />)
         ) : (
-          <Card className="mt-4">
-            <Text className="text-sm text-ink-secondary">No flagged reviews — all clear.</Text>
-          </Card>
+          <EmptyState icon="checkmark-circle-outline" title="All clear" subtitle="No flagged reviews." />
         )}
       </ScrollView>
     </Screen>

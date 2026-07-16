@@ -1,6 +1,6 @@
 import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
-import { Screen, GradientHeader, Card, Button } from '@/components/ui'
+import { Screen, GradientHeader, Card, Button, EmptyState, IconCircle } from '@/components/ui'
 import { API_URL } from '@/lib/api'
 import { useWalletBalances } from '@/lib/wallet'
 
@@ -39,16 +39,17 @@ export default function Wallet() {
           </Card>
         ) : data && data.length > 0 ? (
           data.map((b) => (
-            <Card key={b.channel} className={`mt-3 ${b.lowBalance ? 'border-warn/40 bg-warn-bg' : ''}`}>
-              <Text className="text-xs font-normal text-ink-faint">{CHANNEL_LABEL[b.channel] ?? b.channel}</Text>
-              <Text className="mt-1 text-2xl font-bold tracking-tight text-ink">{b.remaining.toLocaleString('en-IN')}</Text>
-              {b.lowBalance ? <Text className="mt-1 text-xs font-semibold text-warn">Running low — top up soon</Text> : null}
+            <Card key={b.channel} className={`mt-3 flex-row items-center gap-3 ${b.lowBalance ? 'border-warn/40 bg-warn-bg' : ''}`}>
+              <IconCircle accent="fees" icon={b.channel === 'WHATSAPP' ? 'logo-whatsapp' : 'chatbubble-outline'} />
+              <View className="flex-1">
+                <Text className="text-xs font-normal text-ink-faint">{CHANNEL_LABEL[b.channel] ?? b.channel}</Text>
+                <Text className="mt-1 text-2xl font-bold tracking-tight text-ink">{b.remaining.toLocaleString('en-IN')}</Text>
+                {b.lowBalance ? <Text className="mt-1 text-xs font-semibold text-warn">Running low — top up soon</Text> : null}
+              </View>
             </Card>
           ))
         ) : (
-          <Card className="mt-4">
-            <Text className="text-sm text-ink-secondary">No message wallets configured for this org.</Text>
-          </Card>
+          <EmptyState icon="wallet-outline" title="No message wallets" subtitle="Nothing configured for this org." />
         )}
 
         <View className="mt-4">

@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
-import { Screen, GradientHeader, Card, StatTile } from '@/components/ui'
+import { Screen, GradientHeader, Card, PastelStat } from '@/components/ui'
 import { useReportSummary, formatKpiValue, MOBILE_REPORT_CARDS } from '@/lib/reports'
 
 function ReportCard({ reportKey, title }: { reportKey: string; title: string }) {
@@ -20,7 +20,7 @@ function ReportCard({ reportKey, title }: { reportKey: string; title: string }) 
           <View className="mt-3 flex-row flex-wrap gap-2">
             {data.kpis.map((kpi) => (
               <View key={kpi.key} style={{ minWidth: '46%', flexGrow: 1 }}>
-                <StatTile label={kpi.label} value={formatKpiValue(kpi)} hint={kpi.caption} />
+                <PastelStat label={kpi.label} value={formatKpiValue(kpi)} accent="brand" />
               </View>
             ))}
           </View>

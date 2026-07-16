@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
-import { Screen, GradientHeader, Card, Chip } from '@/components/ui'
+import { Screen, GradientHeader, Card, Chip, EmptyState } from '@/components/ui'
 import { useAdminOrgs, type AdminOrg } from '@/lib/admin'
 
 function OrgAlertRow({ org, tone }: { org: AdminOrg; tone: 'bad' | 'warn' }) {
@@ -33,9 +33,7 @@ function AlertSection({ title, status, tone }: { title: string; status: string; 
       ) : data && data.data.length > 0 ? (
         data.data.map((org) => <OrgAlertRow key={org.id} org={org} tone={tone} />)
       ) : (
-        <Card className="mt-3">
-          <Text className="text-sm text-ink-secondary">None right now.</Text>
-        </Card>
+        <EmptyState icon="checkmark-circle-outline" title="None right now" />
       )}
     </View>
   )

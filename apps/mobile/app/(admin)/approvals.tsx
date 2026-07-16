@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
-import { Screen, GradientHeader, Card, Button } from '@/components/ui'
+import { Screen, GradientHeader, Card, Button, EmptyState } from '@/components/ui'
 import { useAdminOrgs, useOrgApprovalAction, type AdminOrg } from '@/lib/admin'
 
 /** RN has no in-app confirm-dialog component here (that's a web-only piece
@@ -91,9 +91,7 @@ export default function Approvals() {
         ) : data && data.data.length > 0 ? (
           data.data.map((org) => <OrgRow key={org.id} org={org} />)
         ) : (
-          <Card className="mt-4">
-            <Text className="text-sm text-ink-secondary">Nothing pending — all caught up.</Text>
-          </Card>
+          <EmptyState icon="checkmark-circle-outline" title="All caught up" subtitle="Nothing pending." />
         )}
       </ScrollView>
     </Screen>

@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
-import { Screen, GradientHeader, Card, StatTile } from '@/components/ui'
+import { Screen, GradientHeader, Card, PastelStat, ListRow } from '@/components/ui'
 import { useAdminStats } from '@/lib/admin'
 
 function inr(n: number): string {
@@ -28,16 +28,20 @@ export default function Pulse() {
           <>
             <View className="mt-3 flex-row flex-wrap gap-3">
               <View style={{ minWidth: '46%', flexGrow: 1 }}>
-                <StatTile label="Active orgs" value={String(data.organizations.active)} hint={`${data.organizations.total} total`} />
+                <PastelStat label="Active orgs" value={data.organizations.active} accent="brand" />
               </View>
               <View style={{ minWidth: '46%', flexGrow: 1 }}>
-                <StatTile label="Signups this month" value={String(data.organizations.newThisMonth)} hint={`${data.organizations.newLastMonth} last month`} />
+                <PastelStat label="Signups this month" value={data.organizations.newThisMonth} accent="events" />
               </View>
               <View style={{ minWidth: '46%', flexGrow: 1 }}>
-                <StatTile label="MRR" value={inr(data.revenue.mrr)} hint={`${data.revenue.growthPct >= 0 ? '+' : ''}${data.revenue.growthPct}% MoM`} />
+                <PastelStat label="MRR" value={inr(data.revenue.mrr)} accent="fees" />
               </View>
               <View style={{ minWidth: '46%', flexGrow: 1 }}>
-                <StatTile label="Uptime (7d)" value={data.ops.uptimePct !== null ? `${data.ops.uptimePct}%` : '—'} />
+                <PastelStat
+                  label="Uptime (7d)"
+                  value={data.ops.uptimePct !== null ? `${data.ops.uptimePct}%` : '—'}
+                  accent="attend"
+                />
               </View>
             </View>
 
@@ -51,32 +55,36 @@ export default function Pulse() {
           </>
         ) : null}
 
-        <Pressable onPress={() => router.push('/(admin)/billing-alerts')} className="active:opacity-70">
-          <Card className="mt-4 flex-row items-center justify-between">
-            <Text className="text-sm font-semibold text-ink">Billing alerts</Text>
-            <Text className="text-xs text-brand">View →</Text>
-          </Card>
-        </Pressable>
+        <View className="mt-4">
+          <ListRow
+            title="Billing alerts"
+            icon="alert-circle-outline"
+            accent="events"
+            onPress={() => router.push('/(admin)/billing-alerts')}
+          />
+        </View>
 
         <Text className="mt-5 text-[11px] font-bold uppercase tracking-widest text-ink-faint">Moderation</Text>
-        <Pressable onPress={() => router.push('/(admin)/review-flags')} className="active:opacity-70">
-          <Card className="mt-3 flex-row items-center justify-between">
-            <Text className="text-sm font-semibold text-ink">Flagged reviews</Text>
-            <Text className="text-xs text-brand">View →</Text>
-          </Card>
-        </Pressable>
-        <Pressable onPress={() => router.push('/(admin)/templates')} className="active:opacity-70">
-          <Card className="mt-3 flex-row items-center justify-between">
-            <Text className="text-sm font-semibold text-ink">WhatsApp templates</Text>
-            <Text className="text-xs text-brand">View →</Text>
-          </Card>
-        </Pressable>
-        <Pressable onPress={() => router.push('/(admin)/announce')} className="active:opacity-70">
-          <Card className="mt-3 flex-row items-center justify-between">
-            <Text className="text-sm font-semibold text-ink">Publish announcement</Text>
-            <Text className="text-xs text-brand">Compose →</Text>
-          </Card>
-        </Pressable>
+        <View className="mt-3 gap-2.5">
+          <ListRow
+            title="Flagged reviews"
+            icon="flag-outline"
+            accent="brand"
+            onPress={() => router.push('/(admin)/review-flags')}
+          />
+          <ListRow
+            title="WhatsApp templates"
+            icon="logo-whatsapp"
+            accent="attend"
+            onPress={() => router.push('/(admin)/templates')}
+          />
+          <ListRow
+            title="Publish announcement"
+            icon="megaphone-outline"
+            accent="events"
+            onPress={() => router.push('/(admin)/announce')}
+          />
+        </View>
       </ScrollView>
     </Screen>
   )

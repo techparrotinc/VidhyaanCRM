@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
-import { Screen, GradientHeader, Card, Chip } from '@/components/ui'
+import { Screen, GradientHeader, Card, Chip, EmptyState } from '@/components/ui'
 import { RegisterGrid } from '@/components/RegisterGrid'
 import { ApiError } from '@/lib/api'
 import { enqueueRegister, queuedCount, syncAttendanceQueue } from '@/lib/attendance-queue'
@@ -205,9 +205,7 @@ export default function Attendance() {
               )
             })
           ) : (
-            <Card className="mt-4">
-              <Text className="text-sm text-ink-secondary">No classes assigned to you yet.</Text>
-            </Card>
+            <EmptyState icon="calendar-outline" title="No classes assigned" subtitle="Nothing assigned to you yet." />
           )
         ) : sessions.isLoading ? (
           <View className="mt-8 items-center">
@@ -247,9 +245,7 @@ export default function Attendance() {
             )
           })
         ) : (
-          <Card className="mt-4">
-            <Text className="text-sm text-ink-secondary">No sessions for this day.</Text>
-          </Card>
+          <EmptyState icon="calendar-outline" title="No sessions for this day" />
         )}
       </ScrollView>
     </Screen>

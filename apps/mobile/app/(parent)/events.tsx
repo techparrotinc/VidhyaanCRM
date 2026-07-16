@@ -1,6 +1,6 @@
 import { Text, View, Image, ScrollView, ActivityIndicator, Pressable } from 'react-native'
 import { router } from 'expo-router'
-import { Screen, GradientHeader, Card, Chip, IconCircle } from '@/components/ui'
+import { Screen, GradientHeader, Card, Chip, IconCircle, EmptyState } from '@/components/ui'
 import { useParentEvents, type ParentEvent } from '@/lib/parent-events'
 
 function formatWhen(e: ParentEvent): string {
@@ -24,7 +24,7 @@ function EventCard({ event }: { event: ParentEvent }) {
           <Image source={{ uri: event.imageUrl }} className="mb-3 h-28 w-full rounded-lg" resizeMode="cover" />
         ) : (
           <View className="mb-3 flex-row">
-            <IconCircle accent="events" size={48} />
+            <IconCircle accent="events" size={48} icon="sparkles" />
           </View>
         )}
         <Text className="text-sm font-semibold text-ink">{event.title}</Text>
@@ -65,9 +65,7 @@ export default function Events() {
         ) : events && events.length > 0 ? (
           events.map((e) => <EventCard key={e.id} event={e} />)
         ) : (
-          <Card>
-            <Text className="text-sm text-ink-secondary">No upcoming events.</Text>
-          </Card>
+          <EmptyState icon="sparkles-outline" title="No upcoming events" />
         )}
       </ScrollView>
     </Screen>

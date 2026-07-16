@@ -67,7 +67,9 @@ export const selectionResponseSchema = z.object({
 export const twoFactorResponseSchema = z.object({
   success: z.literal(true),
   twoFactorRequired: z.literal(true),
-  challengeToken: z.string()
+  challengeToken: z.string(),
+  method: z.string().optional(),
+  maskedPhone: z.string().optional()
 })
 
 export const verifyResponseSchema = z.union([

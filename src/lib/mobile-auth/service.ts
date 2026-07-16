@@ -4,7 +4,8 @@ import {
   resolveActiveRoleAssignment,
   MultiRoleSelectionRequiredError
 } from '@/lib/auth/resolveRoleAssignment'
-import { requiresSecondFactor } from '@/lib/auth/twofactor'
+import { requiresSecondFactor, getTwoFactorState } from '@/lib/auth/twofactor'
+import { createOTP, sendOTP } from '@/lib/auth/otp'
 import {
   signMobileAccessToken,
   signIntermediateToken,
@@ -67,12 +68,27 @@ export async function completeLogin(
         deviceId: device.deviceId,
         assignmentId: resolved.activeRoleAssignmentId
       })
+      // SMS-method users get their code dispatched right now — mirror of the
+      // web challenge route; without this the mobile 2FA screen waits for a
+      // code that never arrives.
+      const state = await getTwoFactorState(userId)
+      let maskedPhone: string | undefined
+      if (state.method === 'SMS') {
+        const u = await prisma.user.findUnique({ where: { id: userId }, select: { phone: true } })
+        if (u?.phone) {
+          maskedPhone = `••••••${u.phone.slice(-4)}`
+          const code = await createOTP(u.phone, 'SMS', 'MFA')
+          await sendOTP(u.phone, code, 'SMS', 'MFA')
+        }
+      }
       return {
         kind: 'twofactor',
         response: NextResponse.json({
           success: true,
           twoFactorRequired: true,
-          challengeToken
+          challengeToken,
+          method: state.method ?? 'TOTP',
+          ...(maskedPhone ? { maskedPhone } : {})
         })
       }
     }

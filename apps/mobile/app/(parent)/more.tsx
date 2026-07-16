@@ -17,6 +17,29 @@ export default function More() {
     router.replace('/(auth)/login')
   }
 
+  const deleteAccount = () => {
+    Alert.alert(
+      'Delete account?',
+      'Your parent account and personal data are removed. School records (fees, attendance) stay with the school. This cannot be undone — full purge within 30 days.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete my account',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api('/api/mobile/v1/parent/account-delete', { method: 'POST' })
+              await signOut()
+              router.replace('/(auth)/login')
+            } catch (e) {
+              Alert.alert('Could not delete', e instanceof Error ? e.message : 'Try again or contact support.')
+            }
+          }
+        }
+      ]
+    )
+  }
+
   return (
     <Screen header={<GradientHeader title="More" accent="brand" />}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -47,9 +70,9 @@ export default function More() {
         </Card>
         <ListRow
           title="Delete account"
-          subtitle="Permanent · 30-day window"
+          subtitle="Permanent · full purge within 30 days"
           icon="trash-outline"
-          onPress={() => Alert.alert('Delete account', 'Phase 1: full flow per wireframe (Apple 5.1.1v).')}
+          onPress={deleteAccount}
         />
       </ScrollView>
     </Screen>

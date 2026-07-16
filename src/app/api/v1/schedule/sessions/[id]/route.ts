@@ -3,10 +3,53 @@ import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
-import { SCHEDULE_READ_ROLES, assertCanManage, assertCanAct } from '@/lib/schedule/access'
+import { SCHEDULE_READ_ROLES, SCHEDULE_ADMIN_ROLES, assertCanManage, assertCanAct } from '@/lib/schedule/access'
 import { findClash } from '@/lib/schedule/clash'
 import { assertEditable, assertNotPast } from '@/lib/schedule/transitions'
 import { notifyClassRescheduled } from '@/lib/schedule/notify'
+
+/** Fresh single-session read — the mobile detail screen refetches by id so
+ *  it never acts on a stale serialized copy from the list. */
+export const GET = route({
+  module: MODULES.COURSE_SCHEDULE,
+  roles: SCHEDULE_READ_ROLES,
+  handler: async ({ db, user, params }) => {
+    const id = params?.id
+    const s = await db.courseSession.findUnique({
+      where: { id },
+      include: {
+        course: { select: { id: true, name: true } },
+        batch: { select: { id: true, name: true, _count: { select: { students: true } } } }
+      }
+    })
+    if (!s || s.deletedAt) throw Errors.notFound('Session')
+
+    const teacher = s.teacherId
+      ? await db.user.findUnique({ where: { id: s.teacherId }, select: { id: true, name: true } })
+      : null
+    const markedCount = s.attendanceSessionId
+      ? await db.attendanceRecord.count({ where: { sessionId: s.attendanceSessionId } })
+      : null
+
+    return ok({
+      session: {
+        id: s.id,
+        startsAt: s.startsAt,
+        durationMin: s.durationMin,
+        status: s.status,
+        meetingLink: s.meetingLink,
+        cancelReason: s.cancelReason,
+        rescheduledFromId: s.rescheduledFromId,
+        attendanceSessionId: s.attendanceSessionId,
+        course: s.course,
+        batch: s.batch ? { id: s.batch.id, name: s.batch.name, enrolledCount: s.batch._count.students } : null,
+        teacher: teacher ? { id: teacher.id, name: teacher.name } : null,
+        markedCount,
+        canManage: SCHEDULE_ADMIN_ROLES.includes(user.role)
+      }
+    })
+  }
+})
 
 const patchSchema = z.object({
   startsAt: z.coerce.date().optional(),

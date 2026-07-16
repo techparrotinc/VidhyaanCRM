@@ -7,6 +7,7 @@ import {
   useCancelSession,
   useRemindSession,
   useRescheduleSession,
+  useSession,
   type ScheduleSession
 } from '@/lib/schedule'
 
@@ -23,16 +24,29 @@ function fmtTime(d: Date): string {
 function RescheduleForm({ s, onDone }: { s: ScheduleSession; onDone: () => void }) {
   const [dayOffset, setDayOffset] = useState(1)
   const [hour, setHour] = useState(s.startsAt.getHours())
+  const [minute, setMinute] = useState(s.startsAt.getMinutes() - (s.startsAt.getMinutes() % 15))
   const [duration, setDuration] = useState(s.durationMin)
+  const [customDuration, setCustomDuration] = useState('')
   const [notify, setNotify] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const reschedule = useRescheduleSession()
 
+  const days = useMemo(
+    () =>
+      Array.from({ length: 15 }, (_, i) => {
+        const d = new Date(s.startsAt.getTime() + i * 86_400_000)
+        return { offset: i, label: i === 0 ? 'Same day' : d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) }
+      }),
+    [s.startsAt]
+  )
+
+  const effectiveDuration = customDuration ? Math.min(480, Math.max(5, Number(customDuration) || 0)) : duration
+
   const newDate = useMemo(() => {
     const d = new Date(s.startsAt.getTime() + dayOffset * 86_400_000)
-    d.setHours(hour, s.startsAt.getMinutes(), 0, 0)
+    d.setHours(hour, minute, 0, 0)
     return d
-  }, [s.startsAt, dayOffset, hour])
+  }, [s.startsAt, dayOffset, hour, minute])
 
   const submit = async () => {
     setError(null)
@@ -40,7 +54,7 @@ function RescheduleForm({ s, onDone }: { s: ScheduleSession; onDone: () => void 
       await reschedule.mutateAsync({
         id: s.id,
         startsAt: newDate.toISOString(),
-        durationMin: duration,
+        durationMin: effectiveDuration,
         notifyGuardians: notify
       })
       onDone()
@@ -53,22 +67,35 @@ function RescheduleForm({ s, onDone }: { s: ScheduleSession; onDone: () => void 
   return (
     <Card className="mt-3 gap-3 border-attend">
       <Text className="text-[11px] font-bold uppercase tracking-widest text-ink-faint">Reschedule</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View className="flex-row gap-1.5 pr-4">
+          {days.map((d) => (
+            <Pressable key={d.offset} onPress={() => setDayOffset(d.offset)} className={`rounded-full px-3 py-1.5 ${dayOffset === d.offset ? 'bg-attend' : 'border border-line bg-white'}`}>
+              <Text className={`text-xs font-semibold ${dayOffset === d.offset ? 'text-white' : 'text-ink-secondary'}`}>
+                {d.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </ScrollView>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View className="flex-row items-center gap-1.5 pr-4">
+          <Text className="text-xs text-ink-faint">Hour:</Text>
+          {Array.from({ length: 15 }, (_, i) => i + 7).map((h) => (
+            <Pressable key={h} onPress={() => setHour(h)} className={`rounded-full px-2.5 py-1 ${hour === h ? 'bg-attend' : 'border border-line bg-white'}`}>
+              <Text className={`text-[11px] font-semibold ${hour === h ? 'text-white' : 'text-ink-secondary'}`}>
+                {h > 12 ? `${h - 12} PM` : h === 12 ? '12 PM' : `${h} AM`}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </ScrollView>
       <View className="flex-row items-center gap-1.5">
-        <Text className="text-xs text-ink-faint">Day:</Text>
-        {[0, 1, 2, 3, 7].map((d) => (
-          <Pressable key={d} onPress={() => setDayOffset(d)} className={`rounded-full px-2.5 py-1 ${dayOffset === d ? 'bg-attend' : 'border border-line'}`}>
-            <Text className={`text-[11px] font-semibold ${dayOffset === d ? 'text-white' : 'text-ink-secondary'}`}>
-              {d === 0 ? 'Same' : `+${d}d`}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-      <View className="flex-row flex-wrap items-center gap-1.5">
-        <Text className="text-xs text-ink-faint">Time:</Text>
-        {[8, 10, 12, 15, 16, 17, 18, 19].map((h) => (
-          <Pressable key={h} onPress={() => setHour(h)} className={`rounded-full px-2.5 py-1 ${hour === h ? 'bg-attend' : 'border border-line'}`}>
-            <Text className={`text-[11px] font-semibold ${hour === h ? 'text-white' : 'text-ink-secondary'}`}>
-              {h > 12 ? `${h - 12}PM` : h === 12 ? '12PM' : `${h}AM`}
+        <Text className="text-xs text-ink-faint">Min:</Text>
+        {[0, 15, 30, 45].map((m) => (
+          <Pressable key={m} onPress={() => setMinute(m)} className={`rounded-full px-2.5 py-1 ${minute === m ? 'bg-attend' : 'border border-line bg-white'}`}>
+            <Text className={`text-[11px] font-semibold ${minute === m ? 'text-white' : 'text-ink-secondary'}`}>
+              :{String(m).padStart(2, '0')}
             </Text>
           </Pressable>
         ))}
@@ -76,12 +103,26 @@ function RescheduleForm({ s, onDone }: { s: ScheduleSession; onDone: () => void 
       <View className="flex-row items-center gap-1.5">
         <Text className="text-xs text-ink-faint">Length:</Text>
         {DURATIONS.map((m) => (
-          <Pressable key={m} onPress={() => setDuration(m)} className={`rounded-full px-2.5 py-1 ${duration === m ? 'bg-attend' : 'border border-line'}`}>
-            <Text className={`text-[11px] font-semibold ${duration === m ? 'text-white' : 'text-ink-secondary'}`}>
+          <Pressable
+            key={m}
+            onPress={() => {
+              setDuration(m)
+              setCustomDuration('')
+            }}
+            className={`rounded-full px-2.5 py-1 ${!customDuration && duration === m ? 'bg-attend' : 'border border-line bg-white'}`}
+          >
+            <Text className={`text-[11px] font-semibold ${!customDuration && duration === m ? 'text-white' : 'text-ink-secondary'}`}>
               {m % 60 === 0 ? `${m / 60} hr` : `${m}m`}
             </Text>
           </Pressable>
         ))}
+        <TextInput
+          value={customDuration}
+          onChangeText={(v) => setCustomDuration(v.replace(/\D/g, '').slice(0, 3))}
+          keyboardType="number-pad"
+          placeholder="min"
+          className="w-14 rounded-full border border-line px-2.5 py-1 text-center text-[11px] text-ink"
+        />
       </View>
       <Pressable onPress={() => setNotify((v) => !v)} className="flex-row items-center justify-between active:opacity-70">
         <Text className="text-sm text-ink-secondary">Notify guardians on WhatsApp</Text>
@@ -98,14 +139,18 @@ function RescheduleForm({ s, onDone }: { s: ScheduleSession; onDone: () => void 
 
 export default function SessionDetail() {
   const { session: sessionJson } = useLocalSearchParams<{ session: string }>()
-  const s = useMemo(() => {
+  const initial = useMemo(() => {
     try {
       const raw = JSON.parse(sessionJson ?? '{}')
       return scheduleSessionSchema.parse({ ...raw, startsAt: raw.startsAt }) as ScheduleSession
     } catch {
-      return null
+      return undefined
     }
   }, [sessionJson])
+  // Param copy renders instantly; the id-keyed fetch replaces it with the
+  // server's current state (reschedules elsewhere, attendance counts).
+  const { data } = useSession(initial?.id, initial)
+  const s = data ?? initial ?? null
 
   const [showReschedule, setShowReschedule] = useState(false)
   const [remindState, setRemindState] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle')

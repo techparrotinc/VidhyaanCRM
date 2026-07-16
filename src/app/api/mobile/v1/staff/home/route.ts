@@ -340,6 +340,43 @@ async function teacherTiles(orgId: string, userId: string): Promise<{ tiles: Til
   }
 }
 
+/** Receptionist home = the front desk: today's walk-in funnel + directory. */
+async function receptionistTiles(
+  orgId: string,
+  modules: Set<string>
+): Promise<{ tiles: Tile[]; attention: AttentionItem[] }> {
+  const today = startOfToday()
+  const now = new Date()
+  const hasLeads = modules.has('lead_management')
+
+  const [leadsToday, followUpsDue, activeStudents] = await Promise.all([
+    hasLeads
+      ? prisma.lead.count({ where: { orgId, deletedAt: null, createdAt: { gte: today } } })
+      : Promise.resolve(0),
+    hasLeads
+      ? prisma.lead.count({
+          where: {
+            orgId,
+            deletedAt: null,
+            nextFollowUpAt: { lte: now },
+            status: { notIn: ['CONVERTED', 'NOT_INTERESTED'] }
+          }
+        })
+      : Promise.resolve(0),
+    prisma.student.count({ where: { orgId, deletedAt: null, status: 'ACTIVE' } })
+  ])
+
+  const tiles: Tile[] = hasLeads
+    ? [
+        { key: 'leads_today', label: 'New enquiries today', value: String(leadsToday), route: '/leads' },
+        { key: 'followups_due', label: 'Follow-ups due', value: String(followUpsDue), route: '/leads' },
+        { key: 'active_students', label: 'Active students', value: String(activeStudents), route: '/students' }
+      ]
+    : [{ key: 'active_students', label: 'Active students', value: String(activeStudents), route: '/students' }]
+
+  return { tiles, attention: [] }
+}
+
 /** Accountant home = the money desk (wireframe note: "accountant sees money tiles"). */
 async function accountantTiles(orgId: string): Promise<{ tiles: Tile[]; attention: AttentionItem[] }> {
   const today = startOfToday()
@@ -436,7 +473,9 @@ export async function GET(req: NextRequest) {
         ? await counsellorTiles(orgId, userId)
         : role === ROLES.ACCOUNTANT
           ? await accountantTiles(orgId)
-          : { tiles: [], attention: [] } // RECEPTIONIST: no tiles yet, not a crash
+          : role === ROLES.RECEPTIONIST
+            ? await receptionistTiles(orgId, new Set(modules))
+            : { tiles: [], attention: [] }
 
   return NextResponse.json({
     success: true,

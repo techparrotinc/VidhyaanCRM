@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { router } from 'expo-router'
 import { Screen, DetailHeader, Card, Button, FormScrollView } from '@/components/ui'
 import { useCreateLead } from '@/lib/leads'
+import { extractLeadFromImage } from '@/lib/ai-extract'
 
 /**
  * Scan enquiry form (wireframe s-scan): capture the paper form / visiting
@@ -17,6 +18,8 @@ export default function ScanForm() {
   const [phone, setPhone] = useState('')
   const [grade, setGrade] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [extracting, setExtracting] = useState(false)
+  const [extracted, setExtracted] = useState<'idle' | 'done' | 'unavailable'>('idle')
   const createLead = useCreateLead()
 
   const capture = async (fromCamera: boolean) => {
@@ -26,7 +29,24 @@ export default function ScanForm() {
       if (!perm.granted) return
     }
     const result = await fn({ mediaTypes: ['images'], quality: 0.7 })
-    if (!result.canceled && result.assets[0]) setImageUri(result.assets[0].uri)
+    if (!result.canceled && result.assets[0]) {
+      const uri = result.assets[0].uri
+      setImageUri(uri)
+      // Best-effort AI auto-fill; scan stays useful as manual entry when
+      // the gateway's vision endpoint isn't available.
+      setExtracting(true)
+      setExtracted('idle')
+      const fields = await extractLeadFromImage(uri)
+      setExtracting(false)
+      if (fields && (fields.name || fields.phone)) {
+        if (fields.name) setName(fields.name)
+        if (fields.phone) setPhone(fields.phone)
+        if (fields.classOrCourse) setGrade(fields.classOrCourse)
+        setExtracted('done')
+      } else {
+        setExtracted('unavailable')
+      }
+    }
   }
 
   const submit = async () => {
@@ -70,7 +90,7 @@ export default function ScanForm() {
 
         <Card className="mt-3 gap-2.5">
           <Text className="text-[11px] font-bold uppercase tracking-widest text-ink-faint">
-            Check & edit
+            {extracting ? 'Reading the form…' : extracted === 'done' ? 'Extracted — check & edit' : 'Check & edit'}
           </Text>
           <TextInput value={name} onChangeText={setName} placeholder="Parent name" className="rounded-xl border border-line px-3 py-2.5 text-sm text-ink" />
           <TextInput
@@ -87,7 +107,9 @@ export default function ScanForm() {
           <Button label="Create lead" onPress={submit} loading={createLead.isPending} />
         </View>
         <Text className="mt-2 text-center text-xs text-ink-faint">
-          AI auto-fill from the photo is coming — fields stay editable either way.
+          {extracted === 'done'
+            ? 'AI filled the fields from the photo — review before saving.'
+            : 'Fields stay editable — AI auto-fill runs when available.'}
         </Text>
         <View className="h-6" />
       </FormScrollView>

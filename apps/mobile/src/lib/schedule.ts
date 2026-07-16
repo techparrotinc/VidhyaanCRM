@@ -59,6 +59,24 @@ export function useWeekSchedule(week: string) {
   })
 }
 
+const sessionDetailResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({ session: scheduleSessionSchema.passthrough() })
+})
+
+/** Fresh session by id — detail screen refetches so params can't go stale. */
+export function useSession(id: string | undefined, initial?: ScheduleSession) {
+  return useQuery({
+    queryKey: ['schedule-session', id],
+    enabled: !!id,
+    initialData: initial,
+    queryFn: async () => {
+      const json = await api<unknown>(`/api/v1/schedule/sessions/${id}`)
+      return sessionDetailResponseSchema.parse(json).data.session as ScheduleSession
+    }
+  })
+}
+
 export function useRescheduleSession() {
   const queryClient = useQueryClient()
   return useMutation({

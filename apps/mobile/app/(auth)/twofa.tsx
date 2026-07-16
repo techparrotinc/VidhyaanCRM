@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Text, View, Platform } from 'react-native'
+import { Text, View, Platform, Pressable } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -10,11 +10,34 @@ import { OtpInput } from '@/components/OtpInput'
 import type { TokensResponse } from '@/shared-contract'
 
 export default function TwoFactor() {
-  const { challengeToken } = useLocalSearchParams<{ challengeToken: string }>()
+  const { challengeToken, method, maskedPhone } = useLocalSearchParams<{
+    challengeToken: string
+    method?: string
+    maskedPhone?: string
+  }>()
   const signIn = useAuthStore((s) => s.signIn)
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [smsState, setSmsState] = useState<'idle' | 'sending' | 'sent'>(
+    method === 'SMS' ? 'sent' : 'idle'
+  )
+  const [smsPhone, setSmsPhone] = useState<string | null>(maskedPhone ?? null)
+
+  const requestSms = async () => {
+    setError(null)
+    setSmsState('sending')
+    try {
+      const res = await apiPublic<{ maskedPhone: string }>('/api/mobile/v1/auth/2fa/sms', {
+        challengeToken
+      })
+      setSmsPhone(res.maskedPhone)
+      setSmsState('sent')
+    } catch (e) {
+      setSmsState('idle')
+      setError(e instanceof Error ? e.message : 'Could not send the SMS code')
+    }
+  }
 
   const submit = async () => {
     setError(null)
@@ -52,12 +75,21 @@ export default function TwoFactor() {
             Two-step verification
           </Text>
           <Text className="text-center text-sm text-ink-secondary">
-            Enter the code from your authenticator app
+            {smsState === 'sent' && smsPhone
+              ? `Enter the code sent by SMS to ${smsPhone}`
+              : 'Enter the code from your authenticator app'}
           </Text>
         </View>
         <OtpInput value={code} onChange={setCode} />
         {error ? <Text className="text-center text-sm text-bad">{error}</Text> : null}
         <Button label="Verify" onPress={submit} loading={loading} disabled={code.length < 6} />
+        {smsState !== 'sent' ? (
+          <Pressable onPress={requestSms} disabled={smsState === 'sending'} className="active:opacity-70">
+            <Text className="text-center text-sm font-semibold text-brand">
+              {smsState === 'sending' ? 'Sending SMS…' : 'Use SMS code instead'}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </Screen>
   )

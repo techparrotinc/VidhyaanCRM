@@ -31,7 +31,8 @@ const STAFF = [
   { phone: '9999955002', name: 'QA Org Admin', role: 'ORG_ADMIN' },
   { phone: '9999955003', name: 'QA Counsellor', role: 'COUNSELLOR' },
   { phone: '9999955004', name: 'QA Teacher', role: 'TEACHER' },
-  { phone: '9999955005', name: 'QA Accountant', role: 'ACCOUNTANT' }
+  { phone: '9999955005', name: 'QA Accountant', role: 'ACCOUNTANT' },
+  { phone: '9999955006', name: 'QA Receptionist', role: 'RECEPTIONIST' }
 ] as const
 
 const PARENT = { phone: '9999955001', name: 'QA Parent One' }

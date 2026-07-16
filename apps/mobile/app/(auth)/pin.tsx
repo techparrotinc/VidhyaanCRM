@@ -39,7 +39,14 @@ export default function Pin() {
           params: { selectionToken: res.selectionToken, workspaces: JSON.stringify(res.workspaces) }
         })
       } else if ('twoFactorRequired' in res) {
-        router.push({ pathname: '/(auth)/twofa', params: { challengeToken: res.challengeToken } })
+        router.push({
+          pathname: '/(auth)/twofa',
+          params: {
+            challengeToken: res.challengeToken,
+            ...(res.method ? { method: res.method } : {}),
+            ...(res.maskedPhone ? { maskedPhone: res.maskedPhone } : {})
+          }
+        })
       } else {
         await signIn(res)
         router.replace('/')

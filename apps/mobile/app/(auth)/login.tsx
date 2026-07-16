@@ -50,7 +50,9 @@ export default function Login() {
       className="flex-1"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Screen className="justify-center gap-5">
+      {/* Top-aligned (not centered): with the number pad open, centered
+          content sinks and the Continue button hides behind the keyboard. */}
+      <Screen className="gap-5 pt-10">
         <View className="items-center gap-2">
           <View className="mb-1 h-20 w-20 overflow-hidden rounded-[28px]">
             <LinearGradient

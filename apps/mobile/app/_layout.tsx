@@ -1,11 +1,19 @@
 import '../global.css'
 import { useEffect, useRef } from 'react'
-import { AppState, type AppStateStatus } from 'react-native'
+import { AppState, View, type AppStateStatus } from 'react-native'
 import * as Notifications from 'expo-notifications'
 import { Stack, router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+  Poppins_800ExtraBold
+} from '@expo-google-fonts/poppins'
 import { useAuthStore } from '@/lib/auth-store'
 import { registerForPushNotifications } from '@/lib/push'
 import { biometricAvailable } from '@/lib/biometric'
@@ -21,6 +29,13 @@ const queryClient = new QueryClient({
 })
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+    Poppins_800ExtraBold
+  })
   const hydrate = useAuthStore((s) => s.hydrate)
   const status = useAuthStore((s) => s.status)
   const locked = useAuthStore((s) => s.locked)
@@ -90,6 +105,8 @@ export default function RootLayout() {
   }, [status])
 
   const showLock = status === 'signedIn' && locked
+
+  if (!fontsLoaded) return <View className="flex-1 bg-brand-bg" />
 
   return (
     <SafeAreaProvider>

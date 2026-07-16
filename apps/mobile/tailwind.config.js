@@ -1,4 +1,24 @@
 /** Vidhyaan design tokens — mirrors the web design system (CLAUDE.md). */
+const plugin = require('tailwindcss/plugin')
+
+/**
+ * RN ignores `fontWeight` on a custom-loaded font family (no synthetic
+ * bolding), so the standard `font-bold`/`font-semibold`/etc utilities would
+ * silently do nothing once Poppins replaces the system font. This plugin
+ * redirects those exact utilities to the matching Poppins weight's
+ * fontFamily instead, so every existing usage across the app picks up the
+ * right weight with zero per-screen changes.
+ */
+const poppinsWeightPlugin = plugin(({ addUtilities }) => {
+  addUtilities({
+    '.font-normal': { fontFamily: 'Poppins_400Regular' },
+    '.font-medium': { fontFamily: 'Poppins_500Medium' },
+    '.font-semibold': { fontFamily: 'Poppins_600SemiBold' },
+    '.font-bold': { fontFamily: 'Poppins_700Bold' },
+    '.font-extrabold': { fontFamily: 'Poppins_800ExtraBold' }
+  })
+})
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./app/**/*.{ts,tsx}', './src/**/*.{ts,tsx}'],
@@ -6,6 +26,9 @@ module.exports = {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Poppins_400Regular']
+      },
       colors: {
         brand: {
           DEFAULT: '#1565D8',
@@ -35,5 +58,5 @@ module.exports = {
       }
     }
   },
-  plugins: []
+  plugins: [poppinsWeightPlugin]
 }

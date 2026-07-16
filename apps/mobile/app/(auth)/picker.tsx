@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Text, Platform } from 'react-native'
+import { Pressable, Text, Platform } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { apiPublic } from '@/lib/api'
 import { useAuthStore } from '@/lib/auth-store'
@@ -42,6 +42,13 @@ export default function Picker() {
         />
       ))}
       {error ? <Text className="text-sm text-bad">{error}</Text> : null}
+
+      {/* This is the tail end of login (before signIn() ever fires), so
+          there's no session yet to "log out" of — just a way back to try a
+          different number instead of being stuck here. */}
+      <Pressable onPress={() => router.replace('/(auth)/login')} className="mt-4 items-center">
+        <Text className="text-sm font-semibold text-brand">Use a different number</Text>
+      </Pressable>
     </Screen>
   )
 }

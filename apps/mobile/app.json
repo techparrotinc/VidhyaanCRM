@@ -14,6 +14,7 @@
     "android": {
       "package": "com.vidhyaan.app",
       "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "resize",
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.USE_BIOMETRIC",
@@ -37,6 +38,17 @@
         "expo-image-picker",
         {
           "cameraPermission": "Allow Vidhyaan to access your camera to capture admission documents."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "gradleProperties": {
+              "org.gradle.jvmargs": "-Xmx4608m -XX:MaxMetaspaceSize=1536m",
+              "kotlin.daemon.jvm.options": "-Xmx2048m,-XX:MaxMetaspaceSize=1024m"
+            }
+          }
         }
       ]
     ],

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Text, View, Pressable, ActivityIndicator } from 'react-native'
+import { Text, View, Pressable, ActivityIndicator, ScrollView } from 'react-native'
 import { Screen, GradientHeader, Card, Chip } from '@/components/ui'
 import { useAttendanceStudents, useAttendanceMonth, type AttendanceRecord } from '@/lib/parent-attendance'
 
@@ -65,6 +65,7 @@ export default function Attendance() {
         />
       }
     >
+      <ScrollView showsVerticalScrollIndicator={false}>
       {studentsLoading ? (
         <View className="mt-8 items-center">
           <ActivityIndicator color="#1565D8" />
@@ -139,6 +140,7 @@ export default function Attendance() {
           </Card>
         </>
       )}
+      </ScrollView>
     </Screen>
   )
 }

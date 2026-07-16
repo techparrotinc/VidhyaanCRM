@@ -1,4 +1,4 @@
-import { Text } from 'react-native'
+import { ScrollView, Text } from 'react-native'
 import { router } from 'expo-router'
 import { Screen, GradientHeader, Card, Button, ListRow, IconCircle } from '@/components/ui'
 import { useAuthStore } from '@/lib/auth-store'
@@ -29,6 +29,7 @@ export default function More() {
 
   return (
     <Screen header={<GradientHeader title="More" accent="brand" />}>
+      <ScrollView showsVerticalScrollIndicator={false}>
       <Card className="mt-4 flex-row items-center gap-3">
         <IconCircle accent="brand" size={44} />
         <Text className="flex-1 text-sm font-semibold text-ink">
@@ -36,6 +37,10 @@ export default function More() {
           {'\n'}
           <Text className="text-xs font-normal text-ink-secondary">{user?.phone}</Text>
         </Text>
+      </Card>
+
+      <Card className="mt-3">
+        <Button label="Log out" variant="quiet" onPress={logout} />
       </Card>
 
       {ADMISSIONS_ROLES.has(role) ? (
@@ -62,10 +67,7 @@ export default function More() {
       {AI_ROLES.has(role) ? (
         <ListRow title="Ask AI" subtitle="Chat with citations + actions" onPress={() => router.push('/(org)/ai-chat')} accent="brand" />
       ) : null}
-
-      <Card className="mt-3">
-        <Button label="Log out" variant="quiet" onPress={logout} />
-      </Card>
+      </ScrollView>
     </Screen>
   )
 }

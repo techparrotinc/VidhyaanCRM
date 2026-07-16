@@ -174,6 +174,13 @@ export default function Attendance() {
             <View className="mt-8 items-center">
               <ActivityIndicator color="#0D9488" />
             </View>
+          ) : overview.isError ? (
+            <Card className="mt-4">
+              <Text className="text-sm text-bad">Couldn't load classes. Pull to retry.</Text>
+              <Pressable onPress={() => overview.refetch()} className="mt-2">
+                <Text className="text-sm font-semibold text-brand">Retry</Text>
+              </Pressable>
+            </Card>
           ) : overview.data && overview.data.length > 0 ? (
             overview.data.map((c) => {
               const label = `${c.gradeLabel}${c.section ? ` - ${c.section}` : ''}`
@@ -206,6 +213,13 @@ export default function Attendance() {
           <View className="mt-8 items-center">
             <ActivityIndicator color="#0D9488" />
           </View>
+        ) : sessions.isError ? (
+          <Card className="mt-4">
+            <Text className="text-sm text-bad">Couldn't load sessions. Pull to retry.</Text>
+            <Pressable onPress={() => sessions.refetch()} className="mt-2">
+              <Text className="text-sm font-semibold text-brand">Retry</Text>
+            </Pressable>
+          </Card>
         ) : sessions.data && sessions.data.length > 0 ? (
           sessions.data.map((s) => {
             const label = s.title || s.course?.name || s.batch?.name || 'Session'

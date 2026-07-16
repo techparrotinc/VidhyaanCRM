@@ -74,7 +74,7 @@ export default function Pin() {
   }
 
   return (
-    <Screen className="justify-between">
+    <Screen>
       <View className="gap-5 pt-4">
         <View className="items-center gap-3">
           <View className="h-16 w-16 overflow-hidden rounded-3xl">
@@ -94,13 +94,13 @@ export default function Pin() {
         </View>
         <OtpInput value={pin} onChange={setPin} length={4} secure />
         {error ? <Text className="text-center text-sm text-bad">{error}</Text> : null}
+        <Button label="Unlock" onPress={submit} loading={loading} disabled={pin.length !== 4} />
         <Pressable onPress={useOtpInstead} disabled={otpLoading} className="active:opacity-70">
           <Text className="text-center text-sm font-semibold text-brand">
             {otpLoading ? 'Sending OTP…' : 'Forgot PIN? Login with OTP'}
           </Text>
         </Pressable>
       </View>
-      <Button label="Unlock" onPress={submit} loading={loading} disabled={pin.length !== 4} />
     </Screen>
   )
 }

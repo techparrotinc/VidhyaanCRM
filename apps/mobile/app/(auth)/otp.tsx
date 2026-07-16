@@ -46,7 +46,7 @@ export default function Otp() {
   }
 
   return (
-    <Screen className="justify-between">
+    <Screen>
       <View className="gap-5 pt-4">
         <View className="items-center gap-3">
           <View className="h-16 w-16 overflow-hidden rounded-3xl">
@@ -66,8 +66,8 @@ export default function Otp() {
         </View>
         <OtpInput value={code} onChange={setCode} />
         {error ? <Text className="text-center text-sm text-bad">{error}</Text> : null}
+        <Button label="Verify" onPress={submit} loading={loading} disabled={code.length !== 6} />
       </View>
-      <Button label="Verify" onPress={submit} loading={loading} disabled={code.length !== 6} />
     </Screen>
   )
 }

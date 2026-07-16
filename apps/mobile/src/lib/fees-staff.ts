@@ -40,6 +40,44 @@ export function useOverdueInvoices() {
   })
 }
 
+/** New Fees-tab BFF: KPIs + every open invoice (overdue AND upcoming). */
+export const openInvoiceSchema = z.object({
+  id: z.string(),
+  invoiceNumber: z.string(),
+  totalAmount: z.number(),
+  paidAmount: z.number(),
+  balance: z.number(),
+  dueDate: z.coerce.date().nullable(),
+  daysOverdue: z.number(),
+  status: z.string(),
+  student: z.object({
+    id: z.string(),
+    name: z.string(),
+    studentCode: z.string(),
+    gradeLabel: z.string().nullable(),
+    section: z.string().nullable(),
+    guardianPhone: z.string().nullable()
+  })
+})
+export type OpenInvoice = z.infer<typeof openInvoiceSchema>
+
+const staffFeesResponseSchema = z.object({
+  success: z.literal(true),
+  kpis: z.object({ collectedToday: z.number(), openDues: z.number() }),
+  invoices: z.array(openInvoiceSchema)
+})
+export type StaffFees = z.infer<typeof staffFeesResponseSchema>
+
+export function useStaffFees() {
+  return useQuery({
+    queryKey: ['staff-fees'],
+    queryFn: async () => {
+      const json = await api<unknown>('/api/mobile/v1/staff/fees')
+      return staffFeesResponseSchema.parse(json)
+    }
+  })
+}
+
 // Matches paymentSchema in /api/v1/fees/invoices/[id]/payments — the route
 // the web admin UI actually calls (RAZORPAY/CARD excluded here: those are
 // gateway-collected, not something staff manually key in on mobile).
@@ -54,7 +92,11 @@ export function useRecordPayment() {
         method: 'POST',
         body: JSON.stringify({ amount: args.amount, method: args.method })
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['fees-overdue'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fees-overdue'] })
+      queryClient.invalidateQueries({ queryKey: ['staff-fees'] })
+      queryClient.invalidateQueries({ queryKey: ['staff-home'] })
+    }
   })
 }
 

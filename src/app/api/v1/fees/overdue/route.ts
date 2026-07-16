@@ -14,10 +14,13 @@ export const GET = route({
   handler: async ({ db }) => {
     const now = new Date()
 
+    // OVERDUE must be included: the updateMany below flips rows to OVERDUE,
+    // so a query for only UNPAID/PARTIALLY_PAID returns zero from the second
+    // call onward (this exact bug blanked the mobile Fees tab).
     const overdueInvoices = await db.invoice.findMany({
       where: {
         status: {
-          in: ['UNPAID' as InvoiceStatus, 'PARTIALLY_PAID' as InvoiceStatus]
+          in: ['UNPAID', 'PARTIALLY_PAID', 'OVERDUE'] as InvoiceStatus[]
         },
         dueDate: { lt: now },
         deletedAt: null

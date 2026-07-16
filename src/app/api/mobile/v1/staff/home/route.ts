@@ -35,50 +35,93 @@ function inr(n: number): string {
 
 async function adminTiles(
   orgId: string,
-  institutionType: string
+  institutionType: string,
+  modules: Set<string>
 ): Promise<{ tiles: Tile[]; attention: AttentionItem[] }> {
   const today = startOfToday()
   const now = new Date()
+  const hasLeads = modules.has('lead_management')
+  const hasFees = modules.has('fee_management')
 
-  const [newLeadsToday, followUpsDue, feesToday, attendanceToday, overdueFollowUps] = await Promise.all([
-    prisma.lead.count({ where: { orgId, deletedAt: null, createdAt: { gte: today } } }),
-    prisma.lead.count({
-      where: {
-        orgId,
-        deletedAt: null,
-        nextFollowUpAt: { lte: now },
-        status: { notIn: ['CONVERTED', 'NOT_INTERESTED'] }
+  const [newLeadsToday, followUpsDue, feesToday, attendanceToday, overdueFollowUps, topOverdueInvoices] =
+    await Promise.all([
+      hasLeads
+        ? prisma.lead.count({ where: { orgId, deletedAt: null, createdAt: { gte: today } } })
+        : Promise.resolve(0),
+      hasLeads
+        ? prisma.lead.count({
+            where: {
+              orgId,
+              deletedAt: null,
+              nextFollowUpAt: { lte: now },
+              status: { notIn: ['CONVERTED', 'NOT_INTERESTED'] }
+            }
+          })
+        : Promise.resolve(0),
+      prisma.payment.aggregate({
+        where: { orgId, status: 'SUCCESS', paidAt: { gte: today } },
+        _sum: { amount: true }
+      }),
+      prisma.attendanceRecord.groupBy({
+        by: ['status'],
+        where: { orgId, date: today },
+        _count: { status: true }
+      }),
+      hasLeads
+        ? prisma.lead.findMany({
+            where: {
+              orgId,
+              deletedAt: null,
+              nextFollowUpAt: { lte: now },
+              status: { notIn: ['CONVERTED', 'NOT_INTERESTED'] }
+            },
+            orderBy: { nextFollowUpAt: 'asc' },
+            take: 3,
+            select: { id: true, parentName: true, kidName: true, nextFollowUpAt: true }
+          })
+        : Promise.resolve([]),
+      hasFees
+        ? prisma.invoice.findMany({
+            where: {
+              orgId,
+              deletedAt: null,
+              status: { in: ['UNPAID', 'PARTIALLY_PAID', 'OVERDUE'] },
+              dueDate: { lt: new Date(now.getTime() - 14 * 86_400_000) }
+            },
+            orderBy: { dueDate: 'asc' },
+            take: 2,
+            select: {
+              id: true,
+              invoiceNumber: true,
+              totalAmount: true,
+              paidAmount: true,
+              dueDate: true,
+              student: { select: { name: true } }
+            }
+          })
+        : Promise.resolve([])
+    ])
+
+  const attention: AttentionItem[] = [
+    ...overdueFollowUps.map((l) => ({
+      id: l.id,
+      type: 'follow_up_due',
+      title: `Overdue follow-up · ${l.parentName}`,
+      subtitle: l.kidName ? `Lead · ${l.kidName}` : 'Lead · follow-up due',
+      route: `/leads/${l.id}`
+    })),
+    ...topOverdueInvoices.map((inv) => {
+      const days = inv.dueDate ? Math.floor((now.getTime() - inv.dueDate.getTime()) / 86_400_000) : 0
+      const balance = Number(inv.totalAmount) - Number(inv.paidAmount)
+      return {
+        id: inv.id,
+        type: 'invoice_overdue',
+        title: `Big overdue · ₹${Math.round(balance).toLocaleString('en-IN')}`,
+        subtitle: `${inv.student.name} · ${inv.invoiceNumber} · ${days}d`,
+        route: '/fees'
       }
-    }),
-    prisma.payment.aggregate({
-      where: { orgId, status: 'SUCCESS', paidAt: { gte: today } },
-      _sum: { amount: true }
-    }),
-    prisma.attendanceRecord.groupBy({
-      by: ['status'],
-      where: { orgId, date: today },
-      _count: { status: true }
-    }),
-    prisma.lead.findMany({
-      where: {
-        orgId,
-        deletedAt: null,
-        nextFollowUpAt: { lte: now },
-        status: { notIn: ['CONVERTED', 'NOT_INTERESTED'] }
-      },
-      orderBy: { nextFollowUpAt: 'asc' },
-      take: 5,
-      select: { id: true, parentName: true, kidName: true, nextFollowUpAt: true }
     })
-  ])
-
-  const attention: AttentionItem[] = overdueFollowUps.map((l) => ({
-    id: l.id,
-    type: 'follow_up_due',
-    title: l.parentName,
-    subtitle: l.kidName ? `${l.kidName} · follow-up due` : 'Follow-up due',
-    route: `/leads/${l.id}`
-  }))
+  ]
 
   if (isLearningCentre(institutionType)) {
     // LC variant (wireframe s-home-lc): collections lead, plus today's
@@ -98,11 +141,24 @@ async function adminTiles(
         where: { orgId, deletedAt: null, status: { not: 'CANCELLED' }, startsAt: { gte: today, lt: now } }
       })
     ])
+    const lcLeadTiles: Tile[] = hasLeads
+      ? [
+          { key: 'leads_today', label: 'New enquiries today', value: String(newLeadsToday), route: '/leads' },
+          { key: 'followups_due', label: 'Follow-ups due', value: String(followUpsDue), route: '/leads' }
+        ]
+      : [
+          {
+            key: 'active_students',
+            label: 'Active students',
+            value: String(await prisma.student.count({ where: { orgId, deletedAt: null, status: 'ACTIVE' } })),
+            route: '/students'
+          },
+          { key: 'fees_today', label: 'Collected today', value: inr(Number(feesToday._sum.amount ?? 0)), route: '/fees' }
+        ]
     return {
       tiles: [
         { key: 'month_collected', label: 'Collected this month', value: inr(Number(monthCollected._sum.amount ?? 0)), route: '/collections' },
-        { key: 'leads_today', label: 'New enquiries today', value: String(newLeadsToday), route: '/leads' },
-        { key: 'followups_due', label: 'Follow-ups due', value: String(followUpsDue), route: '/leads' },
+        ...lcLeadTiles,
         {
           key: 'sessions_today',
           label: 'Sessions today',
@@ -132,10 +188,33 @@ async function adminTiles(
   )
   const totalClasses = allGroups.length
 
+  // Lead tiles only when the org licenses lead_management — otherwise show
+  // student/dues numbers so the grid stays full (and never routes to a 403).
+  const [activeStudents, openDues] = hasLeads
+    ? [0, 0]
+    : await Promise.all([
+        prisma.student.count({ where: { orgId, deletedAt: null, status: 'ACTIVE' } }),
+        prisma.invoice
+          .aggregate({
+            where: { orgId, deletedAt: null, status: { in: ['UNPAID', 'PARTIALLY_PAID', 'OVERDUE'] } },
+            _sum: { totalAmount: true, paidAmount: true }
+          })
+          .then((r) => Number(r._sum.totalAmount ?? 0) - Number(r._sum.paidAmount ?? 0))
+      ])
+
+  const leadTiles: Tile[] = hasLeads
+    ? [
+        { key: 'leads_today', label: 'New leads today', value: String(newLeadsToday), route: '/leads' },
+        { key: 'followups_due', label: 'Follow-ups due', value: String(followUpsDue), route: '/leads' }
+      ]
+    : [
+        { key: 'active_students', label: 'Active students', value: String(activeStudents), route: '/students' },
+        { key: 'open_dues', label: 'Open dues', value: inr(openDues), route: '/fees' }
+      ]
+
   return {
     tiles: [
-      { key: 'leads_today', label: 'New leads today', value: String(newLeadsToday), route: '/leads' },
-      { key: 'followups_due', label: 'Follow-ups due', value: String(followUpsDue), route: '/leads' },
+      ...leadTiles,
       { key: 'fees_today', label: 'Collected today', value: inr(Number(feesToday._sum.amount ?? 0)), route: '/fees' },
       {
         key: 'classes_marked',
@@ -288,7 +367,7 @@ export async function GET(req: NextRequest) {
   const modules = orgModules.map((m) => m.module.slug)
 
   const { tiles, attention } = ADMIN_ROLES.includes(role)
-    ? await adminTiles(orgId, institutionType)
+    ? await adminTiles(orgId, institutionType, new Set(modules))
     : role === ROLES.TEACHER
       ? await teacherTiles(orgId, userId)
       : role === ROLES.COUNSELLOR

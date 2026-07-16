@@ -6,6 +6,7 @@ import { Screen, GradientHeader, Card, Button, Chip, IconCircle, SearchBar, Empt
 import { useAuthStore } from '@/lib/auth-store'
 import { useLeads, useCreateLead, useLogLeadActivity, useSnoozeLead, type Lead } from '@/lib/leads'
 import { FEATURE_ICONS } from '@/lib/icons'
+import { HeaderAvatar, AvatarMenuOverlay, useAvatarMenu } from '@/components/HeaderAvatarMenu'
 
 const SNOOZE_ROLES = new Set(['ORG_ADMIN', 'BRANCH_ADMIN', 'COUNSELLOR'])
 
@@ -144,6 +145,7 @@ export default function Leads() {
   const [search, setSearch] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const { data, isLoading, isError, refetch } = useLeads(search)
+  const { open: menuOpen, setOpen: setMenuOpen } = useAvatarMenu()
 
   return (
     <Screen
@@ -153,16 +155,20 @@ export default function Leads() {
           subtitle={data ? `${data.total} total` : undefined}
           accent="brand"
           right={
-            <Pressable
-              onPress={() => setShowAdd((v) => !v)}
-              className="h-10 w-10 items-center justify-center rounded-full bg-white/20 active:opacity-70"
-            >
-              <Text className="text-2xl leading-none text-white">{showAdd ? '×' : '+'}</Text>
-            </Pressable>
+            <View className="flex-row items-center gap-2.5">
+              <Pressable
+                onPress={() => setShowAdd((v) => !v)}
+                className="h-10 w-10 items-center justify-center rounded-full bg-white/20 active:opacity-70"
+              >
+                <Text className="text-2xl leading-none text-white">{showAdd ? '×' : '+'}</Text>
+              </Pressable>
+              <HeaderAvatar onPress={() => setMenuOpen(!menuOpen)} />
+            </View>
           }
         />
       }
     >
+      <AvatarMenuOverlay open={menuOpen} onClose={() => setMenuOpen(false)} />
       <FormScrollView>
         {showAdd ? <QuickAddForm onClose={() => setShowAdd(false)} /> : null}
 

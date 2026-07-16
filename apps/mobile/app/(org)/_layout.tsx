@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router'
 import { useAuthStore } from '@/lib/auth-store'
+import { useStaffHome } from '@/lib/staff-home'
 import { useSharedTabScreenOptions, tabBarIcon } from '@/components/tab-bar'
 import type { FeatureKey } from '@/lib/icons'
 
@@ -15,9 +16,24 @@ const ROLE_TABS: Record<string, string[]> = {
   TEACHER: ['home', 'attendance', 'students']
 }
 
+/** Module licence per tab — a tab whose backend would 403 must not show.
+ *  Until home loads (modules unknown) tabs stay visible to avoid a flash. */
+const TAB_MODULE: Record<string, string> = {
+  leads: 'lead_management',
+  attendance: 'attendance',
+  fees: 'fee_management',
+  students: 'student_management'
+}
+
 export default function OrgLayout() {
   const role = useAuthStore((s) => s.user?.role ?? '')
-  const allowed = ROLE_TABS[role] ?? ['home', 'students'] // unknown role: safest common ground
+  const { data: home } = useStaffHome()
+  const roleAllowed = ROLE_TABS[role] ?? ['home', 'students'] // unknown role: safest common ground
+  const allowed = roleAllowed.filter((name) => {
+    const mod = TAB_MODULE[name]
+    if (!mod || !home) return true
+    return home.modules.includes(mod)
+  })
   const screenOptions = useSharedTabScreenOptions()
 
   const tab = (name: string, title: string, feature: FeatureKey) => (

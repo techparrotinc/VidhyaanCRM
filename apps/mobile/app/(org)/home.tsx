@@ -1,8 +1,7 @@
-import { useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { api } from '@/lib/api'
+import { HeaderAvatar, AvatarMenuOverlay, useAvatarMenu } from '@/components/HeaderAvatarMenu'
 import {
   Screen,
   GradientHeader,
@@ -65,16 +64,21 @@ function CollectionsPreview() {
 /** Follow-up items deep-link to the lead detail; others to their tab. */
 function routeFor(item: StaffAttentionItem): string {
   if (item.type === 'unmarked_attendance') return '/(org)/attendance'
+  if (item.type === 'invoice_overdue') return '/(org)/fees'
   if (item.type === 'follow_up_due') return `/(org)/leads/${item.id}`
   return '/(org)/leads'
 }
 
 function attentionAccent(type: string): Accent {
-  return type === 'unmarked_attendance' ? 'attend' : 'brand'
+  if (type === 'unmarked_attendance') return 'attend'
+  if (type === 'invoice_overdue') return 'fees'
+  return 'brand'
 }
 
 function attentionIcon(type: string): IconName {
-  return type === 'unmarked_attendance' ? FEATURE_ICONS.attendance.icon : FEATURE_ICONS.leads.icon
+  if (type === 'unmarked_attendance') return FEATURE_ICONS.attendance.icon
+  if (type === 'invoice_overdue') return FEATURE_ICONS.fees.icon
+  return FEATURE_ICONS.leads.icon
 }
 
 /** No "days late" number comes from the backend yet — approximate the
@@ -116,33 +120,10 @@ function greeting(): string {
   return 'Good evening'
 }
 
-const AVATAR_MENU: Array<{ label: string; icon: IconName; route?: string; action?: 'logout' }> = [
-  { label: 'My profile', icon: 'person-circle-outline', route: '/(org)/more' },
-  { label: 'Login PIN', icon: 'keypad-outline', route: '/set-pin' },
-  { label: 'Help & support', icon: 'help-buoy-outline', route: '/support' },
-  { label: 'Log out', icon: 'log-out-outline', action: 'logout' }
-]
-
 export default function StaffHome() {
   const user = useAuthStore((s) => s.user)
-  const signOut = useAuthStore((s) => s.signOut)
   const { data, isLoading, isError, refetch } = useStaffHome()
-  const [menuOpen, setMenuOpen] = useState(false)
-
-  const onMenuItem = async (item: (typeof AVATAR_MENU)[number]) => {
-    setMenuOpen(false)
-    if (item.action === 'logout') {
-      try {
-        await api('/api/mobile/v1/auth/logout', { method: 'POST' })
-      } catch {
-        // Local sign-out proceeds regardless.
-      }
-      await signOut()
-      router.replace('/(auth)/login')
-    } else if (item.route) {
-      router.push(item.route as any)
-    }
-  }
+  const { open: menuOpen, setOpen: setMenuOpen } = useAvatarMenu()
 
   return (
     <Screen
@@ -168,37 +149,13 @@ export default function StaffHome() {
                   </View>
                 ) : null}
               </Pressable>
-              <Pressable onPress={() => setMenuOpen((v) => !v)} className="active:opacity-80">
-                <Avatar name={user?.name} size={40} accent="brand" />
-              </Pressable>
+              <HeaderAvatar onPress={() => setMenuOpen(!menuOpen)} />
             </View>
           }
         />
       }
     >
-      {menuOpen ? (
-        <>
-          <Pressable
-            onPress={() => setMenuOpen(false)}
-            className="absolute inset-0 z-10"
-            style={{ top: 0, bottom: 0, left: 0, right: 0 }}
-          />
-          <View className="absolute right-4 top-1 z-20 w-56 rounded-2xl border border-line bg-white py-1 shadow-lg" style={{ elevation: 8 }}>
-            {AVATAR_MENU.map((item) => (
-              <Pressable
-                key={item.label}
-                onPress={() => void onMenuItem(item)}
-                className="flex-row items-center gap-3 px-4 py-3 active:bg-line-soft"
-              >
-                <Ionicons name={item.icon} size={18} color={item.action === 'logout' ? '#DC2626' : '#475569'} />
-                <Text className={`text-sm font-medium ${item.action === 'logout' ? 'text-bad' : 'text-ink'}`}>
-                  {item.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </>
-      ) : null}
+      <AvatarMenuOverlay open={menuOpen} onClose={() => setMenuOpen(false)} />
       <ScrollView showsVerticalScrollIndicator={false}>
         {isLoading ? (
           <View className="mt-8 items-center">

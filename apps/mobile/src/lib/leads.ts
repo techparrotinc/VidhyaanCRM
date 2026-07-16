@@ -10,19 +10,22 @@ import { api } from './api'
  * (which predates the composer and needed a small patch).
  */
 
+// Defensive against legacy rows: real orgs have leads predating today's
+// invariants (null names, missing assignee) — one bad row must not blank
+// the whole tab.
 export const leadSchema = z.object({
   id: z.string(),
-  leadCode: z.string(),
-  parentName: z.string(),
-  phone: z.string(),
-  kidName: z.string().nullable(),
-  status: z.string(),
-  priority: z.string(),
-  source: z.string(),
-  gradeSought: z.string().nullable(),
-  nextFollowUpAt: z.coerce.date().nullable(),
-  createdAt: z.coerce.date(),
-  assignedTo: z.object({ id: z.string(), name: z.string() }).nullable()
+  leadCode: z.string().catch(''),
+  parentName: z.string().catch('Unknown'),
+  phone: z.string().catch(''),
+  kidName: z.string().nullable().catch(null),
+  status: z.string().catch('NEW'),
+  priority: z.string().catch('MEDIUM'),
+  source: z.string().catch('OTHER'),
+  gradeSought: z.string().nullable().catch(null),
+  nextFollowUpAt: z.coerce.date().nullable().catch(null),
+  createdAt: z.coerce.date().catch(() => new Date()),
+  assignedTo: z.object({ id: z.string(), name: z.string() }).nullable().catch(null)
 })
 
 export type Lead = z.infer<typeof leadSchema>

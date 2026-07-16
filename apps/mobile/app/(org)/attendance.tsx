@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { Screen, GradientHeader, Card, Chip, EmptyState } from '@/components/ui'
+import { HeaderAvatar, AvatarMenuOverlay, useAvatarMenu } from '@/components/HeaderAvatarMenu'
 import { RegisterGrid } from '@/components/RegisterGrid'
 import { ApiError } from '@/lib/api'
 import { enqueueRegister, queuedCount, syncAttendanceQueue } from '@/lib/attendance-queue'
@@ -27,6 +28,7 @@ function shiftedDateStr(days: number): string {
 }
 
 export default function Attendance() {
+  const { open: menuOpen, setOpen: setMenuOpen } = useAvatarMenu()
   const mode = useInstitutionMode()
   const [date, setDate] = useState(todayStr())
   const [target, setTarget] = useState<RegisterTarget | null>(null)
@@ -91,9 +93,11 @@ export default function Attendance() {
           title={target ? target.label : 'Attendance'}
           subtitle={date === todayStr() ? 'Today' : date}
           accent="attend"
+          right={<HeaderAvatar onPress={() => setMenuOpen(!menuOpen)} />}
         />
       }
     >
+      <AvatarMenuOverlay open={menuOpen} onClose={() => setMenuOpen(false)} />
       <ScrollView showsVerticalScrollIndicator={false}>
         {pending > 0 ? (
           <Pressable onPress={syncNow} className="active:opacity-70">

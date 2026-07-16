@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { Screen, GradientHeader, Card, Avatar, SearchBar, EmptyState } from '@/components/ui'
 import { useStudentDirectory, useClassOptions, type StudentDirectoryEntry } from '@/lib/students'
+import { HeaderAvatar, AvatarMenuOverlay, useAvatarMenu } from '@/components/HeaderAvatarMenu'
 
 function StudentRow({ student }: { student: StudentDirectoryEntry }) {
   const call = () => student.guardianPhone && Linking.openURL(`tel:${student.guardianPhone}`)
@@ -43,6 +44,7 @@ export default function Students() {
   const [grade, setGrade] = useState<string | null>(null)
   const { data, isLoading, isError, refetch } = useStudentDirectory(search, grade ?? undefined)
   const { data: classes } = useClassOptions()
+  const { open: menuOpen, setOpen: setMenuOpen } = useAvatarMenu()
 
   return (
     <Screen
@@ -52,16 +54,20 @@ export default function Students() {
           subtitle={data ? `${data.total} active` : undefined}
           accent="brand"
           right={
-            <Pressable
-              onPress={() => router.push('/(org)/enroll' as never)}
-              className="h-10 w-10 items-center justify-center rounded-full bg-white/20 active:opacity-70"
-            >
-              <Text className="text-2xl leading-none text-white">+</Text>
-            </Pressable>
+            <View className="flex-row items-center gap-2.5">
+              <Pressable
+                onPress={() => router.push('/(org)/enroll' as never)}
+                className="h-10 w-10 items-center justify-center rounded-full bg-white/20 active:opacity-70"
+              >
+                <Text className="text-2xl leading-none text-white">+</Text>
+              </Pressable>
+              <HeaderAvatar onPress={() => setMenuOpen(!menuOpen)} />
+            </View>
           }
         />
       }
     >
+      <AvatarMenuOverlay open={menuOpen} onClose={() => setMenuOpen(false)} />
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <SearchBar value={search} onChangeText={setSearch} placeholder="Search name, code, guardian phone…" />
 

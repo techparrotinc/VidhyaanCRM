@@ -2,6 +2,7 @@ import { Alert, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { Screen, GradientHeader, Card, Button, ListRow, Avatar } from '@/components/ui'
 import { useAuthStore } from '@/lib/auth-store'
+import { HeaderAvatar, AvatarMenuOverlay, useAvatarMenu } from '@/components/HeaderAvatarMenu'
 import { useStaffHome } from '@/lib/staff-home'
 import { api } from '@/lib/api'
 import { FEATURE_ICONS } from '@/lib/icons'
@@ -20,6 +21,7 @@ export default function More() {
   const { user, signOut } = useAuthStore()
   const role = user?.role ?? ''
   const { data: home } = useStaffHome()
+  const { open: menuOpen, setOpen: setMenuOpen } = useAvatarMenu()
 
   // Same gate the server applies (org module licences) — a row the backend
   // would 403 must not render. Until home loads, hide licence-gated rows.
@@ -36,7 +38,16 @@ export default function More() {
   }
 
   return (
-    <Screen header={<GradientHeader title="More" accent="brand" />}>
+    <Screen
+      header={
+        <GradientHeader
+          title="More"
+          accent="brand"
+          right={<HeaderAvatar onPress={() => setMenuOpen(!menuOpen)} />}
+        />
+      }
+    >
+      <AvatarMenuOverlay open={menuOpen} onClose={() => setMenuOpen(false)} />
       <ScrollView showsVerticalScrollIndicator={false}>
         <Card className="mt-4 flex-row items-center gap-3">
           <Avatar name={user?.name} size={44} accent="brand" />

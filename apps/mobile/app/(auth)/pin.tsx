@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { Text, View, Platform, Pressable } from 'react-native'
+import { ActivityIndicator, Text, View, Platform, Pressable } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
 import { apiPublic, ApiError } from '@/lib/api'
 import { useAuthStore, getDeviceId } from '@/lib/auth-store'
-import { Button, Screen } from '@/components/ui'
+import { Screen } from '@/components/ui'
 import { OtpInput } from '@/components/OtpInput'
 import type { VerifyResponse } from '@/shared-contract'
 
@@ -21,14 +21,15 @@ export default function Pin() {
   const [loading, setLoading] = useState(false)
   const [otpLoading, setOtpLoading] = useState(false)
 
-  const submit = async () => {
+  const submit = async (value = pin) => {
+    if (value.length !== 4 || loading) return
     setError(null)
     setLoading(true)
     try {
       const deviceId = await getDeviceId()
       const res = await apiPublic<VerifyResponse>('/api/mobile/v1/auth/pin', {
         phone: `+91${phone}`,
-        pin,
+        pin: value,
         deviceId,
         platform: Platform.OS === 'ios' ? 'ios' : 'android'
       })
@@ -92,9 +93,17 @@ export default function Pin() {
           </Text>
           <Text className="text-center text-sm text-ink-secondary">Enter your Vidhyaan PIN</Text>
         </View>
-        <OtpInput value={pin} onChange={setPin} length={4} secure />
+        <OtpInput
+          value={pin}
+          onChange={(v) => {
+            setPin(v)
+            if (v.length === 4) void submit(v)
+          }}
+          length={4}
+          secure
+        />
+        {loading ? <ActivityIndicator color="#1565D8" /> : null}
         {error ? <Text className="text-center text-sm text-bad">{error}</Text> : null}
-        <Button label="Unlock" onPress={submit} loading={loading} disabled={pin.length !== 4} />
         <Pressable onPress={useOtpInstead} disabled={otpLoading} className="active:opacity-70">
           <Text className="text-center text-sm font-semibold text-brand">
             {otpLoading ? 'Sending OTP…' : 'Forgot PIN? Login with OTP'}
@@ -107,3 +116,5 @@ export default function Pin() {
     </Screen>
   )
 }
+// PIN auto-submits on the 4th digit — no separate button (fewer taps, and
+// the "Unlock" label read like a second unrelated action).

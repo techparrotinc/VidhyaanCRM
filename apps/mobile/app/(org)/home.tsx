@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
+import { api } from '@/lib/api'
 import {
   Screen,
   GradientHeader,
@@ -107,16 +109,51 @@ function tileAccent(key: string): Accent {
   return 'brand'
 }
 
+function greeting(): string {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+const AVATAR_MENU: Array<{ label: string; icon: IconName; route?: string; action?: 'logout' }> = [
+  { label: 'My profile', icon: 'person-circle-outline', route: '/(org)/more' },
+  { label: 'Login PIN', icon: 'keypad-outline', route: '/set-pin' },
+  { label: 'Help & support', icon: 'help-buoy-outline', route: '/support' },
+  { label: 'Log out', icon: 'log-out-outline', action: 'logout' }
+]
+
 export default function StaffHome() {
   const user = useAuthStore((s) => s.user)
+  const signOut = useAuthStore((s) => s.signOut)
   const { data, isLoading, isError, refetch } = useStaffHome()
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  const onMenuItem = async (item: (typeof AVATAR_MENU)[number]) => {
+    setMenuOpen(false)
+    if (item.action === 'logout') {
+      try {
+        await api('/api/mobile/v1/auth/logout', { method: 'POST' })
+      } catch {
+        // Local sign-out proceeds regardless.
+      }
+      await signOut()
+      router.replace('/(auth)/login')
+    } else if (item.route) {
+      router.push(item.route as any)
+    }
+  }
 
   return (
     <Screen
       header={
         <GradientHeader
-          title={`Good morning, ${user?.name?.split(' ')[0] ?? 'there'}`}
-          subtitle={data ? `${data.attention.length} need${data.attention.length === 1 ? 's' : ''} attention` : undefined}
+          title={data?.orgName ?? `${greeting()}, ${user?.name?.split(' ')[0] ?? 'there'}`}
+          subtitle={
+            data
+              ? `${greeting()}, ${user?.name?.split(' ')[0] ?? 'there'} · ${data.attention.length} need${data.attention.length === 1 ? 's' : ''} attention`
+              : undefined
+          }
           accent="brand"
           right={
             <View className="flex-row items-center gap-2.5">
@@ -131,12 +168,37 @@ export default function StaffHome() {
                   </View>
                 ) : null}
               </Pressable>
-              <Avatar name={user?.name} size={40} accent="brand" />
+              <Pressable onPress={() => setMenuOpen((v) => !v)} className="active:opacity-80">
+                <Avatar name={user?.name} size={40} accent="brand" />
+              </Pressable>
             </View>
           }
         />
       }
     >
+      {menuOpen ? (
+        <>
+          <Pressable
+            onPress={() => setMenuOpen(false)}
+            className="absolute inset-0 z-10"
+            style={{ top: 0, bottom: 0, left: 0, right: 0 }}
+          />
+          <View className="absolute right-4 top-1 z-20 w-56 rounded-2xl border border-line bg-white py-1 shadow-lg" style={{ elevation: 8 }}>
+            {AVATAR_MENU.map((item) => (
+              <Pressable
+                key={item.label}
+                onPress={() => void onMenuItem(item)}
+                className="flex-row items-center gap-3 px-4 py-3 active:bg-line-soft"
+              >
+                <Ionicons name={item.icon} size={18} color={item.action === 'logout' ? '#DC2626' : '#475569'} />
+                <Text className={`text-sm font-medium ${item.action === 'logout' ? 'text-bad' : 'text-ink'}`}>
+                  {item.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      ) : null}
       <ScrollView showsVerticalScrollIndicator={false}>
         {isLoading ? (
           <View className="mt-8 items-center">

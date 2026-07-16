@@ -1,18 +1,30 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Text, View } from 'react-native'
 import { router } from 'expo-router'
-import { api } from '@/lib/api'
+import { api, apiPublic } from '@/lib/api'
+import { useAuthStore } from '@/lib/auth-store'
 import { Button, Screen, DetailHeader } from '@/components/ui'
 import { OtpInput } from '@/components/OtpInput'
 
-/** Set / change the login PIN — reachable from More on every journey. */
+/** Set / change the login PIN — reachable from More + the avatar menu. */
 export default function SetPin() {
+  const phone = useAuthStore((s) => s.user?.phone ?? null)
   const [pin, setPin] = useState('')
   const [confirm, setConfirm] = useState('')
   const [step, setStep] = useState<'enter' | 'confirm'>('enter')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
+  const [hasPin, setHasPin] = useState<boolean | null>(null)
+
+  // Changing vs first-time setup changes the copy, not the flow — the
+  // session (not the old PIN) authorizes the change, same as web Settings.
+  useEffect(() => {
+    if (!phone) return setHasPin(false)
+    apiPublic<{ hasPin: boolean }>('/api/mobile/v1/auth/check', { phone })
+      .then((r) => setHasPin(r.hasPin))
+      .catch(() => setHasPin(false))
+  }, [phone])
 
   const submit = async () => {
     setError(null)
@@ -40,16 +52,21 @@ export default function SetPin() {
   }
 
   return (
-    <Screen header={<DetailHeader title="Set login PIN" onBack={() => router.back()} />}>
+    <Screen header={<DetailHeader title={hasPin ? 'Change login PIN' : 'Set login PIN'} onBack={() => router.back()} />}>
       <View className="gap-5 pt-6">
         {done ? (
           <Text className="text-center text-base font-semibold text-good">
-            PIN set. Use it at your next login.
+            {hasPin ? 'PIN changed. Use the new PIN at your next login.' : 'PIN set. Use it at your next login.'}
           </Text>
         ) : step === 'enter' ? (
           <>
+            {hasPin ? (
+              <Text className="text-center text-xs text-ink-faint">
+                You already have a PIN — entering a new one below replaces it.
+              </Text>
+            ) : null}
             <Text className="text-center text-sm text-ink-secondary">
-              Choose a 4-digit PIN for faster login
+              {hasPin ? 'Choose your new 4-digit PIN' : 'Choose a 4-digit PIN for faster login'}
             </Text>
             <OtpInput value={pin} onChange={onEnterComplete} length={4} secure />
           </>

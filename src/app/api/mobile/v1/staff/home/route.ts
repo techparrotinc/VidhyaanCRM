@@ -4,6 +4,7 @@ import { verifyMobileAccessToken } from '@/lib/mobile-auth/jwt'
 import { ROLES } from '@/constants/roles'
 import { getTeacherAssignments } from '@/lib/attendance/access'
 import { forOrg } from '@/lib/db/tenant'
+import { isLearningCentre } from '@/lib/institution'
 
 /**
  * Staff home BFF (mobile-app-plan §4.3): one round trip for the staff-app
@@ -79,7 +80,7 @@ async function adminTiles(
     route: `/leads/${l.id}`
   }))
 
-  if (institutionType === 'LEARNING_CENTER') {
+  if (isLearningCentre(institutionType)) {
     // LC variant (wireframe s-home-lc): collections lead, plus today's
     // session load from the schedule module.
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -273,13 +274,18 @@ export async function GET(req: NextRequest) {
 
   const { orgId, userId, role } = claims
 
-  const [org, unread] = await Promise.all([
-    prisma.organization.findUnique({ where: { id: orgId }, select: { institutionType: true } }),
+  const [org, unread, orgModules] = await Promise.all([
+    prisma.organization.findUnique({ where: { id: orgId }, select: { institutionType: true, name: true } }),
     prisma.notification.count({
       where: { orgId, recipientType: 'USER', recipientId: userId, deletedAt: null, readAt: null }
+    }),
+    prisma.organizationModule.findMany({
+      where: { orgId, enabled: true },
+      select: { module: { select: { slug: true } } }
     })
   ])
   const institutionType = org?.institutionType ?? 'SCHOOL'
+  const modules = orgModules.map((m) => m.module.slug)
 
   const { tiles, attention } = ADMIN_ROLES.includes(role)
     ? await adminTiles(orgId, institutionType)
@@ -289,5 +295,14 @@ export async function GET(req: NextRequest) {
         ? await counsellorTiles(orgId, userId)
         : { tiles: [], attention: [] } // RECEPTIONIST/ACCOUNTANT: no tiles yet, not a crash
 
-  return NextResponse.json({ success: true, role, institutionType, unread, tiles, attention })
+  return NextResponse.json({
+    success: true,
+    role,
+    institutionType,
+    orgName: org?.name ?? null,
+    modules,
+    unread,
+    tiles,
+    attention
+  })
 }

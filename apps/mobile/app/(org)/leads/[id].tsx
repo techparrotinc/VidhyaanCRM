@@ -48,7 +48,7 @@ function timeAgo(d: Date): string {
 
 export default function LeadDetail() {
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { data: lead, isLoading } = useLead(id)
+  const { data: lead, isLoading, isError, refetch } = useLead(id)
   const logActivity = useLogLeadActivity()
   const followUp = useLogFollowUp()
 
@@ -85,7 +85,14 @@ export default function LeadDetail() {
 
   return (
     <Screen header={<DetailHeader title={lead?.parentName ?? 'Lead'} onBack={() => router.back()} />}>
-      {isLoading || !lead ? (
+      {isError ? (
+        <Card className="mt-4">
+          <Text className="text-sm text-bad">Couldn't load this lead.</Text>
+          <Pressable onPress={() => refetch()} className="mt-2">
+            <Text className="text-sm font-semibold text-brand">Retry</Text>
+          </Pressable>
+        </Card>
+      ) : isLoading || !lead ? (
         <View className="mt-10 items-center">
           <ActivityIndicator color="#1565D8" />
         </View>

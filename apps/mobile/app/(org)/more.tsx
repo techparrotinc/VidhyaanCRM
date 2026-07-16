@@ -1,7 +1,8 @@
-import { ScrollView, Text, View } from 'react-native'
+import { Alert, ScrollView, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { Screen, GradientHeader, Card, Button, ListRow, Avatar } from '@/components/ui'
 import { useAuthStore } from '@/lib/auth-store'
+import { useStaffHome } from '@/lib/staff-home'
 import { api } from '@/lib/api'
 import { FEATURE_ICONS } from '@/lib/icons'
 
@@ -13,10 +14,16 @@ const EVENTS_ROLES = new Set(['ORG_ADMIN', 'BRANCH_ADMIN'])
 const FORMS_ROLES = new Set(['ORG_ADMIN', 'BRANCH_ADMIN', 'COUNSELLOR'])
 const BROADCAST_ROLES = new Set(['ORG_ADMIN', 'BRANCH_ADMIN'])
 const AI_ROLES = new Set(['ORG_ADMIN', 'BRANCH_ADMIN', 'COUNSELLOR', 'RECEPTIONIST'])
+const MONEY_ROLES = new Set(['ORG_ADMIN', 'BRANCH_ADMIN', 'ACCOUNTANT'])
 
 export default function More() {
   const { user, signOut } = useAuthStore()
   const role = user?.role ?? ''
+  const { data: home } = useStaffHome()
+
+  // Same gate the server applies (org module licences) — a row the backend
+  // would 403 must not render. Until home loads, hide licence-gated rows.
+  const has = (moduleSlug: string) => (home?.modules ?? []).includes(moduleSlug)
 
   const logout = async () => {
     try {
@@ -36,30 +43,32 @@ export default function More() {
           <Text className="flex-1 text-sm font-semibold text-ink">
             {user?.name}
             {'\n'}
-            <Text className="text-xs font-normal text-ink-secondary">{user?.phone}</Text>
+            <Text className="text-xs font-normal text-ink-secondary">
+              {[home?.orgName, user?.phone].filter(Boolean).join(' · ')}
+            </Text>
           </Text>
         </Card>
 
-        <Card className="mt-3">
-          <Button label="Log out" variant="quiet" onPress={logout} />
-        </Card>
-
         <View className="mt-3 gap-2.5">
-          <ListRow
-            title="Schedule"
-            subtitle="Sessions today, week view"
-            onPress={() => router.push('/(org)/schedule' as never)}
-            icon="calendar-outline"
-            accent="attend"
-          />
-          <ListRow
-            title="Collections"
-            subtitle="Month / quarter / year"
-            onPress={() => router.push('/(org)/collections' as never)}
-            icon="trending-up-outline"
-            accent="fees"
-          />
-          {ADMISSIONS_ROLES.has(role) ? (
+          {has('course_schedule') ? (
+            <ListRow
+              title="Schedule"
+              subtitle="Sessions today, week view"
+              onPress={() => router.push('/(org)/schedule' as never)}
+              icon="calendar-outline"
+              accent="attend"
+            />
+          ) : null}
+          {MONEY_ROLES.has(role) && has('fee_management') ? (
+            <ListRow
+              title="Collections"
+              subtitle="Month / quarter / year"
+              onPress={() => router.push('/(org)/collections' as never)}
+              icon="trending-up-outline"
+              accent="fees"
+            />
+          ) : null}
+          {ADMISSIONS_ROLES.has(role) && has('admission_management') ? (
             <ListRow
               title="Admissions"
               subtitle="Pipeline, move stage"
@@ -68,7 +77,7 @@ export default function More() {
               accent={FEATURE_ICONS.admissions.accent}
             />
           ) : null}
-          {INBOX_ROLES.has(role) ? (
+          {INBOX_ROLES.has(role) && has('whatsapp_sms_notifications') ? (
             <ListRow
               title="WhatsApp Inbox"
               subtitle="Read inbound messages"
@@ -77,7 +86,7 @@ export default function More() {
               accent={FEATURE_ICONS.whatsapp.accent}
             />
           ) : null}
-          {REPORTS_ROLES.has(role) ? (
+          {REPORTS_ROLES.has(role) && has('advanced_reports') ? (
             <ListRow
               title="Reports"
               subtitle="Collection, funnel, ageing, attendance"
@@ -95,7 +104,7 @@ export default function More() {
               accent={FEATURE_ICONS.wallet.accent}
             />
           ) : null}
-          {EVENTS_ROLES.has(role) ? (
+          {EVENTS_ROLES.has(role) && has('event_management') ? (
             <ListRow
               title="New Event"
               subtitle="Create, publish, announce"
@@ -104,7 +113,7 @@ export default function More() {
               accent={FEATURE_ICONS.events.accent}
             />
           ) : null}
-          {FORMS_ROLES.has(role) ? (
+          {FORMS_ROLES.has(role) && has('forms_requests') ? (
             <ListRow
               title="Digital Forms"
               subtitle="Review submissions"
@@ -113,7 +122,7 @@ export default function More() {
               accent={FEATURE_ICONS.forms.accent}
             />
           ) : null}
-          {BROADCAST_ROLES.has(role) ? (
+          {BROADCAST_ROLES.has(role) && has('campaign_management') ? (
             <ListRow
               title="Broadcast"
               subtitle="WhatsApp announcement"
@@ -122,7 +131,7 @@ export default function More() {
               accent={FEATURE_ICONS.broadcast.accent}
             />
           ) : null}
-          {AI_ROLES.has(role) ? (
+          {AI_ROLES.has(role) && has('ai_copilot') ? (
             <ListRow
               title="Ask AI"
               subtitle="Chat with citations + actions"
@@ -131,19 +140,15 @@ export default function More() {
               accent={FEATURE_ICONS.aiChat.accent}
             />
           ) : null}
-          <ListRow
-            title="Login PIN"
-            subtitle="Set or change your 4-digit PIN"
-            icon="keypad-outline"
-            onPress={() => router.push('/set-pin')}
-          />
-          <ListRow
-            title="Help & support"
-            subtitle="WhatsApp, email, FAQs"
-            icon="help-buoy-outline"
-            onPress={() => router.push('/support')}
-          />
         </View>
+
+        {/* Account actions (PIN / support / logout) live in the avatar menu
+            on Home — More stays feature navigation only. Logout kept here
+            too as the conventional fallback location. */}
+        <Card className="mt-3">
+          <Button label="Log out" variant="quiet" onPress={logout} />
+        </Card>
+        <View className="h-6" />
       </ScrollView>
     </Screen>
   )

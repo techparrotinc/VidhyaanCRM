@@ -27,6 +27,8 @@ const staffHomeResponseSchema = z.object({
   success: z.literal(true),
   role: z.string(),
   institutionType: z.string().catch('SCHOOL'),
+  orgName: z.string().nullable().catch(null),
+  modules: z.array(z.string()).catch([]),
   unread: z.number().catch(0),
   tiles: z.array(tileSchema),
   attention: z.array(attentionItemSchema)

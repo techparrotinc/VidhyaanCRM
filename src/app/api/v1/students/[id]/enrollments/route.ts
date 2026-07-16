@@ -4,6 +4,8 @@ import { ok, created } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
+import { prisma } from '@/lib/db/client'
+import { nextInvoiceNumber } from '@/lib/invoice-number'
 
 const enrollSchema = z.object({
   courseId: z.string().min(1),
@@ -135,13 +137,10 @@ export const POST = route({
       }
     })
 
-    // Auto-generate first invoice immediately on enrollment
-    const year = new Date().getFullYear()
-    const count = await db.invoice.count({
-      where: { orgId: user.orgId }
-    })
-    const invoiceNumber =
-      'INV-' + year + '-' + String(count + 1).padStart(5, '0')
+    // Auto-generate first invoice immediately on enrollment. Numeric-max
+    // numbering — count()+1 collides with the [orgId, invoiceNumber]
+    // unique after soft deletes (this exact 500 hit the mobile enrol flow).
+    const invoiceNumber = await nextInvoiceNumber(prisma, user.orgId)
 
     await db.invoice.create({
       data: {

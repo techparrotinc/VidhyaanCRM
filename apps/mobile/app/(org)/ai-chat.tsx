@@ -90,7 +90,9 @@ export default function AiChat() {
         />
       }
     >
-      <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* Android edge-to-edge ignores adjustResize — 'height' keeps the
+          composer + latest messages above the keyboard. */}
+      <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView ref={scrollRef} onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })} showsVerticalScrollIndicator={false}>
           {chat.entitled === false ? (
             <EmptyState icon="chatbubble-ellipses-outline" title="AI Copilot isn't enabled" subtitle="Not available for your school yet." />

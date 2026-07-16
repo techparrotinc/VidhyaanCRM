@@ -13,7 +13,7 @@ function inr(n: number): string {
 
 export default function StudentProfile() {
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { data: s, isLoading } = useStudent(id)
+  const { data: s, isLoading, isError, refetch } = useStudent(id)
 
   const call = () => s?.guardianPhone && Linking.openURL(`tel:${s.guardianPhone}`)
   const whatsapp = () => s?.guardianPhone && Linking.openURL(`https://wa.me/91${s.guardianPhone}`)
@@ -22,7 +22,14 @@ export default function StudentProfile() {
 
   return (
     <Screen header={<DetailHeader title={s?.name ?? 'Student'} onBack={() => router.back()} />}>
-      {isLoading || !s ? (
+      {isError ? (
+        <Card className="mt-4">
+          <Text className="text-sm text-bad">Couldn't load this student.</Text>
+          <Pressable onPress={() => refetch()} className="mt-2">
+            <Text className="text-sm font-semibold text-brand">Retry</Text>
+          </Pressable>
+        </Card>
+      ) : isLoading || !s ? (
         <View className="mt-10 items-center">
           <ActivityIndicator color="#1565D8" />
         </View>

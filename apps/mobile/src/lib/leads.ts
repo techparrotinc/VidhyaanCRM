@@ -76,6 +76,68 @@ export function useLogLeadActivity() {
   })
 }
 
+const leadActivitySchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  summary: z.string(),
+  createdAt: z.coerce.date(),
+  performedByName: z.string().nullable().optional()
+})
+export type LeadActivity = z.infer<typeof leadActivitySchema>
+
+const leadDetailSchema = leadSchema.extend({
+  email: z.string().nullable(),
+  source: z.string(),
+  activities: z.array(leadActivitySchema.passthrough()).catch([])
+})
+export type LeadDetail = z.infer<typeof leadDetailSchema>
+
+const leadDetailResponseSchema = z.object({ success: z.literal(true), data: leadDetailSchema.passthrough() })
+
+export function useLead(id: string) {
+  return useQuery({
+    queryKey: ['lead', id],
+    queryFn: async () => {
+      const json = await api<unknown>(`/api/v1/leads/${id}`)
+      return leadDetailResponseSchema.parse(json).data as LeadDetail
+    },
+    enabled: !!id
+  })
+}
+
+/** Follow-up outcome → lead status + optional next follow-up, plus a NOTE activity. */
+export function useLogFollowUp() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (args: {
+      leadId: string
+      status?: string
+      nextFollowUpAt?: string | null
+      note?: string
+    }) => {
+      if (args.status || args.nextFollowUpAt !== undefined) {
+        await api(`/api/v1/leads/${args.leadId}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            ...(args.status ? { status: args.status } : {}),
+            ...(args.nextFollowUpAt !== undefined ? { nextFollowUpAt: args.nextFollowUpAt } : {})
+          })
+        })
+      }
+      if (args.note?.trim()) {
+        await api(`/api/v1/leads/${args.leadId}/activities`, {
+          method: 'POST',
+          body: JSON.stringify({ type: 'NOTE', summary: args.note.trim() })
+        })
+      }
+    },
+    onSuccess: (_d, args) => {
+      queryClient.invalidateQueries({ queryKey: ['lead', args.leadId] })
+      queryClient.invalidateQueries({ queryKey: ['leads'] })
+    }
+  })
+}
+
 export function useSnoozeLead() {
   const queryClient = useQueryClient()
   return useMutation({

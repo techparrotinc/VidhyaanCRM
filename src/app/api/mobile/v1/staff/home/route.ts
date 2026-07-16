@@ -17,7 +17,7 @@ import { forOrg } from '@/lib/db/tenant'
  * `/api/mobile/v1/parent/home`.
  */
 
-type Tile = { key: string; label: string; value: string; hint?: string }
+type Tile = { key: string; label: string; value: string; hint?: string; route?: string }
 type AttentionItem = { id: string; type: string; title: string; subtitle: string; route: string }
 
 const ADMIN_ROLES: string[] = [ROLES.ORG_ADMIN, ROLES.BRANCH_ADMIN]
@@ -32,7 +32,10 @@ function inr(n: number): string {
   return `₹${Math.round(n).toLocaleString('en-IN')}`
 }
 
-async function adminTiles(orgId: string): Promise<{ tiles: Tile[]; attention: AttentionItem[] }> {
+async function adminTiles(
+  orgId: string,
+  institutionType: string
+): Promise<{ tiles: Tile[]; attention: AttentionItem[] }> {
   const today = startOfToday()
   const now = new Date()
 
@@ -68,29 +71,79 @@ async function adminTiles(orgId: string): Promise<{ tiles: Tile[]; attention: At
     })
   ])
 
-  const totalMarked = attendanceToday.reduce((sum, r) => sum + r._count.status, 0)
-  const present = attendanceToday.find((r) => r.status === 'PRESENT')?._count.status ?? 0
-  const attendancePct = totalMarked > 0 ? Math.round((present / totalMarked) * 100) : null
+  const attention: AttentionItem[] = overdueFollowUps.map((l) => ({
+    id: l.id,
+    type: 'follow_up_due',
+    title: l.parentName,
+    subtitle: l.kidName ? `${l.kidName} · follow-up due` : 'Follow-up due',
+    route: `/leads/${l.id}`
+  }))
+
+  if (institutionType === 'LEARNING_CENTER') {
+    // LC variant (wireframe s-home-lc): collections lead, plus today's
+    // session load from the schedule module.
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const [monthCollected, sessionsToday, sessionsDone] = await Promise.all([
+      prisma.payment.aggregate({
+        where: { orgId, status: 'SUCCESS', deletedAt: null, paidAt: { gte: monthStart } },
+        _sum: { amount: true }
+      }),
+      prisma.courseSession.count({
+        where: { orgId, deletedAt: null, status: { not: 'CANCELLED' }, startsAt: { gte: today, lt: tomorrow } }
+      }),
+      prisma.courseSession.count({
+        where: { orgId, deletedAt: null, status: { not: 'CANCELLED' }, startsAt: { gte: today, lt: now } }
+      })
+    ])
+    return {
+      tiles: [
+        { key: 'month_collected', label: 'Collected this month', value: inr(Number(monthCollected._sum.amount ?? 0)), route: '/collections' },
+        { key: 'leads_today', label: 'New enquiries today', value: String(newLeadsToday), route: '/leads' },
+        { key: 'followups_due', label: 'Follow-ups due', value: String(followUpsDue), route: '/leads' },
+        {
+          key: 'sessions_today',
+          label: 'Sessions today',
+          value: sessionsToday === 0 ? '0' : `${sessionsToday} · ${sessionsToday - sessionsDone} left`,
+          route: '/schedule'
+        }
+      ],
+      attention
+    }
+  }
+
+  // School variant: "Classes marked X / Y" = distinct class-sections with an
+  // attendance record today vs class-sections that have active students.
+  const [markedGroups, allGroups] = await Promise.all([
+    prisma.attendanceRecord.findMany({
+      where: { orgId, date: today },
+      distinct: ['studentId'],
+      select: { student: { select: { gradeLabel: true, section: true } } }
+    }),
+    prisma.student.groupBy({
+      by: ['gradeLabel', 'section'],
+      where: { orgId, deletedAt: null, status: 'ACTIVE', gradeLabel: { not: null } }
+    })
+  ])
+  const markedSet = new Set(
+    markedGroups.map((r) => `${r.student.gradeLabel ?? ''}|${r.student.section ?? ''}`)
+  )
+  const totalClasses = allGroups.length
 
   return {
     tiles: [
-      { key: 'leads_today', label: 'New leads today', value: String(newLeadsToday) },
-      { key: 'followups_due', label: 'Follow-ups due', value: String(followUpsDue) },
-      { key: 'fees_today', label: 'Fees collected today', value: inr(Number(feesToday._sum.amount ?? 0)) },
+      { key: 'leads_today', label: 'New leads today', value: String(newLeadsToday), route: '/leads' },
+      { key: 'followups_due', label: 'Follow-ups due', value: String(followUpsDue), route: '/leads' },
+      { key: 'fees_today', label: 'Collected today', value: inr(Number(feesToday._sum.amount ?? 0)), route: '/fees' },
       {
-        key: 'attendance_today',
-        label: 'Attendance today',
-        value: attendancePct === null ? 'Not marked' : `${attendancePct}%`,
-        hint: totalMarked > 0 ? `${totalMarked} marked` : undefined
+        key: 'classes_marked',
+        label: 'Classes marked',
+        value: totalClasses > 0 ? `${markedSet.size} / ${totalClasses}` : 'No classes',
+        route: '/attendance'
       }
     ],
-    attention: overdueFollowUps.map((l) => ({
-      id: l.id,
-      type: 'follow_up_due',
-      title: l.parentName,
-      subtitle: l.kidName ? `${l.kidName} · follow-up due` : 'Follow-up due',
-      route: `/leads/${l.id}`
-    }))
+    attention
   }
 }
 
@@ -220,13 +273,21 @@ export async function GET(req: NextRequest) {
 
   const { orgId, userId, role } = claims
 
+  const [org, unread] = await Promise.all([
+    prisma.organization.findUnique({ where: { id: orgId }, select: { institutionType: true } }),
+    prisma.notification.count({
+      where: { orgId, recipientType: 'USER', recipientId: userId, deletedAt: null, readAt: null }
+    })
+  ])
+  const institutionType = org?.institutionType ?? 'SCHOOL'
+
   const { tiles, attention } = ADMIN_ROLES.includes(role)
-    ? await adminTiles(orgId)
+    ? await adminTiles(orgId, institutionType)
     : role === ROLES.TEACHER
       ? await teacherTiles(orgId, userId)
       : role === ROLES.COUNSELLOR
         ? await counsellorTiles(orgId, userId)
         : { tiles: [], attention: [] } // RECEPTIONIST/ACCOUNTANT: no tiles yet, not a crash
 
-  return NextResponse.json({ success: true, role, tiles, attention })
+  return NextResponse.json({ success: true, role, institutionType, unread, tiles, attention })
 }

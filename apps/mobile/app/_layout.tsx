@@ -17,7 +17,6 @@ import {
 } from '@expo-google-fonts/poppins'
 import { useAuthStore } from '@/lib/auth-store'
 import { registerForPushNotifications } from '@/lib/push'
-import { biometricAvailable } from '@/lib/biometric'
 import { resolveNotificationRoute } from '@/lib/notification-routes'
 import { initCrashReporting, setCrashUser } from '@/lib/crash-reporting'
 import { syncAttendanceQueue } from '@/lib/attendance-queue'
@@ -92,9 +91,9 @@ export default function RootLayout() {
       const cameToForeground = appState.current.match(/inactive|background/) && next === 'active'
       appState.current = next
       if (cameToForeground && useAuthStore.getState().status === 'signedIn') {
-        void biometricAvailable().then((available) => {
-          if (available) lock()
-        })
+        // PIN app-lock on every resume; accounts without a PIN auto-unlock
+        // inside LockScreen (server check), so this is a no-op for them.
+        lock()
         void syncAttendanceQueue().catch(() => {})
       }
     })

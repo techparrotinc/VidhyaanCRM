@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import {
   Screen,
@@ -15,12 +16,55 @@ import {
 } from '@/components/ui'
 import { useAuthStore } from '@/lib/auth-store'
 import { useStaffHome, type StaffAttentionItem } from '@/lib/staff-home'
+import { useCollections } from '@/lib/staff-extras'
 import { FEATURE_ICONS, type IconName } from '@/lib/icons'
 
-/** Attention items link to an existing tab (no per-item mobile detail
- *  screens yet) — never a route that doesn't exist. */
-function tabFor(type: string): string {
-  if (type === 'unmarked_attendance') return '/(org)/attendance'
+function inrShort(n: number): string {
+  if (n >= 100_000) return `₹${(n / 100_000).toFixed(1)}L`
+  return `₹${Math.round(n).toLocaleString('en-IN')}`
+}
+
+/** LC home collections preview card — month vs same month last year. */
+function CollectionsPreview() {
+  const { data } = useCollections()
+  if (!data) return null
+  const { month } = data
+  const max = Math.max(month.amount, month.prevAmount, 1)
+  return (
+    <Pressable onPress={() => router.push('/(org)/collections' as any)} className="mt-3 active:opacity-80">
+      <Card>
+        <View className="flex-row items-center justify-between">
+          <Text className="text-[11px] font-bold uppercase tracking-widest text-ink-faint">Collections</Text>
+          <Text className="text-xs text-ink-faint">details ›</Text>
+        </View>
+        <View className="mt-2 flex-row items-center justify-between">
+          <Text className="text-sm text-ink-secondary">{month.label}</Text>
+          <Text className="text-base font-bold text-ink">{inrShort(month.amount)}</Text>
+        </View>
+        <View className="mt-1 h-2 overflow-hidden rounded-full bg-line-soft">
+          <View className="h-full rounded-full bg-fees" style={{ width: `${Math.max(4, (month.amount / max) * 100)}%` }} />
+        </View>
+        <View className="mt-2 flex-row items-center justify-between">
+          <Text className="text-sm text-ink-secondary">{month.prevLabel}</Text>
+          <Text className="text-sm font-semibold text-ink-secondary">{inrShort(month.prevAmount)}</Text>
+        </View>
+        <View className="mt-1 h-2 overflow-hidden rounded-full bg-line-soft">
+          <View className="h-full rounded-full bg-fees/50" style={{ width: `${Math.max(4, (month.prevAmount / max) * 100)}%` }} />
+        </View>
+        {month.deltaPct !== null ? (
+          <Text className={`mt-2 text-xs font-semibold ${month.deltaPct >= 0 ? 'text-good' : 'text-bad'}`}>
+            {month.deltaPct >= 0 ? '▲' : '▼'} {Math.abs(month.deltaPct)}% vs same month last year
+          </Text>
+        ) : null}
+      </Card>
+    </Pressable>
+  )
+}
+
+/** Follow-up items deep-link to the lead detail; others to their tab. */
+function routeFor(item: StaffAttentionItem): string {
+  if (item.type === 'unmarked_attendance') return '/(org)/attendance'
+  if (item.type === 'follow_up_due') return `/(org)/leads/${item.id}`
   return '/(org)/leads'
 }
 
@@ -41,7 +85,7 @@ function attentionStatus(type: string): { label: string; tone: 'bad' | 'warn' } 
 function AttentionRow({ item }: { item: StaffAttentionItem }) {
   const status = attentionStatus(item.type)
   return (
-    <Pressable onPress={() => router.push(tabFor(item.type) as any)} className="active:opacity-80">
+    <Pressable onPress={() => router.push(routeFor(item) as any)} className="active:opacity-80">
       <Card className="mt-2.5 flex-row items-center gap-3">
         <IconCircle accent={attentionAccent(item.type)} icon={attentionIcon(item.type)} />
         <View className="flex-1">
@@ -82,7 +126,22 @@ export default function StaffHome() {
           title={`Good morning, ${user?.name?.split(' ')[0] ?? 'there'}`}
           subtitle={data ? `${data.attention.length} need${data.attention.length === 1 ? 's' : ''} attention` : undefined}
           accent="brand"
-          right={<Avatar name={user?.name} size={40} accent="brand" />}
+          right={
+            <View className="flex-row items-center gap-2.5">
+              <Pressable
+                onPress={() => router.push('/(org)/notifications' as any)}
+                className="h-10 w-10 items-center justify-center rounded-full bg-white/20 active:opacity-70"
+              >
+                <Ionicons name="notifications-outline" size={19} color="#fff" />
+                {data && data.unread > 0 ? (
+                  <View className="absolute -right-0.5 -top-0.5 h-4 min-w-4 items-center justify-center rounded-full bg-bad px-1">
+                    <Text className="text-[9px] font-bold text-white">{data.unread > 9 ? '9+' : data.unread}</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+              <Avatar name={user?.name} size={40} accent="brand" />
+            </View>
+          }
         />
       }
     >
@@ -104,7 +163,7 @@ export default function StaffHome() {
             <Button label="✦ Ask AI" variant="outline" onPress={() => router.push('/(org)/ai-chat')} />
           </View>
           <View className="flex-1">
-            <Button label="Search" variant="outline" onPress={() => router.push('/(org)/leads')} />
+            <Button label="Search" variant="outline" onPress={() => router.push('/(org)/search' as any)} />
           </View>
         </View>
 
@@ -123,11 +182,26 @@ export default function StaffHome() {
           <>
             <View className="mt-5 flex-row flex-wrap gap-3">
               {data.tiles.map((tile) => (
-                <View key={tile.key} style={{ minWidth: '46%', flexGrow: 1 }}>
+                <Pressable
+                  key={tile.key}
+                  style={{ minWidth: '46%', flexGrow: 1 }}
+                  disabled={!tile.route}
+                  onPress={() => tile.route && router.push(`/(org)${tile.route}` as any)}
+                  className="active:opacity-70"
+                >
                   <PastelStat label={tile.label} value={tile.value} accent={tileAccent(tile.key)} />
-                </View>
+                </Pressable>
               ))}
             </View>
+
+            {data.institutionType === 'LEARNING_CENTER' ? (
+              <>
+                <CollectionsPreview />
+                <View className="mt-3">
+                  <Button label="＋ Enrol student — course & plan" onPress={() => router.push('/(org)/enroll' as any)} />
+                </View>
+              </>
+            ) : null}
 
             {data.attention.length > 0 ? (
               <View className="mt-2">

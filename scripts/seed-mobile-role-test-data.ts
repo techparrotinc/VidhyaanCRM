@@ -329,6 +329,84 @@ async function main() {
     }
   }
 
+  // Courses + batches + today's sessions — feeds the enrol wizard and the
+  // schedule screens (course_schedule module).
+  const courseDefs = [
+    { name: 'JEE Foundation', amount: 3500, durationMonths: 12 },
+    { name: 'NEET Weekend', amount: 4200, durationMonths: 10 }
+  ]
+  const courseByName = new Map<string, { id: string }>()
+  for (const c of courseDefs) {
+    let course = await prisma.course.findFirst({ where: { orgId: org.id, name: c.name } })
+    if (!course) {
+      course = await prisma.course.create({
+        data: {
+          orgId: org.id,
+          name: c.name,
+          amount: c.amount,
+          frequency: 'MONTHLY',
+          billingDay: 5,
+          durationMonths: c.durationMonths,
+          isActive: true
+        }
+      })
+      console.log(`Course: ${c.name}`)
+    }
+    courseByName.set(c.name, course)
+  }
+
+  const batchDefs = [
+    { name: 'Batch A · MWF 5–7 PM', course: 'JEE Foundation', days: ['Mon', 'Wed', 'Fri'], start: '17:00', end: '19:00' },
+    { name: 'Batch B · Weekend', course: 'NEET Weekend', days: ['Sat', 'Sun'], start: '09:00', end: '11:00' }
+  ]
+  const batchByName = new Map<string, { id: string }>()
+  for (const b of batchDefs) {
+    let batch = await prisma.studentBatch.findFirst({ where: { orgId: org.id, name: b.name } })
+    if (!batch) {
+      batch = await prisma.studentBatch.create({
+        data: {
+          orgId: org.id,
+          name: b.name,
+          courseId: courseByName.get(b.course)!.id,
+          daysOfWeek: b.days,
+          startTime: b.start,
+          endTime: b.end,
+          sessionDurationMin: 120,
+          isActive: true
+        }
+      })
+      console.log(`Batch: ${b.name}`)
+    }
+    batchByName.set(b.name, batch)
+  }
+
+  // Sessions: two today (one soon, one later) + one tomorrow.
+  const sessionSlots = [
+    { batch: 'Batch A · MWF 5–7 PM', course: 'JEE Foundation', hoursFromNow: 2, durationMin: 60 },
+    { batch: 'Batch A · MWF 5–7 PM', course: 'JEE Foundation', hoursFromNow: 5, durationMin: 90 },
+    { batch: 'Batch B · Weekend', course: 'NEET Weekend', hoursFromNow: 26, durationMin: 120 }
+  ]
+  for (const slot of sessionSlots) {
+    const startsAt = new Date(Date.now() + slot.hoursFromNow * 3_600_000)
+    startsAt.setMinutes(0, 0, 0)
+    const batchId = batchByName.get(slot.batch)!.id
+    const exists = await prisma.courseSession.findFirst({ where: { batchId, startsAt } })
+    if (!exists) {
+      await prisma.courseSession.create({
+        data: {
+          orgId: org.id,
+          batchId,
+          courseId: courseByName.get(slot.course)!.id,
+          teacherId: teacherId,
+          startsAt,
+          durationMin: slot.durationMin,
+          status: 'SCHEDULED'
+        }
+      })
+      console.log(`Session: ${slot.course} +${slot.hoursFromNow}h`)
+    }
+  }
+
   // Payment gateway — Razorpay TEST creds from env so the parent Pay flow
   // works end-to-end (skipped when env keys are absent or not rzp_test_).
   const rzpKeyId = process.env.RAZORPAY_KEY_ID
@@ -366,6 +444,118 @@ async function main() {
   } else {
     console.log('Payment gateway: skipped (no rzp_test_ keys in env)')
   }
+
+  // Learning-centre QA org — same admin gets a second workspace (tests the
+  // picker) and the LC home variant (collections card + sessions tile).
+  const lcOrg =
+    (await prisma.organization.findUnique({ where: { slug: `${ORG_SLUG}-lc` } })) ??
+    (await prisma.organization.create({
+      data: {
+        name: 'Brainwave Learning Centre (QA)',
+        slug: `${ORG_SLUG}-lc`,
+        institutionType: 'LEARNING_CENTER',
+        email: 'mobile-qa-lc@vidhyaan.test',
+        phone: '0000000001',
+        isDummy: true,
+        status: 'ACTIVE'
+      }
+    }))
+  for (const mod of modules) {
+    await prisma.organizationModule.upsert({
+      where: { orgId_moduleId: { orgId: lcOrg.id, moduleId: mod.id } },
+      update: { enabled: true },
+      create: { orgId: lcOrg.id, moduleId: mod.id, enabled: true, enabledAt: new Date() }
+    })
+  }
+  const adminUser = staffUsers.get('ORG_ADMIN')!
+  const lcAssignment = await prisma.userRoleAssignment.findFirst({
+    where: { userId: adminUser.id, role: 'ORG_ADMIN', orgId: lcOrg.id }
+  })
+  if (!lcAssignment) {
+    await prisma.userRoleAssignment.create({
+      data: { userId: adminUser.id, role: 'ORG_ADMIN', orgId: lcOrg.id, status: 'ACTIVE' }
+    })
+    console.log('LC org admin assignment created (workspace picker will appear for 9999955002)')
+  }
+
+  // LC data: a course/batch/session + a student + payments this month and
+  // same month last year (feeds the collections comparison).
+  let lcCourse = await prisma.course.findFirst({ where: { orgId: lcOrg.id, name: 'Spoken English' } })
+  if (!lcCourse) {
+    lcCourse = await prisma.course.create({
+      data: { orgId: lcOrg.id, name: 'Spoken English', amount: 2000, frequency: 'MONTHLY', billingDay: 5, isActive: true }
+    })
+  }
+  let lcBatch = await prisma.studentBatch.findFirst({ where: { orgId: lcOrg.id, name: 'Evening batch' } })
+  if (!lcBatch) {
+    lcBatch = await prisma.studentBatch.create({
+      data: {
+        orgId: lcOrg.id,
+        name: 'Evening batch',
+        courseId: lcCourse.id,
+        daysOfWeek: ['Mon', 'Tue', 'Wed', 'Thu'],
+        startTime: '18:00',
+        endTime: '19:00',
+        sessionDurationMin: 60,
+        isActive: true
+      }
+    })
+  }
+  const lcSessionStart = new Date(Date.now() + 3 * 3_600_000)
+  lcSessionStart.setMinutes(0, 0, 0)
+  if (!(await prisma.courseSession.findFirst({ where: { batchId: lcBatch.id, startsAt: lcSessionStart } }))) {
+    await prisma.courseSession.create({
+      data: { orgId: lcOrg.id, batchId: lcBatch.id, courseId: lcCourse.id, startsAt: lcSessionStart, durationMin: 60, status: 'SCHEDULED' }
+    })
+  }
+  let lcStudent = await prisma.student.findFirst({ where: { orgId: lcOrg.id, studentCode: 'QA-LC-01' } })
+  if (!lcStudent) {
+    lcStudent = await prisma.student.create({
+      data: {
+        orgId: lcOrg.id,
+        studentCode: 'QA-LC-01',
+        name: 'Nikhil J',
+        guardianName: 'Jayan K',
+        guardianPhone: '9999955041',
+        phoneNormalized: '9999955041',
+        status: 'ACTIVE',
+        batchId: lcBatch.id
+      }
+    })
+  }
+  const lcPayments = [
+    { rcp: 'QA-LC-RCP-1', amount: 8000, paidAt: new Date() },
+    { rcp: 'QA-LC-RCP-2', amount: 6500, paidAt: new Date(new Date().getFullYear() - 1, new Date().getMonth(), 12) }
+  ]
+  for (const p of lcPayments) {
+    if (!(await prisma.payment.findFirst({ where: { orgId: lcOrg.id, receiptNumber: p.rcp } }))) {
+      const inv = await prisma.invoice.create({
+        data: {
+          orgId: lcOrg.id,
+          invoiceNumber: `QA-LC-INV-${p.rcp.slice(-1)}`,
+          studentId: lcStudent.id,
+          courseId: lcCourse.id,
+          totalAmount: p.amount,
+          paidAmount: p.amount,
+          status: 'PAID',
+          dueDate: p.paidAt
+        }
+      })
+      await prisma.payment.create({
+        data: {
+          orgId: lcOrg.id,
+          receiptNumber: p.rcp,
+          invoiceId: inv.id,
+          studentId: lcStudent.id,
+          amount: p.amount,
+          method: 'CASH',
+          status: 'SUCCESS',
+          paidAt: p.paidAt
+        }
+      })
+    }
+  }
+  console.log(`LC org ready: ${lcOrg.name}`)
 
   // Two published events
   const events = [

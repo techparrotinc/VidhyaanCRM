@@ -8,7 +8,8 @@ const tileSchema = z.object({
   key: z.string(),
   label: z.string(),
   value: z.string(),
-  hint: z.string().optional()
+  hint: z.string().optional(),
+  route: z.string().optional()
 })
 
 const attentionItemSchema = z.object({
@@ -25,6 +26,8 @@ export type StaffAttentionItem = z.infer<typeof attentionItemSchema>
 const staffHomeResponseSchema = z.object({
   success: z.literal(true),
   role: z.string(),
+  institutionType: z.string().catch('SCHOOL'),
+  unread: z.number().catch(0),
   tiles: z.array(tileSchema),
   attention: z.array(attentionItemSchema)
 })

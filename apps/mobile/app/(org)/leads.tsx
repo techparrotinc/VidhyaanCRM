@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ActivityIndicator, Linking, Pressable, Text, TextInput, View } from 'react-native'
+import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { Screen, GradientHeader, Card, Button, Chip, IconCircle, SearchBar, EmptyState, FormScrollView } from '@/components/ui'
 import { useAuthStore } from '@/lib/auth-store'
@@ -64,6 +65,9 @@ function QuickAddForm({ onClose }: { onClose: () => void }) {
           <Button label="Add lead" onPress={submit} loading={createLead.isPending} />
         </View>
       </View>
+      <Pressable onPress={() => router.push('/(org)/scan' as never)} className="active:opacity-70">
+        <Text className="text-center text-sm font-semibold text-brand">📷 Scan paper form instead</Text>
+      </Pressable>
     </Card>
   )
 }
@@ -88,7 +92,10 @@ function LeadRow({ lead, canSnooze }: { lead: Lead; canSnooze: boolean }) {
 
   return (
     <Card className="mt-3">
-      <View className="flex-row items-start gap-3">
+      <Pressable
+        onPress={() => router.push(`/(org)/leads/${lead.id}` as never)}
+        className="flex-row items-start gap-3 active:opacity-70"
+      >
         <IconCircle accent="brand" icon={FEATURE_ICONS.leads.icon} />
         <View className="flex-1">
           <Text className="text-sm font-semibold text-ink">{lead.parentName}</Text>
@@ -97,7 +104,7 @@ function LeadRow({ lead, canSnooze }: { lead: Lead; canSnooze: boolean }) {
           </Text>
         </View>
         <Chip label={lead.status.replace(/_/g, ' ')} tone={statusTone(lead.status)} />
-      </View>
+      </Pressable>
 
       <View className="mt-3 flex-row gap-2">
         <Pressable

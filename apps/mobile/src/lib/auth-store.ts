@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import * as storage from './secure-storage'
-import { biometricAvailable } from './biometric'
 import type { AuthUser } from '@/shared-contract'
 
 /**
@@ -77,11 +76,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       getDeviceId()
     ])
     if (refresh && userJson) {
-      // Gate a resumed session behind biometrics when available; a fresh
-      // sign-in (via signIn() below) never locks — the OTP+device just
-      // proved identity.
-      const locked = await biometricAvailable()
-      set({ status: 'signedIn', user: JSON.parse(userJson), deviceId, locked })
+      // Gate a resumed session behind the app PIN; a fresh sign-in (via
+      // signIn() below) never locks — the OTP/PIN just proved identity.
+      // Accounts without a PIN are auto-unlocked by the LockScreen itself.
+      set({ status: 'signedIn', user: JSON.parse(userJson), deviceId, locked: true })
     } else {
       set({ status: 'signedOut', deviceId })
     }

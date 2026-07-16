@@ -45,6 +45,20 @@ export default function More() {
         </Card>
 
         <View className="mt-3 gap-2.5">
+          <ListRow
+            title="Schedule"
+            subtitle="Sessions today, week view"
+            onPress={() => router.push('/(org)/schedule' as never)}
+            icon="calendar-outline"
+            accent="attend"
+          />
+          <ListRow
+            title="Collections"
+            subtitle="Month / quarter / year"
+            onPress={() => router.push('/(org)/collections' as never)}
+            icon="trending-up-outline"
+            accent="fees"
+          />
           {ADMISSIONS_ROLES.has(role) ? (
             <ListRow
               title="Admissions"
@@ -122,6 +136,12 @@ export default function More() {
             subtitle="Set or change your 4-digit PIN"
             icon="keypad-outline"
             onPress={() => router.push('/set-pin')}
+          />
+          <ListRow
+            title="Help & support"
+            subtitle="WhatsApp, email, FAQs"
+            icon="help-buoy-outline"
+            onPress={() => router.push('/support')}
           />
         </View>
       </ScrollView>

@@ -35,6 +35,12 @@ export default function More() {
             icon="keypad-outline"
             onPress={() => router.push('/set-pin')}
           />
+          <ListRow
+            title="Help & support"
+            subtitle="WhatsApp, email, FAQs"
+            icon="help-buoy-outline"
+            onPress={() => router.push('/support')}
+          />
         </View>
         <Card className="mt-3">
           <Button label="Log out" variant="quiet" onPress={logout} />

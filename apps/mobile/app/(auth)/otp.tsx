@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Text, View, Platform } from 'react-native'
+import { useEffect, useState } from 'react'
+import { Text, View, Platform, Pressable } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -15,6 +15,28 @@ export default function Otp() {
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [resendIn, setResendIn] = useState(30)
+  const [resending, setResending] = useState(false)
+
+  useEffect(() => {
+    if (resendIn <= 0) return
+    const t = setTimeout(() => setResendIn((s) => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [resendIn])
+
+  const resend = async () => {
+    setError(null)
+    setResending(true)
+    try {
+      await apiPublic('/api/mobile/v1/auth/otp', { phone: `+91${phone}` })
+      setCode('')
+      setResendIn(30)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not resend the code')
+    } finally {
+      setResending(false)
+    }
+  }
 
   const submit = async () => {
     setError(null)
@@ -67,6 +89,17 @@ export default function Otp() {
         <OtpInput value={code} onChange={setCode} />
         {error ? <Text className="text-center text-sm text-bad">{error}</Text> : null}
         <Button label="Verify" onPress={submit} loading={loading} disabled={code.length !== 6} />
+        {resendIn > 0 ? (
+          <Text className="text-center text-sm text-ink-faint">
+            Resend OTP in 00:{String(resendIn).padStart(2, '0')}
+          </Text>
+        ) : (
+          <Pressable onPress={resend} disabled={resending} className="active:opacity-70">
+            <Text className="text-center text-sm font-semibold text-brand">
+              {resending ? 'Sending…' : 'Resend OTP'}
+            </Text>
+          </Pressable>
+        )}
       </View>
     </Screen>
   )

@@ -1,4 +1,4 @@
-import { ScrollView, Text, Alert } from 'react-native'
+import { ScrollView, Text, Alert, View } from 'react-native'
 import { Screen, GradientHeader, Card, Button, ListRow, Avatar } from '@/components/ui'
 import { useAuthStore } from '@/lib/auth-store'
 import { api } from '@/lib/api'
@@ -28,6 +28,14 @@ export default function More() {
             <Text className="text-xs font-normal text-ink-secondary">{user?.phone}</Text>
           </Text>
         </Card>
+        <View className="mt-3 gap-2">
+          <ListRow
+            title="Login PIN"
+            subtitle="Set or change your 4-digit PIN"
+            icon="keypad-outline"
+            onPress={() => router.push('/set-pin')}
+          />
+        </View>
         <Card className="mt-3">
           <Button label="Log out" variant="quiet" onPress={logout} />
         </Card>

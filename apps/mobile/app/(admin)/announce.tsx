@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { Alert, Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { Screen, GradientHeader, Card, Button } from '@/components/ui'
+import { Screen, GradientHeader, Card, Button, FormScrollView } from '@/components/ui'
 import { useSendAnnouncement } from '@/lib/admin'
 
 const CHANNELS = ['IN_APP', 'EMAIL', 'BOTH'] as const
@@ -49,7 +49,7 @@ export default function Announce() {
         />
       }
     >
-      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <FormScrollView>
         {sent ? (
           <Card className="mt-4 items-center gap-2 border-good/40 bg-good-bg">
             <Ionicons name="checkmark-circle" size={28} color="#16A34A" />
@@ -89,7 +89,7 @@ export default function Announce() {
             <Button label={send.isPending ? 'Publishing…' : 'Publish'} onPress={submit} loading={send.isPending} />
           </Card>
         )}
-      </ScrollView>
+      </FormScrollView>
     </Screen>
   )
 }

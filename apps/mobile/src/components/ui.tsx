@@ -6,7 +6,10 @@ import {
   View,
   ActivityIndicator,
   StyleSheet,
-  Image
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -306,6 +309,25 @@ export function Screen({
         {children}
       </View>
     </View>
+  )
+}
+
+/**
+ * ScrollView for screens with text inputs. Android edge-to-edge ignores
+ * adjustResize on several OEMs (keyboard overlays the window), so submit
+ * buttons at the bottom of a form become unreachable — the KAV padding
+ * shrinks the scroll area to the visible region instead.
+ */
+export function FormScrollView({ children }: { children: ReactNode }) {
+  return (
+    <KeyboardAvoidingView
+      className="flex-1"
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        {children}
+      </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 

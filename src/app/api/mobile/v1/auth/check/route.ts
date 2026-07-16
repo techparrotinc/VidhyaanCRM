@@ -26,8 +26,14 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const limit = await windowLimiter(`mobile-check:${body.phone.replace(/\D/g, '')}`, 10, 60)
-  if (!limit.success) {
+  // Dual limit: per-phone (hammering one number) AND per-IP (enumerating
+  // many numbers from one client — the phone-keyed limit alone won't catch it).
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  const [phoneLimit, ipLimit] = await Promise.all([
+    windowLimiter(`mobile-check:${body.phone.replace(/\D/g, '')}`, 10, 60),
+    windowLimiter(`mobile-check-ip:${ip}`, 30, 60)
+  ])
+  if (!phoneLimit.success || !ipLimit.success) {
     return NextResponse.json(
       { success: false, error: 'Too many requests. Try again later.' },
       { status: 429 }

@@ -100,6 +100,9 @@ export default function Pin() {
             {otpLoading ? 'Sending OTP…' : 'Forgot PIN? Login with OTP'}
           </Text>
         </Pressable>
+        <Pressable onPress={() => router.back()} className="active:opacity-70">
+          <Text className="text-center text-sm text-ink-secondary">Use a different number</Text>
+        </Pressable>
       </View>
     </Screen>
   )

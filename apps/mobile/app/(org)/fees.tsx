@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
-import { Screen, GradientHeader, Card, Button, Chip, EmptyState } from '@/components/ui'
+import { ActivityIndicator, Linking, Pressable, Text, TextInput, View } from 'react-native'
+import { Screen, GradientHeader, Card, Button, Chip, EmptyState, FormScrollView } from '@/components/ui'
 import {
   useOverdueInvoices,
   useRecordPayment,
@@ -159,7 +159,7 @@ export default function Fees() {
         />
       }
     >
-      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <FormScrollView>
         {isLoading ? (
           <View className="mt-8 items-center">
             <ActivityIndicator color="#7C3AED" />
@@ -176,7 +176,7 @@ export default function Fees() {
         ) : (
           <EmptyState icon="checkmark-circle-outline" title="No overdue invoices" subtitle="Nice." />
         )}
-      </ScrollView>
+      </FormScrollView>
     </Screen>
   )
 }

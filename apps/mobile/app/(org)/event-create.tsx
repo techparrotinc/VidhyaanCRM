@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
-import { Screen, GradientHeader, Card, Button } from '@/components/ui'
+import { Screen, GradientHeader, Card, Button, FormScrollView } from '@/components/ui'
 import {
   useCreateEvent,
   useUploadEventCover,
@@ -190,7 +190,7 @@ export default function EventCreate() {
         />
       }
     >
-      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <FormScrollView>
         {!event ? (
           <CreateForm onCreated={setEvent} />
         ) : event.status === 'DRAFT' ? (
@@ -198,7 +198,7 @@ export default function EventCreate() {
         ) : (
           <AnnounceStep event={event} />
         )}
-      </ScrollView>
+      </FormScrollView>
     </Screen>
   )
 }

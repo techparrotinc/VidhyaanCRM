@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Linking, Pressable, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { Screen, GradientHeader, Card, Button, Chip, IconCircle, SearchBar, EmptyState } from '@/components/ui'
+import { Screen, GradientHeader, Card, Button, Chip, IconCircle, SearchBar, EmptyState, FormScrollView } from '@/components/ui'
 import { useAuthStore } from '@/lib/auth-store'
 import { useLeads, useCreateLead, useLogLeadActivity, useSnoozeLead, type Lead } from '@/lib/leads'
 import { FEATURE_ICONS } from '@/lib/icons'
@@ -156,7 +156,7 @@ export default function Leads() {
         />
       }
     >
-      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <FormScrollView>
         {showAdd ? <QuickAddForm onClose={() => setShowAdd(false)} /> : null}
 
         <View className="mt-3">
@@ -179,7 +179,7 @@ export default function Leads() {
         ) : (
           <EmptyState icon="people-outline" title="No leads found" subtitle="Try a different search or add one." />
         )}
-      </ScrollView>
+      </FormScrollView>
     </Screen>
   )
 }

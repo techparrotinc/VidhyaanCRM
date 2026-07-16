@@ -117,6 +117,12 @@ export default function More() {
               accent={FEATURE_ICONS.aiChat.accent}
             />
           ) : null}
+          <ListRow
+            title="Login PIN"
+            subtitle="Set or change your 4-digit PIN"
+            icon="keypad-outline"
+            onPress={() => router.push('/set-pin')}
+          />
         </View>
       </ScrollView>
     </Screen>

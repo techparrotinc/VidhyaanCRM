@@ -20,6 +20,9 @@
 import argon2 from 'argon2'
 import { prisma } from '../src/lib/db/client'
 import { createDefaultAdmissionStages } from '../src/lib/utils/createDefaultAdmissionStages'
+import { buildTargetKey } from '../src/lib/attendance/access'
+import { encryptSecret, currentKeyVersion } from '../src/lib/payments/vault'
+import { generateWebhookSecret } from '../src/lib/payments/config'
 
 const ORG_SLUG = 'vidhyaan-mobile-qa'
 const TEST_PIN = '2580'
@@ -165,6 +168,24 @@ async function main() {
   }
   const counsellorId = staffUsers.get('COUNSELLOR')!.id
 
+  // Teacher class assignments — attendance marking requires a matching
+  // TeacherAssignment (src/lib/attendance/access.ts), else the register 403s.
+  const teacherId = staffUsers.get('TEACHER')!.id
+  const teacherClasses = [
+    { gradeLabel: 'Grade 5', section: 'A' },
+    { gradeLabel: 'Grade 3', section: 'B' },
+    { gradeLabel: 'Grade 4', section: null } // no section = covers all of Grade 4
+  ]
+  for (const c of teacherClasses) {
+    const targetKey = buildTargetKey({ gradeLabel: c.gradeLabel, section: c.section })
+    await prisma.teacherAssignment.upsert({
+      where: { orgId_teacherId_targetKey: { orgId: org.id, teacherId, targetKey } },
+      update: {},
+      create: { orgId: org.id, teacherId, gradeLabel: c.gradeLabel, section: c.section, targetKey }
+    })
+  }
+  console.log(`Teacher assignments: ${teacherClasses.map((c) => `${c.gradeLabel}${c.section ? '-' + c.section : ''}`).join(', ')}`)
+
   // Parent login + marketplace Parent row (parent portal identity)
   const parentUser = await upsertLogin(PARENT.phone, PARENT.name, 'PARENT', false)
   const parentRow = await prisma.parent.upsert({
@@ -306,6 +327,44 @@ async function main() {
       })
       console.log(`Admission: ${a.applicant} (${a.stage})`)
     }
+  }
+
+  // Payment gateway — Razorpay TEST creds from env so the parent Pay flow
+  // works end-to-end (skipped when env keys are absent or not rzp_test_).
+  const rzpKeyId = process.env.RAZORPAY_KEY_ID
+  const rzpSecret = process.env.RAZORPAY_KEY_SECRET
+  if (rzpKeyId?.startsWith('rzp_test_') && rzpSecret) {
+    const existingGw = await prisma.paymentGatewayConfig.findFirst({
+      where: { orgId: org.id, provider: 'RAZORPAY', environment: 'TEST' }
+    })
+    if (!existingGw) {
+      await prisma.paymentGatewayConfig.create({
+        data: {
+          orgId: org.id,
+          provider: 'RAZORPAY',
+          environment: 'TEST',
+          status: 'ACTIVE',
+          isCurrent: true,
+          keyIdEncrypted: encryptSecret(rzpKeyId),
+          keySecretEncrypted: encryptSecret(rzpSecret),
+          webhookSecretEnc: encryptSecret(generateWebhookSecret()),
+          encryptionKeyVer: currentKeyVersion(),
+          keyIdLast4: rzpKeyId.slice(-4),
+          verifiedAt: new Date()
+        }
+      })
+      console.log('Payment gateway: Razorpay TEST config created')
+    } else if (existingGw.status !== 'ACTIVE' || !existingGw.isCurrent) {
+      await prisma.paymentGatewayConfig.update({
+        where: { id: existingGw.id },
+        data: { status: 'ACTIVE', isCurrent: true, deletedAt: null }
+      })
+      console.log('Payment gateway: existing config activated')
+    } else {
+      console.log('Payment gateway: already active')
+    }
+  } else {
+    console.log('Payment gateway: skipped (no rzp_test_ keys in env)')
   }
 
   // Two published events

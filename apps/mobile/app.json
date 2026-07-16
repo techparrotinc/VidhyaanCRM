@@ -46,6 +46,7 @@
           "android": {
             "enableProguardInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }\n-keepattributes JavascriptInterface\n-keepattributes *Annotation*\n-dontwarn com.razorpay.**\n-keep class com.razorpay.** { *; }\n-optimizations !method/inlining/*\n-keepclasseswithmembers class * { public void onPayment*(...); }",
             "gradleProperties": {
               "org.gradle.jvmargs": "-Xmx4608m -XX:MaxMetaspaceSize=1536m",
               "kotlin.daemon.jvm.options": "-Xmx2048m,-XX:MaxMetaspaceSize=1024m"

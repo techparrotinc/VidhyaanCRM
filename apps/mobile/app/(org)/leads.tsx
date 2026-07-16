@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
-import { Screen, GradientHeader, Card, Button, Chip, IconCircle } from '@/components/ui'
+import { Ionicons } from '@expo/vector-icons'
+import { Screen, GradientHeader, Card, Button, Chip, IconCircle, SearchBar, EmptyState } from '@/components/ui'
 import { useAuthStore } from '@/lib/auth-store'
 import { useLeads, useCreateLead, useLogLeadActivity, useSnoozeLead, type Lead } from '@/lib/leads'
+import { FEATURE_ICONS } from '@/lib/icons'
 
 const SNOOZE_ROLES = new Set(['ORG_ADMIN', 'BRANCH_ADMIN', 'COUNSELLOR'])
 
@@ -87,7 +89,7 @@ function LeadRow({ lead, canSnooze }: { lead: Lead; canSnooze: boolean }) {
   return (
     <Card className="mt-3">
       <View className="flex-row items-start gap-3">
-        <IconCircle accent="brand" />
+        <IconCircle accent="brand" icon={FEATURE_ICONS.leads.icon} />
         <View className="flex-1">
           <Text className="text-sm font-semibold text-ink">{lead.parentName}</Text>
           <Text className="text-xs text-ink-secondary">
@@ -98,18 +100,27 @@ function LeadRow({ lead, canSnooze }: { lead: Lead; canSnooze: boolean }) {
       </View>
 
       <View className="mt-3 flex-row gap-2">
-        <Pressable onPress={call} className="flex-1 items-center rounded-xl border border-line py-2 active:opacity-70">
+        <Pressable
+          onPress={call}
+          className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border border-line py-2 active:opacity-70"
+        >
+          <Ionicons name="call-outline" size={14} color="#1565D8" />
           <Text className="text-xs font-semibold text-brand">Call</Text>
         </Pressable>
-        <Pressable onPress={whatsapp} className="flex-1 items-center rounded-xl border border-line py-2 active:opacity-70">
+        <Pressable
+          onPress={whatsapp}
+          className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border border-line py-2 active:opacity-70"
+        >
+          <Ionicons name="logo-whatsapp" size={14} color="#0D9488" />
           <Text className="text-xs font-semibold text-attend">WhatsApp</Text>
         </Pressable>
         {canSnooze ? (
           <Pressable
             onPress={snooze3Days}
             disabled={snooze.isPending}
-            className="flex-1 items-center rounded-xl border border-line py-2 active:opacity-70"
+            className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border border-line py-2 active:opacity-70"
           >
+            <Ionicons name="time-outline" size={14} color="#475569" />
             <Text className="text-xs font-semibold text-ink-secondary">
               {snooze.isPending ? '…' : 'Snooze 3d'}
             </Text>
@@ -148,12 +159,9 @@ export default function Leads() {
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {showAdd ? <QuickAddForm onClose={() => setShowAdd(false)} /> : null}
 
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Search name, phone, code…"
-          className="mt-3 rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-ink"
-        />
+        <View className="mt-3">
+          <SearchBar value={search} onChangeText={setSearch} placeholder="Search name, phone, code…" />
+        </View>
 
         {isLoading ? (
           <View className="mt-8 items-center">
@@ -169,9 +177,7 @@ export default function Leads() {
         ) : data && data.leads.length > 0 ? (
           data.leads.map((lead) => <LeadRow key={lead.id} lead={lead} canSnooze={canSnooze} />)
         ) : (
-          <Card className="mt-4">
-            <Text className="text-sm text-ink-secondary">No leads found.</Text>
-          </Card>
+          <EmptyState icon="people-outline" title="No leads found" subtitle="Try a different search or add one." />
         )}
       </ScrollView>
     </Screen>

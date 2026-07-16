@@ -78,7 +78,7 @@ export async function api<T = unknown>(
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public data?: Record<string, unknown> | null) {
     super(message)
     this.name = 'ApiError'
   }
@@ -121,7 +121,7 @@ export async function apiPublic<T = unknown>(path: string, body: unknown): Promi
   })
   const json = await res.json().catch(() => null)
   if (!res.ok || json?.success === false) {
-    throw new ApiError(res.status, json?.error ?? `Request failed (${res.status})`)
+    throw new ApiError(res.status, json?.error ?? `Request failed (${res.status})`, json)
   }
   return json as T
 }

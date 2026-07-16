@@ -10,6 +10,21 @@ export const phoneSchema = z.string().regex(/^\+?[0-9]{10,15}$/, 'Enter a valid 
 
 export const otpRequestSchema = z.object({ phone: phoneSchema })
 
+export const checkResponseSchema = z.object({
+  success: z.literal(true),
+  exists: z.boolean(),
+  hasPin: z.boolean(),
+  name: z.string().nullable().optional()
+})
+
+export const pinRequestSchema = z.object({
+  phone: phoneSchema,
+  pin: z.string().regex(/^\d{4}$/),
+  deviceId: z.string().min(8).max(128),
+  platform: z.enum(['ios', 'android']),
+  deviceName: z.string().max(120).optional()
+})
+
 export const verifyRequestSchema = z.object({
   phone: phoneSchema,
   code: z.string().min(4).max(8),
@@ -68,6 +83,7 @@ export const refreshResponseSchema = z.object({
   refreshToken: z.string()
 })
 
+export type CheckResponse = z.infer<typeof checkResponseSchema>
 export type Workspace = z.infer<typeof workspaceSchema>
 export type AuthUser = z.infer<typeof authUserSchema>
 export type TokensResponse = z.infer<typeof tokensResponseSchema>

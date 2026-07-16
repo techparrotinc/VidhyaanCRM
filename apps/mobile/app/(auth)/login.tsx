@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { apiPublic, ApiError } from '@/lib/api'
 import { Button, Screen } from '@/components/ui'
+import type { CheckResponse } from '@/shared-contract'
 
 export default function Login() {
   const [phone, setPhone] = useState('')
@@ -15,6 +16,22 @@ export default function Login() {
     setError(null)
     setLoading(true)
     try {
+      // PIN-aware routing: accounts with a PIN go to the PIN screen (OTP
+      // stays reachable there via "Forgot PIN"); everyone else gets OTP.
+      const check = await apiPublic<CheckResponse>('/api/mobile/v1/auth/check', {
+        phone: `+91${phone}`
+      })
+      if (!check.exists) {
+        setError('This number is not registered. Parents: ask your school to add you as a guardian. Staff: ask your admin to invite you.')
+        return
+      }
+      if (check.hasPin) {
+        router.push({
+          pathname: '/(auth)/pin',
+          params: { phone, ...(check.name ? { name: check.name } : {}) }
+        })
+        return
+      }
       await apiPublic('/api/mobile/v1/auth/otp', { phone: `+91${phone}` })
       router.push({ pathname: '/(auth)/otp', params: { phone } })
     } catch (e) {

@@ -46,25 +46,27 @@ export default function Otp() {
   }
 
   return (
-    <Screen className="justify-center gap-5">
-      <View className="items-center gap-3">
-        <View className="h-16 w-16 overflow-hidden rounded-3xl">
-          <LinearGradient
-            colors={['#1565D8', '#3B82F6']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            className="h-full w-full items-center justify-center"
-          >
-            <Ionicons name="shield-checkmark" size={28} color="#fff" />
-          </LinearGradient>
+    <Screen className="justify-between">
+      <View className="gap-5 pt-4">
+        <View className="items-center gap-3">
+          <View className="h-16 w-16 overflow-hidden rounded-3xl">
+            <LinearGradient
+              colors={['#1565D8', '#3B82F6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              className="h-full w-full items-center justify-center"
+            >
+              <Ionicons name="shield-checkmark" size={28} color="#fff" />
+            </LinearGradient>
+          </View>
+          <Text className="text-center text-2xl font-bold tracking-tight text-ink">Verify phone</Text>
+          <Text className="text-center text-sm text-ink-secondary">
+            Enter the 6-digit code sent to +91 {phone}
+          </Text>
         </View>
-        <Text className="text-center text-2xl font-bold tracking-tight text-ink">Verify phone</Text>
-        <Text className="text-center text-sm text-ink-secondary">
-          Enter the 6-digit code sent to +91 {phone}
-        </Text>
+        <OtpInput value={code} onChange={setCode} />
+        {error ? <Text className="text-center text-sm text-bad">{error}</Text> : null}
       </View>
-      <OtpInput value={code} onChange={setCode} />
-      {error ? <Text className="text-center text-sm text-bad">{error}</Text> : null}
       <Button label="Verify" onPress={submit} loading={loading} disabled={code.length !== 6} />
     </Screen>
   )

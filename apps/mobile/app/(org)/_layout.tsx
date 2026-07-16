@@ -39,7 +39,7 @@ export default function OrgLayout() {
       {tab('fees', 'Fees', 'fees')}
       {tab('students', 'Students', 'students')}
       {tab('more', 'More', 'more')}
-      {/* Pushed from More, not tabs themselves. */}
+      {/* Pushed from More/home/rows, not tabs themselves. */}
       <Tabs.Screen name="admissions" options={{ href: null }} />
       <Tabs.Screen name="whatsapp-inbox" options={{ href: null }} />
       <Tabs.Screen name="reports" options={{ href: null }} />
@@ -48,6 +48,16 @@ export default function OrgLayout() {
       <Tabs.Screen name="forms-review" options={{ href: null }} />
       <Tabs.Screen name="broadcast" options={{ href: null }} />
       <Tabs.Screen name="ai-chat" options={{ href: null }} />
+      <Tabs.Screen name="leads/[id]" options={{ href: null }} />
+      <Tabs.Screen name="students/[id]" options={{ href: null }} />
+      <Tabs.Screen name="collections" options={{ href: null }} />
+      <Tabs.Screen name="enroll" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="scan" options={{ href: null }} />
+      <Tabs.Screen name="schedule" options={{ href: null }} />
+      <Tabs.Screen name="schedule-week" options={{ href: null }} />
+      <Tabs.Screen name="search" options={{ href: null }} />
+      <Tabs.Screen name="session" options={{ href: null }} />
     </Tabs>
   )
 }

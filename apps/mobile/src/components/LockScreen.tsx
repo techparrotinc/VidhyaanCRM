@@ -15,6 +15,7 @@ export function LockScreen() {
   const unlock = useAuthStore((s) => s.unlock)
   const signOut = useAuthStore((s) => s.signOut)
   const phone = useAuthStore((s) => s.user?.phone ?? null)
+  const name = useAuthStore((s) => s.user?.name?.split(' ')[0] ?? null)
   const [pin, setPin] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [checking, setChecking] = useState(false)
@@ -75,9 +76,11 @@ export function LockScreen() {
     <Screen className="gap-5 pt-16">
       <View className="items-center gap-2">
         <View className="mb-2 h-16 w-16 rounded-2xl bg-brand-soft" />
-        <Text className="text-2xl font-bold tracking-tight text-ink">Vidhyaan is locked</Text>
+        <Text className="text-2xl font-bold tracking-tight text-ink">
+          {name ? `Welcome back, ${name}` : 'Welcome back'}
+        </Text>
         <Text className="text-center text-sm text-ink-secondary">
-          {checking ? 'Verifying…' : 'Enter your Vidhyaan PIN'}
+          {checking ? 'Verifying…' : 'Enter your Vidhyaan PIN to continue'}
         </Text>
       </View>
       <OtpInput value={pin} onChange={onChange} length={4} secure />

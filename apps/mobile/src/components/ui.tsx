@@ -375,18 +375,24 @@ export function SegmentedControl<T extends string>({
  *  color wash, matching the reference dashboard wireframe exactly. */
 export function PastelStat({
   label,
-  value
+  value,
+  onPress
 }: {
   label: string
   value: string | number
   /** Unused — kept so existing call sites don't need to change. */
   accent?: Accent
+  onPress?: () => void
 }) {
   return (
-    <View className="flex-1 rounded-2xl border border-line bg-white p-4">
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      className={`rounded-2xl border border-line bg-white p-4 ${onPress ? 'active:opacity-70' : ''}`}
+    >
       <Text className="text-[11px] font-bold uppercase tracking-widest text-ink-faint">{label}</Text>
       <Text className="mt-2 text-3xl font-bold tracking-tight text-ink">{value}</Text>
-    </View>
+    </Pressable>
   )
 }
 

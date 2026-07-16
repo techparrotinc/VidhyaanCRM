@@ -8,7 +8,6 @@ import {
   Chip,
   PastelStat,
   IconCircle,
-  IconPill,
   Avatar,
   Button,
   EmptyState,
@@ -108,13 +107,6 @@ function tileAccent(key: string): Accent {
   return 'brand'
 }
 
-const QUICK_ACTIONS: Array<{ key: string; label: string; route: string; feature: keyof typeof FEATURE_ICONS }> = [
-  { key: 'leads', label: 'Leads', route: '/(org)/leads', feature: 'leads' },
-  { key: 'attendance', label: 'Attendance', route: '/(org)/attendance', feature: 'attendance' },
-  { key: 'fees', label: 'Fees', route: '/(org)/fees', feature: 'fees' },
-  { key: 'students', label: 'Students', route: '/(org)/students', feature: 'students' }
-]
-
 export default function StaffHome() {
   const user = useAuthStore((s) => s.user)
   const { data, isLoading, isError, refetch } = useStaffHome()
@@ -146,27 +138,6 @@ export default function StaffHome() {
       }
     >
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View className="mt-4 flex-row justify-between">
-          {QUICK_ACTIONS.map((action) => (
-            <IconPill
-              key={action.key}
-              icon={FEATURE_ICONS[action.feature].icon}
-              label={action.label}
-              accent={FEATURE_ICONS[action.feature].accent}
-              onPress={() => router.push(action.route as any)}
-            />
-          ))}
-        </View>
-
-        <View className="mt-4 flex-row gap-2.5">
-          <View className="flex-1">
-            <Button label="✦ Ask AI" variant="outline" onPress={() => router.push('/(org)/ai-chat')} />
-          </View>
-          <View className="flex-1">
-            <Button label="Search" variant="outline" onPress={() => router.push('/(org)/search' as any)} />
-          </View>
-        </View>
-
         {isLoading ? (
           <View className="mt-8 items-center">
             <ActivityIndicator color="#1565D8" />
@@ -180,18 +151,27 @@ export default function StaffHome() {
           </Card>
         ) : data && data.tiles.length > 0 ? (
           <>
-            <View className="mt-5 flex-row flex-wrap gap-3">
+            {/* Wireframe s-home order: KPI grid → Ask AI / Search → attention. */}
+            <View className="mt-4 flex-row flex-wrap gap-3">
               {data.tiles.map((tile) => (
-                <Pressable
-                  key={tile.key}
-                  style={{ minWidth: '46%', flexGrow: 1 }}
-                  disabled={!tile.route}
-                  onPress={() => tile.route && router.push(`/(org)${tile.route}` as any)}
-                  className="active:opacity-70"
-                >
-                  <PastelStat label={tile.label} value={tile.value} accent={tileAccent(tile.key)} />
-                </Pressable>
+                <View key={tile.key} style={{ minWidth: '46%', flexGrow: 1 }}>
+                  <PastelStat
+                    label={tile.label}
+                    value={tile.value}
+                    accent={tileAccent(tile.key)}
+                    onPress={tile.route ? () => router.push(`/(org)${tile.route}` as any) : undefined}
+                  />
+                </View>
               ))}
+            </View>
+
+            <View className="mt-4 flex-row gap-2.5">
+              <View className="flex-1">
+                <Button label="✦ Ask AI" variant="outline" onPress={() => router.push('/(org)/ai-chat')} />
+              </View>
+              <View className="flex-1">
+                <Button label="Search" variant="outline" onPress={() => router.push('/(org)/search' as any)} />
+              </View>
             </View>
 
             {data.institutionType === 'LEARNING_CENTER' ? (

@@ -86,14 +86,20 @@ export default function RootLayout() {
   // flushes the offline attendance queue — coming back to foreground is the
   // best available signal that connectivity may have returned (no NetInfo
   // dependency needed: a queued row that fails again just stays queued).
+  // Re-lock only after a real absence (5+ min in background) — locking on
+  // every app switch made "check WhatsApp, come back" feel like a re-login.
+  const LOCK_AFTER_MS = 5 * 60 * 1000
+  const backgroundedAt = useRef<number | null>(null)
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
       const cameToForeground = appState.current.match(/inactive|background/) && next === 'active'
+      const wentToBackground = appState.current === 'active' && next.match(/inactive|background/)
       appState.current = next
+      if (wentToBackground) backgroundedAt.current = Date.now()
       if (cameToForeground && useAuthStore.getState().status === 'signedIn') {
-        // PIN app-lock on every resume; accounts without a PIN auto-unlock
-        // inside LockScreen (server check), so this is a no-op for them.
-        lock()
+        const away = backgroundedAt.current ? Date.now() - backgroundedAt.current : 0
+        // No-PIN accounts auto-unlock inside LockScreen (server check).
+        if (away >= LOCK_AFTER_MS) lock()
         void syncAttendanceQueue().catch(() => {})
       }
     })

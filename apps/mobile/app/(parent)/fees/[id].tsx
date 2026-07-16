@@ -1,6 +1,6 @@
 import { Text, View, ScrollView, ActivityIndicator } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
-import { Screen, PageTitle, Card, Button } from '@/components/ui'
+import { Screen, DetailHeader, Card, Button, EmptyState } from '@/components/ui'
 import { useParentInvoices } from '@/lib/parent-fees'
 
 function formatDate(d: Date | string | null): string {
@@ -16,7 +16,7 @@ export default function InvoiceDetail() {
 
   if (isLoading) {
     return (
-      <Screen>
+      <Screen header={<DetailHeader title="Invoice" onBack={() => router.back()} accent="fees" />}>
         <View className="mt-8 items-center">
           <ActivityIndicator color="#1565D8" />
         </View>
@@ -26,11 +26,8 @@ export default function InvoiceDetail() {
 
   if (!invoice) {
     return (
-      <Screen>
-        <PageTitle>Invoice</PageTitle>
-        <Card className="mt-4">
-          <Text className="text-sm text-ink-secondary">Invoice not found.</Text>
-        </Card>
+      <Screen header={<DetailHeader title="Invoice" onBack={() => router.back()} accent="fees" />}>
+        <EmptyState icon="receipt-outline" title="Invoice not found" />
       </Screen>
     )
   }
@@ -38,8 +35,15 @@ export default function InvoiceDetail() {
   const paid = invoice.status === 'PAID'
 
   return (
-    <Screen>
-      <PageTitle>{invoice.termName ?? invoice.courseName ?? invoice.invoiceType}</PageTitle>
+    <Screen
+      header={
+        <DetailHeader
+          title={invoice.termName ?? invoice.courseName ?? invoice.invoiceType}
+          onBack={() => router.back()}
+          accent="fees"
+        />
+      }
+    >
       <ScrollView showsVerticalScrollIndicator={false} className="mt-3">
         <Card>
           <Text className="text-xs text-ink-faint">
@@ -72,6 +76,7 @@ export default function InvoiceDetail() {
         <View className="pb-2 pt-3">
           <Button
             label={`Pay ₹${invoice.balance.toLocaleString('en-IN')}`}
+            variant="success"
             disabled={!invoice.payable}
             onPress={() => router.push(`/(parent)/fees/${invoice.id}/pay`)}
           />

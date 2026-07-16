@@ -1,6 +1,6 @@
 import { Text, View, Image, ScrollView, ActivityIndicator } from 'react-native'
-import { useLocalSearchParams } from 'expo-router'
-import { Screen, PageTitle, Card, Button } from '@/components/ui'
+import { useLocalSearchParams, router } from 'expo-router'
+import { Screen, DetailHeader, Button, EmptyState } from '@/components/ui'
 import { useParentEvents, useRsvp } from '@/lib/parent-events'
 
 export default function EventDetail() {
@@ -11,7 +11,7 @@ export default function EventDetail() {
 
   if (isLoading) {
     return (
-      <Screen>
+      <Screen header={<DetailHeader title="Event" onBack={() => router.back()} accent="events" />}>
         <View className="mt-8 items-center">
           <ActivityIndicator color="#1565D8" />
         </View>
@@ -21,11 +21,8 @@ export default function EventDetail() {
 
   if (!event) {
     return (
-      <Screen>
-        <PageTitle>Event</PageTitle>
-        <Card className="mt-4">
-          <Text className="text-sm text-ink-secondary">Event not found.</Text>
-        </Card>
+      <Screen header={<DetailHeader title="Event" onBack={() => router.back()} accent="events" />}>
+        <EmptyState icon="sparkles-outline" title="Event not found" />
       </Screen>
     )
   }
@@ -40,8 +37,7 @@ export default function EventDetail() {
     .join(' · ')
 
   return (
-    <Screen>
-      <PageTitle>{event.title}</PageTitle>
+    <Screen header={<DetailHeader title={event.title} onBack={() => router.back()} accent="events" />}>
       <ScrollView showsVerticalScrollIndicator={false} className="mt-3">
         {event.imageUrl ? (
           <Image source={{ uri: event.imageUrl }} className="h-40 w-full rounded-lg" resizeMode="cover" />

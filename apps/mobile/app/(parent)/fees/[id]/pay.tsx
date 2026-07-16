@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { Text, View } from 'react-native'
+import { Text, View, ActivityIndicator } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import RazorpayCheckout from 'react-native-razorpay'
 import { useLocalSearchParams, router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { Screen, PageTitle, Card, Button } from '@/components/ui'
+import { Screen, DetailHeader, Button, EmptyState } from '@/components/ui'
 import { useParentInvoices } from '@/lib/parent-fees'
 import { createInvoiceCheckout, confirmInvoiceCheckout } from '@/lib/parent-payments'
 
@@ -74,11 +75,8 @@ export default function Pay() {
 
   if (!invoice) {
     return (
-      <Screen>
-        <PageTitle>Pay</PageTitle>
-        <Card className="mt-4">
-          <Text className="text-sm text-ink-secondary">Invoice not found.</Text>
-        </Card>
+      <Screen header={<DetailHeader title="Pay" onBack={() => router.back()} accent="fees" />}>
+        <EmptyState icon="receipt-outline" title="Invoice not found" />
       </Screen>
     )
   }
@@ -87,6 +85,7 @@ export default function Pay() {
     return (
       <Screen>
         <View className="mt-16 items-center gap-3">
+          <ActivityIndicator color="#1565D8" />
           <Text className="text-sm text-ink-secondary">Opening Razorpay…</Text>
         </View>
       </Screen>
@@ -96,14 +95,12 @@ export default function Pay() {
   const isPending = phase === 'pending'
 
   return (
-    <Screen>
+    <Screen header={<DetailHeader title="Pay" onBack={() => router.back()} accent="fees" />}>
       <View className="mt-16 items-center gap-3 px-4">
         <View
-          className={`h-16 w-16 items-center justify-center rounded-full border-2 ${isPending ? 'border-warn' : 'border-bad'}`}
+          className={`h-16 w-16 items-center justify-center rounded-full ${isPending ? 'bg-warn-bg' : 'bg-bad-bg'}`}
         >
-          <Text className={`text-2xl ${isPending ? 'text-warn' : 'text-bad'}`}>
-            {isPending ? '!' : '×'}
-          </Text>
+          <Ionicons name={isPending ? 'time' : 'close-circle'} size={30} color={isPending ? '#B45309' : '#DC2626'} />
         </View>
         <Text className="text-lg font-bold text-ink">
           {isPending ? 'Payment not confirmed yet' : 'Payment not completed'}

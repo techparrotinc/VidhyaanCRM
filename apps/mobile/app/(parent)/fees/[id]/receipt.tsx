@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Text, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { File, Paths } from 'expo-file-system'
 import * as Sharing from 'expo-sharing'
 import { useLocalSearchParams, router } from 'expo-router'
@@ -41,8 +42,8 @@ export default function Receipt() {
   return (
     <Screen>
       <View className="mt-16 items-center gap-2 px-4">
-        <View className="h-16 w-16 items-center justify-center rounded-full border-2 border-good">
-          <Text className="text-2xl text-good">✓</Text>
+        <View className="h-16 w-16 items-center justify-center rounded-full bg-good-bg">
+          <Ionicons name="checkmark-circle" size={34} color="#16A34A" />
         </View>
         <Text className="text-2xl font-bold tracking-tight text-ink">
           ₹{Number(amount ?? 0).toLocaleString('en-IN')}
@@ -58,6 +59,7 @@ export default function Receipt() {
         <Card className="mt-6 w-full">
           <Button
             label={sharing ? 'Preparing…' : 'Share receipt (PDF)'}
+            variant="success"
             loading={sharing}
             onPress={shareReceipt}
           />

@@ -93,31 +93,65 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ token: str
     return NextResponse.json({ error: 'This form was already submitted' }, { status: 409 })
   }
 
+  // Atomically claim the single-use link before doing any submission work.
+  // The status check above alone is read-then-write: two concurrent submits
+  // on the same token could both pass it and both fully process (double
+  // Lead/Admission creation, one request then crashing later on an
+  // assumption the other request already violated). Fee-gated forms stay
+  // resubmittable while unpaid by design (submitForm deletes the prior
+  // PENDING draft) so they're not claimed here — submitForm's own
+  // paymentStatus bookkeeping is the guard for those.
+  if (!form.feeRequired) {
+    const claimed = await prisma.formInstance.updateMany({
+      where: { id: instance.id, status: { not: 'SUBMITTED' } },
+      data: { status: 'SUBMITTED', submittedAt: new Date() }
+    })
+    if (claimed.count === 0) {
+      return NextResponse.json({ error: 'This form was already submitted' }, { status: 409 })
+    }
+  }
+
   const body = submitSchema.parse(await req.json())
   const files = (body.files ?? []) as UploadedFile[]
   const schema = form.schema as unknown as FormSchema
 
   const issues = validateAnswers(schema, body.data, files)
   if (issues.length) {
+    if (!form.feeRequired) {
+      await prisma.formInstance.update({ where: { id: instance.id }, data: { status: instance.status, submittedAt: null } })
+    }
     return NextResponse.json({ error: 'Please fix the highlighted fields', issues }, { status: 422 })
   }
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null
 
-  const result = await submitForm({
-    instance: {
-      id: instance.id,
-      orgId: instance.orgId,
-      formId: instance.formId,
-      targetType: instance.targetType,
-      targetId: instance.targetId,
-      campaignId: instance.campaignId,
-    },
-    form: { schema, version: form.version, feeRequired: form.feeRequired },
-    data: body.data,
-    files,
-    submitterIp: ip,
-  })
+  let result
+  try {
+    result = await submitForm({
+      instance: {
+        id: instance.id,
+        orgId: instance.orgId,
+        formId: instance.formId,
+        targetType: instance.targetType,
+        targetId: instance.targetId,
+        campaignId: instance.campaignId,
+      },
+      form: { schema, version: form.version, feeRequired: form.feeRequired },
+      data: body.data,
+      files,
+      submitterIp: ip,
+    })
+  } catch (err) {
+    // Release the claim so a genuinely failed submission doesn't burn the
+    // link — only a successful submitForm should leave it SUBMITTED.
+    if (!form.feeRequired) {
+      await prisma.formInstance.update({
+        where: { id: instance.id },
+        data: { status: instance.status, submittedAt: null }
+      }).catch(() => {})
+    }
+    throw err
+  }
 
   return NextResponse.json({
     ok: true,

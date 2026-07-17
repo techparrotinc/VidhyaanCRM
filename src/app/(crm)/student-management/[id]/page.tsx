@@ -21,6 +21,7 @@ import StudentPaymentsTab from './components/StudentPaymentsTab'
 import { StudentAttendanceTab } from '@/components/attendance/StudentAttendanceTab'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { appAlert } from '@/components/ui/app-alert'
 
 const STATUS_CONFIG = {
   ACTIVE: {
@@ -211,7 +212,7 @@ export default function StudentDetailPage() {
     const okToDelete = await confirmDialog({
       title: 'Delete this student?',
       message:
-        'All records associated with this student — invoices, payments, activities and parent login access — will be deleted and cannot be rolled back.',
+        'The student record will be removed from active lists. Invoices, payments and activity history are kept, not deleted. Blocked if the student has an outstanding invoice balance.',
       confirmLabel: 'Delete Student',
       variant: 'danger'
     })
@@ -219,6 +220,9 @@ export default function StudentDetailPage() {
     const res = await fetch(`/api/v1/students/${id}`, { method: 'DELETE' })
     if (res.ok) {
       router.push('/student-management')
+    } else {
+      const data = await res.json().catch(() => null)
+      appAlert(data?.error?.message || data?.error || 'Could not delete this student.')
     }
   }
 

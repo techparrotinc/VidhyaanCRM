@@ -6,6 +6,7 @@ import { sendMetaTextMessage } from '@/lib/integrations/meta-whatsapp'
 import { createNotification } from '@/lib/services/notifications'
 import { getAlertChannels } from '@/lib/platform-config'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
+import { refundCredits } from '@/lib/credits/engine'
 
 // Meta WhatsApp Cloud API webhook: delivery statuses, inbound messages,
 // STOP/START consent management. Configure in the Meta App dashboard →
@@ -124,6 +125,47 @@ async function processTemplateStatusUpdate(value: any): Promise<void> {
   }
 }
 
+/**
+ * Refunds 1 credit-message for a campaign recipient the async delivery
+ * webhook just reported FAILED (billed at send time, never refunded since
+ * it wasn't a synchronous failure). Skips entirely if the campaign used a
+ * BYO provider — proven by the absence of a SEND ledger entry for it, since
+ * BYO sends never touch the wallet. Refunds into purchasedBalance rather
+ * than reconstructing the original free/purchased split per-message (that
+ * split was only ever recorded in aggregate for the whole campaign) — the
+ * org gets the credit back either way, this just isn't precise about which
+ * bucket it re-lands in.
+ */
+async function refundLateFailure(orgId: string, campaignId: string): Promise<void> {
+  const spendLedger = await prisma.messageCreditLedger.findFirst({
+    where: { orgId, ref: campaignId, reason: 'SEND', channel: 'WHATSAPP' }
+  })
+  if (!spendLedger) return // BYO campaign — wallet was never debited
+
+  const campaign = await prisma.campaign.findUnique({
+    where: { id: campaignId },
+    select: { whatsappTemplateId: true, orgId: true }
+  })
+  if (!campaign) return
+
+  let creditsPerMessage = 1
+  if (campaign.whatsappTemplateId) {
+    const tpl = await prisma.whatsappTemplate.findFirst({
+      where: { id: campaign.whatsappTemplateId, orgId: campaign.orgId },
+      select: { metaCategory: true }
+    })
+    if (tpl?.metaCategory === 'MARKETING') creditsPerMessage = 2
+  }
+
+  await refundCredits(
+    orgId,
+    'WHATSAPP',
+    creditsPerMessage,
+    { fromFree: 0, fromPurchased: creditsPerMessage },
+    campaignId
+  )
+}
+
 async function processStatuses(statuses: any[]): Promise<void> {
   for (const s of statuses) {
     const wamid: string | undefined = s?.id
@@ -145,7 +187,7 @@ async function processStatuses(statuses: any[]): Promise<void> {
     // Campaign recipients track delivery/read/failure in their own row
     const recipient = await prisma.campaignRecipient.findFirst({
       where: { providerMessageId: wamid },
-      select: { id: true, status: true }
+      select: { id: true, status: true, orgId: true, campaignId: true }
     })
     if (recipient) {
       const at = s?.timestamp ? new Date(Number(s.timestamp) * 1000) : new Date()
@@ -164,11 +206,20 @@ async function processStatuses(statuses: any[]): Promise<void> {
               : {})
           }
         })
-      } else if (mapped === 'FAILED') {
+      } else if (mapped === 'FAILED' && recipient.status !== 'FAILED') {
+        // Guarded on status !== FAILED so a duplicate delivery of this same
+        // webhook can't double-refund. A message accepted by the API and
+        // billed upfront, but later reported failed by the carrier, was
+        // never refunded anywhere else — the campaign-send route's refund
+        // only covers synchronous failures (no wamid ever assigned, so this
+        // handler never sees those rows at all).
         await prisma.campaignRecipient.update({
           where: { id: recipient.id },
           data: { status: 'FAILED', failureReason: error ?? 'Delivery failed' }
         })
+        await refundLateFailure(recipient.orgId, recipient.campaignId).catch(err =>
+          console.error('Late-failure credit refund failed:', err)
+        )
       }
     }
   }

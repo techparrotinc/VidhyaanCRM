@@ -32,33 +32,50 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       return NextResponse.json({ success: false, error: 'Event not found' }, { status: 404 })
     }
 
-    const existing = await prisma.eventRsvp.findFirst({
-      where: { eventId: id, attendeeType: 'PARENT', attendeeId: parent.id }
+    // Capacity check + RSVP write inside one transaction holding a Postgres
+    // advisory lock on the event — the count-then-create shape otherwise
+    // lets two parents racing for the last spot both pass the count check
+    // before either commits (same race class as the dedup phone-lock fixed
+    // earlier this session, just keyed on eventId instead of org+phone).
+    let full = false
+    let wasNew = false
+    const rsvp = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`event-rsvp:${id}`}))`
+
+      const existing = await tx.eventRsvp.findFirst({
+        where: { eventId: id, attendeeType: 'PARENT', attendeeId: parent.id }
+      })
+
+      if (body.status === 'GOING' && !existing && event.capacity) {
+        const going = await tx.eventRsvp.count({
+          where: { eventId: id, status: { in: ['GOING', 'ATTENDED'] } }
+        })
+        if (going >= event.capacity) {
+          full = true
+          return null
+        }
+      }
+
+      wasNew = !existing
+      return existing
+        ? tx.eventRsvp.update({ where: { id: existing.id }, data: { status: body.status } })
+        : tx.eventRsvp.create({
+            data: {
+              orgId: event.orgId,
+              eventId: id,
+              attendeeType: 'PARENT',
+              attendeeId: parent.id,
+              status: body.status
+            }
+          })
     })
 
-    if (body.status === 'GOING' && !existing && event.capacity) {
-      const going = await prisma.eventRsvp.count({
-        where: { eventId: id, status: { in: ['GOING', 'ATTENDED'] } }
-      })
-      if (going >= event.capacity) {
-        return NextResponse.json({ success: false, error: 'This event is full.' }, { status: 409 })
-      }
+    if (full || !rsvp) {
+      return NextResponse.json({ success: false, error: 'This event is full.' }, { status: 409 })
     }
 
-    const rsvp = existing
-      ? await prisma.eventRsvp.update({ where: { id: existing.id }, data: { status: body.status } })
-      : await prisma.eventRsvp.create({
-          data: {
-            orgId: event.orgId,
-            eventId: id,
-            attendeeType: 'PARENT',
-            attendeeId: parent.id,
-            status: body.status
-          }
-        })
-
     // Alert the event creator about the RSVP (first response only per parent)
-    if (!existing && event.createdById) {
+    if (wasNew && event.createdById) {
       createNotification({
         orgId: event.orgId,
         recipientType: 'USER',

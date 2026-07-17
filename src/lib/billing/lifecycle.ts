@@ -75,10 +75,20 @@ export async function downgradeOrgToFree(orgId: string, reason: string): Promise
 
   const sub = await prisma.subscription.findFirst({ where: { orgId, deletedAt: null } })
   if (sub) {
-    await prisma.subscription.update({
-      where: { id: sub.id },
+    // Re-check against the fresh row, not the caller's (possibly stale)
+    // snapshot: a renewal webhook/verify call can land between the cron's
+    // original query and this call and flip status to ACTIVE — downgrading
+    // unconditionally would undo a renewal that just succeeded. A
+    // conditional update (guarded by the still-expected status) makes this a
+    // no-op instead of a lost update when that race happens.
+    const { count } = await prisma.subscription.updateMany({
+      where: { id: sub.id, status: { in: ['GRACE_PERIOD', 'PAST_DUE'] } },
       data: { status: 'EXPIRED', cancelAtPeriodEnd: false, graceEndsAt: null }
     })
+    if (count === 0) {
+      console.log(`downgradeOrgToFree(${orgId}): subscription no longer in a downgradable state, skipping (${reason})`)
+      return
+    }
   }
   await prisma.organization.update({
     where: { id: orgId },

@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
         where: { identifier: body.contact, consumedAt: null, expiresAt: { gt: new Date() } },
         orderBy: { createdAt: 'desc' }
       })
-      const devBypass = process.env.NODE_ENV === 'development' && (body.code === '123456' || body.code === '1234')
+      const devBypass = process.env.NODE_ENV === 'development' && body.code === '123456'
       if (!otp && !devBypass) {
         return NextResponse.json({ success: false, error: 'INVALID_OTP' }, { status: 401 })
       }

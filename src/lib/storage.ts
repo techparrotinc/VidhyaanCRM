@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
 import crypto from 'crypto'
 import { getStorageConfig, type StorageConfig } from '@/lib/platform-config'
 
@@ -81,4 +81,25 @@ export async function deleteObject(key: string): Promise<void> {
   const cfg = await getStorageConfig()
   if (!cfg.bucket) return
   await clientFor(cfg).send(new DeleteObjectCommand({ Bucket: cfg.bucket, Key: key }))
+}
+
+/** Paginated listing under a prefix — used by the orphan-upload audit script. */
+export async function listObjectKeys(prefix: string): Promise<{ key: string; lastModified: Date | undefined }[]> {
+  const cfg = await getStorageConfig()
+  if (!cfg.bucket) return []
+  const client = clientFor(cfg)
+  const out: { key: string; lastModified: Date | undefined }[] = []
+  let ContinuationToken: string | undefined
+  do {
+    const res = await client.send(new ListObjectsV2Command({
+      Bucket: cfg.bucket,
+      Prefix: prefix,
+      ContinuationToken
+    }))
+    for (const obj of res.Contents ?? []) {
+      if (obj.Key) out.push({ key: obj.Key, lastModified: obj.LastModified })
+    }
+    ContinuationToken = res.IsTruncated ? res.NextContinuationToken : undefined
+  } while (ContinuationToken)
+  return out
 }

@@ -12,7 +12,7 @@ import { createLeadWithUniqueCode } from '@/lib/lead-code'
 import { sendOrgTemplateEmail } from '@/lib/mail/org-templates'
 import { sendLeadWhatsAppAck } from '@/lib/leads/whatsapp-ack'
 import { onLeadAssigned } from '@/lib/whatsapp/emitters'
-import { findMatches, loadDedupConfig, dedupFields } from '@/lib/dedup'
+import { findMatches, loadDedupConfig, dedupFields, lockDedupPhone } from '@/lib/dedup'
 import { assertNotDuplicate } from '@/lib/dedup/guard'
 import { isPaidPlan } from '@/lib/billing/plan-status'
 import { parseQuery, paginationShape, enumParam, textParam } from '@/lib/api/query'
@@ -235,21 +235,6 @@ export const POST = route({
     // so UI-created leads never land as year-less rows.
     const resolvedYear = body.academicYearId || academicYearId || null
 
-    // Dedup: block hard (and unconfirmed soft) matches; resolve household identity.
-    const dedupConfig = await loadDedupConfig(db, user.orgId)
-    const dedup = await findMatches(db, {
-      orgId: user.orgId,
-      phone: body.phone,
-      email: body.email,
-      childName: body.kidName,
-      grade: body.gradeSought,
-      academicYearId: resolvedYear,
-    }, dedupConfig)
-    assertNotDuplicate(dedup, { force: body.force })
-    const identity = await dedupFields(db, {
-      orgId: user.orgId, phone: body.phone, name: parentName, email: body.email,
-    })
-
     // 1. Check lead cap — paid plans are never capped, even if a numeric
     // leadCap lingers on the org row.
     const [leadCount, orgPlan] = await Promise.all([
@@ -260,10 +245,79 @@ export const POST = route({
       })
     ])
     const capped = !isPaidPlan(orgPlan) && org.leadCap !== null
+    const isQueued = capped && leadCount >= (org.leadCap as number)
 
-    if (capped && leadCount >= (org.leadCap as number)) {
+    // 3. Resolve assignedToId safely
+    let finalAssignedToId: string | null = null
+
+    if (body.assignedToId) {
+      const validUser = await prisma.user.findFirst({
+        where: {
+          id: body.assignedToId,
+          orgId: user.orgId,
+          status: 'ACTIVE',
+        },
+        select: { id: true }
+      })
+      finalAssignedToId = validUser?.id || null
+    }
+
+    const needsRoundRobin = !finalAssignedToId
+
+    // 4. Dedup check + create, inside one transaction holding a Postgres
+    // advisory lock on org+phone — findMatches has no DB-level constraint
+    // behind it, so without this two near-simultaneous requests with the
+    // same phone could both pass a hard-match block before either commits.
+    // The lock is released automatically at commit/rollback.
+    const { lead, dedup } = await db.$transaction(async (tx: any): Promise<{ lead: any; dedup: any }> => {
+      await lockDedupPhone(tx, user.orgId, body.phone)
+
+      if (needsRoundRobin) {
+        // Also locks on orgId alone (independent of the phone lock above,
+        // which no-ops when body.phone is empty) — otherwise two concurrent
+        // no-assignedToId creates both read the same totalLeads count before
+        // either commits and pile onto the same counsellor instead of
+        // round-robining.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`lead-round-robin:${user.orgId}`}))`
+
+        const counsellors = await tx.user.findMany({
+          where: {
+            orgId: user.orgId,
+            roleAssignments: {
+              some: {
+                role: { in: ['COUNSELLOR', 'ORG_ADMIN', 'BRANCH_ADMIN'] },
+                status: 'ACTIVE'
+              }
+            },
+            status: 'ACTIVE',
+            deletedAt: null
+          },
+          select: { id: true }
+        })
+
+        if (counsellors.length > 0) {
+          const totalLeads = await tx.lead.count({ where: { orgId: user.orgId } })
+          const index = totalLeads % counsellors.length
+          finalAssignedToId = counsellors[index].id
+        }
+      }
+
+      const dedupConfig = await loadDedupConfig(tx, user.orgId)
+      const dedup = await findMatches(tx, {
+        orgId: user.orgId,
+        phone: body.phone,
+        email: body.email,
+        childName: body.kidName,
+        grade: body.gradeSought,
+        academicYearId: resolvedYear,
+      }, dedupConfig)
+      assertNotDuplicate(dedup, { force: body.force })
+      const identity = await dedupFields(tx, {
+        orgId: user.orgId, phone: body.phone, name: parentName, email: body.email,
+      })
+
       const lead = await createLeadWithUniqueCode(user.orgId, (leadCode) =>
-        db.lead.create({
+        tx.lead.create({
           data: {
             parentName: body.parentName,
             phone: body.phone,
@@ -284,88 +338,24 @@ export const POST = route({
             householdId: identity.householdId,
             nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
             expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+            queued: isQueued,
+            ...(!isQueued && finalAssignedToId && {
+              assignedToId: finalAssignedToId
+            }),
           }
         })
       )
 
+      return { lead, dedup }
+    })
+
+    if (isQueued) {
       return ok({
         ...lead,
         queued: true,
         message: 'Lead cap reached. Lead saved to queue. Upgrade to access queued leads.'
       }, undefined, 201)
     }
-
-    // 3. Resolve assignedToId safely
-    let finalAssignedToId: string | null = null
-
-    if (body.assignedToId) {
-      const validUser = await prisma.user.findFirst({
-        where: {
-          id: body.assignedToId,
-          orgId: user.orgId,
-          status: 'ACTIVE',
-        },
-        select: { id: true }
-      })
-      finalAssignedToId = validUser?.id || null
-    }
-
-    if (!finalAssignedToId) {
-      const counsellors = await prisma.user.findMany({
-        where: {
-          orgId: user.orgId,
-          roleAssignments: {
-            some: {
-              role: {
-                in: ['COUNSELLOR', 'ORG_ADMIN', 'BRANCH_ADMIN']
-              },
-              status: 'ACTIVE'
-            }
-          },
-          status: 'ACTIVE',
-          deletedAt: null
-        },
-        select: { id: true }
-      })
-
-      if (counsellors.length > 0) {
-        const totalLeads = await prisma.lead.count({
-          where: { orgId: user.orgId }
-        })
-        const index = totalLeads % counsellors.length
-        finalAssignedToId = counsellors[index].id
-      }
-    }
-
-    // 4. Create lead (code generated + collision-retried inside helper)
-    const lead = await createLeadWithUniqueCode(user.orgId, (leadCode) =>
-      db.lead.create({
-        data: {
-          parentName: body.parentName,
-          phone: body.phone,
-          email: body.email || null,
-          kidName: body.kidName || null,
-          childAge: body.childAge || null,
-          currentSchool: body.currentSchool || null,
-          source: (body.source || 'WALK_IN') as LeadSource,
-          priority: (body.priority || 'MEDIUM') as LeadPriority,
-          status: 'NEW',
-          gradeSought: body.gradeSought || null,
-          course: body.course || null,
-          batch: body.batch || null,
-          leadCode,
-          orgId: user.orgId,
-          academicYearId: resolvedYear,
-          phoneNormalized: identity.phoneNormalized,
-          householdId: identity.householdId,
-          nextFollowUpAt: body.nextFollowUpAt ? new Date(body.nextFollowUpAt) : null,
-          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
-          ...(finalAssignedToId && {
-            assignedToId: finalAssignedToId
-          }),
-        }
-      })
-    )
 
     // 6. Create activity log
     await db.leadActivity.create({

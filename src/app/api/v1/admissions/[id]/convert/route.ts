@@ -7,12 +7,15 @@ import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { sendOrgTemplateEmail } from '@/lib/mail/org-templates'
 import { getGradeLabel } from '@/constants/grades'
+import { assertFreeTierLimit } from '@/lib/billing/limits'
 
 const convertSchema = z.object({
   name: z.string().optional(),
   dateOfBirth: z.string().optional().nullable(),
   gradeLabel: z.string().optional().nullable(),
-  section: z.string().max(10).optional().nullable(),
+  // Matches the cap on the student create/update/promote routes — was
+  // max(10) here, a stricter, inconsistent limit on the same field.
+  section: z.string().max(50).optional().nullable(),
   rollNumber: z.string().optional().nullable(),
   guardianName: z.string().optional().nullable(),
 })
@@ -41,6 +44,23 @@ export const POST = route({
         'Admission must be in Admitted status or Won stage before converting to student'
       )
     }
+
+    // Student.admissionId is unique at the schema level (the real guard under
+    // concurrent requests) — this pre-check just turns the common case into a
+    // clean 409 instead of a raw P2002-driven 500.
+    const alreadyConverted = await db.student.findFirst({
+      where: { admissionId: admission.id },
+      select: { id: true, studentCode: true }
+    })
+    if (alreadyConverted) {
+      throw Errors.conflict(
+        `This admission was already converted to student ${alreadyConverted.studentCode}`
+      )
+    }
+
+    // Converting creates a Student row — same free-tier cap as the direct
+    // create route, previously bypassable through this path.
+    await assertFreeTierLimit(user.orgId, 'STUDENT')
 
     let body: any = {}
     try {

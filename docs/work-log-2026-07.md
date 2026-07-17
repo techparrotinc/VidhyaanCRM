@@ -453,40 +453,46 @@ Full build per [reports-analytics-phase1-prd.md](reports-analytics-phase1-prd.md
   needed for retry reconciliation).
 
 ## ⏳ Pending
-0. **Reports Phase 2** — rollup backfill on prod (script ready); scheduled email reports
-   (`report_schedules` table shipped); marketplace analytics; 90+ ageing MoM insight
-   (needs ageing snapshot metric in rollups); mutation-driven cache invalidation;
-   bulk fee-reminder action from defaulter report.
+_Last verified against live repo/DB state 2026-07-17 — items below are confirmed still open;
+everything else this section used to list has since shipped (see "Resolved since" below)._
 
 1. **Subdomain-per-school** (phase 2) — `schoolname.vidhyaan.com`. Needs Vercel Pro +
-   wildcard `*.vidhyaan.com` + NS. Safe to start steps 1–2 anytime (`Organization.subdomain`
-   column + allocation + backfill); additive, no disruption if apex stays live + host-only cookies.
-2. ~~**Tier-2 zod sweep**~~ — **DONE 2026-07-05** (see above).
-3. ~~**Lead bulk-action bar**~~ — **DONE 2026-07-06** (see backlog sweep above).
-4. ~~**Dashboard "Profile Views"**~~ — **DONE 2026-07-05**: wired to `School.viewCount`
-   + `SchoolView` 7-day count via summary API; full-page loading skeleton kills the
-   0-then-value flash. **Still fake**: "This Month vs Last Month" chips (26/+44%,
-   17/+54%, avg convert) and KPI trend strings ("+3 today", "+8% vs last month",
-   "+5% this month") are hardcoded — wire or drop in a later pass.
-5. **settings/school-profile** — Basic/Contact/Academics/Gallery tabs still inline (Gallery
-   has upload logic; heaviest). Other tabs already extracted.
-6. **Scale-time only**: partial soft-delete indexes (`WHERE deleted_at IS NULL`), read
-   replica for reports, Postgres RLS as a second isolation layer.
-7. **next-auth v5 beta** pin — migrate at GA.
-8. **Optional India latency**: move both to Mumbai (Neon `ap-south-1` + Vercel `bom1`) —
-   needs Neon data migration; not worth it now (Singapore co-located is fine).
-9. **WhatsApp event announcements** — needs wiring to the approved-template catalog
-   (whatsapp-templates feature); announce modal points to Campaigns meanwhile.
-10. **Notification emitters missing** — DOCUMENT_UPLOADED, INTERVIEW_REMINDER,
-   FEE_REMINDER have preference rows but nothing fires them.
-11. **Fee dues carry-forward** — promoted students' unpaid balances only visible under
-   the old academic year; flagged during year-end movement build.
-12. **Orphaned S3 uploads** — replaced/abandoned cover images are never deleted;
-   periodic cleanup of unreferenced `uploads/**` objects.
-13. **Settings pages still on `window.confirm`** — migrate to the shared ConfirmDialog
-   (core CRM surfaces done 2026-07-07).
-14. **Dashboard AY scoping leftovers** — profile views / events / recent activity
+   wildcard `*.vidhyaan.com` + NS. Not started — no `Organization.subdomain` column yet.
+   Safe to start steps 1–2 anytime; additive, no disruption if apex stays live + host-only
+   cookies.
+2. **Scale-time only**: read replica for reports, Postgres RLS as a second isolation
+   layer — deliberately deferred until report queries measurably degrade primary or
+   org count passes ~500.
+3. **next-auth v5 beta** pin (`5.0.0-beta.31`) — migrate at GA.
+4. **Orphaned S3 uploads** — replaced/abandoned cover images are never deleted; no
+   cleanup cron exists yet for unreferenced `uploads/**` objects.
+5. **Settings pages still on `window.confirm`** — one leftover at
+   `settings/whatsapp-templates/page.tsx:165`; rest of core CRM migrated to the shared
+   `ConfirmDialog` (2026-07-07).
+6. **Reports** — marketplace analytics report and mutation-driven cache invalidation for
+   exec/finance dashboards not confirmed shipped as of this pass (unverified, not
+   necessarily still open — recheck before relying on this line).
+7. **Dashboard AY scoping leftovers** — profile views / events / recent activity
    deliberately unscoped (not year-bound); revisit if users expect otherwise.
+8. **Fee management gaps found in 2026-07-17 QA pass** — see fee-management gap-testing
+   report: concession UI/API (shipped same day), admin manual-payment overpayment/
+   already-paid guards + ledger sync + receipt-race (shipped same day), overdue-tab vs
+   KPI drift (shipped same day). All fixed — listed here only as the paper trail.
+
+### Resolved since this doc was last written (was listed as pending, verified DONE 2026-07-17)
+- Dedup/households, Digital forms, Reviews migrations — all applied (`prisma migrate
+  status`: up to date).
+- `ZEPTOMAIL_WEBHOOK_SECRET`, `GOOGLE_CLIENT_ID`, `TEST_DATABASE_URL` — all set.
+- Notification emitters (DOCUMENT_UPLOADED, INTERVIEW_REMINDER, FEE_REMINDER) — wired.
+- WhatsApp event announcements — wired into `AnnounceModal.tsx` (template-catalog gated).
+- Dashboard "vs last month" trend chips — real `feePct` computation, no longer hardcoded.
+- Fee dues carry-forward for promoted students — resolved via `arrearsAmount`/
+  `arrearsCount` in the fee summary endpoint.
+- Tier-2 zod sweep, Lead bulk-action bar, Dashboard "Profile Views" — done 2026-07-05/06
+  (unchanged from prior note).
+- Reports Phase 2 (rollup backfill, scheduled email reports, bulk fee-reminder action,
+  90+ ageing MoM insight) — all landed per the 2026-07-08/09 entries above; the old
+  "Pending" line duplicating them was stale.
 
 ---
 

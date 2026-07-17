@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     // Validate request body
     const result = contactFormSchema.safeParse(body)
     if (!result.success) {
-      const errorMsg = (result.error as any).errors[0]?.message || 'Invalid form input'
+      const errorMsg = result.error.issues[0]?.message || 'Invalid form input'
       return NextResponse.json(
         { success: false, error: errorMsg },
         { status: 400 }

@@ -12,6 +12,8 @@ import { prisma } from '@/lib/db/client'
 import { sendOrgTemplateEmail } from '@/lib/mail/org-templates'
 import { sendReviewRequestForAdmission } from '@/lib/reviews/request'
 import { onAdmissionStageChange, onAdmissionAssigned } from '@/lib/whatsapp/emitters'
+import { cleanPhoneNumber } from '@/lib/utils'
+import { dedupFields } from '@/lib/dedup'
 
 // Whitelist of updatable Admission scalars + body-only fields handled separately below
 // (unknown keys are stripped — previously anything not destructured out hit prisma directly)
@@ -19,7 +21,14 @@ const updateAdmissionSchema = z.object({
   applicantName: z.string().trim().min(1).max(150).optional(),
   parentName: z.string().max(150).optional().nullable(),
   gradeSought: z.string().max(50).optional().nullable(),
-  phone: z.string().max(30).optional().nullable(),
+  // Cleaned (strips spaces/dashes/+91/leading 0) but not regex-locked to
+  // 10-digit-mobile — landlines/alt formats stay valid; only non-numeric
+  // junk ("abc") becomes an empty string and gets rejected below.
+  phone: z.string().max(30).optional().nullable()
+    .transform((v): string | null | undefined => (v == null ? v : (cleanPhoneNumber(v) as string)))
+    .refine(v => v == null || v.length > 0, {
+      message: 'Enter a valid phone number'
+    }),
   email: z.string().max(200).optional().nullable(),
   stageId: z.string().max(50).optional().nullable(),
   assignedToId: z.string().max(50).optional().nullable(),
@@ -149,6 +158,24 @@ export const PUT = route({
       }
     })
 
+    // Moving into a stage that requires documents first needs at least one
+    // uploaded document on record — checked before the stage is actually
+    // changed below, not just at stage-config-display time.
+    if (body.stageId && currentAdmission && body.stageId !== currentAdmission.stageId) {
+      const targetStage = await db.admissionStage.findFirst({
+        where: { id: body.stageId },
+        select: { name: true, requiresDocs: true }
+      })
+      if (targetStage?.requiresDocs) {
+        const docCount = await db.admissionDocument.count({
+          where: { admissionId: id, deletedAt: null }
+        })
+        if (docCount === 0) {
+          throw Errors.businessRule(`"${targetStage.name}" requires at least one document to be uploaded first`)
+        }
+      }
+    }
+
     // Lead/activity-only fields split off; the rest are whitelisted Admission scalars
     const { notes, expectedJoinDate, currentSchool, priority, ...updateData } = body
 
@@ -166,6 +193,22 @@ export const PUT = route({
     }
     if (branchId !== undefined) {
       finalUpdateData.branch = branchId ? { connect: { id: branchId } } : { disconnect: true }
+    }
+
+    // Keep the dedup join key + household in sync when the phone changes —
+    // otherwise phoneNormalized/householdId go stale and this record quietly
+    // drops out of future dedup matching on its new number.
+    if (body.phone !== undefined) {
+      const identity = await dedupFields(db, {
+        orgId: user.orgId,
+        phone: body.phone,
+        name: body.parentName ?? existing.parentName,
+        email: body.email ?? existing.email,
+      })
+      finalUpdateData.phoneNormalized = identity.phoneNormalized
+      finalUpdateData.household = identity.householdId
+        ? { connect: { id: identity.householdId } }
+        : { disconnect: true }
     }
 
     const updated = await db.admission.update({
@@ -297,22 +340,31 @@ export const PUT = route({
         ).catch(() => {})
       }
 
-      // Check if new stage is won
+      // Stage-driven status: won/lost stages set it; moving off one of them
+      // means that status (and any rejection note) is now stale, so it's
+      // reverted rather than left pointing at a stage the record left.
+      // Manually-set WAITLISTED/WITHDRAWN are left alone — those aren't
+      // stage-driven.
       if (updated.stage?.isWon) {
         await db.admission.update({
           where: { id },
-          data: { status: 'ADMITTED' }
+          data: { status: 'ADMITTED', rejectionReason: null }
         })
         updated.status = 'ADMITTED'
-      }
-
-      // Check if new stage is lost
-      if (updated.stage?.isLost) {
+        updated.rejectionReason = null
+      } else if (updated.stage?.isLost) {
         await db.admission.update({
           where: { id },
           data: { status: 'REJECTED' }
         })
         updated.status = 'REJECTED'
+      } else if (existing.status === 'ADMITTED' || existing.status === 'REJECTED') {
+        await db.admission.update({
+          where: { id },
+          data: { status: 'IN_PROGRESS', rejectionReason: null }
+        })
+        updated.status = 'IN_PROGRESS'
+        updated.rejectionReason = null
       }
 
       // WhatsApp stage notification to the parent (fire-and-forget;

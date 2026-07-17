@@ -188,7 +188,13 @@ export async function PUT(req: NextRequest) {
         data: {
           name,
           city: city || null,
-          phone: shouldUpdatePhone ? phone : undefined
+          phone: shouldUpdatePhone ? phone : undefined,
+          // Keep the old phone matchable — a school's Student.guardianPhone
+          // record isn't updated just because the parent changed theirs, and
+          // without this the linked-student fallback silently breaks.
+          phoneHistory: shouldUpdatePhone
+            ? { push: parent.phone }
+            : undefined
         },
         include: {
           kids: {

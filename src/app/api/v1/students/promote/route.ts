@@ -11,7 +11,9 @@ const moveSchema = z.object({
   action: z.enum(['PROMOTE', 'RETAIN', 'ALUMNI']),
   // Display labels, matching how Student.gradeLabel is stored ("Class 2")
   toGrade: z.string().max(50).optional().nullable(),
-  toSection: z.string().max(10).optional().nullable(),
+  // Matches the section cap on the create/update student routes — was max(10)
+  // here, a stricter, inconsistent limit on the same field.
+  toSection: z.string().max(50).optional().nullable(),
   clearRollNumber: z.boolean().optional()
 })
 

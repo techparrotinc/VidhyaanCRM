@@ -698,6 +698,23 @@ export default function AdmissionManagementPage() {
     const applicant = applicants.find((a: any) => a.id === applicantId)
     if (!applicant) return
 
+    // Stage order is advisory, not enforced server-side — surface a backward
+    // move or a multi-stage skip as a deliberate confirm instead of silent
+    // (mirrors the guard in handleStageSelect for the list/grid views).
+    if (targetStage.id !== applicant.stageId) {
+      const targetIndex = targetStage.order - 1
+      const isBackward = targetIndex < applicant.stageIndex
+      const isSkip = targetIndex > applicant.stageIndex + 1
+      if (isBackward || isSkip) {
+        const confirmed = await confirmDialog({
+          title: isBackward ? 'Move backward in the pipeline?' : 'Skip ahead in the pipeline?',
+          message: `This moves "${applicant.fullName || 'this application'}" from "${applicant.stage?.name ?? 'its current stage'}" to "${targetStage.label}"${isBackward ? ', backward' : ', skipping intermediate stages'}.`,
+          confirmLabel: 'Move Stage'
+        })
+        if (!confirmed) return
+      }
+    }
+
     const dbStageId = getDatabaseStageId(targetStage.label) || targetStageId
     const selectedStage = stages.find(s => s.id === dbStageId)
 
@@ -823,20 +840,47 @@ export default function AdmissionManagementPage() {
     const targetStage = configPipeline.find(s => s.id === targetStageId)
     if (!targetStage) return
 
+    const targetIndex = targetStage.order - 1
+    const affected = selectedItems
+      .map(id => applicants.find((a: any) => a.id === id))
+      .filter((a: any) => a && a.stageId !== targetStage.id)
+    const backwardOrSkipCount = affected.filter((a: any) =>
+      targetIndex < a.stageIndex || targetIndex > a.stageIndex + 1
+    ).length
+    if (backwardOrSkipCount > 0) {
+      const confirmed = await confirmDialog({
+        title: 'Confirm bulk stage move',
+        message: `${backwardOrSkipCount} of ${affected.length} selected application(s) will move backward or skip intermediate stages to reach "${targetStage.label}".`,
+        confirmLabel: 'Move Stage'
+      })
+      if (!confirmed) return
+    }
+
     try {
       const dbStageId = getDatabaseStageId(targetStage.label)
-      await Promise.all(selectedItems.map(id =>
+      const results = await Promise.all(selectedItems.map(id =>
         fetch('/api/v1/admissions/' + id, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ stageId: dbStageId || targetStageId })
         })
       ))
+      const failed = results.filter(r => !r.ok)
+      if (failed.length > 0) {
+        const firstError = await failed[0].json().catch(() => null)
+        const moved = results.length - failed.length
+        showToast(
+          `${failed.length} admission(s) could not be moved${moved > 0 ? ` (${moved} moved)` : ''}: ${firstError?.error || 'unknown error'}`,
+          'error'
+        )
+      } else {
+        showToast(`Selected applicants moved to ${targetStage.label}`)
+      }
       fetchAdmissions()
       fetchPipeline()
-      showToast(`Selected applicants moved to ${targetStage.label}`)
     } catch (err) {
       console.error('Bulk move failed', err)
+      showToast('Failed to move some admissions', 'error')
     }
     setSelectedItems([])
   }
@@ -845,17 +889,28 @@ export default function AdmissionManagementPage() {
     const c = counsellors.find((item: any) => item.name === counsellorName)
     const counsellorId = c ? c.id : null
     try {
-      await Promise.all(selectedItems.map(id =>
+      const results = await Promise.all(selectedItems.map(id =>
         fetch('/api/v1/admissions/' + id, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ assignedToId: counsellorId })
         })
       ))
+      const failed = results.filter(r => !r.ok)
+      if (failed.length > 0) {
+        const firstError = await failed[0].json().catch(() => null)
+        const assigned = results.length - failed.length
+        showToast(
+          `${failed.length} admission(s) could not be updated${assigned > 0 ? ` (${assigned} updated)` : ''}: ${firstError?.error || 'unknown error'}`,
+          'error'
+        )
+      } else {
+        showToast(counsellorName ? `Selected assigned to ${counsellorName}` : 'Selected unassigned')
+      }
       fetchAdmissions()
-      showToast(counsellorName ? `Selected assigned to ${counsellorName}` : 'Selected unassigned')
     } catch (err) {
       console.error('Bulk assign failed', err)
+      showToast('Failed to update some admissions', 'error')
     }
     setSelectedItems([])
   }
@@ -1053,6 +1108,24 @@ export default function AdmissionManagementPage() {
     const selectedStage = stages.find(s => s.id === newStageId)
     const previousData = admissionsData
     const rawAdmissions = admissionsData?.admissions || admissionsData?.data || []
+
+    // Stage order is advisory, not enforced server-side (any stage is
+    // reachable from any stage) — a backward move or a multi-stage skip is
+    // still legal, just surfaced as a deliberate confirm instead of silent.
+    const current = rawAdmissions.find((a: any) => a.id === admissionId)
+    const currentStage = current ? stages.find(s => s.id === current.stageId) : null
+    if (currentStage && selectedStage && selectedStage.id !== currentStage.id) {
+      const isBackward = selectedStage.order < currentStage.order
+      const isSkip = selectedStage.order > currentStage.order + 1
+      if (isBackward || isSkip) {
+        const confirmed = await confirmDialog({
+          title: isBackward ? 'Move backward in the pipeline?' : 'Skip ahead in the pipeline?',
+          message: `This moves "${current?.applicantName ?? 'this application'}" from "${currentStage.name}" to "${selectedStage.name}"${isBackward ? ', backward' : ', skipping intermediate stages'}.`,
+          confirmLabel: 'Move Stage'
+        })
+        if (!confirmed) return
+      }
+    }
 
     const updatedAdmissions = rawAdmissions.map((a: any) =>
       a.id === admissionId

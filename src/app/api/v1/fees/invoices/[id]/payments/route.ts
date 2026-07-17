@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { route } from '@/lib/api/compose'
 import { ok, created } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
@@ -6,6 +7,9 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db/client'
 import { onPaymentRecorded, formatInr, invoiceItemsLabel } from '@/lib/whatsapp/emitters'
+import { sumSuccessfulPayments, remainingBalance, nextInvoiceStatus } from '@/lib/fees'
+import { withReceiptNumber } from '@/lib/payments/receipts'
+import { isPayable } from '@/lib/payments/checkout'
 
 const paymentSchema = z.object({
   amount: z.number().min(1),
@@ -64,56 +68,78 @@ export const POST = route({
     const body = paymentSchema.parse(await req.json())
 
     const invoice = await db.invoice.findFirst({
-      where: { id, orgId: user.orgId, deletedAt: null }
+      where: { id, orgId: user.orgId, deletedAt: null },
+      include: { payments: { where: { deletedAt: null } } }
     })
     if (!invoice) {
       throw Errors.notFound('Invoice')
     }
+    if (!isPayable(invoice.status)) {
+      throw Errors.businessRule(`Invoice is ${invoice.status.toLowerCase()} and cannot accept payments`)
+    }
 
-    // Generate receipt number scoped to the organization
-    const year = new Date().getFullYear()
-    const count = await db.payment.count({
-      where: { orgId: user.orgId }
-    })
-    const receiptNumber =
-      'RCP-' + year + '-' + String(count + 1).padStart(5, '0')
+    const alreadyPaid = sumSuccessfulPayments(invoice.payments)
+    const balance = remainingBalance(invoice.totalAmount, alreadyPaid)
+    if (body.amount > balance) {
+      throw Errors.businessRule(`Amount exceeds the remaining balance of ₹${balance}`)
+    }
 
-    // Create payment
-    const payment = await db.payment.create({
-      data: {
-        receiptNumber,
-        invoiceId: id,
-        studentId: invoice.studentId,
-        amount: body.amount,
-        method: body.method,
-        status: 'SUCCESS',
-        instrumentNo: body.instrumentNo ?? null,
-        instrumentDate: body.instrumentDate ? new Date(body.instrumentDate) : null,
-        bankName: body.bankName ?? null,
-        utrNumber: body.utrNumber ?? null,
-        paidAt: body.paidAt ? new Date(body.paidAt) : new Date(),
-        createdById: user.id,
-        orgId: user.orgId
-      }
-    })
+    const newPaidAmount = sumSuccessfulPayments([
+      ...invoice.payments,
+      { status: 'SUCCESS', amount: body.amount }
+    ])
+    const newStatus = nextInvoiceStatus(invoice.totalAmount, newPaidAmount)
 
-    // Update invoice paidAmount and recalculate status
-    const newPaidAmount = Number(invoice.paidAmount) + body.amount
+    const payment = await withReceiptNumber(user.orgId, (receiptNumber) =>
+      db.$transaction(async (tx) => {
+        const created = await tx.payment.create({
+          data: {
+            receiptNumber,
+            invoiceId: id,
+            studentId: invoice.studentId,
+            amount: body.amount,
+            method: body.method,
+            status: 'SUCCESS',
+            instrumentNo: body.instrumentNo ?? null,
+            instrumentDate: body.instrumentDate ? new Date(body.instrumentDate) : null,
+            bankName: body.bankName ?? null,
+            utrNumber: body.utrNumber ?? null,
+            paidAt: body.paidAt ? new Date(body.paidAt) : new Date(),
+            createdById: user.id,
+            orgId: user.orgId
+          }
+        })
 
-    const newStatus =
-      newPaidAmount >= Number(invoice.totalAmount)
-        ? 'PAID'
-        : newPaidAmount > 0
-        ? 'PARTIALLY_PAID'
-        : 'UNPAID'
+        await tx.invoice.update({
+          where: { id },
+          data: {
+            paidAmount: newPaidAmount,
+            status: newStatus
+          }
+        })
 
-    await db.invoice.update({
-      where: { id },
-      data: {
-        paidAmount: newPaidAmount,
-        status: newStatus
-      }
-    })
+        const lastEntry = await tx.ledgerEntry.findFirst({
+          where: { orgId: user.orgId, studentId: invoice.studentId },
+          orderBy: { createdAt: 'desc' },
+          select: { balance: true }
+        })
+        const ledgerBalance = (lastEntry ? Number(lastEntry.balance) : 0) - body.amount
+        await tx.ledgerEntry.create({
+          data: {
+            orgId: user.orgId,
+            studentId: invoice.studentId,
+            invoiceId: id,
+            paymentId: created.id,
+            type: 'PAYMENT',
+            credit: body.amount,
+            balance: new Prisma.Decimal(ledgerBalance),
+            description: `Payment ${receiptNumber} against ${invoice.invoiceNumber}`
+          }
+        })
+
+        return created
+      })
+    )
 
     // WhatsApp payment confirmation to the guardian (fire-and-forget)
     prisma.student

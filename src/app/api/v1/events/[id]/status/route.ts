@@ -28,17 +28,35 @@ export const PUT = route({
       if (new Date(event.startsAt) < new Date()) {
         throw new AppError('BUSINESS_RULE', 'Cannot publish an event that starts in the past.', 409)
       }
-      const updated = await db.event.update({ where: { id }, data: { status: 'PUBLISHED', publishedAt: new Date() } })
+      // Atomic claim, not read-then-write — two concurrent publish clicks
+      // both passed the status check above before either write committed,
+      // both returning 200. The WHERE-guarded update makes the loser a
+      // clean 409 instead.
+      const claimed = await db.event.updateMany({
+        where: { id, status: 'DRAFT' },
+        data: { status: 'PUBLISHED', publishedAt: new Date() }
+      })
+      if (claimed.count === 0) {
+        throw new AppError('BUSINESS_RULE', 'Only draft events can be published.', 409)
+      }
+      const updated = await db.event.findFirst({ where: { id } })
       // Dashboard "Upcoming Events" card must reflect this immediately
       await invalidateDashboardCache(user.orgId)
       return ok(updated)
     }
 
-    // cancel
+    // cancel — same atomic-claim guard as publish above.
     if (event.status !== 'PUBLISHED') {
       throw new AppError('BUSINESS_RULE', 'Only published events can be cancelled.', 409)
     }
-    const updated = await db.event.update({ where: { id }, data: { status: 'CANCELLED' } })
+    const claimed = await db.event.updateMany({
+      where: { id, status: 'PUBLISHED' },
+      data: { status: 'CANCELLED' }
+    })
+    if (claimed.count === 0) {
+      throw new AppError('BUSINESS_RULE', 'Only published events can be cancelled.', 409)
+    }
+    const updated = await db.event.findFirst({ where: { id } })
     await invalidateDashboardCache(user.orgId)
 
     // Fire-and-forget: notify GOING/MAYBE attendees by email

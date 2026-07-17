@@ -18,7 +18,7 @@ export function generateOTP(): string {
  * compare, single-use. Dev bypass code 123456 outside production.
  */
 export async function verifyAndConsumeOtp(identifier: string, code: string): Promise<boolean> {
-  if (process.env.NODE_ENV === 'development' && (code === '123456' || code === '1234')) return true
+  if (process.env.NODE_ENV === 'development' && code === '123456') return true
 
   const otpRecord = await prisma.otpCode.findFirst({
     where: { identifier, consumedAt: null, expiresAt: { gt: new Date() } },

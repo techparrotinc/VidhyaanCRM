@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { AlertTriangle, ShieldAlert, X, ArrowUpRight, Loader2 } from 'lucide-react'
 
 export interface DedupMatch {
-  type: 'lead' | 'admission' | 'student'
+  type: 'lead' | 'admission' | 'student' | 'enquiry'
   id: string
   code: string
   name: string
@@ -18,7 +18,9 @@ export interface DedupPayload {
   matches: DedupMatch[]
 }
 
-const HREF: Record<DedupMatch['type'], string> = {
+// 'enquiry' (marketplace ParentEnquiry) has no org-facing CRM detail page to
+// open — those matches render as info-only, no link, in the list below.
+const HREF: Partial<Record<DedupMatch['type'], string>> = {
   lead: '/lead-management',
   admission: '/admission-management',
   student: '/student-management',
@@ -27,6 +29,7 @@ const TYPE_LABEL: Record<DedupMatch['type'], string> = {
   lead: 'Lead',
   admission: 'Admission',
   student: 'Student',
+  enquiry: 'Public Enquiry',
 }
 
 /**
@@ -73,29 +76,44 @@ export function DedupDialog({
 
         {/* Matches */}
         <div className="p-4 space-y-2 max-h-64 overflow-y-auto">
-          {payload.matches.map(m => (
-            <Link
-              key={`${m.type}-${m.id}`}
-              href={`${HREF[m.type]}/${m.id}`}
-              className="flex items-center gap-3 border border-slate-200 rounded-lg px-3 py-2.5 hover:border-blue-200 hover:bg-blue-50/40 transition group"
-            >
-              <span className="text-[10px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full shrink-0">
-                {TYPE_LABEL[m.type]}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-800 truncate">{m.name || '—'}</p>
-                <p className="text-[11px] text-slate-400 truncate">
-                  {m.code}{m.grade ? ` · ${m.grade}` : ''} · {m.status.replace(/_/g, ' ').toLowerCase()}
-                </p>
+          {payload.matches.map(m => {
+            const href = HREF[m.type]
+            const row = (
+              <>
+                <span className="text-[10px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full shrink-0">
+                  {TYPE_LABEL[m.type]}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-800 truncate">{m.name || '—'}</p>
+                  <p className="text-[11px] text-slate-400 truncate">
+                    {m.code}{m.grade ? ` · ${m.grade}` : ''} · {m.status.replace(/_/g, ' ').toLowerCase()}
+                  </p>
+                </div>
+                {href && <ArrowUpRight size={15} className="text-slate-300 group-hover:text-[#1565D8] shrink-0" strokeWidth={1.75} />}
+              </>
+            )
+            return href ? (
+              <Link
+                key={`${m.type}-${m.id}`}
+                href={`${href}/${m.id}`}
+                className="flex items-center gap-3 border border-slate-200 rounded-lg px-3 py-2.5 hover:border-blue-200 hover:bg-blue-50/40 transition group"
+              >
+                {row}
+              </Link>
+            ) : (
+              <div
+                key={`${m.type}-${m.id}`}
+                className="flex items-center gap-3 border border-slate-200 rounded-lg px-3 py-2.5"
+              >
+                {row}
               </div>
-              <ArrowUpRight size={15} className="text-slate-300 group-hover:text-[#1565D8] shrink-0" strokeWidth={1.75} />
-            </Link>
-          ))}
+            )
+          })}
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-2 p-4 border-t border-slate-100">
-          {first && (
+          {first && HREF[first.type] && (
             <Link
               href={`${HREF[first.type]}/${first.id}`}
               className="flex-1 text-center text-sm font-semibold bg-[#1565D8] hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg transition"

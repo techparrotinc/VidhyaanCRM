@@ -6,6 +6,7 @@ import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
 import { Gender, StudentStatus } from '@prisma/client'
 import { findMatches, loadDedupConfig, dedupFields } from '@/lib/dedup'
+import { isFreeTierCapped, FREE_TIER_LIMITS } from '@/lib/billing/limits'
 
 export const POST = route({
   module: MODULES.STUDENT_MANAGEMENT,
@@ -31,6 +32,14 @@ export const POST = route({
       where: { orgId: user.orgId }
     })
 
+    // Free-tier cap (25 students) isn't enforced by a single before/after
+    // check here — a 500-row import could otherwise blow straight past it in
+    // one request. Once the running count hits the cap, remaining rows are
+    // skipped rather than failing the whole batch (matches the single-create
+    // route's cap, just applied incrementally).
+    const freeTierCapped = await isFreeTierCapped(user.orgId)
+    let activeCount = baseCount
+
     // Real dedup: skipDuplicates on createMany was a no-op (no DB unique key on
     // name/phone). Evaluate each row against the org rules AND against rows
     // already imported in this same batch.
@@ -40,6 +49,10 @@ export const POST = route({
     let imported = 0
 
     for (const s of body.students) {
+      if (freeTierCapped && activeCount >= FREE_TIER_LIMITS.STUDENTS) {
+        skipped.push({ name: s.name, reason: 'free_tier_limit', match: null })
+        continue
+      }
       if (!body.force) {
         const dedup = await findMatches(prisma, {
           orgId: user.orgId,
@@ -77,14 +90,20 @@ export const POST = route({
         }
       })
       imported++
+      activeCount++
     }
+
+    const capSkipped = skipped.filter(s => s.reason === 'free_tier_limit').length
+    const dupSkipped = skipped.length - capSkipped
 
     return created({
       imported,
       skipped: skipped.length,
       skippedRows: skipped,
       total: body.students.length,
-      message: `${imported} imported${skipped.length ? `, ${skipped.length} skipped as duplicates` : ''}`
+      message: `${imported} imported` +
+        (dupSkipped ? `, ${dupSkipped} skipped as duplicates` : '') +
+        (capSkipped ? `, ${capSkipped} skipped (free-tier limit of ${FREE_TIER_LIMITS.STUDENTS} students reached — upgrade to import more)` : '')
     })
   }
 })

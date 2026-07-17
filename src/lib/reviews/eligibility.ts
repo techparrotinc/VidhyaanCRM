@@ -31,7 +31,7 @@ export async function getReviewEligibility(
 ): Promise<ReviewEligibility> {
   const parent = await prisma.parent.findUnique({
     where: { id: parentId },
-    select: { phone: true, email: true },
+    select: { phone: true, email: true, phoneHistory: true },
   })
   const phoneClean =
     typeof cleanPhoneNumber(parent?.phone ?? '') === 'string'
@@ -86,7 +86,10 @@ export async function getReviewEligibility(
   let contactMatchedStudent: { id: string } | null = null
   if (!guardianLink && school?.orgId && (parent?.phone || parent?.email)) {
     const contactMatch: any[] = []
-    if (parent?.phone) contactMatch.push({ guardianPhone: parent.phone })
+    // Matches linkedStudentsWhere's phone-history fallback — otherwise this
+    // badge would disagree with what the parent portal itself shows after a
+    // phone-number change.
+    if (parent?.phone) contactMatch.push({ guardianPhone: { in: [parent.phone, ...(parent.phoneHistory ?? [])] } })
     if (parent?.email) contactMatch.push({ guardianEmail: parent.email })
     contactMatchedStudent = await prisma.student.findFirst({
       where: {

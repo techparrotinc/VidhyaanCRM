@@ -12,7 +12,13 @@ export const FREE_TIER_LIMITS = {
  * an active trial (the 7-day trial runs uncapped on Enterprise modules).
  * Throws a 403 AppError with an upgrade hint when the cap is hit.
  */
-export async function assertFreeTierLimit(orgId: string, kind: 'USER' | 'STUDENT'): Promise<void> {
+/**
+ * True when the org is actually subject to the free-tier caps (no paid
+ * subscription, not mid-trial). Shared by assertFreeTierLimit and any
+ * bulk-creation path that needs to enforce the cap incrementally instead of
+ * with a single before/after check.
+ */
+export async function isFreeTierCapped(orgId: string): Promise<boolean> {
   const org = await prisma.organization.findUnique({
     where: { id: orgId },
     select: {
@@ -25,11 +31,15 @@ export async function assertFreeTierLimit(orgId: string, kind: 'USER' | 'STUDENT
       }
     }
   })
-  if (!org) return
+  if (!org) return false
 
   const hasPaidAccess = org.subscriptions.some((s) => Number(s.amount) >= 0 && org.plan?.slug !== 'free')
   const inTrial = !!org.trialEndsAt && org.trialEndsAt > new Date()
-  if (hasPaidAccess || inTrial) return
+  return !hasPaidAccess && !inTrial
+}
+
+export async function assertFreeTierLimit(orgId: string, kind: 'USER' | 'STUDENT'): Promise<void> {
+  if (!(await isFreeTierCapped(orgId))) return
 
   if (kind === 'USER') {
     const count = await prisma.user.count({ where: { orgId, deletedAt: null } })

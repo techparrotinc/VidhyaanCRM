@@ -7,6 +7,7 @@ import { useStudent } from '@/hooks/useStudent'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { useClassOptions } from '@/hooks/useClassOptions'
 import { isLearningCentre } from '@/lib/institution'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 const inputClass =
   'w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition'
@@ -42,6 +43,7 @@ export default function EditStudentPage() {
 
   const { student, isLoading } = useStudent(id)
   const { years } = useAcademicYears()
+  const confirmDialog = useConfirm()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -116,6 +118,22 @@ export default function EditStudentPage() {
       setError('Student name is required')
       return
     }
+
+    // Status has no enforced state machine server-side — any value can move
+    // to any other. Leaving a non-Active status (reactivating an Alumni/
+    // Dropped-out student, or hopping between Suspended/Transferred without
+    // going through Active) is unusual enough to double-check rather than
+    // fire silently.
+    const originalStatus = student?.status ?? 'ACTIVE'
+    if (originalStatus !== 'ACTIVE' && form.status !== originalStatus) {
+      const okToChange = await confirmDialog({
+        title: 'Confirm status change',
+        message: `This moves the student from "${originalStatus.replace('_', ' ')}" to "${form.status.replace('_', ' ')}" — an unusual transition since they were not Active. Continue?`,
+        confirmLabel: 'Change Status'
+      })
+      if (!okToChange) return
+    }
+
     setIsSubmitting(true)
     setError(null)
     try {

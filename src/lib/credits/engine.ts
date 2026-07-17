@@ -181,6 +181,71 @@ export async function refundCredits(
 }
 
 /**
+ * spendCredits, but records a durable PENDING intent right after the debit
+ * succeeds. The debit and the external send it pays for can't share a DB
+ * transaction (the send is an HTTP call), so this is the crash-window fix:
+ * call confirmSpendIntent() on send success or refundSpendIntent() on
+ * failure — and if the process dies before either runs, the reconcile cron
+ * (src/app/api/cron/credit-spend-reconcile/route.ts) finds the orphaned
+ * PENDING intent and refunds it automatically past a timeout.
+ */
+export async function spendCreditsWithIntent(
+  orgId: string,
+  channel: MessageChannel,
+  qty: number,
+  ref?: string
+): Promise<{ intentId: string; fromFree: number; fromPurchased: number }> {
+  const split = await spendCredits(orgId, channel, qty, ref)
+  const intent = await prisma.messageSpendIntent.create({
+    data: { orgId, channel, qty, ref, fromFree: split.fromFree, fromPurchased: split.fromPurchased }
+  })
+  return { intentId: intent.id, ...split }
+}
+
+/** Marks a spend intent as settled (message actually sent) — the happy path. */
+export async function confirmSpendIntent(intentId: string): Promise<void> {
+  await prisma.messageSpendIntent.updateMany({
+    where: { id: intentId, status: 'PENDING' },
+    data: { status: 'CONFIRMED', confirmedAt: new Date() }
+  })
+}
+
+/**
+ * Refunds a spend intent (send failed) and marks it settled. Guarded on
+ * status still PENDING so this is safe to call more than once (e.g. from
+ * both an explicit failure handler and, later, the reconcile cron) — a
+ * second call is a no-op.
+ */
+export async function refundSpendIntent(intentId: string): Promise<void> {
+  // Claim first so two concurrent callers (e.g. an explicit failure handler
+  // racing the reconcile cron) can't both refund the same intent.
+  const { count } = await prisma.messageSpendIntent.updateMany({
+    where: { id: intentId, status: 'PENDING' },
+    data: { status: 'REFUNDED', refundedAt: new Date() }
+  })
+  if (count === 0) return // already confirmed or already refunded by another caller
+
+  const intent = await prisma.messageSpendIntent.findUnique({ where: { id: intentId } })
+  if (!intent) return
+  try {
+    await refundCredits(
+      intent.orgId,
+      intent.channel,
+      intent.qty,
+      { fromFree: intent.fromFree, fromPurchased: intent.fromPurchased },
+      intent.ref ?? undefined
+    )
+  } catch (err) {
+    // Already claimed REFUNDED above, so the cron won't retry this one —
+    // refundCredits' own retries are exhausted at this point (rare wallet
+    // contention). Loud and specific on purpose: this is the one path left
+    // that can lose a credit silently if not surfaced.
+    console.error(`refundSpendIntent(${intentId}): wallet refund failed after claiming — org ${intent.orgId} owes ${intent.qty} ${intent.channel} credit(s) back`, err)
+    throw err
+  }
+}
+
+/**
  * Grants purchased credits for a paid transaction. Idempotent on
  * transactionId — a PURCHASE ledger row with the same ref is a no-op
  * (protects against verify + webhook double-processing).

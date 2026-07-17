@@ -9,9 +9,10 @@ import { prisma } from '@/lib/db/client'
 import { parseQuery, paginationShape, enumParam } from '@/lib/api/query'
 import { getGradeLabel } from '@/constants/grades'
 import { assertFreeTierLimit } from '@/lib/billing/limits'
-import { findMatches, loadDedupConfig, dedupFields } from '@/lib/dedup'
+import { findMatches, loadDedupConfig, dedupFields, lockDedupPhone } from '@/lib/dedup'
 import { assertNotDuplicate } from '@/lib/dedup/guard'
 import { checkEmailDeliverable } from '@/lib/email/validate'
+import { cleanPhoneNumber } from '@/lib/utils'
 
 export const GET = route({
   module: MODULES.STUDENT_MANAGEMENT,
@@ -122,7 +123,16 @@ const createStudentSchema = z.object({
   batchId: z.string().optional(),
   rollNumber: z.string().optional(),
   guardianName: z.string().optional(),
-  guardianPhone: z.string().optional(),
+  // Cleaned (strips spaces/dashes/+91/leading 0) but not regex-locked to
+  // 10-digit-mobile — landlines/alt formats stay valid; only non-numeric
+  // junk ("abc") becomes an empty string and gets rejected below. Mirrors
+  // the same fix applied to admissions.
+  guardianPhone: z.string().optional()
+    .or(z.literal(''))
+    .transform((v): string | undefined => (!v ? undefined : (cleanPhoneNumber(v) as string)))
+    .refine(v => v == null || v.length > 0, {
+      message: 'Enter a valid guardian phone number'
+    }),
   guardianEmail: z.string().email()
     .optional()
     .or(z.literal(''))
@@ -160,59 +170,69 @@ export const POST = route({
 
     const resolvedYear = body.academicYearId ?? academicYearId ?? null
 
-    // Dedup guard + household identity (keyed on the guardian phone).
-    const dedupConfig = await loadDedupConfig(db, user.orgId)
-    const dedup = await findMatches(db, {
-      orgId: user.orgId,
-      phone: body.guardianPhone,
-      email: body.guardianEmail,
-      childName: body.name,
-      grade: body.gradeLabel,
-      academicYearId: resolvedYear,
-    }, dedupConfig)
-    assertNotDuplicate(dedup, { force: body.force })
-    const identity = await dedupFields(db, {
-      orgId: user.orgId, phone: body.guardianPhone, name: body.guardianName, email: body.guardianEmail,
-    })
+    // Dedup check through create, inside one transaction holding a Postgres
+    // advisory lock on org+phone — findMatches has no DB-level constraint
+    // behind it, so without this two near-simultaneous requests with the
+    // same phone could both pass a hard-match block before either commits.
+    // Lock releases automatically at commit/rollback.
+    const { student, dedup } = await db.$transaction(async (tx: any): Promise<{ student: any; dedup: any }> => {
+      await lockDedupPhone(tx, user.orgId, body.guardianPhone)
 
-    // Code from numeric max, never count()+1 (counts undercount after soft
-    // deletes and collide on the unique constraint). STU- prefix matches the
-    // convert-from-admission and bulk-import paths.
-    const year = new Date().getFullYear()
-    const prefix = `STU-${year}-`
-    const codeRows = await prisma.$queryRaw<{ max: number | null }[]>`
-      SELECT MAX(CAST(SUBSTRING(student_code FROM ${prefix.length + 1}::int) AS INTEGER)) AS max
-      FROM crm.students
-      WHERE org_id = ${user.orgId}
-        AND student_code ~ ${'^' + prefix + '[0-9]+$'}
-    `
-    const studentCode =
-      prefix + String(Number(codeRows[0]?.max ?? 0) + 1).padStart(5, '0')
-
-    const student = await db.student.create({
-      data: {
+      const dedupConfig = await loadDedupConfig(tx, user.orgId)
+      const dedup = await findMatches(tx, {
         orgId: user.orgId,
-        studentCode,
-        name: body.name,
-        guardianName: body.guardianName ?? null,
-        guardianPhone: body.guardianPhone ?? null,
-        guardianEmail: body.guardianEmail ?? null,
-        phoneNormalized: identity.phoneNormalized,
-        householdId: identity.householdId,
-        gradeLabel: body.gradeLabel ?? null,
-        section: body.section?.trim() || null,
-        batchId: body.batchId ?? null,
-        rollNumber: body.rollNumber ?? null,
-        dateOfBirth: body.dateOfBirth
-          ? new Date(body.dateOfBirth)
-          : null,
-        gender: body.gender
-          ? (body.gender.toUpperCase() as Gender)
-          : null,
-        admissionId: body.admissionId ?? null,
+        phone: body.guardianPhone,
+        email: body.guardianEmail,
+        childName: body.name,
+        grade: body.gradeLabel,
         academicYearId: resolvedYear,
-        status: (body.status ?? 'ACTIVE') as StudentStatus,
-      }
+      }, dedupConfig)
+      assertNotDuplicate(dedup, { force: body.force })
+      const identity = await dedupFields(tx, {
+        orgId: user.orgId, phone: body.guardianPhone, name: body.guardianName, email: body.guardianEmail,
+      })
+
+      // Code from numeric max, never count()+1 (counts undercount after soft
+      // deletes and collide on the unique constraint). STU- prefix matches
+      // the convert-from-admission and bulk-import paths.
+      const year = new Date().getFullYear()
+      const prefix = `STU-${year}-`
+      const codeRows = await prisma.$queryRaw<{ max: number | null }[]>`
+        SELECT MAX(CAST(SUBSTRING(student_code FROM ${prefix.length + 1}::int) AS INTEGER)) AS max
+        FROM crm.students
+        WHERE org_id = ${user.orgId}
+          AND student_code ~ ${'^' + prefix + '[0-9]+$'}
+      `
+      const studentCode =
+        prefix + String(Number(codeRows[0]?.max ?? 0) + 1).padStart(5, '0')
+
+      const student = await tx.student.create({
+        data: {
+          orgId: user.orgId,
+          studentCode,
+          name: body.name,
+          guardianName: body.guardianName ?? null,
+          guardianPhone: body.guardianPhone ?? null,
+          guardianEmail: body.guardianEmail ?? null,
+          phoneNormalized: identity.phoneNormalized,
+          householdId: identity.householdId,
+          gradeLabel: body.gradeLabel ?? null,
+          section: body.section?.trim() || null,
+          batchId: body.batchId ?? null,
+          rollNumber: body.rollNumber ?? null,
+          dateOfBirth: body.dateOfBirth
+            ? new Date(body.dateOfBirth)
+            : null,
+          gender: body.gender
+            ? (body.gender.toUpperCase() as Gender)
+            : null,
+          admissionId: body.admissionId ?? null,
+          academicYearId: resolvedYear,
+          status: (body.status ?? 'ACTIVE') as StudentStatus,
+        }
+      })
+
+      return { student, dedup }
     })
 
     return created({

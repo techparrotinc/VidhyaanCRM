@@ -52,7 +52,7 @@ export default function LeadBulkActionBar({
 
   if (selectedIds.length === 0) return null
 
-  const runBulk = async (payload: Record<string, unknown>, successMsg: string) => {
+  const runBulk = async (payload: Record<string, unknown>, successMsg: string | ((data: any) => string)) => {
     setBusy(true)
     setMenu(null)
     try {
@@ -65,7 +65,7 @@ export default function LeadBulkActionBar({
       if (!res.ok || json.success === false) {
         throw new Error(json.error?.message || json.error || 'Bulk action failed')
       }
-      onDone(successMsg)
+      onDone(typeof successMsg === 'function' ? successMsg(json.data) : successMsg)
     } catch (e: any) {
       onError(e.message || 'Bulk action failed')
     } finally {
@@ -86,6 +86,13 @@ export default function LeadBulkActionBar({
     a.download = `leads-export-${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
+    // Export is client-side only (no server round-trip for the file itself)
+    // — this just leaves an audit trail of who exported PII and how much.
+    fetch('/api/v1/leads/export-audit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count: selectedLeads.length, scope: 'selected' })
+    }).catch(() => {})
     onDone(`Exported ${selectedLeads.length} leads to CSV`)
   }
 
@@ -152,7 +159,11 @@ export default function LeadBulkActionBar({
             <div className={menuCls}>
               {STATUS_OPTIONS.map((s) => (
                 <button key={s.value} className={menuItemCls}
-                  onClick={() => runBulk({ action: 'status', status: s.value }, `${selectedIds.length} lead(s) moved to ${s.label}`)}>
+                  onClick={() => runBulk({ action: 'status', status: s.value }, (data) =>
+                    data?.skippedQueued
+                      ? `${data.updated} lead(s) moved to ${s.label}; ${data.skippedQueued} skipped (queued past your plan's lead limit — upgrade to convert)`
+                      : `${selectedIds.length} lead(s) moved to ${s.label}`
+                  )}>
                   {s.label}
                 </button>
               ))}

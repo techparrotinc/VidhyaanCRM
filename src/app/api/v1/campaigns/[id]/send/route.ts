@@ -9,7 +9,7 @@ import { prisma } from '@/lib/db/client'
 import { forOrg } from '@/lib/db'
 import { sendCampaignMessage } from '@/lib/campaign/sendCampaignMessage'
 import { mintCampaignInstance } from '@/lib/forms/send'
-import { spendCredits, refundCredits, InsufficientCreditsError } from '@/lib/credits/engine'
+import { spendCreditsWithIntent, confirmSpendIntent, refundCredits, InsufficientCreditsError } from '@/lib/credits/engine'
 import { getActiveProviderConfig } from '@/lib/credits/provider'
 import type { MessageChannel } from '@prisma/client'
 
@@ -240,6 +240,7 @@ async function handleSendCampaign({
   // the whole batch (failed sends refunded in STEP 10); zero balance blocks.
   let providerCreds: Awaited<ReturnType<typeof getActiveProviderConfig>> = null
   let debitSplit: { fromFree: number; fromPurchased: number } | null = null
+  let debitIntentId: string | null = null
   let creditsPerMessage = 1
 
   if (isCreditChannel && recipients.length > 0) {
@@ -281,7 +282,9 @@ async function handleSendCampaign({
     if (!providerCreds) {
       const creditsNeeded = recipients.length * creditsPerMessage
       try {
-        debitSplit = await spendCredits(orgId, creditChannel, creditsNeeded, campaign.id)
+        const spent = await spendCreditsWithIntent(orgId, creditChannel, creditsNeeded, campaign.id)
+        debitSplit = { fromFree: spent.fromFree, fromPurchased: spent.fromPurchased }
+        debitIntentId = spent.intentId
       } catch (err) {
         if (err instanceof InsufficientCreditsError) {
           return NextResponse.json(
@@ -452,6 +455,20 @@ async function handleSendCampaign({
   if (debitSplit && finalFailed > 0) {
     await refundCredits(orgId, creditChannel, finalFailed * creditsPerMessage, debitSplit, campaign.id).catch(err =>
       console.error('Credit refund failed:', err)
+    )
+  }
+
+  // Settles the batch-level spend intent now that finalize actually ran —
+  // any partial refund above already adjusted the wallet correctly; this
+  // just tells the reconcile cron "this batch was accounted for, leave it
+  // alone." If the process crashes before reaching this line, the intent
+  // stays PENDING and the cron refunds the *full* original debit once its
+  // timeout passes — generous (recipients that did succeed effectively get
+  // a free re-send next time) rather than losing the credits outright,
+  // since a crash mid-batch has no way to know the true per-recipient split.
+  if (debitIntentId) {
+    await confirmSpendIntent(debitIntentId).catch(err =>
+      console.error(`confirmSpendIntent(${debitIntentId}) failed:`, err)
     )
   }
 

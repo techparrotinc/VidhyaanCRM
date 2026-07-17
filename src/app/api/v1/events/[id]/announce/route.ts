@@ -146,6 +146,29 @@ export const POST = route({
       throw Errors.businessRule('Publish the event before announcing it.')
     }
 
+    // Exclusive claim for the whole send — a second concurrent Announce
+    // click/request must not run the send loop at all, not just fail to
+    // record a duplicate afterward (see schema comment on announcingSince).
+    // A stale claim (crashed mid-send) is reclaimable past 5 minutes.
+    const staleBefore = new Date(Date.now() - 5 * 60 * 1000)
+    const claimed = await db.event.updateMany({
+      where: { id, OR: [{ announcingSince: null }, { announcingSince: { lt: staleBefore } }] },
+      data: { announcingSince: new Date() }
+    })
+    if (claimed.count === 0) {
+      throw Errors.businessRule('An announcement for this event is already being sent.')
+    }
+
+    const publishedEvent = event
+
+    try {
+      return await sendAnnouncement(publishedEvent)
+    } finally {
+      await db.event.update({ where: { id: publishedEvent.id }, data: { announcingSince: null } }).catch(() => {})
+    }
+
+    async function sendAnnouncement(event: typeof publishedEvent) {
+
     let recipients: Recipient[] = []
     if (body.audience === 'CUSTOM') {
       if (!body.recipients?.length) {
@@ -251,5 +274,6 @@ export const POST = route({
       sent,
       failed
     })
+    }
   }
 })

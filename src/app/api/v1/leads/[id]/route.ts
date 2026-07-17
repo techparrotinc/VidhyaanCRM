@@ -10,6 +10,7 @@ import { cleanPhoneNumber } from '@/lib/utils'
 import { dedupFields } from '@/lib/dedup'
 import { prisma } from '@/lib/db'
 import { onLeadAssigned, onLeadClosed } from '@/lib/whatsapp/emitters'
+import { isOverLeadCap } from '@/lib/billing/plan-status'
 
 export const GET = route({
   module: MODULES.LEAD_MANAGEMENT,
@@ -94,7 +95,7 @@ const updateLeadSchema = z.object({
     .optional(),
   priority: z.string()
     .optional(),
-  status: z.string()
+  status: z.enum(['NEW', 'CONTACTED', 'INTERESTED', 'FOLLOW_UP_PENDING', 'CONVERTED', 'NOT_INTERESTED'])
     .optional(),
   gradeSought: z.string()
     .optional().nullable()
@@ -153,13 +154,26 @@ export const PUT = route({
     ROLES.BRANCH_ADMIN,
     ROLES.COUNSELLOR
   ],
-  handler: async ({ req, db, user, params }) => {
+  handler: async ({ req, db, user, org, params }) => {
     const existing = await db.lead.findFirst({
       where: { id: params?.id }
     })
     if (!existing) throw Errors.notFound('Lead')
 
     const body = updateLeadSchema.parse(await req.json())
+
+    // Queued (created past the free-tier leadCap) leads can be managed
+    // freely otherwise, but converting one is the actual value being gated —
+    // re-checked live (org may have upgraded since), not the stale flag alone.
+    if (body.status === 'CONVERTED' && existing.queued) {
+      const orgPlan = await prisma.organization.findUnique({
+        where: { id: user.orgId },
+        select: { status: true, plan: { select: { slug: true, monthlyPrice: true } } }
+      })
+      if (await isOverLeadCap(db, user.orgId, { ...orgPlan, leadCap: org.leadCap })) {
+        throw Errors.forbidden('This lead is queued past your plan\'s lead limit. Upgrade to convert it.')
+      }
+    }
 
     const updateData: any = {}
 

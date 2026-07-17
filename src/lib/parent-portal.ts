@@ -51,7 +51,11 @@ export async function requireParentFromRequest(req: Request): Promise<Parent | n
 
 /** Where-clause matching crm students visible to this parent account. */
 export function linkedStudentsWhere(parent: Parent): Prisma.StudentWhereInput {
-  const contactMatch: Prisma.StudentWhereInput[] = [{ guardianPhone: parent.phone }]
+  // Match the current phone AND any phone this account has previously used —
+  // otherwise a legitimate phone-number change silently drops a student
+  // whose school record still has the old number (see Parent.phoneHistory).
+  const phones = [parent.phone, ...(parent.phoneHistory ?? [])]
+  const contactMatch: Prisma.StudentWhereInput[] = [{ guardianPhone: { in: phones } }]
   if (parent.email) contactMatch.push({ guardianEmail: parent.email })
   return {
     deletedAt: null,

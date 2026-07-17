@@ -1,3 +1,4 @@
+import { prisma } from '@/lib/db/client'
 import {
   DedupAction,
   DedupConfig,
@@ -8,7 +9,7 @@ import {
   normName,
 } from './config'
 
-export type DedupRecordType = 'lead' | 'admission' | 'student'
+export type DedupRecordType = 'lead' | 'admission' | 'student' | 'enquiry'
 
 export interface DedupMatch {
   type: DedupRecordType
@@ -80,7 +81,12 @@ function ruleFor(input: {
   const sameEmail = !!input.en && input.en === c.en
   const sameChild = !!input.cn && input.cn === c.cn
   const sameGrade = !!input.gn && input.gn === c.gn
-  const sameYear = !!input.year && input.year === c.year
+  // Records with no academic-year concept at all (marketplace ParentEnquiry
+  // has no academicYearId column) are treated as compatible with any year —
+  // same "legacy null-AY shows under every year" convention used elsewhere
+  // (fee invoices, student lists). Without this, an enquiry candidate could
+  // never trip exactApplication/sameChildSameYear no matter what matched.
+  const sameYear = !input.year || !c.year || input.year === c.year
 
   if (samePhone && sameChild && sameGrade && sameYear) return 'exactApplication'
   if (samePhone && sameChild && sameYear) return 'sameChildSameYear'
@@ -117,24 +123,59 @@ export async function findMatches(
   const phoneFilter = pn ? [{ phoneNormalized: pn }] : []
   const take = 25
 
-  const [leads, admissions, students] = await Promise.all([
+  // nameOnly is opt-in (off by default) precisely because it's the highest
+  // false-positive-risk rule — but it was previously unreachable dead code:
+  // the candidate fetch below only ever pulled rows sharing phone or email,
+  // and ruleFor's nameOnly branch requires *neither* to match, so it could
+  // never fire on anything this query returned. Widen the fetch, gated on
+  // the org actually having it enabled, so the risk an org opted into is at
+  // least the one it gets — not silently nothing.
+  const nameOnlyEnabled = config.nameOnly !== 'off' && !!cn && !!gn
+  const nameFilterLead = nameOnlyEnabled
+    ? { kidName: { equals: input.childName ?? undefined, mode: 'insensitive' as const }, gradeSought: { equals: input.grade ?? undefined, mode: 'insensitive' as const } }
+    : null
+  const nameFilterAdmission = nameOnlyEnabled
+    ? { applicantName: { equals: input.childName ?? undefined, mode: 'insensitive' as const }, gradeSought: { equals: input.grade ?? undefined, mode: 'insensitive' as const } }
+    : null
+  const nameFilterStudent = nameOnlyEnabled
+    ? { name: { equals: input.childName ?? undefined, mode: 'insensitive' as const }, gradeLabel: { equals: input.grade ?? undefined, mode: 'insensitive' as const } }
+    : null
+
+  const leadSelect = {
+    id: true, leadCode: true, kidName: true, gradeSought: true, phone: true,
+    email: true, status: true, householdId: true, academicYearId: true,
+    phoneNormalized: true, createdAt: true,
+  }
+  const admissionSelect = {
+    id: true, admissionCode: true, applicantName: true, gradeSought: true, phone: true,
+    email: true, status: true, householdId: true, academicYearId: true,
+    phoneNormalized: true, createdAt: true,
+  }
+  const studentSelect = {
+    id: true, studentCode: true, name: true, gradeLabel: true, guardianPhone: true,
+    guardianEmail: true, status: true, householdId: true, academicYearId: true,
+    phoneNormalized: true, createdAt: true,
+  }
+
+  // ParentEnquiry (marketplace) has no phoneNormalized/email column of its
+  // own — contact info lives on the linked Parent — and isn't in the tenant
+  // client's model allowlist, so this always goes through the raw prisma
+  // client, scoped explicitly by orgId (a claimed school's enquiries only).
+  const enquiryPhoneOrEmail = [
+    ...(pn ? [{ parent: { phone: pn } }] : []),
+    ...(en ? [{ parent: { email: { equals: en, mode: 'insensitive' as const } } }] : []),
+  ]
+
+  const [leads, admissions, students, nameLeads, nameAdmissions, nameStudents, enquiries] = await Promise.all([
     client.lead.findMany({
       where: { orgId, deletedAt: null, OR: [...phoneFilter, ...emailFilter] },
-      select: {
-        id: true, leadCode: true, kidName: true, gradeSought: true, phone: true,
-        email: true, status: true, householdId: true, academicYearId: true,
-        phoneNormalized: true, createdAt: true,
-      },
+      select: leadSelect,
       take,
       orderBy: { createdAt: 'desc' },
     }),
     client.admission.findMany({
       where: { orgId, deletedAt: null, OR: [...phoneFilter, ...emailFilter] },
-      select: {
-        id: true, admissionCode: true, applicantName: true, gradeSought: true, phone: true,
-        email: true, status: true, householdId: true, academicYearId: true,
-        phoneNormalized: true, createdAt: true,
-      },
+      select: admissionSelect,
       take,
       orderBy: { createdAt: 'desc' },
     }),
@@ -143,34 +184,68 @@ export async function findMatches(
         orgId, deletedAt: null,
         OR: [...phoneFilter, ...(en ? [{ guardianEmail: { equals: en, mode: 'insensitive' as const } }] : [])],
       },
-      select: {
-        id: true, studentCode: true, name: true, gradeLabel: true, guardianPhone: true,
-        guardianEmail: true, status: true, householdId: true, academicYearId: true,
-        phoneNormalized: true, createdAt: true,
-      },
+      select: studentSelect,
       take,
       orderBy: { createdAt: 'desc' },
     }),
+    nameFilterLead
+      ? client.lead.findMany({ where: { orgId, deletedAt: null, ...nameFilterLead }, select: leadSelect, take, orderBy: { createdAt: 'desc' } })
+      : Promise.resolve([]),
+    nameFilterAdmission
+      ? client.admission.findMany({ where: { orgId, deletedAt: null, ...nameFilterAdmission }, select: admissionSelect, take, orderBy: { createdAt: 'desc' } })
+      : Promise.resolve([]),
+    nameFilterStudent
+      ? client.student.findMany({ where: { orgId, deletedAt: null, ...nameFilterStudent }, select: studentSelect, take, orderBy: { createdAt: 'desc' } })
+      : Promise.resolve([]),
+    enquiryPhoneOrEmail.length > 0
+      ? prisma.parentEnquiry.findMany({
+          where: { orgId, deletedAt: null, OR: enquiryPhoneOrEmail },
+          select: {
+            id: true, kidName: true, gradeSought: true, status: true, createdAt: true,
+            parent: { select: { phone: true, email: true } },
+          },
+          take,
+          orderBy: { createdAt: 'desc' },
+        })
+      : Promise.resolve([]),
   ])
 
+  // Dedup rows already returned by the phone/email fetch above.
+  const dedupeById = (primary: any[], extra: any[]) => {
+    const ids = new Set(primary.map((r: any) => r.id))
+    return [...primary, ...extra.filter((r: any) => !ids.has(r.id))]
+  }
+  const allLeads = dedupeById(leads, nameLeads)
+  const allAdmissions = dedupeById(admissions, nameAdmissions)
+  const allStudents = dedupeById(students, nameStudents)
+
   const cands: Cand[] = [
-    ...leads.map((r: any): Cand => ({
+    ...allLeads.map((r: any): Cand => ({
       type: 'lead', id: r.id, code: r.leadCode, name: r.kidName ?? '', grade: r.gradeSought ?? null,
       phone: r.phone ?? null, email: r.email ?? null, status: r.status, householdId: r.householdId ?? null,
       createdAt: r.createdAt, pn: r.phoneNormalized ?? normPhone(r.phone), en: normEmail(r.email),
       cn: normName(r.kidName), gn: normName(r.gradeSought), year: r.academicYearId ?? null,
     })),
-    ...admissions.map((r: any): Cand => ({
+    ...allAdmissions.map((r: any): Cand => ({
       type: 'admission', id: r.id, code: r.admissionCode, name: r.applicantName ?? '', grade: r.gradeSought ?? null,
       phone: r.phone ?? null, email: r.email ?? null, status: r.status, householdId: r.householdId ?? null,
       createdAt: r.createdAt, pn: r.phoneNormalized ?? normPhone(r.phone), en: normEmail(r.email),
       cn: normName(r.applicantName), gn: normName(r.gradeSought), year: r.academicYearId ?? null,
     })),
-    ...students.map((r: any): Cand => ({
+    ...allStudents.map((r: any): Cand => ({
       type: 'student', id: r.id, code: r.studentCode, name: r.name ?? '', grade: r.gradeLabel ?? null,
       phone: r.guardianPhone ?? null, email: r.guardianEmail ?? null, status: r.status, householdId: r.householdId ?? null,
       createdAt: r.createdAt, pn: r.phoneNormalized ?? normPhone(r.guardianPhone), en: normEmail(r.guardianEmail),
       cn: normName(r.name), gn: normName(r.gradeLabel), year: r.academicYearId ?? null,
+    })),
+    // No dedicated code/householdId/academicYearId — a marketplace enquiry
+    // has none of those concepts; year: null is intentionally always
+    // "compatible" (see sameYear above).
+    ...enquiries.map((r: any): Cand => ({
+      type: 'enquiry', id: r.id, code: r.id.slice(-8), name: r.kidName ?? '', grade: r.gradeSought ?? null,
+      phone: r.parent?.phone ?? null, email: r.parent?.email ?? null, status: r.status, householdId: null,
+      createdAt: r.createdAt, pn: normPhone(r.parent?.phone), en: normEmail(r.parent?.email),
+      cn: normName(r.kidName), gn: normName(r.gradeSought), year: null,
     })),
   ]
 

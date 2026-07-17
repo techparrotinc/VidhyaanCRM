@@ -7,12 +7,13 @@ import { useParams, useRouter, useSearchParams }
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { appAlert } from '@/components/ui/app-alert'
 import { DateTimePicker } from '@/components/ui/datetime-picker'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { format } from 'date-fns'
 import {
   ArrowLeft, Pencil, Trash2,
   CreditCard, CheckCircle,
   Clock, AlertCircle, X,
-  Download, Mail, Ban
+  Download, Mail, Ban, Percent
 } from 'lucide-react'
 import { INVOICE_TYPE_LABELS } from '@/lib/fees'
 
@@ -106,6 +107,15 @@ type InvoiceDetail = {
     quantity: number
   }[]
   payments: Payment[]
+  concessions: Concession[]
+}
+
+type Concession = {
+  id: string
+  type: 'PERCENTAGE' | 'FIXED_AMOUNT'
+  value: number
+  reason: string | null
+  createdAt: string
 }
 
 export default function InvoiceDetailPage() {
@@ -134,6 +144,14 @@ export default function InvoiceDetailPage() {
   const [isSavingPayment, setIsSavingPayment] =
     useState(false)
   const [paymentError, setPaymentError] =
+    useState<string | null>(null)
+  const [showConcessionDialog, setShowConcessionDialog] =
+    useState(false)
+  const [concessionForm, setConcessionForm] =
+    useState({ type: 'PERCENTAGE' as 'PERCENTAGE' | 'FIXED_AMOUNT', value: '', reason: '' })
+  const [isSavingConcession, setIsSavingConcession] =
+    useState(false)
+  const [concessionError, setConcessionError] =
     useState<string | null>(null)
 
   const fetchInvoice = useCallback(
@@ -297,6 +315,48 @@ export default function InvoiceDetailPage() {
     }
   }
 
+  const handleApplyConcession = async () => {
+    if (!concessionForm.value ||
+        isNaN(Number(concessionForm.value)) ||
+        Number(concessionForm.value) <= 0) {
+      setConcessionError('Enter a valid discount value')
+      return
+    }
+    if (concessionForm.type === 'PERCENTAGE' && Number(concessionForm.value) > 100) {
+      setConcessionError('Percentage cannot exceed 100')
+      return
+    }
+
+    setIsSavingConcession(true)
+    setConcessionError(null)
+
+    try {
+      const res = await fetch(`/api/v1/fees/invoices/${id}/concessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: concessionForm.type,
+          value: Number(concessionForm.value),
+          reason: concessionForm.reason || undefined
+        })
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.message ?? 'Failed to apply concession')
+      }
+
+      setShowConcessionDialog(false)
+      setConcessionForm({ type: 'PERCENTAGE', value: '', reason: '' })
+      await fetchInvoice()
+      appAlert('Concession applied.')
+    } catch (err: any) {
+      setConcessionError(err.message)
+    } finally {
+      setIsSavingConcession(false)
+    }
+  }
+
   const balance = invoice
     ? Number(invoice.totalAmount) -
       Number(invoice.paidAmount)
@@ -385,6 +445,15 @@ export default function InvoiceDetailPage() {
               <Mail className="w-4 h-4" />
               Email
             </button>
+
+            {!isPaid && invoice?.status !== 'WAIVED' && (
+              <button
+                onClick={() => setShowConcessionDialog(true)}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors whitespace-nowrap">
+                <Percent className="w-4 h-4" />
+                Concession
+              </button>
+            )}
 
             {!isPaid && invoice?.status !== 'WAIVED' && (
               <button
@@ -836,6 +905,36 @@ export default function InvoiceDetailPage() {
               )}
             </div>
 
+            {/* Concessions */}
+            {invoice.concessions.length > 0 && (
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-200">
+                  <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Concessions
+                  </h2>
+                </div>
+                <div className="flex flex-col">
+                  {invoice.concessions.map(c => (
+                    <div key={c.id} className="px-4 py-3 border-b border-slate-100 last:border-0">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-bold text-slate-900">
+                          {c.type === 'PERCENTAGE' ? `${c.value}%` : `₹${Number(c.value).toLocaleString('en-IN')}`}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {format(new Date(c.createdAt), 'd MMM yyyy')}
+                        </p>
+                      </div>
+                      {c.reason && (
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {c.reason}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Student Quick Info */}
             {invoice.student && (
               <div className="bg-white rounded-xl border border-slate-200 p-5">
@@ -886,6 +985,94 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={showConcessionDialog} onOpenChange={setShowConcessionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Apply Concession</DialogTitle>
+          </DialogHeader>
+
+          {concessionError && (
+            <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              {concessionError}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between px-3 py-2.5 bg-amber-50 rounded-lg">
+              <span className="text-xs font-semibold text-amber-700">
+                Balance Due
+              </span>
+              <span className="text-sm font-bold text-amber-800">
+                ₹{balance.toLocaleString('en-IN')}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">
+                Discount Type
+              </label>
+              <select
+                value={concessionForm.type}
+                onChange={e =>
+                  setConcessionForm(prev => ({
+                    ...prev,
+                    type: e.target.value as 'PERCENTAGE' | 'FIXED_AMOUNT'
+                  }))
+                }
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="PERCENTAGE">Percentage</option>
+                <option value="FIXED_AMOUNT">Fixed Amount</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">
+                {concessionForm.type === 'PERCENTAGE' ? 'Percentage (%)' : 'Amount (₹)'}
+                <span className="text-red-500 ml-0.5">*</span>
+              </label>
+              <input
+                type="number"
+                value={concessionForm.value}
+                onChange={e =>
+                  setConcessionForm(prev => ({
+                    ...prev,
+                    value: e.target.value
+                  }))
+                }
+                placeholder={concessionForm.type === 'PERCENTAGE' ? 'e.g. 10' : `Max ₹${balance.toLocaleString('en-IN')}`}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">
+                Reason
+              </label>
+              <input
+                value={concessionForm.reason}
+                onChange={e =>
+                  setConcessionForm(prev => ({
+                    ...prev,
+                    reason: e.target.value
+                  }))
+                }
+                placeholder="e.g. Sibling discount, staff ward"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <button
+              onClick={handleApplyConcession}
+              disabled={isSavingConcession}
+              className="w-full py-2.5 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
+              {isSavingConcession ? 'Applying...' : 'Apply Concession'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

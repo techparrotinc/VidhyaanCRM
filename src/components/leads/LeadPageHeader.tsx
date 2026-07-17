@@ -111,6 +111,11 @@ export default function LeadPageHeader({
     a.download = `${lead.leadCode || 'lead'}.csv`
     a.click()
     URL.revokeObjectURL(url)
+    fetch('/api/v1/leads/export-audit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count: 1, scope: 'selected' })
+    }).catch(() => {})
     if (showToast) showToast('Lead exported', 'success')
   }
 

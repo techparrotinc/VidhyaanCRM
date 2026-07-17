@@ -5,6 +5,8 @@ import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { Gender, StudentStatus } from '@prisma/client'
+import { cleanPhoneNumber } from '@/lib/utils'
+import { dedupFields } from '@/lib/dedup'
 
 const studentInclude = {
   branch: {
@@ -100,7 +102,14 @@ const updateStudentSchema = z.object({
   section: z.string().max(50).nullable().optional(),
   rollNumber: z.string().optional(),
   guardianName: z.string().optional(),
-  guardianPhone: z.string().optional(),
+  // Cleaned but not regex-locked to 10-digit-mobile — mirrors the create
+  // route and the same fix applied to admissions.
+  guardianPhone: z.string().optional()
+    .or(z.literal(''))
+    .transform((v): string | null | undefined => (v === '' ? null : v === undefined ? undefined : (cleanPhoneNumber(v) as string)))
+    .refine(v => v == null || v.length > 0, {
+      message: 'Enter a valid guardian phone number'
+    }),
   guardianEmail: z.string().optional(),
   academicYearId: z.string().optional(),
   batchId: z.string().optional(),
@@ -113,7 +122,7 @@ export const PUT = route({
     ROLES.ORG_ADMIN,
     ROLES.BRANCH_ADMIN
   ],
-  handler: async ({ req, db, params }) => {
+  handler: async ({ req, db, user, params }) => {
     const resolvedParams = await params
     const id = resolvedParams?.id
     const body = updateStudentSchema.parse(await req.json())
@@ -152,6 +161,22 @@ export const PUT = route({
     }
     if (body.guardianName !== undefined) updateData.guardianName = body.guardianName
 
+    // Keep the dedup join key + household in sync when the guardian phone
+    // changes — otherwise phoneNormalized/householdId go stale and this
+    // record quietly drops out of future dedup matching on its new number.
+    if (body.guardianPhone !== undefined) {
+      const identity = await dedupFields(db, {
+        orgId: user.orgId,
+        phone: body.guardianPhone,
+        name: body.guardianName ?? existing.guardianName,
+        email: body.guardianEmail ?? existing.guardianEmail,
+      })
+      updateData.phoneNormalized = identity.phoneNormalized
+      updateData.household = identity.householdId
+        ? { connect: { id: identity.householdId } }
+        : { disconnect: true }
+    }
+
     const updated = await db.student.update({
       where: { id },
       data: updateData,
@@ -164,8 +189,10 @@ export const PUT = route({
 
 export const DELETE = route({
   module: MODULES.STUDENT_MANAGEMENT,
-  // Deleting a student takes their invoices, payments and parent access
-  // with them — org admin only.
+  // Soft-deletes the student only — invoices/payments/parent access are NOT
+  // cascaded (nothing else is updated here). Blocked below when the student
+  // has any invoice with an outstanding balance, so a delete can't orphan
+  // money still owed. Org admin only.
   roles: [ROLES.ORG_ADMIN],
   handler: async ({ db, params }) => {
     const resolvedParams = await params
@@ -176,6 +203,19 @@ export const DELETE = route({
 
     if (!existing) {
       throw Errors.notFound('Student')
+    }
+
+    const outstanding = await db.invoice.count({
+      where: {
+        studentId: id,
+        deletedAt: null,
+        status: { in: ['UNPAID', 'PARTIALLY_PAID', 'OVERDUE'] }
+      }
+    })
+    if (outstanding > 0) {
+      throw Errors.businessRule(
+        `This student has ${outstanding} invoice(s) with an outstanding balance — settle or waive them before deleting`
+      )
     }
 
     await db.student.update({

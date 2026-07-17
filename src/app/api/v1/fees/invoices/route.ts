@@ -90,10 +90,25 @@ export const GET = route({
     }
 
     const where = { ...baseWhere }
+    // OVERDUE is derived (due date passed, not settled) rather than a stored
+    // status — the column only flips when the overdue cron runs, so a literal
+    // equality filter here would silently disagree with the KPI tile (which
+    // derives it) and could hide invoices that are overdue in fact but not
+    // yet flipped in the row. Mirrors overdueWhere in /api/v1/fees/summary.
+    const now = new Date()
+    const overdueDerivedWhere = {
+      ...baseWhere,
+      status: { notIn: ['PAID', 'WAIVED'] as InvoiceStatus[] },
+      dueDate: { lt: now }
+    }
     // Arrears mode pins its own unsettled-status set; the status tab doesn't apply.
-    if (!arrears && status && status !== '') where.status = asEnum(InvoiceStatus, status, 'status')
+    if (!arrears && status === 'OVERDUE') {
+      Object.assign(where, overdueDerivedWhere)
+    } else if (!arrears && status && status !== '') {
+      where.status = asEnum(InvoiceStatus, status, 'status')
+    }
 
-    const [invoices, total, statusCountsRaw] = await Promise.all([
+    const [invoices, total, statusCountsRaw, overdueCount] = await Promise.all([
       db.invoice.findMany({
         where,
         skip,
@@ -131,7 +146,8 @@ export const GET = route({
         by: ['status'],
         where: baseWhere,
         _count: { id: true }
-      })
+      }),
+      db.invoice.count({ where: overdueDerivedWhere })
     ])
 
     const statusCounts: Record<string, number> = {
@@ -147,9 +163,12 @@ export const GET = route({
     let allCount = 0
     statusCountsRaw.forEach((item: any) => {
       const cnt = item._count.id
-      statusCounts[item.status] = cnt
+      // OVERDUE is overwritten below with the derived count — the stored
+      // status can lag behind (see overdueDerivedWhere comment above).
+      if (item.status !== 'OVERDUE') statusCounts[item.status] = cnt
       allCount += cnt
     })
+    statusCounts.OVERDUE = overdueCount
     statusCounts.ALL = allCount
 
     return NextResponse.json({

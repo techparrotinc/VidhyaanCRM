@@ -8,23 +8,26 @@
 import type { MessageChannel } from '@prisma/client'
 import { prisma } from '@/lib/db/client'
 import { sendCampaignSMS, sendCampaignWhatsApp } from '@/lib/campaign/channels'
-import { spendCredits, refundCredits } from './engine'
+import { spendCreditsWithIntent, confirmSpendIntent, refundSpendIntent } from './engine'
 import { getActiveProviderConfig } from './provider'
 
 // Runs the actual send after a credit debit; a failed send refunds the
-// credit so orgs never pay for undelivered messages.
+// credit so orgs never pay for undelivered messages. Debit is intent-tracked
+// (spendCreditsWithIntent) so a crash between the debit and this confirm/
+// refund still gets reconciled by the cron sweep instead of losing the
+// credit silently.
 async function sendWithRefund(
-  orgId: string,
-  channel: MessageChannel,
-  spent: { fromFree: number; fromPurchased: number } | null,
-  ref: string | undefined,
+  intentId: string | null,
   send: () => Promise<void>
 ): Promise<void> {
   try {
     await send()
+    if (intentId) await confirmSpendIntent(intentId)
   } catch (err) {
-    if (spent) {
-      await refundCredits(orgId, channel, 1, spent, ref).catch(() => {})
+    if (intentId) {
+      await refundSpendIntent(intentId).catch(e =>
+        console.error(`sendWithRefund: refundSpendIntent(${intentId}) failed`, e)
+      )
     }
     throw err
   }
@@ -37,8 +40,8 @@ export async function sendMeteredSms(
   ref?: string
 ): Promise<void> {
   const byo = await getActiveProviderConfig(orgId, 'SMS' as MessageChannel)
-  const spent = byo ? null : await spendCredits(orgId, 'SMS' as MessageChannel, 1, ref)
-  await sendWithRefund(orgId, 'SMS' as MessageChannel, spent, ref, () =>
+  const spent = byo ? null : await spendCreditsWithIntent(orgId, 'SMS' as MessageChannel, 1, ref)
+  await sendWithRefund(spent?.intentId ?? null, () =>
     sendCampaignSMS({
       to,
       body,
@@ -66,7 +69,7 @@ export async function sendMeteredWhatsApp(
 ): Promise<void> {
   const qty = opts?.credits ?? 1
   const byo = await getActiveProviderConfig(orgId, 'WHATSAPP' as MessageChannel)
-  const spent = byo ? null : await spendCredits(orgId, 'WHATSAPP' as MessageChannel, qty, ref)
+  const spent = byo ? null : await spendCreditsWithIntent(orgId, 'WHATSAPP' as MessageChannel, qty, ref)
   let wamid: string | null = null
   try {
     wamid = await sendCampaignWhatsApp({
@@ -81,7 +84,9 @@ export async function sendMeteredWhatsApp(
     })
   } catch (err: any) {
     if (spent) {
-      await refundCredits(orgId, 'WHATSAPP' as MessageChannel, qty, spent, ref).catch(() => {})
+      await refundSpendIntent(spent.intentId).catch(e =>
+        console.error(`sendMeteredWhatsApp: refundSpendIntent(${spent.intentId}) failed`, e)
+      )
     }
     await prisma.whatsappMessage
       .create({
@@ -110,4 +115,9 @@ export async function sendMeteredWhatsApp(
       }
     })
     .catch(() => {})
+
+  // Accepted by the API — settled here. If the carrier later reports
+  // delivery failure, that's refunded separately by the delivery-webhook
+  // handler (src/app/api/webhooks/meta-whatsapp/route.ts), not here.
+  if (spent) await confirmSpendIntent(spent.intentId)
 }

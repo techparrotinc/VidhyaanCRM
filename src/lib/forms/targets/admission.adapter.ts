@@ -1,6 +1,7 @@
 import { cleanPhoneNumber } from '@/lib/utils'
 import { nextAdmissionCode } from '@/lib/admission-code'
 import { admissionNoun } from '@/lib/institution'
+import { normName } from '@/lib/dedup/config'
 import type { CanonicalKey } from '../types'
 import type { TargetAdapter, AdapterContext } from './types'
 
@@ -75,14 +76,24 @@ export const admissionAdapter: TargetAdapter = {
     const base = canonicalToAdmission(values)
 
     // Dedup on phone: update the existing active admission rather than
-    // creating a duplicate.
+    // creating a duplicate — but only when the applicant name also matches.
+    // Two siblings can share a household phone; matching on phone alone
+    // silently overwrote the first child's name/grade/everything with the
+    // second child's submission. Different child on the same phone now
+    // creates a separate admission instead.
     const phoneNorm = base.phoneNormalized as string | undefined
     if (phoneNorm) {
-      const existing = await db.admission.findFirst({
+      const candidates = await db.admission.findMany({
         where: { orgId, phoneNormalized: phoneNorm, deletedAt: null, archivedAt: null },
         orderBy: { createdAt: 'desc' },
-        select: { id: true },
+        select: { id: true, applicantName: true },
       })
+      // No applicant name on this submission → can't disambiguate siblings,
+      // fall back to phone-only (most recent) as before.
+      const submittedChild = normName(base.applicantName as string | undefined)
+      const existing = submittedChild
+        ? candidates.find((c: any) => normName(c.applicantName) === submittedChild)
+        : candidates[0]
       if (existing) {
         await db.admission.update({ where: { id: existing.id }, data: base })
         return { id: existing.id }

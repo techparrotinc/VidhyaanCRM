@@ -11,17 +11,36 @@ const bulkSchema = z.object({
 
 export const POST = route({
   module: MODULES.STUDENT_MANAGEMENT,
-  // Deleting students takes their invoices, payments and parent access
-  // with them — org admin only (matches single-record DELETE).
+  // Soft-deletes only — invoices/payments/parent access are NOT cascaded.
+  // Students with an outstanding invoice balance are skipped rather than
+  // blocking the whole batch (matches admissions' bulk-delete pattern); org
+  // admin only.
   roles: [ROLES.ORG_ADMIN],
   handler: async ({ req, db }) => {
     const body = bulkSchema.parse(await req.json())
 
+    const blockedIds = new Set(
+      (await db.invoice.findMany({
+        where: {
+          studentId: { in: body.ids },
+          deletedAt: null,
+          status: { in: ['UNPAID', 'PARTIALLY_PAID', 'OVERDUE'] }
+        },
+        select: { studentId: true },
+        distinct: ['studentId']
+      })).map(i => i.studentId)
+    )
+    const deletableIds = body.ids.filter(id => !blockedIds.has(id))
+
     const result = await db.student.updateMany({
-      where: { id: { in: body.ids } },
+      where: { id: { in: deletableIds } },
       data: { deletedAt: new Date() }
     })
 
-    return ok({ deleted: result.count })
+    return ok({
+      deleted: result.count,
+      skipped: blockedIds.size,
+      skippedIds: [...blockedIds]
+    })
   }
 })

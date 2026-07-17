@@ -1,6 +1,7 @@
 import { cleanPhoneNumber } from '@/lib/utils'
 import { nextLeadCode } from '@/lib/lead-code'
 import { admissionNoun } from '@/lib/institution'
+import { normName } from '@/lib/dedup/config'
 import type { CanonicalKey } from '../types'
 import type { TargetAdapter, AdapterContext } from './types'
 
@@ -79,14 +80,24 @@ export const leadAdapter: TargetAdapter = {
     const base = canonicalToLead(values)
 
     // Dedup: a public submission from a known phone updates that lead rather
-    // than minting a duplicate (mirrors the CRM dedup rules).
+    // than minting a duplicate — but only when the child name also matches.
+    // Two siblings can share a household phone; matching on phone alone
+    // silently overwrote the first child's name/grade/everything with the
+    // second child's submission. Different child on the same phone now
+    // creates a separate lead instead.
     const phoneNorm = base.phoneNormalized as string | undefined
     if (phoneNorm) {
-      const existing = await db.lead.findFirst({
+      const candidates = await db.lead.findMany({
         where: { orgId, phoneNormalized: phoneNorm, deletedAt: null },
         orderBy: { createdAt: 'desc' },
-        select: { id: true },
+        select: { id: true, kidName: true },
       })
+      // No child name on this submission → can't disambiguate siblings,
+      // fall back to phone-only (most recent) as before.
+      const submittedChild = normName(base.kidName as string | undefined)
+      const existing = submittedChild
+        ? candidates.find((c: any) => normName(c.kidName) === submittedChild)
+        : candidates[0]
       if (existing) {
         await db.lead.update({ where: { id: existing.id }, data: base })
         return { id: existing.id }

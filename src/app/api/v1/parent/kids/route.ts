@@ -3,6 +3,11 @@ import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { Gender } from '@prisma/client'
+import { normName } from '@/lib/dedup/config'
+
+// Generous cap — real families rarely exceed a handful of kids; this is an
+// abuse/spam backstop, not a real-world limit.
+const MAX_KIDS_PER_PARENT = 10
 
 const kidInputSchema = z.object({
   name: z.string().trim().min(2, 'Child name must be at least 2 characters').max(150),
@@ -102,6 +107,30 @@ export async function POST(req: NextRequest) {
     }
     const gradeSoughtValue = grade || gradeSought || null
     const genderValue = gender ? (gender.toUpperCase() as Gender) : null
+
+    const existingKids = await prisma.kidProfile.findMany({
+      where: { parentId: parent.id, deletedAt: null },
+      select: { name: true, dateOfBirth: true }
+    })
+
+    if (existingKids.length >= MAX_KIDS_PER_PARENT) {
+      return NextResponse.json(
+        { success: false, error: `You can add up to ${MAX_KIDS_PER_PARENT} children per account.` },
+        { status: 422 }
+      )
+    }
+
+    const normalizedName = normName(name)
+    const isDuplicate = existingKids.some(k =>
+      normName(k.name) === normalizedName &&
+      (k.dateOfBirth?.toISOString().slice(0, 10) ?? null) === (birthDate?.toISOString().slice(0, 10) ?? null)
+    )
+    if (isDuplicate) {
+      return NextResponse.json(
+        { success: false, error: 'A child with this name and date of birth is already added.' },
+        { status: 409 }
+      )
+    }
 
     const kid = await prisma.kidProfile.create({
       data: {

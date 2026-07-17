@@ -119,16 +119,25 @@ export default function StudentListingPage() {
       const okToDelete = await confirm({
         title: 'Delete this student?',
         message:
-          'All records associated with this student — invoices, payments, activities and parent login access — will be deleted and cannot be rolled back.',
+          'The student record will be removed from active lists. Invoices, payments and activity history are kept, not deleted. Blocked if the student has an outstanding invoice balance.',
         confirmLabel: 'Delete Student',
         variant: 'danger'
       })
       if (!okToDelete) return
-      await fetch(
-        `/api/v1/students/${id}`,
-        { method: 'DELETE' }
-      )
-      mutate()
+      try {
+        const res = await fetch(
+          `/api/v1/students/${id}`,
+          { method: 'DELETE' }
+        )
+        const json = await res.json().catch(() => null)
+        if (!res.ok || json?.success === false) {
+          throw new Error(json?.error?.message || json?.error || 'Failed to delete student')
+        }
+        mutate()
+      } catch (e: any) {
+        setToastMsg(e.message || 'Failed to delete student')
+        setTimeout(() => setToastMsg(null), 3000)
+      }
       setActionMenuId(null)
     }, [mutate, confirm]
   )
@@ -169,7 +178,7 @@ export default function StudentListingPage() {
     const okToDelete = await confirm({
       title: `Delete ${count} selected student${count > 1 ? 's' : ''}?`,
       message:
-        'All records associated with these students — invoices, payments, activities and parent login access — will be deleted and cannot be rolled back.',
+        'The student record will be removed from active lists. Invoices, payments and activity history are kept, not deleted. Students with an outstanding invoice balance will be skipped.',
       confirmLabel: `Delete ${count} Student${count > 1 ? 's' : ''}`,
       variant: 'danger'
     })
@@ -185,7 +194,13 @@ export default function StudentListingPage() {
       if (!res.ok || json.success === false) {
         throw new Error(json.error?.message || json.error || 'Bulk delete failed')
       }
-      setToastMsg(`${json.data?.deleted ?? count} student(s) deleted`)
+      const deleted = json.data?.deleted ?? count
+      const skipped = json.data?.skipped ?? 0
+      setToastMsg(
+        skipped > 0
+          ? `${deleted} student(s) deleted; ${skipped} skipped (outstanding invoice balance)`
+          : `${deleted} student(s) deleted`
+      )
       setSelectedIds([])
       mutate()
     } catch (e: any) {

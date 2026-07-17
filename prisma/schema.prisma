@@ -598,6 +598,14 @@ enum CreditLedgerReason {
   @@schema("billing")
 }
 
+enum MessageSpendIntentStatus {
+  PENDING
+  CONFIRMED
+  REFUNDED
+
+  @@schema("billing")
+}
+
 enum MessagingProviderStatus {
   DRAFT
   VERIFIED
@@ -699,6 +707,7 @@ model Organization {
   guardianLinks         StudentGuardianLink[]
   ledgerEntries         LedgerEntry[]
   messageWallets        MessageWallet[]
+  messageSpendIntents   MessageSpendIntent[]
   messagingProviders    MessagingProviderConfig[]
   forms                 Form[]
   attendanceRecords     AttendanceRecord[]
@@ -1359,6 +1368,12 @@ model TrialClassBooking {
 model Parent {
   id        String    @id @default(cuid())
   phone     String    @unique
+  // Every phone this account has ever used — the fallback link that scopes a
+  // parent to a Student (linkedStudentsWhere) matches on Student.guardianPhone
+  // matching the CURRENT phone. Without this, changing your phone silently
+  // drops a student whose school record still has the old number, unless an
+  // explicit StudentGuardianLink (parentId-keyed) already covers it.
+  phoneHistory String[] @default([]) @map("phone_history")
   email     String?   @unique
   name      String?
   city      String?
@@ -1702,6 +1717,11 @@ model Lead {
   gradeSought      String?      @map("grade_sought")
   source           LeadSource   @default(OTHER)
   status           LeadStatus   @default(NEW)
+  // Created past the org's free-tier leadCap. Blocks conversion to CONVERTED
+  // while the org is still over cap (re-checked live, not just this flag —
+  // see isOverLeadCap) — that's the actual monetization lever; everything
+  // else about the lead stays fully manageable.
+  queued           Boolean      @default(false)
   priority         LeadPriority @default(MEDIUM)
   assignedToId     String?      @map("assigned_to_id")
   enquiryId        String?      @map("enquiry_id") // soft link to marketplace.parent_enquiries
@@ -2444,6 +2464,15 @@ model Event {
   meetingLink    String?     @map("meeting_link") // manual Zoom link Phase 1
   imageUrl       String?     @map("image_url") // S3 cover image
   publishedAt    DateTime?   @map("published_at")
+  // Exclusive claim held for the duration of an Announce send — the send
+  // loop makes many slow external calls (email/SMS/WhatsApp per recipient),
+  // too long to hold inside a DB transaction/advisory lock. Without this,
+  // two concurrent Announce POSTs both pass the PUBLISHED check and both run
+  // the full send loop: double credit charges, double-spammed parents,
+  // duplicate EventAnnouncement audit rows. Cleared after the send completes
+  // (success or failure); a claim older than the staleness window is
+  // reclaimable in case a process crashed mid-send.
+  announcingSince DateTime?  @map("announcing_since")
   audience       String? // ALL | PARENTS | LEADS (announce default)
   createdById    String?     @map("created_by_id") // soft reference
   createdAt      DateTime    @default(now()) @map("created_at")
@@ -3032,6 +3061,34 @@ model MessageCreditLedger {
   @@index([orgId, channel, createdAt])
   @@index([ref])
   @@map("message_credit_ledger")
+  @@schema("billing")
+}
+
+/// Durable outbox for the metered-send crash window: a credit debit and the
+/// external provider call it pays for can't be one DB transaction (the send
+/// is an HTTP call). Recorded PENDING atomically with the debit; the sender
+/// confirms or refunds it right after the external call. A cron sweeps any
+/// intent left PENDING past a timeout (process crashed/timed out between the
+/// debit and the confirm/refund) and auto-refunds it — see
+/// src/app/api/cron/credit-spend-reconcile/route.ts.
+model MessageSpendIntent {
+  id            String                   @id @default(cuid())
+  orgId         String                   @map("org_id")
+  channel       MessageChannel
+  qty           Int
+  fromFree      Int                      @map("from_free")
+  fromPurchased Int                      @map("from_purchased")
+  ref           String?
+  status        MessageSpendIntentStatus @default(PENDING)
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  confirmedAt   DateTime?                @map("confirmed_at")
+  refundedAt    DateTime?                @map("refunded_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([orgId])
+  @@map("message_spend_intents")
   @@schema("billing")
 }
 

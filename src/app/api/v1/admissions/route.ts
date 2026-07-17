@@ -12,7 +12,8 @@ import { Errors } from '@/lib/api/errors'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
 import { createAdmissionWithUniqueCode } from '@/lib/admission-code'
 import { createNotification } from '@/lib/services/notifications'
-import { findMatches, loadDedupConfig, dedupFields } from '@/lib/dedup'
+import { findMatches, loadDedupConfig, dedupFields, lockDedupPhone } from '@/lib/dedup'
+import { cleanPhoneNumber } from '@/lib/utils'
 import { assertNotDuplicate } from '@/lib/dedup/guard'
 import { checkEmailDeliverable } from '@/lib/email/validate'
 
@@ -176,7 +177,14 @@ const createAdmissionSchema = z.object({
     .or(z.literal(''))
     .transform(v =>
       v === '' ? null : v
-    ),
+    )
+    // Strips formatting/country-code noise (spaces, dashes, +91, leading 0);
+    // deliberately not regex-locked to 10-digit-mobile — landlines and other
+    // formats stay valid, only non-numeric junk ("abc") gets rejected.
+    .transform((v): string | null | undefined => (v == null ? v : (cleanPhoneNumber(v) as string)))
+    .refine(v => v == null || v.length > 0, {
+      message: 'Enter a valid phone number'
+    }),
   email: z.string().email()
     .optional().nullable()
     .or(z.literal(''))
@@ -268,150 +276,162 @@ export const POST = route({
     const year = new Date().getFullYear()
     const resolvedYear = body.academicYearId || academicYearId || null
 
-    // Dedup + household identity. Run the scan for context in both paths;
-    // only *block* on a direct create (converting an existing lead is legit).
-    const dedupConfig = await loadDedupConfig(db, user.orgId)
-    const dedup = await findMatches(db, {
-      orgId: user.orgId,
-      phone: body.phone,
-      email: body.email,
-      childName: body.applicantName,
-      grade: body.gradeSought,
-      academicYearId: resolvedYear,
-    }, dedupConfig)
-    const identity = await dedupFields(db, {
-      orgId: user.orgId, phone: body.phone, name: body.parentName, email: body.email,
-    })
+    // Dedup + household identity through the final admission create, inside
+    // one transaction holding a Postgres advisory lock on org+phone —
+    // findMatches has no DB-level constraint behind it, so without this two
+    // near-simultaneous requests with the same phone could both pass a
+    // hard-match block before either commits. Lock releases automatically at
+    // commit/rollback.
+    const { admission, dedup } = await db.$transaction(async (tx: any): Promise<{ admission: any; dedup: any }> => {
+      await lockDedupPhone(tx, user.orgId, body.phone)
 
-    let leadId = body.leadId
-    if (leadId) {
-      // Duplicate-convert guard: one lead → one admission
-      const existingAdmission = await db.admission.findFirst({
-        where: { leadId, deletedAt: null },
-        select: { id: true, admissionCode: true }
+      // Run the scan for context in both paths; only *block* on a direct
+      // create (converting an existing lead is legit).
+      const dedupConfig = await loadDedupConfig(tx, user.orgId)
+      const dedup = await findMatches(tx, {
+        orgId: user.orgId,
+        phone: body.phone,
+        email: body.email,
+        childName: body.applicantName,
+        grade: body.gradeSought,
+        academicYearId: resolvedYear,
+      }, dedupConfig)
+      const identity = await dedupFields(tx, {
+        orgId: user.orgId, phone: body.phone, name: body.parentName, email: body.email,
       })
-      if (existingAdmission) {
-        throw Errors.conflict(
-          `This lead is already converted (admission ${existingAdmission.admissionCode}).`
-        )
+
+      let leadId = body.leadId
+      if (leadId) {
+        // Duplicate-convert guard: one lead → one admission
+        const existingAdmission = await tx.admission.findFirst({
+          where: { leadId, deletedAt: null },
+          select: { id: true, admissionCode: true }
+        })
+        if (existingAdmission) {
+          throw Errors.conflict(
+            `This lead is already converted (admission ${existingAdmission.admissionCode}).`
+          )
+        }
       }
-    }
 
-    if (!leadId) {
-      // Block hard / unconfirmed-soft duplicates on direct entry.
-      assertNotDuplicate(dedup, { force: body.force })
+      if (!leadId) {
+        // Block hard / unconfirmed-soft duplicates on direct entry.
+        assertNotDuplicate(dedup, { force: body.force })
 
-      // Don't spawn a duplicate lead: if this person already has a lead, reuse
-      // it instead of minting a fresh one for every admission.
-      const leadMatch = dedup.matches.find(m => m.type === 'lead')
-      if (leadMatch) {
-        leadId = leadMatch.id
-        await db.lead.update({
+        // Don't spawn a duplicate lead: if this person already has a lead, reuse
+        // it instead of minting a fresh one for every admission.
+        const leadMatch = dedup.matches.find((m: any) => m.type === 'lead')
+        if (leadMatch) {
+          leadId = leadMatch.id
+          await tx.lead.update({
+            where: { id: leadId },
+            data: {
+              status: 'CONVERTED',
+              householdId: identity.householdId ?? undefined,
+              phoneNormalized: identity.phoneNormalized ?? undefined,
+            },
+          })
+          await tx.leadActivity.create({
+            data: {
+              orgId: user.orgId, leadId, type: 'STATUS_CHANGE',
+              summary: 'Lead converted to admission (matched existing lead)',
+              performedById: user.id,
+            },
+          }).catch((err: unknown) => console.error('Lead conversion activity log failed:', err))
+        } else {
+          const newLead: any = await createLeadWithUniqueCode(user.orgId, (leadCode) =>
+            tx.lead.create({
+              data: {
+                orgId: user.orgId,
+                branchId: null,
+                academicYearId: resolvedYear,
+                leadCode,
+                kidName: body.applicantName,
+                parentName: body.parentName ?? "",
+                phone: body.phone ?? "",
+                email: body.email ?? null,
+                phoneNormalized: identity.phoneNormalized,
+                householdId: identity.householdId,
+                status: 'CONVERTED',
+                expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+                currentSchool: body.currentSchool ?? null,
+                priority: (body.priority ?? 'MEDIUM') as any,
+                gradeSought: body.gradeSought ?? null
+              }
+            })
+          )
+          leadId = newLead.id
+        }
+      } else {
+        await tx.lead.update({
           where: { id: leadId },
           data: {
             status: 'CONVERTED',
-            householdId: identity.householdId ?? undefined,
-            phoneNormalized: identity.phoneNormalized ?? undefined,
-          },
+            expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
+            currentSchool: body.currentSchool ?? null,
+            priority: (body.priority ?? 'MEDIUM') as any
+          }
         })
-        await db.leadActivity.create({
+
+        // The lead timeline must show the conversion (the lead PUT handler
+        // logs status changes; conversion previously logged nothing here)
+        await tx.leadActivity.create({
           data: {
-            orgId: user.orgId, leadId, type: 'STATUS_CHANGE',
-            summary: 'Lead converted to admission (matched existing lead)',
-            performedById: user.id,
+            orgId: user.orgId,
+            leadId,
+            type: 'STATUS_CHANGE',
+            summary: 'Lead converted to admission',
+            performedById: user.id
+          }
+        }).catch((err: unknown) => console.error('Lead conversion activity log failed:', err))
+
+        // In-app/email alert for the assigned counsellor (not the converter)
+        const convertedLead = await tx.lead.findFirst({
+          where: { id: leadId },
+          select: { parentName: true, leadCode: true, assignedToId: true }
+        })
+        if (convertedLead?.assignedToId && convertedLead.assignedToId !== user.id) {
+          createNotification({
+            orgId: user.orgId,
+            recipientType: 'USER',
+            recipientId: convertedLead.assignedToId,
+            type: 'LEAD_CONVERTED',
+            title: 'Lead converted to admission',
+            body: `${convertedLead.parentName} (${convertedLead.leadCode}) was converted to an admission by ${user.name || 'a teammate'}.`,
+            data: { leadId }
+          }).catch((err: unknown) => console.error('Lead-converted notification failed:', err))
+        }
+      }
+
+      // Admission code from the numeric max (never count()+1 — soft-deleted
+      // rows keep their code under the unique constraint). Prefix 'AT-YYYY-'.
+      const prefix = `AT-${year}-`
+      const admission = await createAdmissionWithUniqueCode(user.orgId, prefix, (admissionCode) =>
+        tx.admission.create({
+          data: {
+            applicantName: body.applicantName,
+            parentName: body.parentName ?? null,
+            phone: body.phone ?? null,
+            email: body.email ?? null,
+            gradeSought: body.gradeSought ?? null,
+            orgId: user.orgId,
+            admissionCode,
+            phoneNormalized: identity.phoneNormalized,
+            householdId: identity.householdId,
+            stageId: stageId ?? null,
+            assignedToId: body.assignedToId ?? null,
+            academicYearId: resolvedYear,
+            leadId,
+            status: 'IN_PROGRESS'
           },
-        }).catch(err => console.error('Lead conversion activity log failed:', err))
-      } else {
-        const newLead = await createLeadWithUniqueCode(user.orgId, (leadCode) =>
-          db.lead.create({
-            data: {
-              orgId: user.orgId,
-              branchId: null,
-              academicYearId: resolvedYear,
-              leadCode,
-              kidName: body.applicantName,
-              parentName: body.parentName ?? "",
-              phone: body.phone ?? "",
-              email: body.email ?? null,
-              phoneNormalized: identity.phoneNormalized,
-              householdId: identity.householdId,
-              status: 'CONVERTED',
-              expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
-              currentSchool: body.currentSchool ?? null,
-              priority: (body.priority ?? 'MEDIUM') as any,
-              gradeSought: body.gradeSought ?? null
-            }
-          })
-        )
-        leadId = newLead.id
-      }
-    } else {
-      await db.lead.update({
-        where: { id: leadId },
-        data: {
-          status: 'CONVERTED',
-          expectedJoinDate: body.expectedJoinDate ? new Date(body.expectedJoinDate) : null,
-          currentSchool: body.currentSchool ?? null,
-          priority: (body.priority ?? 'MEDIUM') as any
-        }
-      })
+          include: {
+            stage: true
+          }
+        })
+      )
 
-      // The lead timeline must show the conversion (the lead PUT handler
-      // logs status changes; conversion previously logged nothing here)
-      await db.leadActivity.create({
-        data: {
-          orgId: user.orgId,
-          leadId,
-          type: 'STATUS_CHANGE',
-          summary: 'Lead converted to admission',
-          performedById: user.id
-        }
-      }).catch(err => console.error('Lead conversion activity log failed:', err))
-
-      // In-app/email alert for the assigned counsellor (not the converter)
-      const convertedLead = await db.lead.findFirst({
-        where: { id: leadId },
-        select: { parentName: true, leadCode: true, assignedToId: true }
-      })
-      if (convertedLead?.assignedToId && convertedLead.assignedToId !== user.id) {
-        createNotification({
-          orgId: user.orgId,
-          recipientType: 'USER',
-          recipientId: convertedLead.assignedToId,
-          type: 'LEAD_CONVERTED',
-          title: 'Lead converted to admission',
-          body: `${convertedLead.parentName} (${convertedLead.leadCode}) was converted to an admission by ${user.name || 'a teammate'}.`,
-          data: { leadId }
-        }).catch(err => console.error('Lead-converted notification failed:', err))
-      }
-    }
-
-    // Admission code from the numeric max (never count()+1 — soft-deleted rows
-    // keep their code under the unique constraint). Prefix kept as 'AT-YYYY-'.
-    const prefix = `AT-${year}-`
-    const admission = await createAdmissionWithUniqueCode(user.orgId, prefix, (admissionCode) =>
-      db.admission.create({
-        data: {
-          applicantName: body.applicantName,
-          parentName: body.parentName ?? null,
-          phone: body.phone ?? null,
-          email: body.email ?? null,
-          gradeSought: body.gradeSought ?? null,
-          orgId: user.orgId,
-          admissionCode,
-          phoneNormalized: identity.phoneNormalized,
-          householdId: identity.householdId,
-          stageId: stageId ?? null,
-          assignedToId: body.assignedToId ?? null,
-          academicYearId: resolvedYear,
-          leadId,
-          status: 'IN_PROGRESS'
-        },
-        include: {
-          stage: true
-        }
-      })
-    )
+      return { admission, dedup }
+    })
 
     // Log activity
     await db.admissionActivity.create({

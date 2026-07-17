@@ -6,7 +6,12 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./tests/setup.ts'],
     testTimeout: 30000,
-    hookTimeout: 30000
+    hookTimeout: 30000,
+    server: {
+      deps: {
+        inline: ['next', 'next-auth']
+      }
+    }
   },
   resolve: {
     alias: {

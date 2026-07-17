@@ -4,6 +4,7 @@ import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
+import { isOverLeadCap } from '@/lib/billing/plan-status'
 
 const bulkSchema = z.discriminatedUnion('action', [
   z.object({
@@ -43,11 +44,28 @@ export const POST = route({
     }
 
     if (body.action === 'status') {
-      const result = await db.lead.updateMany({
-        where: { id: { in: body.ids }, deletedAt: null },
-        data: { status: body.status }
-      })
-      return ok({ updated: result.count })
+      const where: any = { id: { in: body.ids }, deletedAt: null }
+      let skippedQueued = 0
+
+      // Same gate as the single-lead PUT: converting a queued (past-leadCap)
+      // lead is the actual value being restricted. Re-checked live per
+      // request, not a stale flag — an org that's since upgraded converts
+      // freely again.
+      if (body.status === 'CONVERTED') {
+        const org = await db.organization.findUnique({
+          where: { id: user.orgId },
+          select: { status: true, leadCap: true, plan: { select: { slug: true, monthlyPrice: true } } }
+        })
+        if (org && (await isOverLeadCap(db, user.orgId, org))) {
+          skippedQueued = await db.lead.count({
+            where: { id: { in: body.ids }, queued: true, deletedAt: null }
+          })
+          where.queued = false
+        }
+      }
+
+      const result = await db.lead.updateMany({ where, data: { status: body.status } })
+      return ok({ updated: result.count, skippedQueued })
     }
 
     // delete — tenant client rewrites deleteMany → soft delete for Lead

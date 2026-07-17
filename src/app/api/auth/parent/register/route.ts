@@ -22,12 +22,12 @@ export async function POST(req: NextRequest) {
     const result = parentRegisterSchema.safeParse(body)
 
     if (!result.success) {
-      const err = result.error as any
+      const issues = result.error.issues
       return NextResponse.json(
         {
           success: false,
-          error: err.errors[0]?.message || 'Invalid registration data',
-          details: err.errors
+          error: issues[0]?.message || 'Invalid registration data',
+          details: issues
         },
         { status: 400 }
       )

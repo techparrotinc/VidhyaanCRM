@@ -38,6 +38,10 @@
     {
       "path": "/api/cron/schedule-materialize",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/credit-spend-reconcile",
+      "schedule": "0 5 * * *"
     }
   ]
 }

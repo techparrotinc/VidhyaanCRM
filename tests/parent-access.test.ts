@@ -19,7 +19,7 @@ describe('linkedStudentsWhere', () => {
     expect(where.OR).toContainEqual({
       guardianLinks: { some: { parentId: 'par_1', status: 'ACTIVE' } }
     })
-    expect(where.OR).toContainEqual({ guardianPhone: '9876543210' })
+    expect(where.OR).toContainEqual({ guardianPhone: { in: ['9876543210'] } })
     expect(where.OR).toContainEqual({ guardianEmail: 'guardian@example.com' })
   })
 

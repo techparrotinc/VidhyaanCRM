@@ -142,20 +142,14 @@ async function refundLateFailure(orgId: string, campaignId: string): Promise<voi
   })
   if (!spendLedger) return // BYO campaign — wallet was never debited
 
-  const campaign = await prisma.campaign.findUnique({
-    where: { id: campaignId },
-    select: { whatsappTemplateId: true, orgId: true }
-  })
-  if (!campaign) return
-
-  let creditsPerMessage = 1
-  if (campaign.whatsappTemplateId) {
-    const tpl = await prisma.whatsappTemplate.findFirst({
-      where: { id: campaign.whatsappTemplateId, orgId: campaign.orgId },
-      select: { metaCategory: true }
-    })
-    if (tpl?.metaCategory === 'MARKETING') creditsPerMessage = 2
-  }
+  // Derive what was actually charged per recipient at send time, instead of
+  // re-deriving the template's CURRENT metaCategory — if the category
+  // changed between send and this later delivery-failure webhook (org
+  // admin/catalog edit), re-deriving would over- or under-refund relative
+  // to what the org was actually billed.
+  const recipientCount = await prisma.campaignRecipient.count({ where: { campaignId } })
+  const totalDebited = Math.abs(Number(spendLedger.delta))
+  const creditsPerMessage = recipientCount > 0 ? Math.round(totalDebited / recipientCount) : 1
 
   await refundCredits(
     orgId,
@@ -260,6 +254,12 @@ async function processInbound(
       select: { orgId: true }
     })
 
+    // A duplicate webhook redelivery hits the wamid unique constraint here —
+    // that used to be swallowed and execution fell straight through to the
+    // staff-notification block below regardless, so a Meta retry produced a
+    // fresh "WhatsApp reply received" alert every time even though nothing
+    // new was stored. Only notify on a genuine first insert.
+    let isNewInbound = true
     await prisma.whatsappInboundMessage
       .create({
         data: {
@@ -269,9 +269,9 @@ async function processInbound(
           orgId: lastOutbound?.orgId ?? null
         }
       })
-      .catch(() => {}) // duplicate wamid on webhook retry — already stored
+      .catch(() => { isNewInbound = false })
 
-    if (lastOutbound?.orgId) {
+    if (isNewInbound && lastOutbound?.orgId) {
       const admins = await prisma.user.findMany({
         where: {
           orgId: lastOutbound.orgId,

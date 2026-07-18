@@ -111,18 +111,22 @@ export async function sendCampaignWhatsApp(params: {
 
   const parameterTexts = params.parameters ?? [params.body]
 
+  // Opt-out is a property of the recipient's phone number, not of which
+  // WhatsApp account sends to it — this previously only ran for the shared
+  // Vidhyaan/Meta path, so an org using its own MSG91 BYO credentials could
+  // message someone who had explicitly opted out (a real compliance gap,
+  // not just a missed edge case).
+  const optedOut = await prisma.whatsappOptOut.findUnique({
+    where: { phone: formattedPhone.slice(-10) },
+    select: { id: true }
+  })
+  if (optedOut) {
+    throw new Error('Recipient has opted out of WhatsApp messages')
+  }
+
   // Platform shared account prefers direct Meta Cloud API when configured in
   // admin settings; BYO org credentials always stay on their own MSG91 route.
   if (!params.credentials) {
-    // The shared number carries one sender identity — honour global opt-outs.
-    const optedOut = await prisma.whatsappOptOut.findUnique({
-      where: { phone: formattedPhone.slice(-10) },
-      select: { id: true }
-    })
-    if (optedOut) {
-      throw new Error('Recipient has opted out of WhatsApp messages')
-    }
-
     const meta = await getMetaWhatsAppConfig()
     if (meta.configured) {
       return sendMetaWhatsAppTemplate({

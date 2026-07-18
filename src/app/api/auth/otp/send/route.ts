@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     )
 
     if (channel === 'EMAIL') {
-      await sendTransactionalEmail({
+      const result = await sendTransactionalEmail({
         to: contactToUse,
         subject: "Your Vidhyaan OTP",
         htmlBody: otpEmailTemplate({
@@ -111,6 +111,23 @@ export async function POST(req: NextRequest) {
         }),
         textBody: `Your Vidhyaan OTP code is: ${code}`
       })
+      // deliver() silently no-ops on a suppressed address (no throw) — this
+      // was previously discarded, so a suppressed user's OTP request always
+      // reported "sent successfully" with no way to ever receive the code.
+      // Email is this flow's ONLY channel when the contact is an email (no
+      // automatic SMS fallback), so this was a real, permanent lockout.
+      if (!result.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: result.suppressed ? 'EMAIL_SUPPRESSED' : 'EMAIL_SEND_FAILED',
+            message: result.suppressed
+              ? 'This email address cannot receive mail (previous delivery failure on record). Contact support to resolve, or use a phone number instead.'
+              : 'Could not send the code. Please try again in a moment.'
+          },
+          { status: 502 }
+        )
+      }
     } else {
       await sendOTP(contactToUse, code, channel, mappedPurpose, { orgId: existingUser?.orgId })
     }

@@ -43,32 +43,48 @@ export async function sendMetaWhatsAppTemplate(params: MetaSendParams): Promise<
         ]
       : []
 
-  const response = await fetch(`${GRAPH_BASE}/${params.phoneNumberId}/messages`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${params.accessToken}`
-    },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      to: formattedPhone,
-      type: 'template',
-      template: {
-        name: params.templateName,
-        language: { code: params.language ?? 'en' },
-        components
-      }
-    })
+  const body = JSON.stringify({
+    messaging_product: 'whatsapp',
+    to: formattedPhone,
+    type: 'template',
+    template: {
+      name: params.templateName,
+      language: { code: params.language ?? 'en' },
+      components
+    }
   })
 
-  const data: any = await response.json().catch(() => null)
-  if (!response.ok) {
-    throw new MetaWhatsAppError(
-      data?.error?.message || 'Meta WhatsApp send failed',
-      data?.error?.code
-    )
+  // Meta's 429 previously threw immediately — no backoff at all, so a burst
+  // of sends (e.g. a large campaign batch) hitting Meta's rate limit just
+  // failed every recipient in the burst instead of spacing out. One retry
+  // after a short backoff (Meta's Retry-After if given, else 2s) covers the
+  // common transient case without adding real latency to the normal path.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetch(`${GRAPH_BASE}/${params.phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${params.accessToken}`
+      },
+      body
+    })
+
+    if (response.status === 429 && attempt === 0) {
+      const retryAfterSec = Number(response.headers.get('retry-after'))
+      await new Promise(r => setTimeout(r, (Number.isFinite(retryAfterSec) && retryAfterSec > 0 ? retryAfterSec : 2) * 1000))
+      continue
+    }
+
+    const data: any = await response.json().catch(() => null)
+    if (!response.ok) {
+      throw new MetaWhatsAppError(
+        data?.error?.message || 'Meta WhatsApp send failed',
+        data?.error?.code
+      )
+    }
+    return data?.messages?.[0]?.id ?? null
   }
-  return data?.messages?.[0]?.id ?? null
+  throw new MetaWhatsAppError('Meta WhatsApp send failed after rate-limit retry')
 }
 
 /**

@@ -31,7 +31,8 @@ import {
   PanelLeftOpen,
   Loader2,
   UserCircle,
-  Building
+  Building,
+  MailX
 } from 'lucide-react'
 
 interface SearchResults {
@@ -182,6 +183,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'WhatsApp Templates', href: '/admin/whatsapp-templates', icon: MessageCircle },
     { label: 'Announcements', href: '/admin/announcements', icon: Megaphone },
     { label: 'Audit Logs', href: '/admin/audit-logs', icon: History },
+    { label: 'Email Suppressions', href: '/admin/email-suppressions', icon: MailX },
     { label: 'Settings', href: '/admin/settings', icon: Settings },
   ]
 

@@ -82,11 +82,11 @@ export async function createOTP(
   return code
 }
 
-async function sendOtpEmail(email: string, code: string): Promise<void> {
+async function sendOtpEmail(email: string, code: string): Promise<{ success: boolean; suppressed?: boolean }> {
   const token = process.env.ZEPTOMAIL_API_TOKEN
   if (!token) {
     console.warn('Skipping email OTP send: ZEPTOMAIL_API_TOKEN is not configured')
-    return
+    return { success: false }
   }
 
   const html = `
@@ -103,7 +103,12 @@ async function sendOtpEmail(email: string, code: string): Promise<void> {
   `
 
   try {
-    await sendTransactionalEmail({
+    // deliver() doesn't throw on a suppressed address, it returns
+    // {success:false, suppressed:true} — previously discarded here, so a
+    // suppressed recipient's OTP silently vanished with the caller none the
+    // wiser. Propagate it so callers can tell the user, instead of always
+    // reporting success.
+    return await sendTransactionalEmail({
       to: email,
       subject: 'Vidhyaan - Verification Code',
       htmlBody: html,
@@ -111,6 +116,7 @@ async function sendOtpEmail(email: string, code: string): Promise<void> {
     })
   } catch (err) {
     console.error('Failed to send OTP email via ZeptoMail:', err)
+    return { success: false }
   }
 }
 
@@ -149,7 +155,7 @@ export async function sendOTP(
   channel: OtpChannel,
   purpose?: OtpPurpose,
   opts?: { orgId?: string | null }
-): Promise<void> {
+): Promise<{ success: boolean; suppressed?: boolean }> {
   const isDev = process.env.NODE_ENV === 'development' && process.env.FORCE_REAL_OTP !== 'true'
 
   if (isDev) {
@@ -159,7 +165,7 @@ export async function sendOTP(
     console.log('Channel:', channel)
     console.log('Purpose:', purpose)
     console.log('='.repeat(40))
-    return
+    return { success: true }
   }
 
   if (channel === 'SMS') {
@@ -191,9 +197,12 @@ export async function sendOTP(
     if (!(pref === 'WHATSAPP' && waDelivered)) {
       await sendOtpSms(contact, code, templateId)
     }
+    return { success: true }
   }
 
   if (channel === 'EMAIL') {
-    await sendOtpEmail(contact, code)
+    return sendOtpEmail(contact, code)
   }
+
+  return { success: true }
 }

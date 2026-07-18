@@ -363,11 +363,16 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // ── 9. Retention: message logs older than 12 months
+  // ── 9. Retention: message logs older than 12 months. FAILED sends are kept
+  // — those are exactly what a support/delivery-dispute investigation needs
+  // to look back at, and they're a small minority of the table, not worth
+  // purging for storage. WhatsappInboundMessage has no status/flag column to
+  // exclude on (no "complaint" concept exists in the schema today), so
+  // inbound purge stays unconditional until that's added.
   const cutoff = new Date()
   cutoff.setMonth(cutoff.getMonth() - 12)
   const [prunedOut, prunedIn] = await Promise.all([
-    prisma.whatsappMessage.deleteMany({ where: { createdAt: { lt: cutoff } } }),
+    prisma.whatsappMessage.deleteMany({ where: { createdAt: { lt: cutoff }, status: { not: 'FAILED' } } }),
     prisma.whatsappInboundMessage.deleteMany({ where: { createdAt: { lt: cutoff } } })
   ])
   if (prunedOut.count || prunedIn.count) {

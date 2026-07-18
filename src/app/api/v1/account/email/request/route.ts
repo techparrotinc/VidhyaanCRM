@@ -28,7 +28,14 @@ export const POST = route({
     if (!rl.success) throw Errors.rateLimited()
 
     const code = await createOTP(email, 'EMAIL', 'VERIFY_EMAIL')
-    await sendOTP(email, code, 'EMAIL', 'VERIFY_EMAIL')
+    const result = await sendOTP(email, code, 'EMAIL', 'VERIFY_EMAIL')
+    if (!result.success) {
+      throw Errors.businessRule(
+        result.suppressed
+          ? 'This email address cannot receive mail (previous delivery failure on record). Try a different address or contact support.'
+          : 'Could not send the verification code. Please try again in a moment.'
+      )
+    }
 
     return ok({ sent: true })
   },

@@ -49,7 +49,19 @@ export async function POST(req: NextRequest) {
       ipAddress
     )
 
-    await sendOTP(emailAddress, code, 'EMAIL', OtpPurpose.VERIFY_EMAIL)
+    const result = await sendOTP(emailAddress, code, 'EMAIL', OtpPurpose.VERIFY_EMAIL)
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.suppressed ? 'EMAIL_SUPPRESSED' : 'EMAIL_SEND_FAILED',
+          message: result.suppressed
+            ? 'This email address cannot receive mail (previous delivery failure on record). Update the school contact email or contact support.'
+            : 'Could not send the verification code. Please try again in a moment.'
+        },
+        { status: 502 }
+      )
+    }
 
     return NextResponse.json({
       success: true,

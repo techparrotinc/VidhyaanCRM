@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { cache } from 'react'
 import { prisma } from '@/lib/db'
+import { buildSchoolFaqs } from '@/lib/marketplace/school-faq'
 import SchoolProfileClient from './SchoolProfileClient'
 
 const getSchoolSeo = cache(async (slug: string) => {
@@ -135,12 +136,30 @@ export default async function SchoolProfilePage(
       }
     : null
 
+  const faqJsonLd = school
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: buildSchoolFaqs(school).map((f) => ({
+          '@type': 'Question',
+          name: f.q,
+          acceptedAnswer: { '@type': 'Answer', text: f.a },
+        })),
+      }
+    : null
+
   return (
     <>
       {jsonLd && (
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      {faqJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         />
       )}
       <SchoolProfileClient />

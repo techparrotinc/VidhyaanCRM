@@ -29,5 +29,28 @@ export default async function LearningCentersSearchPage(
     limit: 10,
   }).catch(() => null)
 
-  return <LearningCentersSearchClient initialCenters={initial?.data} />
+  const itemListJsonLd = initial?.data?.length
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        itemListElement: initial.data.map((c: any, i: number) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: c.name,
+          url: `https://vidhyaan.com/learning-centers/${c.slug}`,
+        })),
+      }
+    : null
+
+  return (
+    <>
+      {itemListJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+        />
+      )}
+      <LearningCentersSearchClient initialCenters={initial?.data} />
+    </>
+  )
 }

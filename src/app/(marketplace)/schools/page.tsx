@@ -31,10 +31,31 @@ export default async function SchoolsSearchPage(
     limit: 10,
   }).catch(() => null)
 
+  const itemListJsonLd = initial?.data?.length
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        itemListElement: initial.data.map((s: any, i: number) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: s.name,
+          url: `https://vidhyaan.com/schools/${s.slug}`,
+        })),
+      }
+    : null
+
   return (
-    <SchoolsSearchClient
-      initialSchools={initial?.data}
-      initialPagination={initial?.pagination}
-    />
+    <>
+      {itemListJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+        />
+      )}
+      <SchoolsSearchClient
+        initialSchools={initial?.data}
+        initialPagination={initial?.pagination}
+      />
+    </>
   )
 }

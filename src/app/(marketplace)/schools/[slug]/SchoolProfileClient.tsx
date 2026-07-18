@@ -1,6 +1,7 @@
 "use client"
 
 import { appAlert } from '@/components/ui/app-alert'
+import { buildSchoolFaqs } from '@/lib/marketplace/school-faq'
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -1553,6 +1554,22 @@ export default function SchoolProfilePage() {
 
           {/* SECTION: LOCATION */}
           <GatedWrapper isGated={isGated} onRegister={() => setRegisterModalOpen(true)} showOverlay={false}>
+            {/* FAQ — visible copy for the FAQPage JSON-LD emitted by the server page */}
+            <section id="faq" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Frequently Asked Questions</h3>
+              <div className="divide-y divide-slate-100">
+                {buildSchoolFaqs(school).map((f, idx) => (
+                  <details key={idx} className="group py-3">
+                    <summary className="flex items-center justify-between cursor-pointer list-none text-sm font-semibold text-slate-800">
+                      {f.q}
+                      <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 transition-transform group-open:rotate-180" />
+                    </summary>
+                    <p className="text-sm font-normal leading-relaxed text-slate-500 mt-2">{f.a}</p>
+                  </details>
+                ))}
+              </div>
+            </section>
+
             <section id="location" className="bg-white p-6 md:p-8 rounded-2xl border border-slate-200 shadow-sm scroll-mt-28 space-y-6">
             <h3 className="text-xs font-black uppercase tracking-wider text-[#1565D8]">Location & Contact</h3>
             

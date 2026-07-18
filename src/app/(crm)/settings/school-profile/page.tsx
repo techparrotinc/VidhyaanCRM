@@ -95,6 +95,7 @@ interface SchoolData {
   id: string
   name: string
   slug: string
+  updatedAt: string
   institutionType: 'SCHOOL' | 'LEARNING_CENTER' | 'COACHING_CENTER' | 'JUNIOR_COLLEGE' | 'SKILL_DEVELOPMENT' | 'SPORTS_ACADEMY'
   description: string | null
   schoolType: string | null
@@ -398,7 +399,8 @@ export default function SchoolProfilePage() {
           totalTeachers,
           mediumOfInstruction,
           gradesOffered: grades,
-          gender
+          gender,
+          expectedUpdatedAt: school?.updatedAt
         })
       })
       const data = await res.json()
@@ -433,7 +435,8 @@ export default function SchoolProfilePage() {
           phoneSecondary,
           email,
           website,
-          mapsLink
+          mapsLink,
+          expectedUpdatedAt: school?.updatedAt
         })
       })
       const data = await res.json()
@@ -489,6 +492,7 @@ export default function SchoolProfilePage() {
         payload.affiliationNo = affiliationNo
         payload.mediumOfInstruction = mediumOfInstruction
       }
+      payload.expectedUpdatedAt = school?.updatedAt
 
       const res = await fetch('/api/v1/school-profile', {
         method: 'PUT',
@@ -642,14 +646,17 @@ export default function SchoolProfilePage() {
   const handleSaveMediaOrder = async () => {
     setSaving(true)
     try {
-      // Since setting sort order PUT updates the db, we can put standard updates or swap.
-      // To keep it simple, we can save order by modifying putting sorted media IDs or sorting them sequentially
-      // For this implementation, we will update the sortOrder of all media in gallery tab manually.
-      // We will do updates sequentially or send the array to bulk reorder.
-      // Since we don't have a bulk reorder, we can just PUT them individually or simulate the update success.
+      const ids = [...mediaList].sort((a, b) => a.sortOrder - b.sortOrder).map((m) => m.id)
+      const res = await fetch('/api/v1/school-profile/media/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'Failed to save photo order')
       appAlert('Photo order saved successfully!')
-    } catch (e) {
-      console.error(e)
+    } catch (e: any) {
+      appAlert(e.message || 'Failed to save photo order')
     } finally {
       setSaving(false)
     }
@@ -744,7 +751,8 @@ export default function SchoolProfilePage() {
           admissionOpen,
           academicYear,
           admissionDeadline: admissionDeadline || null,
-          admissionFormLink
+          admissionFormLink,
+          expectedUpdatedAt: school?.updatedAt
         })
       })
       const data = await res.json()

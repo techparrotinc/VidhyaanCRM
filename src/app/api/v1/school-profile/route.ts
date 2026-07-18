@@ -133,7 +133,27 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'School not found' }, { status: 404 })
     }
 
-    const parsed = updateProfileSchema.safeParse(await req.json())
+    const rawBody = await req.json()
+
+    // Optimistic lock: Contact and Academics/Affiliations are a full
+    // delete-then-recreate on every save with no version check, so two
+    // staff saving the same tab at once silently lost whichever entries the
+    // slower save didn't know about (last-write-wins). The client sends
+    // back the updatedAt it last read; a mismatch means someone else saved
+    // in between, so this request is rejected before touching anything
+    // rather than clobbering their change.
+    if (rawBody.expectedUpdatedAt) {
+      const expected = new Date(rawBody.expectedUpdatedAt).getTime()
+      const actual = school.updatedAt.getTime()
+      if (Number.isFinite(expected) && expected !== actual) {
+        return NextResponse.json(
+          { error: 'This profile was updated elsewhere since you loaded it. Reload the page and try again.' },
+          { status: 409 }
+        )
+      }
+    }
+
+    const parsed = updateProfileSchema.safeParse(rawBody)
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
@@ -141,6 +161,23 @@ export async function PUT(req: NextRequest) {
       )
     }
     const body = parsed.data
+
+    // Type-specific fields (Academics tab shows one set or the other, never
+    // both) were only kept apart by UI copy — the schema had no
+    // institutionType-conditional check, so a SCHOOL org could POST
+    // LEARNING_CENTER fields (activityTypes/age range/trial flag) directly
+    // and vice versa. Strip whichever set doesn't apply to this org's actual
+    // (server-side) institutionType rather than trusting the client.
+    const isLc = school.institutionType === 'LEARNING_CENTER'
+    if (isLc) {
+      delete body.boards
+      delete body.affiliationNo
+    } else {
+      delete body.activityTypes
+      delete body.ageGroupMin
+      delete body.ageGroupMax
+      delete body.trialClassAvailable
+    }
 
     // 1. Extract and update school-level fields
     const schoolFields: any = {}

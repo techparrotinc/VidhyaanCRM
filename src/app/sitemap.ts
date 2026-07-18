@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import { prisma } from '@/lib/db'
+import { getHubCities, BOARD_HUBS, HUB_MIN_SCHOOLS } from '@/lib/marketplace/hubs'
 
 export const revalidate = 86400 // revalidate sitemap once a day
 
@@ -69,5 +70,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   })
 
-  return [...staticRoutes, ...dynamicRoutes]
+  // 3. City/board hub pages (only those above the thin-content threshold)
+  const hubCities = await getHubCities().catch(() => [])
+  const cityHubRoutes: MetadataRoute.Sitemap = hubCities.map((c) => ({
+    url: `${baseUrl}/schools/${c.slug}`,
+    lastModified: currentDate,
+    changeFrequency: 'daily',
+    priority: 0.8,
+  }))
+
+  const boardCounts = await prisma.schoolAffiliation
+    .groupBy({
+      by: ['board'],
+      where: { school: { isPublished: true, isDummy: false, deletedAt: null } },
+      _count: true,
+    })
+    .catch(() => [])
+  const boardHubRoutes: MetadataRoute.Sitemap = Object.entries(BOARD_HUBS)
+    .filter(([, board]) =>
+      boardCounts.some((b) => b.board.toLowerCase().includes(board.toLowerCase()) && b._count >= HUB_MIN_SCHOOLS)
+    )
+    .map(([slug]) => ({
+      url: `${baseUrl}/schools/${slug}`,
+      lastModified: currentDate,
+      changeFrequency: 'daily',
+      priority: 0.8,
+    }))
+
+  return [...staticRoutes, ...cityHubRoutes, ...boardHubRoutes, ...dynamicRoutes]
 }

@@ -2,6 +2,8 @@ import { Metadata } from 'next'
 import { cache } from 'react'
 import { prisma } from '@/lib/db'
 import { buildSchoolFaqs } from '@/lib/marketplace/school-faq'
+import { resolveHubSlug, HUB_MIN_SCHOOLS } from '@/lib/marketplace/hubs'
+import SchoolHubPage, { getHubSchools, hubTitle, hubDescription } from '@/components/marketplace/SchoolHubPage'
 import SchoolProfileClient from './SchoolProfileClient'
 
 const getSchoolSeo = cache(async (slug: string) => {
@@ -48,6 +50,23 @@ export async function generateMetadata(
   const school = await getSchoolSeo(slug).catch(() => null)
 
   if (!school) {
+    // Not a school slug — try a city/board hub (e.g. /schools/chennai, /schools/cbse)
+    const hub = await resolveHubSlug(slug).catch(() => null)
+    if (hub) {
+      const result = await getHubSchools(hub).catch(() => null)
+      const total = result?.pagination.total ?? 0
+      const title = hubTitle(hub)
+      const description = hubDescription(hub, total)
+      const canonical = `https://vidhyaan.com/schools/${hub.slug}`
+      return {
+        title,
+        description,
+        alternates: { canonical },
+        openGraph: { title, description, url: canonical },
+        // thin-content guard: hubs with too few schools stay out of the index
+        ...(total < HUB_MIN_SCHOOLS ? { robots: { index: false } } : {}),
+      }
+    }
     return {
       title: 'School Profile',
       robots: { index: false },
@@ -91,6 +110,13 @@ export default async function SchoolProfilePage(
 ) {
   const { slug } = await params
   const school = await getSchoolSeo(slug).catch(() => null)
+
+  if (!school) {
+    const hub = await resolveHubSlug(slug).catch(() => null)
+    if (hub) {
+      return <SchoolHubPage hub={hub} />
+    }
+  }
 
   const location = school?.locations[0]
   const phone = school?.contacts.find((c) => c.type === 'phone')?.value

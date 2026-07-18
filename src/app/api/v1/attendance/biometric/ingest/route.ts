@@ -13,6 +13,7 @@ import { z } from 'zod'
 import { createHash } from 'crypto'
 import { prisma } from '@/lib/db/client'
 import { processBiometricEvents } from '@/lib/attendance/biometric'
+import { windowLimiter } from '@/lib/ratelimit'
 
 const bodySchema = z.object({
   records: z
@@ -37,6 +38,15 @@ export async function POST(req: NextRequest) {
   })
   if (!device || !device.isActive) {
     return NextResponse.json({ success: false, error: 'Invalid device key' }, { status: 401 })
+  }
+
+  // Per-device, not per-IP — the device key is already the auth boundary,
+  // and multiple legitimate devices can share a NAT'd IP. 60/min is well
+  // above what a real punch-clock device pushes, just enough to stop a
+  // flood (malfunctioning firmware or a leaked key) from hammering the DB.
+  const limit = await windowLimiter(`biometric-ingest:${device.id}`, 60, 60)
+  if (!limit.success) {
+    return NextResponse.json({ success: false, error: 'Too many requests' }, { status: 429 })
   }
 
   let body: z.infer<typeof bodySchema>

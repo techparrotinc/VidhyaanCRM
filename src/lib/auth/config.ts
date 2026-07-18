@@ -230,6 +230,17 @@ const authConfig: NextAuthConfig = {
               where: { id: result.userId, status: 'ACTIVE' }
             })
             if (!user) return null
+
+            // This branch predates the challenge-token flow and is unreachable
+            // from the current login UI (which always goes through
+            // /api/auth/2fa/challenge -> challengeToken), but NextAuth's
+            // credentials provider is directly callable, so it's still a live
+            // bypass: an enrolled user's 2FA was never checked here. Refuse
+            // to mint a session for anyone enrolled — the only session a 2FA
+            // user can get comes from the challengeToken branch above.
+            const { isEnrolled } = await import('@/lib/auth/twofactor')
+            if (await isEnrolled(user.id)) return null
+
             try {
               const resolved = await resolveActiveRoleAssignment(
                 user.id,
@@ -322,6 +333,17 @@ const authConfig: NextAuthConfig = {
               data: { status: 'ACTIVE' }
             })
           }
+
+          // This branch is live (parent OTP login, school-claim phone
+          // verification both call it directly, bypassing the
+          // challenge-token flow) but never checked 2FA — an enrolled
+          // staff user's second factor was never required if they hit this
+          // path instead of /login. Parents/claim-profile accounts never
+          // enrol 2FA, so this is a no-op for them and only blocks the
+          // bypass for staff who are actually enrolled.
+          const { isEnrolled } = await import('@/lib/auth/twofactor')
+          if (await isEnrolled(user.id)) return null
+
           try {
             const resolved = await resolveActiveRoleAssignment(
               user.id,

@@ -7,6 +7,8 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { AttendanceStatus } from '@prisma/client'
 import { DATE_RE, toDbDate, isWorkingDay } from '@/lib/attendance/dates'
+import { istDateString } from '@/lib/reports/rollup'
+import { prisma } from '@/lib/db/client'
 import { resolveAttendanceSettings } from '@/lib/attendance/settings'
 import { assertCanMark, getTeacherAssignments, ATTENDANCE_ADMIN_ROLES } from '@/lib/attendance/access'
 import { sendAbsenceAlerts } from '@/lib/attendance/alerts'
@@ -116,6 +118,9 @@ export const POST = route({
   roles: MARK_ROLES,
   handler: async ({ req, db, user, academicYearId }) => {
     const body = saveSchema.parse(await req.json())
+    if (body.date > istDateString()) {
+      throw Errors.validation({ date: ['Cannot mark attendance for a future date'] })
+    }
     const date = toDbDate(body.date)
     const sessionKey = body.sessionId ?? 'DAY'
 
@@ -145,6 +150,15 @@ export const POST = route({
     )
     const entries = body.entries.filter(e => validIds.has(e.studentId))
 
+    // Pre-fetch existing marks so a genuine correction (status actually
+    // changing on an already-marked record) can be audit-logged after the
+    // save — corrections previously overwrote silently with no history.
+    const existing = await db.attendanceRecord.findMany({
+      where: { orgId: user.orgId, date, sessionKey, studentId: { in: entries.map(e => e.studentId) } },
+      select: { studentId: true, status: true }
+    })
+    const existingByStudent = new Map(existing.map(r => [r.studentId, r.status]))
+
     const saved = await db.$transaction(
       entries.map(e =>
         db.attendanceRecord.upsert({
@@ -170,11 +184,35 @@ export const POST = route({
           update: {
             status: e.status,
             note: e.note ?? null,
-            updatedById: user.id
+            updatedById: user.id,
+            // A manual save always claims the record as manually-sourced —
+            // otherwise a correction to a BIOMETRIC-sourced record left the
+            // source unchanged, so a later biometric punch could silently
+            // re-overwrite the teacher's correction (biometric ingest only
+            // skips records already sourced MANUAL/API).
+            source: 'MANUAL'
           }
         })
       )
     )
+
+    // Fire-and-forget: audit trail for corrections (status changed on an
+    // already-marked record) — attendance is compliance-sensitive and the
+    // upsert has no other history; skips fresh first-time marks.
+    const corrections = entries
+      .filter(e => existingByStudent.has(e.studentId) && existingByStudent.get(e.studentId) !== e.status)
+      .map(e => ({
+        orgId: user.orgId,
+        userId: user.id,
+        action: 'UPDATE' as const,
+        entityType: 'ATTENDANCE_RECORD',
+        entityId: e.studentId,
+        before: { date: body.date, sessionKey, status: existingByStudent.get(e.studentId) },
+        after: { date: body.date, sessionKey, status: e.status }
+      }))
+    if (corrections.length) {
+      prisma.auditLog.createMany({ data: corrections }).catch(err => console.error('attendance correction audit failed:', err))
+    }
 
     // Fire-and-forget: guardian alerts for records now ABSENT (today only).
     sendAbsenceAlerts(user.orgId, body.date, saved.filter(r => r.status === 'ABSENT').map(r => r.id))

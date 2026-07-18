@@ -161,7 +161,11 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
               </span>
             </span>
             <button
-              onClick={() => signOut({ callbackUrl: '/login' })}
+              onClick={() => {
+                fetch('/api/admin/impersonate/end', { method: 'POST' })
+                  .catch(() => {})
+                  .finally(() => signOut({ callbackUrl: '/login' }))
+              }}
               className="shrink-0 bg-white/20 hover:bg-white/30 border border-white/40 rounded-lg px-3 py-1 transition"
             >
               Exit Impersonation

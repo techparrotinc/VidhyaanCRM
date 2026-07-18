@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { AuditAction } from '@prisma/client'
+import { revokeUser } from '@/lib/auth/roleRevocation'
 
 /**
  * SUPER_ADMIN escape hatch: reset (remove) a user's second-factor enrolment
@@ -36,6 +37,11 @@ export async function POST(req: NextRequest) {
   }
 
   await prisma.userTwoFactor.delete({ where: { userId } })
+
+  // This is the lost/compromised-device recovery path — exactly when any
+  // lingering session on that device should stop working, not just future
+  // logins gate on the new enrolment.
+  await revokeUser(userId).catch(err => console.error('revokeUser after admin 2FA reset failed:', err))
 
   await prisma.auditLog.create({
     data: {

@@ -8,6 +8,7 @@ import {
   orgPolicyRequires
 } from '@/lib/auth/twofactor'
 import { AuditAction } from '@prisma/client'
+import { revokeUser } from '@/lib/auth/roleRevocation'
 
 /**
  * Turn off 2FA. Requires a current second factor (proves possession, not just
@@ -47,6 +48,12 @@ export async function POST(req: NextRequest) {
   }
 
   await prisma.userTwoFactor.delete({ where: { userId } })
+
+  // Force every other active session (e.g. a stolen one the legitimate user
+  // doesn't know about) to re-authenticate — 2FA state changing is exactly
+  // the kind of security-sensitive event that should invalidate whatever
+  // sessions already exist, not just gate new ones.
+  await revokeUser(userId).catch(err => console.error('revokeUser after 2FA disable failed:', err))
 
   try {
     await prisma.auditLog.create({

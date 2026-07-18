@@ -10,6 +10,7 @@ import {
   getTwoFactorState
 } from '@/lib/auth/twofactor'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
+import { windowLimiter } from '@/lib/ratelimit'
 
 /**
  * Begin enrolment. The chosen method decides what the client must confirm:
@@ -43,11 +44,26 @@ export async function POST(req: NextRequest) {
 
   if (method === 'TOTP') {
     const account = session.user.email || session.user.phone || userId
-    const secret = generateTotpSecret()
+
+    // A second concurrent/accidental start call previously generated a new
+    // secret and silently overwrote the pending one in Redis — invalidating
+    // a QR the user may have already scanned, with no warning. Reuse the
+    // existing pending TOTP secret instead of regenerating, so repeated
+    // start calls are idempotent (same QR every time) until it's confirmed
+    // or the 5-minute window lapses.
+    const pendingRaw = await redis.get(`mfa_enroll:${userId}`)
+    let secret: string
+    if (pendingRaw) {
+      const pending = JSON.parse(pendingRaw) as { method: string; secret?: string }
+      secret = pending.method === 'TOTP' && pending.secret ? pending.secret : generateTotpSecret()
+    } else {
+      secret = generateTotpSecret()
+    }
     const otpauthUri = buildOtpAuthUri(secret, account)
     const qrDataUri = await QRCode.toDataURL(otpauthUri)
 
     // Stash pending secret; confirm step reads it and persists encrypted.
+    // Resets the 5-min TTL on every call, including reuse.
     await redis.set(`mfa_enroll:${userId}`, JSON.stringify({ method, secret }), 'EX', 300)
 
     return NextResponse.json({
@@ -68,6 +84,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { success: false, error: 'NO_PHONE', message: 'Add a phone number before enabling SMS 2FA.' },
       { status: 400 }
+    )
+  }
+  const smsLimit = await windowLimiter(`mfa-sms:${user.phone}`, 3, 300)
+  if (!smsLimit.success) {
+    return NextResponse.json(
+      { success: false, error: 'TOO_MANY_SMS', message: 'Too many code requests. Try again in a few minutes.' },
+      { status: 429 }
     )
   }
   await redis.set(`mfa_enroll:${userId}`, JSON.stringify({ method }), 'EX', 300)

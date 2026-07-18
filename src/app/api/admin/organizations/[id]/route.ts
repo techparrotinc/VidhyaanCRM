@@ -143,6 +143,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     const { name, email, phone, institutionType, status, planId, leadCap, trialEndsAt, notes, billingDiscountPct } = parsed.data
 
+    // Org suspension/reactivation, plan force-changes, and billing discounts
+    // are the same tier of sensitivity as /admin/settings and /admin/revenue
+    // — both already SUPER_ADMIN/OPERATIONS_ADMIN only. SUPPORT_ADMIN could
+    // otherwise suspend an org or grant a 50% discount despite being walled
+    // off from those adjacent pages.
+    const sensitiveFieldsRequested =
+      status !== undefined || planId !== undefined || billingDiscountPct !== undefined
+    if (sensitiveFieldsRequested && !['SUPER_ADMIN', 'OPERATIONS_ADMIN'].includes(admin.role)) {
+      return NextResponse.json(
+        { error: 'Only Super Admin or Operations Admin can change status, plan, or billing discount' },
+        { status: 403 }
+      )
+    }
+
     // Find existing organization
     const org = await prisma.organization.findUnique({
       where: { id, deletedAt: null }

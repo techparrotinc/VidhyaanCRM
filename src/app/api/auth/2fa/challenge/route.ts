@@ -11,6 +11,7 @@ import {
 } from '@/lib/auth/resolveRoleAssignment'
 import { getTwoFactorState } from '@/lib/auth/twofactor'
 import { createOTP, sendOTP } from '@/lib/auth/otp'
+import { windowLimiter } from '@/lib/ratelimit'
 
 /**
  * Primary-factor gate that precedes NextAuth signIn. Verifies the primary
@@ -138,6 +139,17 @@ export async function POST(req: NextRequest) {
       })
       if (user?.phone) {
         maskedPhone = maskPhone(user.phone)
+        // createOTP has no throttle of its own — it just deletes any prior
+        // unconsumed code and issues a fresh one. Without a cap here, every
+        // primary-factor attempt (or a scripted loop of them) sends a new
+        // SMS, an unmetered SMS-bombing vector against an arbitrary phone.
+        const smsLimit = await windowLimiter(`mfa-sms:${user.phone}`, 3, 300)
+        if (!smsLimit.success) {
+          return NextResponse.json(
+            { success: false, error: 'TOO_MANY_SMS', message: 'Too many code requests. Try again in a few minutes.' },
+            { status: 429 }
+          )
+        }
         const otpCode = await createOTP(user.phone, 'SMS', 'MFA')
         await sendOTP(user.phone, otpCode, 'SMS', 'MFA')
       }

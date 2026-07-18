@@ -106,6 +106,7 @@ enum AuditAction {
   PIN_SET
   PIN_RESET
   IMPERSONATION_START
+  IMPERSONATION_END
 
   @@schema("platform")
 }

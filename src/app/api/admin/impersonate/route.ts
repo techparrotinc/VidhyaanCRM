@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
 import { AuditAction } from '@prisma/client'
 import { resolveTargetUserRole } from '@/lib/auth/resolveTargetUserRole'
+import { PLATFORM_ADMIN_ROLES } from '@/lib/admin-auth'
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,6 +37,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Target user not found in this organization' }, { status: 404 })
     }
 
+    // User.orgId is null-by-convention for platform-level users, so this
+    // path is normally unreachable for a platform admin — but that's a
+    // convention, not a DB constraint. Block explicitly rather than trust it.
+    const resolvedTargetRole = await resolveTargetUserRole(targetUser.id, targetUser.orgId)
+    if (resolvedTargetRole && PLATFORM_ADMIN_ROLES.includes(resolvedTargetRole)) {
+      return NextResponse.json({ error: 'Cannot impersonate a platform admin account' }, { status: 403 })
+    }
+
     // Generate impersonation token
     const impersonateToken = crypto.randomUUID()
 
@@ -50,8 +59,6 @@ export async function POST(req: NextRequest) {
     // Create Audit Log
     const ipAddress = req.headers.get('x-forwarded-for') ?? undefined
     const userAgent = req.headers.get('user-agent') ?? undefined
-
-    const resolvedTargetRole = await resolveTargetUserRole(targetUser.id, targetUser.orgId)
 
     await prisma.auditLog.create({
       data: {

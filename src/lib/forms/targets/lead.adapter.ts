@@ -1,7 +1,7 @@
 import { cleanPhoneNumber } from '@/lib/utils'
 import { nextLeadCode } from '@/lib/lead-code'
 import { admissionNoun } from '@/lib/institution'
-import { normName } from '@/lib/dedup/config'
+import { findMatches, loadDedupConfig } from '@/lib/dedup'
 import type { CanonicalKey } from '../types'
 import type { TargetAdapter, AdapterContext } from './types'
 
@@ -79,29 +79,29 @@ export const leadAdapter: TargetAdapter = {
   async createFrom(db, { orgId, values, branchId, academicYearId }) {
     const base = canonicalToLead(values)
 
-    // Dedup: a public submission from a known phone updates that lead rather
-    // than minting a duplicate — but only when the child name also matches.
-    // Two siblings can share a household phone; matching on phone alone
-    // silently overwrote the first child's name/grade/everything with the
-    // second child's submission. Different child on the same phone now
-    // creates a separate lead instead.
-    const phoneNorm = base.phoneNormalized as string | undefined
-    if (phoneNorm) {
-      const candidates = await db.lead.findMany({
-        where: { orgId, phoneNormalized: phoneNorm, deletedAt: null },
-        orderBy: { createdAt: 'desc' },
-        select: { id: true, kidName: true },
-      })
-      // No child name on this submission → can't disambiguate siblings,
-      // fall back to phone-only (most recent) as before.
-      const submittedChild = normName(base.kidName as string | undefined)
-      const existing = submittedChild
-        ? candidates.find((c: any) => normName(c.kidName) === submittedChild)
-        : candidates[0]
-      if (existing) {
-        await db.lead.update({ where: { id: existing.id }, data: base })
-        return { id: existing.id }
-      }
+    // Dedup via the same fuzzy engine every other create path in the CRM
+    // uses (findMatches/hard-vs-soft rules, org-configurable) — a public
+    // form previously only checked exact phone+name equality, missing the
+    // engine's other hard-match combinations (e.g. phone+email) entirely.
+    // A public submission can't be interactively resolved the way a staff
+    // create can (no user to show a "possible duplicate" dialog to, no
+    // force:true), so only a HARD match updates the existing record — same
+    // person, safe to treat as a resubmission. A SOFT match or no match
+    // creates a new record; ambiguous cases are left for staff to merge
+    // manually via the CRM's own dedup tools rather than guessed here.
+    const dedupConfig = await loadDedupConfig(db, orgId)
+    const dedup = await findMatches(db, {
+      orgId,
+      phone: base.phone as string | undefined,
+      email: base.email as string | undefined,
+      childName: base.kidName as string | undefined,
+      grade: base.gradeSought as string | undefined,
+      academicYearId: academicYearId ?? null,
+    }, dedupConfig)
+    const hardLeadMatch = dedup.hardBlock ? dedup.matches.find(m => m.type === 'lead' && m.action === 'hard') : undefined
+    if (hardLeadMatch) {
+      await db.lead.update({ where: { id: hardLeadMatch.id }, data: base })
+      return { id: hardLeadMatch.id }
     }
 
     const leadCode = await nextLeadCode(orgId)

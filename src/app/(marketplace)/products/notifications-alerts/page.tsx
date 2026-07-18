@@ -3,6 +3,7 @@ import ProductFeaturePage from '@/components/marketplace/ProductFeaturePage'
 import { notificationsAlertsContent } from '@/content/products/notifications-alerts'
 
 export const metadata: Metadata = {
+  alternates: { canonical: 'https://vidhyaan.com/products/notifications-alerts' },
   title: 'Automated Notifications & Alerts for Schools & Parents | Vidhyaan',
   description: 'Fee due reminders, admission status updates, and payment confirmations — sent automatically, no manual follow-up. Included with every Vidhyaan CRM.',
 }

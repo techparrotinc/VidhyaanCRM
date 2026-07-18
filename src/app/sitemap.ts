@@ -16,8 +16,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/contact`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/about`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/pricing`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },
-    
+    { url: `${baseUrl}/for-schools`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/schools/compare`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.7 },
+
+    // Legal / trust pages
+    { url: `${baseUrl}/privacy-policy`, lastModified: currentDate, changeFrequency: 'monthly', priority: 0.3 },
+    { url: `${baseUrl}/terms-of-service`, lastModified: currentDate, changeFrequency: 'monthly', priority: 0.3 },
+
     // CRM Product Pages
+    { url: `${baseUrl}/products`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/products/admission-management`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/products/campaign-management`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/products/course-management`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.8 },

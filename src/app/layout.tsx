@@ -29,6 +29,21 @@ export const metadata: Metadata = {
     siteName: "Vidhyaan",
     type: "website",
     locale: "en_IN",
+    images: [
+      {
+        url: "/brand/vidhyaan-og-1200x630.png",
+        width: 1200,
+        height: 630,
+        alt: "Vidhyaan — Find & Compare Schools and Learning Centers in India",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Vidhyaan — School CRM & Marketplace",
+    description:
+      "Compare verified schools and learning centres across India by board, fees and reviews. Apply online and track admissions — free for parents.",
+    images: ["/brand/vidhyaan-og-1200x630.png"],
   },
 };
 

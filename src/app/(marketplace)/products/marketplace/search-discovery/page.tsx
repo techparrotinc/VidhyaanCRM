@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: 'https://vidhyaan.com/products/marketplace/search-discovery' },
   title: 'Parent Search & Discovery | Vidhyaan',
   description: 'Help parents find, filter, and discover your school based on location, curriculum, and reviews.',
 }

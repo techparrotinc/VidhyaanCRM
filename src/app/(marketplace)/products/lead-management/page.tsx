@@ -5,6 +5,12 @@ import { leadManagementContent } from '@/content/products/lead-management'
 export const metadata: Metadata = {
   title: 'Lead Management Software for Schools & Learning Centers | Vidhyaan',
   description: 'Never lose a parent enquiry again — capture, assign, and follow up on every admission lead in one pipeline. Setup in under 15 minutes.',
+  alternates: { canonical: 'https://vidhyaan.com/products/lead-management' },
+  openGraph: {
+    title: 'Lead Management Software for Schools & Learning Centers | Vidhyaan',
+    description: 'Never lose a parent enquiry again — capture, assign, and follow up on every admission lead in one pipeline. Setup in under 15 minutes.',
+    url: 'https://vidhyaan.com/products/lead-management',
+  },
 }
 
 export default function LeadManagementPage() {

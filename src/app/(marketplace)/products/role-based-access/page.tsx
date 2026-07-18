@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: 'https://vidhyaan.com/products/role-based-access' },
   title: 'Role-Based Access Control & Multi-Role Login | Vidhyaan',
   description: 'Enforce secure database access with granular roles for admins, teachers, and parents.',
 }

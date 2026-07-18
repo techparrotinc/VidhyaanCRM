@@ -67,7 +67,7 @@ export async function sendReviewRequestForAdmission(
     if (existingReview) return
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://app-dev.vidhyaan.com'
+  const baseUrl = process.env.NEXTAUTH_URL || 'https://vidhyaan.com'
   const profilePath = school.institutionType === 'LEARNING_CENTER' ? 'learning-centers' : 'schools'
   const reviewLink = `${baseUrl}/${profilePath}/${school.slug}#reviews`
   const schoolName = org?.name ?? 'your school'

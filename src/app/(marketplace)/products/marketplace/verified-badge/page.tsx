@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: 'https://vidhyaan.com/products/marketplace/verified-badge' },
   title: 'Verified Profile Badge for Schools | Vidhyaan',
   description: 'Build trust with parents by showing a verified profile badge on your school listing.',
 }

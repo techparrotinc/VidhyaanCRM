@@ -124,7 +124,7 @@ export const POST = route({
 
     // Welcome email to the guardian (fire-and-forget)
     if (student.guardianEmail) {
-      const baseUrl = process.env.NEXTAUTH_URL || 'https://app-dev.vidhyaan.com'
+      const baseUrl = process.env.NEXTAUTH_URL || 'https://vidhyaan.com'
       prisma.organization.findUnique({ where: { id: user.orgId }, select: { name: true } }).then((org) =>
         sendOrgTemplateEmail(user.orgId, 'WELCOME_STUDENT', student.guardianEmail, {
           parentName: student.guardianName ?? 'Parent',

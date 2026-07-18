@@ -24,7 +24,9 @@ function isPublicRoute(pathname: string): boolean {
     pathname === '/icon.png' ||
     pathname === '/apple-icon.png' ||
     pathname === '/opengraph-image.png' ||
-    pathname === '/twitter-image.png'
+    pathname === '/twitter-image.png' ||
+    pathname === '/sitemap.xml' ||
+    pathname === '/robots.txt'
   ) {
     return true
   }
@@ -91,11 +93,19 @@ function isCRMRoute(pathname: string): boolean {
   return prefixes.some((prefix) => pathname.startsWith(prefix))
 }
 
-function addSecurityHeaders(response: NextResponse): NextResponse {
+// Only the production domain may be indexed — dev/preview hosts
+// (app-dev.vidhyaan.com, *.vercel.app, localhost) get a blanket noindex so
+// they never compete with vidhyaan.com in search.
+const INDEXABLE_HOSTS = new Set(['vidhyaan.com', 'www.vidhyaan.com'])
+
+function addSecurityHeaders(response: NextResponse, host?: string): NextResponse {
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set('Permissions-Policy', 'camera=(), microphone=()')
+  if (host && !INDEXABLE_HOSTS.has(host)) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+  }
   return response
 }
 
@@ -148,8 +158,9 @@ export default async function middleware(request: NextRequest) {
   // and onboarding bypasses, so no route can be reached with spoofed values.
   const requestHeaders = new Headers(request.headers)
   IDENTITY_HEADERS.forEach((h) => requestHeaders.delete(h))
+  const requestHost = request.nextUrl.hostname
   const passThrough = () =>
-    addSecurityHeaders(NextResponse.next({ request: { headers: requestHeaders } }))
+    addSecurityHeaders(NextResponse.next({ request: { headers: requestHeaders } }), requestHost)
 
   // AI Gateway service path: a valid HMAC service token lets the gateway act
   // on behalf of a user — identity headers are then set from the SIGNED
@@ -335,7 +346,8 @@ export default async function middleware(request: NextRequest) {
       request: {
         headers: requestHeaders,
       }
-    })
+    }),
+    requestHost
   )
 }
 

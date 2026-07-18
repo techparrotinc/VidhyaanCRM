@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: 'https://vidhyaan.com/products/institution-types' },
   title: 'Tailored School Portals for Every Institution | Vidhyaan',
   description: 'Customizable CRM solutions built for K-12 schools, learning centers, and colleges.',
 }

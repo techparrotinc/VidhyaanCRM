@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: 'https://vidhyaan.com/products/marketplace/compare' },
   title: 'Compare Schools Side-by-Side | Vidhyaan',
   description: 'Enable parents to compare facilities, fees, and ratings of schools side by side.',
 }

@@ -29,7 +29,7 @@ export const POST = route({
       .findUnique({ where: { id: user.orgId }, select: { name: true } })
       .then((o) => o?.name ?? 'Your school')
 
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://app-dev.vidhyaan.com'
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://vidhyaan.com'
     const { subject, bodyText, html } = await resolveOrgEmail(user.orgId, 'FEE_INVOICE', {
       parentName: invoice.student.guardianName ?? 'Parent/Guardian',
       studentName: invoice.student.name,

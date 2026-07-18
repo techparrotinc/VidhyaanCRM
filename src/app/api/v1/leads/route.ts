@@ -347,6 +347,12 @@ export const POST = route({
       )
 
       return { lead, dedup }
+    }, {
+      // Concurrent creates queue on the advisory locks above, and queue time
+      // counts against the interactive-transaction timeout — the 5s default
+      // expires waiters under a burst of simultaneous creates.
+      maxWait: 10000,
+      timeout: 15000
     })
 
     if (isQueued) {

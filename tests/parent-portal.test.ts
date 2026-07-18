@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, vi } from 'vitest'
 import { prisma } from '@/lib/db/client'
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
+import bcrypt from 'bcryptjs'
 import { redis } from '@/lib/redis'
 import { existsSync } from 'fs'
 import { config as loadEnv } from 'dotenv'
@@ -470,7 +471,7 @@ describeDb('Parent Portal Verification Suite', () => {
         identifier: newPhone,
         channel: 'SMS',
         purpose: 'SIGNUP',
-        codeHash: require('bcryptjs').hashSync('123456', 10),
+        codeHash: bcrypt.hashSync('123456', 10),
         expiresAt: new Date(Date.now() + 60000),
         attempts: 0
       }

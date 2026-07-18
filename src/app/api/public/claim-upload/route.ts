@@ -16,7 +16,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Too many uploads, please wait a moment' }, { status: 429 })
   }
 
-  const form = await req.formData()
+  let form: FormData
+  try {
+    form = await req.formData()
+  } catch {
+    return NextResponse.json({ error: 'Expected multipart form data' }, { status: 400 })
+  }
   const file = form.get('file')
   const schoolId = String(form.get('schoolId') ?? '')
   if (!(file instanceof File)) return NextResponse.json({ error: 'No file' }, { status: 400 })

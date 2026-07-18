@@ -273,11 +273,11 @@ describeDb('Lead Management Verification Suite', () => {
       data: { orgId, branchId, academicYearId, leadCode: `L-NORM-${Date.now()}`, parentName: 'Normal Parent', phone: randomPhone(), status: 'NEW' }
     })
 
-    // Find a queued lead (from Test 5, has assignedToId = null)
-    const queuedLead = await prisma.lead.findFirst({
-      where: { orgId, assignedToId: null, deletedAt: null }
+    // Seed a queued lead directly — relying on test 5's leftover made this
+    // test order/timing dependent and flaky under parallel suite runs
+    const queuedLead = await prisma.lead.create({
+      data: { orgId, branchId, academicYearId, leadCode: `L-QUEUED-${Date.now()}`, parentName: 'Queued Parent', phone: randomPhone(), status: 'NEW', queued: true }
     })
-    expect(queuedLead).toBeDefined()
 
     const ids = [normalLead.id, queuedLead!.id]
 
@@ -344,7 +344,7 @@ describeDb('Lead Management Verification Suite', () => {
   // E. Round-robin assignment race
   // ==========================================
 
-  it('11. Fire concurrent lead-creates -> breaks fair round-robin distribution (GAP FOUND)', async () => {
+  it('11. Fire concurrent lead-creates -> fair round-robin distribution holds', async () => {
     // Clear out leads count to standard state for index division
     await prisma.lead.deleteMany({ where: { orgId } })
 

@@ -380,7 +380,7 @@ describeDb('VidhyaanCRM Attendance System Verification Probes', () => {
     expect(res.status).toBe(403) // Blocked server-side!
   })
 
-  it('5. Future-date probe: mark attendance for a date in the future -> expect success (confirmed gap)', async () => {
+  it('5. Future-date probe: mark attendance for a date in the future -> rejected 422 (gap FIXED)', async () => {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     const tomorrowStr = tomorrow.toISOString().split('T')[0]
@@ -392,14 +392,13 @@ describeDb('VidhyaanCRM Attendance System Verification Probes', () => {
     })
 
     const res = await postRegister(req)
-    // Expect success - no future date check guard.
-    expect(res.status).toBe(200)
+    // Fixed: future dates are rejected by validation
+    expect(res.status).toBe(422)
 
     const dbRecord = await prisma.attendanceRecord.findFirst({
       where: { orgId, studentId: studentAId, date: toDbDate(tomorrowStr), sessionKey: 'DAY' }
     })
-    expect(dbRecord).not.toBeNull()
-    expect(dbRecord?.status).toBe('PRESENT')
+    expect(dbRecord).toBeNull()
   })
 
   it('6. Historical edit probe -> succeeds, leaves no audit trail of prior values (confirmed gap)', async () => {
@@ -560,7 +559,7 @@ describeDb('VidhyaanCRM Attendance System Verification Probes', () => {
     expect(record?.source).toBe('MANUAL')
   })
 
-  it('12. Concurrency/race probe & MANUAL override source persistence gap', async () => {
+  it('12. Manual correction over biometric record resets source to MANUAL (gap FIXED)', async () => {
     const today = istDateString()
     
     // Simulate manual marking saving over biometric record
@@ -584,11 +583,11 @@ describeDb('VidhyaanCRM Attendance System Verification Probes', () => {
       where: { orgId_studentId_date_sessionKey: { orgId, studentId: studentAId, date: toDbDate(today), sessionKey: 'DAY' } }
     })
     
-    // CONFIRMED GAP: Manual register save updates status, but does NOT reset source to MANUAL!
+    // Fixed: manual register save updates status AND resets source to MANUAL
     expect(record?.status).toBe('LEAVE')
-    expect(record?.source).toBe('BIOMETRIC') // STILL BIOMETRIC!
+    expect(record?.source).toBe('MANUAL')
 
-    // 3. Since source is still BIOMETRIC, a subsequent biometric event will overwrite this manual correction!
+    // 3. With source now MANUAL, a subsequent biometric event must not overwrite the manual correction
     const reqBio = mockReq('http://localhost/api/v1/attendance/biometric/ingest', 'POST', {
       'x-device-key': deviceKey
     }, {
@@ -599,10 +598,8 @@ describeDb('VidhyaanCRM Attendance System Verification Probes', () => {
     const updatedRecord = await prisma.attendanceRecord.findUnique({
       where: { orgId_studentId_date_sessionKey: { orgId, studentId: studentAId, date: toDbDate(today), sessionKey: 'DAY' } }
     })
-    // It remains LEAVE because processBiometricEvents only updates checkIn/checkOut times for BIOMETRIC, but updates times.
-    // If processBiometricEvents is run and student wasn't marked, it inserts PRESENT.
-    // However, if the teacher marked them present manually, the source remains BIOMETRIC.
-    // This is a major gap in the persistent source field representation.
+    expect(updatedRecord?.status).toBe('LEAVE')
+    expect(updatedRecord?.source).toBe('MANUAL')
   })
 
   // C. Parent-facing — scoping

@@ -3,14 +3,28 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
 
+/**
+ * Like the notifications list route, this predates the route() composer.
+ * Mobile Bearer JWTs are verified in middleware.ts and rewritten to
+ * x-user-id/x-user-role — read those first, else the NextAuth cookie.
+ */
+async function resolveUser(req: NextRequest): Promise<{ id: string; role: string } | null> {
+  const headerId = req.headers.get('x-user-id')
+  const headerRole = req.headers.get('x-user-role')
+  if (headerId && headerRole) return { id: headerId, role: headerRole }
+  const session = await auth()
+  if (!session?.user?.id) return null
+  return { id: session.user.id, role: session.user.role }
+}
+
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
+    const user = await resolveUser(req)
+    if (!user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
-    const userId = session.user.id
+    const userId = user.id
     let recipientId = userId
 
     const where: any = {
@@ -18,7 +32,7 @@ export async function GET(req: NextRequest) {
       deletedAt: null
     }
 
-    if (session.user.role === 'PARENT') {
+    if (user.role === 'PARENT') {
       const parent = await prisma.parent.findUnique({
         where: { userId }
       })

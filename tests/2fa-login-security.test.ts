@@ -254,7 +254,7 @@ describeDb('2FA & Login Security Verification Suite', () => {
     expect(res.status).toBe(409)
   })
 
-  it('6. Back-to-back start calls -> second QR secret overwrites first in Redis (GAP FOUND)', async () => {
+  it('6. Back-to-back start calls -> same pending secret reused (overwrite gap FIXED)', async () => {
     await prisma.userTwoFactor.deleteMany({ where: { userId } })
 
     mockSessionUser = standardUserContext.user
@@ -275,18 +275,18 @@ describeDb('2FA & Login Security Verification Suite', () => {
     const res2 = await startEnroll(req2)
     const body2 = await res2.json()
 
-    // The stashed secret has been overwritten by secret 2
+    // Fixed: second start reuses the pending secret, so the first QR stays valid
     const redisSecretRaw = await redis.get(`mfa_enroll:${userId}`)
     const { secret } = JSON.parse(redisSecretRaw!)
     expect(secret).toBe(body2.secret)
-    expect(secret).not.toBe(body1.secret) // First QR secret is now invalid/dead!
+    expect(secret).toBe(body1.secret)
   })
 
   // ==========================================
   // B. Login Challenge
   // ==========================================
 
-  it('7. Direct session-mint bypass via credentials phone+pin (GAP FOUND)', async () => {
+  it('7. Direct session-mint via credentials phone+pin blocked when 2FA enabled (bypass FIXED)', async () => {
     // Re-enroll 2FA
     const secret = generateSecret()
     const secretEnc = encryptSecret(secret)
@@ -305,9 +305,8 @@ describeDb('2FA & Login Security Verification Suite', () => {
       pin: '1111'
     })
 
-    // Standard authorize has no 2FA check, returning the full user context without requiring the 2nd factor!
-    expect(authSession).not.toBeNull()
-    expect(authSession.id).toBe(userId)
+    // Fixed: authorize refuses to mint a session for a 2FA-enabled user without the 2nd factor
+    expect(authSession).toBeNull()
   })
 
   it('8. Enter 5 wrong codes -> deletes challenge token on 6th attempt', async () => {
@@ -386,27 +385,31 @@ describeDb('2FA & Login Security Verification Suite', () => {
   // C. SMS Fallback
   // ==========================================
 
-  it('12. SMS OTP triggers deletePrior & create without throttles (SMS-bombing gap - GAP FOUND)', async () => {
+  it('12. Rapid SMS OTP requests get throttled (SMS-bombing gap FIXED)', async () => {
     // Clear 2FA so startEnroll is allowed
     await prisma.userTwoFactor.deleteMany({ where: { userId } })
 
     mockSessionUser = standardUserContext.user
 
     // Trigger MFA SMS requests 5 times rapidly
+    const statuses: number[] = []
     for (let i = 0; i < 5; i++) {
       const req = new NextRequest('http://localhost/api/auth/2fa/enroll/start', {
         method: 'POST',
         body: JSON.stringify({ method: 'SMS' })
       })
       const res = await startEnroll(req)
-      expect(res.status).toBe(200)
+      statuses.push(res.status)
     }
 
-    // Checking database: only 1 active (unconsumed) OTP code row exists because it deletes prior ones
+    // Fixed: throttle kicks in — not all 5 rapid requests succeed
+    expect(statuses.filter((s) => s === 429).length).toBeGreaterThan(0)
+
+    // At most 1 active (unconsumed) OTP code row exists
     const codes = await prisma.otpCode.findMany({
       where: { identifier: userPhone, consumedAt: null }
     })
-    expect(codes.length).toBe(1)
+    expect(codes.length).toBeLessThanOrEqual(1)
   })
 
   // ==========================================

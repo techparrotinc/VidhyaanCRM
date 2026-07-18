@@ -1,4 +1,9 @@
 import 'dotenv/config'
+import { config as dotenvConfig } from 'dotenv'
+
+// TEST_DATABASE_URL lives in .env.local (never committed); plain
+// 'dotenv/config' only reads .env, silently skipping every DB-backed suite.
+dotenvConfig({ path: '.env.local' })
 
 // Fail-closed test DB guard (post user-wipe incident 2026-07-08).
 //

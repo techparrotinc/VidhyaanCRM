@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
 import { X, Bookmark, ChevronDown, Trash2 } from 'lucide-react'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 // Filter bar rendered from a report's registry config (via /reports/meta).
 // State lives in URL query params — links are shareable by construction.
@@ -110,21 +111,13 @@ export function ReportFilterBar({ reportKey, configs, values, onChange }: Props)
         if (config.type === 'date-range') {
           return (
             <div key={config.key} className="flex items-center gap-1.5">
-              <input
-                type="date"
-                value={values.from ?? ''}
-                onChange={e => set('from', e.target.value)}
-                className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-700"
-                aria-label="From date"
-              />
+              <div className="w-40">
+                <DatePicker value={values.from ?? ''} onChange={(ymd) => set('from', ymd)} placeholder="From" />
+              </div>
               <span className="text-xs text-slate-400">to</span>
-              <input
-                type="date"
-                value={values.to ?? ''}
-                onChange={e => set('to', e.target.value)}
-                className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-700"
-                aria-label="To date"
-              />
+              <div className="w-40">
+                <DatePicker value={values.to ?? ''} onChange={(ymd) => set('to', ymd)} placeholder="To" />
+              </div>
             </div>
           )
         }

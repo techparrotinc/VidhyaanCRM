@@ -12,6 +12,7 @@ import {
   Calendar
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 interface AcademicYear {
   id: string
@@ -245,26 +246,14 @@ export default function AcademicYearSettingsPage() {
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
                     Start Date
                   </label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full text-sm border border-slate-200 rounded-lg p-2 bg-white outline-none focus:border-[#1565D8]"
-                    required
-                  />
+                  <DatePicker value={startDate} onChange={setStartDate} clearable={false} />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
                     End Date
                   </label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full text-sm border border-slate-200 rounded-lg p-2 bg-white outline-none focus:border-[#1565D8]"
-                    required
-                  />
+                  <DatePicker value={endDate} onChange={setEndDate} clearable={false} />
                 </div>
               </div>
 

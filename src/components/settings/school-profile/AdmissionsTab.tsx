@@ -3,6 +3,7 @@
 import React from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 type AdmissionsTabProps = {
   admissionOpen: boolean
@@ -69,11 +70,10 @@ export default function AdmissionsTab({
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Intake Deadline</label>
-            <input
-              type="date"
+            <DatePicker
               value={admissionDeadline}
-              onChange={(e) => onAdmissionDeadlineChange(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
+              onChange={onAdmissionDeadlineChange}
+              placeholder="Pick a deadline"
             />
           </div>
 

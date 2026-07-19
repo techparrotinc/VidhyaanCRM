@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Plus, Pencil, Trash2, Calendar } from 'lucide-react'
 import { format } from 'date-fns'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 export default function TermsSettingsPage() {
   const { years, currentYear } = useAcademicYears()
@@ -203,12 +204,10 @@ export default function TermsSettingsPage() {
                 Start Date
                 <span className="text-red-500 ml-0.5">*</span>
               </label>
-              <input
-                type="date"
-                name="startDate"
+              <DatePicker
                 value={form.startDate}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(ymd) => setForm(prev => ({ ...prev, startDate: ymd }))}
+                clearable={false}
               />
             </div>
 
@@ -218,12 +217,10 @@ export default function TermsSettingsPage() {
                 End Date
                 <span className="text-red-500 ml-0.5">*</span>
               </label>
-              <input
-                type="date"
-                name="endDate"
+              <DatePicker
                 value={form.endDate}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(ymd) => setForm(prev => ({ ...prev, endDate: ymd }))}
+                clearable={false}
               />
             </div>
           </div>

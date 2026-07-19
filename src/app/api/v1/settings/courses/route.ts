@@ -1,7 +1,6 @@
 import { z } from 'zod'
 import { route } from '@/lib/api/compose'
 import { ok, created } from '@/lib/api/respond'
-import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 
 const courseSchema = z.object({
@@ -23,7 +22,9 @@ const courseSchema = z.object({
 })
 
 export const GET = route({
-  module: MODULES.FEE_MANAGEMENT,
+  // Course master is catalogue data (lead/enquiry/enrolment dropdowns feed
+  // from it) — role-gated, not module-gated, mirroring the class/batch
+  // masters. Fee billing itself stays behind FEE_MANAGEMENT routes.
   roles: [
     ROLES.ORG_ADMIN,
     ROLES.BRANCH_ADMIN
@@ -46,7 +47,6 @@ export const GET = route({
 })
 
 export const POST = route({
-  module: MODULES.FEE_MANAGEMENT,
   roles: [
     ROLES.ORG_ADMIN,
     ROLES.BRANCH_ADMIN

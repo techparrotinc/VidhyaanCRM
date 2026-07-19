@@ -76,21 +76,6 @@ const priorityOptions = [
   { value: 'URGENT', label: 'Urgent', icon: 'Zap', bg: 'bg-red-50', text: 'text-red-650', border: 'border-red-200' },
 ]
 
-// Fallback only — real courses are fetched from the org's course catalogue.
-const DEFAULT_COURSES = [
-  'Bharatanatyam',
-  'Hip Hop',
-  'Guitar - Beginner',
-  'Guitar - Advanced',
-  'Keyboard',
-  'Vocals',
-  'Yoga - Morning',
-  'Yoga - Evening',
-  'Zumba',
-  'Karate',
-  'Swimming',
-]
-
 const timeSlots = [
   { value: '09:00', label: '9:00 AM' },
   { value: '09:30', label: '9:30 AM' },
@@ -133,7 +118,7 @@ export default function EditLeadPage() {
   const [dbAcademicYears, setDbAcademicYears] = useState<{ id: string; name: string }[]>([])
   // Real institution type drives grade vs course/batch fields (was hardcoded 'school').
   const [institutionType, setInstitutionType] = useState<'school' | 'learning_center'>('school')
-  const [courses, setCourses] = useState<string[]>(DEFAULT_COURSES)
+  const [courses, setCourses] = useState<string[]>([])
   // Class master (schools) — falls back to GRADE_OPTIONS when org has none.
   const { options: classOptions } = useClassOptions(institutionType === 'school')
   // Batch master (LC) — falls back to the generic timing list when org has none.
@@ -251,10 +236,12 @@ export default function EditLeadPage() {
 
     async function fetchCourses() {
       try {
-        const res = await fetch('/api/v1/settings/courses')
+        // Options feed, not /settings/courses: settings CRUD is admin-only
+        // while every org role edits leads.
+        const res = await fetch('/api/v1/options/courses')
         const json = await res.json()
-        const names = (json.data ?? []).map((c: any) => c.name).filter(Boolean)
-        if (names.length > 0) setCourses(names)
+        const names = (json?.data?.courses ?? []).map((c: any) => c.name).filter(Boolean)
+        setCourses(names)
       } catch (err) {
         console.error('Failed to fetch courses', err)
       }
@@ -866,7 +853,10 @@ export default function EditLeadPage() {
                         className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.course ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-slate-200'}`}
                       >
                         <option value="">Select course</option>
-                        {courses.map(course => (
+                        {(formData.course && !courses.includes(formData.course)
+                          ? [formData.course, ...courses]
+                          : courses
+                        ).map(course => (
                           <option key={course} value={course}>{course}</option>
                         ))}
                       </select>

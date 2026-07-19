@@ -144,13 +144,6 @@ export const sourceConfig = {
   },
 }
 
-export const courses = [
-  'Bharatanatyam', 'Hip Hop', 'Guitar - Beginner',
-  'Guitar - Advanced', 'Keyboard', 'Vocals',
-  'Yoga - Morning', 'Yoga - Evening', 'Zumba',
-  'Karate', 'Swimming',
-]
-
 export const sources = [
   { id: 'VIDHYAAN', label: 'Vidhyaan', dot: 'bg-blue-500' },
   { id: 'WEBSITE', label: 'Website', dot: 'bg-slate-400' },

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   TrendingUp,
   Users,
@@ -83,21 +84,6 @@ const priorityOptions = [
   { value: 'URGENT', label: 'Urgent', icon: 'Zap', bg: 'bg-red-50', text: 'text-red-650', border: 'border-red-200' },
 ]
 
-// Fallback only — real courses are fetched from the org's course catalogue.
-const DEFAULT_COURSES = [
-  'Bharatanatyam',
-  'Hip Hop',
-  'Guitar - Beginner',
-  'Guitar - Advanced',
-  'Keyboard',
-  'Vocals',
-  'Yoga - Morning',
-  'Yoga - Evening',
-  'Zumba',
-  'Karate',
-  'Swimming',
-]
-
 const timeSlots = [
   { value: '09:00', label: '9:00 AM' },
   { value: '09:30', label: '9:30 AM' },
@@ -135,8 +121,9 @@ export default function AddLeadPage() {
   const [dbAcademicYears, setDbAcademicYears] = useState<{ id: string; name: string }[]>([])
   // Real institution type drives grade vs course/batch fields (was hardcoded 'school').
   const [institutionType, setInstitutionType] = useState<'school' | 'learning_center'>('school')
-  // Real course catalogue for learning centres (fallback to the sample list).
-  const [courses, setCourses] = useState<string[]>(DEFAULT_COURSES)
+  // Real course catalogue for learning centres — no demo fallback: an empty
+  // catalogue must LOOK empty so admins add real courses in Settings.
+  const [courses, setCourses] = useState<string[]>([])
   // Class master (schools) — falls back to GRADE_OPTIONS when org has none.
   const { options: classOptions } = useClassOptions(institutionType === 'school')
   // Batch master (LC) — falls back to the generic timing list when org has none.
@@ -193,10 +180,12 @@ export default function AddLeadPage() {
 
     async function fetchCourses() {
       try {
-        const res = await fetch('/api/v1/settings/courses')
+        // Options feed, not /settings/courses: the settings CRUD is admin-only
+        // while every org role captures leads.
+        const res = await fetch('/api/v1/options/courses')
         const json = await res.json()
-        const names = (json.data ?? []).map((c: any) => c.name).filter(Boolean)
-        if (names.length > 0) setCourses(names)
+        const names = (json?.data?.courses ?? []).map((c: any) => c.name).filter(Boolean)
+        setCourses(names)
       } catch (err) {
         console.error('Failed to fetch courses', err)
       }
@@ -873,6 +862,14 @@ export default function AddLeadPage() {
                         <span className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
                           <AlertCircle className="size-3" />
                           <span>{errors.course}</span>
+                        </span>
+                      )}
+                      {courses.length === 0 && (
+                        <span className="text-xs text-slate-400 font-normal mt-1 block">
+                          No courses configured yet —{' '}
+                          <Link href="/settings/courses" className="text-[#1565D8] font-semibold hover:underline">
+                            add them in Settings
+                          </Link>
                         </span>
                       )}
                     </div>

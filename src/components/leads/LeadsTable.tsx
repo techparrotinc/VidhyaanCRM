@@ -20,10 +20,10 @@ import {
   statusLabels,
   statusConfig,
   sourceConfig,
-  courses,
   sources,
   leadRowBorderColor,
 } from './leadConfig'
+import { useCourseOptions } from '@/hooks/useCourseOptions'
 
 export interface EditLeadFormData {
   name?: string
@@ -63,6 +63,9 @@ type LeadsTableProps = {
 }
 
 export default function LeadsTable(props: LeadsTableProps) {
+  // Real course catalogue for the inline-edit dropdown (LC mode only) —
+  // replaces the hardcoded sample list that showed courses the org never had.
+  const { options: courseOptions } = useCourseOptions(institutionType !== 'school')
   const {
     leads,
     mobileLeads,
@@ -219,7 +222,10 @@ export default function LeadsTable(props: LeadsTableProps) {
                                 </option>
                               ))
                             ) : (
-                              courses.map(opt => (
+                              (editFormData.applyingFor && !courseOptions.some(c => c.name === editFormData.applyingFor)
+                                ? [editFormData.applyingFor, ...courseOptions.map(c => c.name)]
+                                : courseOptions.map(c => c.name)
+                              ).map(opt => (
                                 <option key={opt} value={opt}>
                                   {opt}
                                 </option>

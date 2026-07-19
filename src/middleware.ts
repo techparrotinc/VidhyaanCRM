@@ -93,6 +93,29 @@ function isCRMRoute(pathname: string): boolean {
   return prefixes.some((prefix) => pathname.startsWith(prefix))
 }
 
+// Every route section that requires a session. Unauthenticated requests to
+// these redirect to /login; anything outside this list AND outside the public
+// routes has no page at all, so it must fall through to Next's not-found —
+// a login redirect there turns every junk URL into a soft-404 for crawlers.
+// New protected page sections MUST be added here (their APIs stay guarded by
+// the route() composer regardless).
+function isKnownProtectedRoute(pathname: string): boolean {
+  const prefixes = [
+    '/admin',
+    '/parent',
+    '/onboarding',
+    '/setup',
+    '/attendance',
+    '/users',
+    '/families',
+    '/notifications',
+    '/roles',
+    '/schedule',
+    '/api'
+  ]
+  return isCRMRoute(pathname) || prefixes.some((prefix) => pathname.startsWith(prefix))
+}
+
 // Only the production domain may be indexed — dev/preview hosts
 // (app-dev.vidhyaan.com, *.vercel.app, localhost) get a blanket noindex so
 // they never compete with vidhyaan.com in search.
@@ -248,11 +271,16 @@ export default async function middleware(request: NextRequest) {
   // 2. Get session
   const session = await auth()
 
-  // 3. No session → redirect to login
+  // 3. No session → known app sections redirect to login; anything else has
+  // no route at all, so fall through and let Next render the 404 page
+  // (redirecting junk URLs to /login makes crawlers see them as soft-404s).
   if (!session?.user) {
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('callbackUrl', pathname)
-    return NextResponse.redirect(loginUrl)
+    if (isKnownProtectedRoute(pathname)) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('callbackUrl', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+    return passThrough()
   }
 
   // Onboarding pages: signed-in users pass straight through — the wizard

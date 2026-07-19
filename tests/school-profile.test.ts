@@ -300,7 +300,7 @@ describeDb('Marketplace Org Profile Management Verification Probes', () => {
   })
 
   // F. Institution-type enforcement — negative
-  it('14. School org can store learning center specific fields via PUT API (confirmed gap)', async () => {
+  it('14. School org cannot store learning center specific fields via PUT API (stripped server-side)', async () => {
     // Confirm school is currently SCHOOL type
     const school = await prisma.school.findUnique({ where: { id: schoolId } })
     expect(school!.institutionType).toBe('SCHOOL')
@@ -313,11 +313,11 @@ describeDb('Marketplace Org Profile Management Verification Probes', () => {
     }))
     expect(putRes.status).toBe(200)
 
-    // Verify fields stored successfully despite being SCHOOL institution type
+    // LC-only fields are stripped for SCHOOL institution type — nothing stored
     const updated = await prisma.school.findUnique({ where: { id: schoolId } })
-    expect(updated!.ageGroupMin).toBe(4)
-    expect(updated!.ageGroupMax).toBe(12)
-    expect(updated!.activityTypes).toEqual(['Robotics', 'Coding'])
+    expect(updated!.ageGroupMin).toBeNull()
+    expect(updated!.ageGroupMax).toBeNull()
+    expect(updated!.activityTypes).toEqual([])
   })
 
   // G. Concurrent edit — negative

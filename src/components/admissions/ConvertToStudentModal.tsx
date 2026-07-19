@@ -12,6 +12,7 @@ import { getGradeLabel } from '@/constants/grades'
 import { useClassOptions } from '@/hooks/useClassOptions'
 import type { Applicant } from './shared'
 import { DatePicker } from '@/components/ui/datetime-picker'
+import { AppSelect } from '@/components/ui/app-select'
 
 type ConvertToStudentModalProps = {
   applicant: Applicant | null
@@ -133,7 +134,7 @@ export default function ConvertToStudentModal({
 
             <div>
               <label className="text-xs font-semibold text-slate-500 mb-1.5 block font-sans">Class / Grade</label>
-              <select
+              <AppSelect
                 value={grade}
                 onChange={(e) => setGrade(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
@@ -145,14 +146,14 @@ export default function ConvertToStudentModal({
                 {grade && !classOptions.some(c => c.gradeSlug === grade) && (
                   <option value={grade}>{getGradeLabel(grade)}</option>
                 )}
-              </select>
+              </AppSelect>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-semibold text-slate-500 mb-1.5 block font-sans">Section (Optional)</label>
                 {sectionOptions.length > 0 ? (
-                  <select
+                  <AppSelect
                     value={section}
                     onChange={(e) => setSection(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
@@ -161,7 +162,7 @@ export default function ConvertToStudentModal({
                     {sectionOptions.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
-                  </select>
+                  </AppSelect>
                 ) : (
                   <input
                     type="text"

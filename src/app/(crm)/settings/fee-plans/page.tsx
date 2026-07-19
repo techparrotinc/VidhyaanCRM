@@ -6,6 +6,7 @@ import { useClassOptions } from '@/hooks/useClassOptions'
 import { useCourseOptions } from '@/hooks/useCourseOptions'
 import { isLearningCentre } from '@/lib/institution'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { AppSelect } from '@/components/ui/app-select'
 
 const FREQUENCY_LABELS: Record<string, string> = {
   ONE_TIME: 'One Time',
@@ -274,7 +275,7 @@ export default function FeePlansSettingsPage() {
                 <label className="text-xs font-medium text-slate-600">
                   Applicable Course
                 </label>
-                <select
+                <AppSelect
                   value={form.courseId}
                   onChange={e => setForm(prev => ({ ...prev, courseId: e.target.value }))}
                   className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
@@ -285,14 +286,14 @@ export default function FeePlansSettingsPage() {
                       {c.name}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
             ) : (
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-slate-600">
                   Applicable Grade
                 </label>
-                <select
+                <AppSelect
                   value={form.gradeLabel}
                   onChange={e => setForm(prev => ({ ...prev, gradeLabel: e.target.value }))}
                   className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
@@ -303,7 +304,7 @@ export default function FeePlansSettingsPage() {
                       {c.name}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
             )}
           </div>
@@ -389,7 +390,7 @@ export default function FeePlansSettingsPage() {
 
                 {/* Frequency */}
                 <div className="flex flex-col gap-1">
-                  <select
+                  <AppSelect
                     value={newHead.frequency}
                     onChange={e => setNewHead(prev => ({ ...prev, frequency: e.target.value }))}
                     className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
@@ -399,12 +400,12 @@ export default function FeePlansSettingsPage() {
                         {label}
                       </option>
                     ))}
-                  </select>
+                  </AppSelect>
                 </div>
 
                 {/* Applies To */}
                 <div className="flex flex-col gap-1">
-                  <select
+                  <AppSelect
                     value={newHead.appliesTo}
                     onChange={e => {
                       const val = e.target.value
@@ -421,7 +422,7 @@ export default function FeePlansSettingsPage() {
                         {label}
                       </option>
                     ))}
-                  </select>
+                  </AppSelect>
                 </div>
 
                 {/* Assign to Term */}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Clock, Layers, Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { AppSelect } from '@/components/ui/app-select'
 
 // Batch management for LC/coaching orgs — rendered as a tab on
 // /settings/courses. Batches feed lead forms, student assignment and
@@ -192,7 +193,7 @@ export function BatchesTab() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-slate-600">Linked Course</label>
-              <select
+              <AppSelect
                 value={form.courseId}
                 onChange={e => setForm(p => ({ ...p, courseId: e.target.value }))}
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
@@ -201,7 +202,7 @@ export function BatchesTab() {
                 {courses.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
-              </select>
+              </AppSelect>
             </div>
             <div className="flex flex-col gap-1 sm:col-span-2">
               <label className="text-xs font-medium text-slate-600">Days</label>

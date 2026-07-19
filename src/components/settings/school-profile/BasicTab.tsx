@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GRADE_RANGE_OPTIONS } from '@/constants/grades'
 import { INSTITUTION_CONFIG, InstitutionType } from '@/constants/institutionConfig'
+import { AppSelect } from '@/components/ui/app-select'
 
 const inputCls = 'w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]'
 const labelCls = 'text-xs font-bold uppercase tracking-wider text-slate-500'
@@ -70,12 +71,12 @@ export default function BasicTab({ values, institutionType, onChange, onSave, sa
         {schoolTypeOptions.length > 0 && (
           <div className="space-y-1.5">
             <label className={labelCls}>School Type</label>
-            <select value={values.schoolType || ''} onChange={(e) => onChange('schoolType', e.target.value)} className={inputCls}>
+            <AppSelect value={values.schoolType || ''} onChange={(e) => onChange('schoolType', e.target.value)} className={inputCls}>
               <option value="">Select type…</option>
               {schoolTypeOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
-            </select>
+            </AppSelect>
           </div>
         )}
 
@@ -105,31 +106,31 @@ export default function BasicTab({ values, institutionType, onChange, onSave, sa
 
         <div className="space-y-1.5">
           <label className={labelCls}>Grade Offered From</label>
-          <select value={values.gradeFrom || ''} onChange={(e) => onChange('gradeFrom', e.target.value)} className={inputCls}>
+          <AppSelect value={values.gradeFrom || ''} onChange={(e) => onChange('gradeFrom', e.target.value)} className={inputCls}>
             <option value="">Select grade…</option>
             {GRADE_RANGE_OPTIONS.map((g) => (
               <option key={g} value={g}>{g}</option>
             ))}
-          </select>
+          </AppSelect>
         </div>
 
         <div className="space-y-1.5">
           <label className={labelCls}>Grade Offered To</label>
-          <select value={values.gradeTo || ''} onChange={(e) => onChange('gradeTo', e.target.value)} className={inputCls}>
+          <AppSelect value={values.gradeTo || ''} onChange={(e) => onChange('gradeTo', e.target.value)} className={inputCls}>
             <option value="">Select grade…</option>
             {GRADE_RANGE_OPTIONS.map((g) => (
               <option key={g} value={g}>{g}</option>
             ))}
-          </select>
+          </AppSelect>
         </div>
 
         <div className="space-y-1.5">
           <label className={labelCls}>Gender Type Allowed</label>
-          <select value={values.gender || ''} onChange={(e) => onChange('gender', e.target.value)} className={inputCls}>
+          <AppSelect value={values.gender || ''} onChange={(e) => onChange('gender', e.target.value)} className={inputCls}>
             <option value="BOYS">Boys Only</option>
             <option value="GIRLS">Girls Only</option>
             <option value="CO_ED">Co-Educational</option>
-          </select>
+          </AppSelect>
         </div>
       </div>
 

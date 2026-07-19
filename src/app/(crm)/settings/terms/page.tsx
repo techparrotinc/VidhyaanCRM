@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, Calendar } from 'lucide-react'
 import { format } from 'date-fns'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { DatePicker } from '@/components/ui/datetime-picker'
+import { AppSelect } from '@/components/ui/app-select'
 
 export default function TermsSettingsPage() {
   const { years, currentYear } = useAcademicYears()
@@ -152,7 +153,7 @@ export default function TermsSettingsPage() {
         <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">
           Academic Year
         </label>
-        <select
+        <AppSelect
           value={selectedYearId}
           onChange={e => setSelectedYearId(e.target.value)}
           className="w-full sm:w-64 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
@@ -163,7 +164,7 @@ export default function TermsSettingsPage() {
               {y.name}
             </option>
           ))}
-        </select>
+        </AppSelect>
         <p className="text-xs text-slate-400 mt-2">
           3 default terms are created for you. Rename or adjust dates as needed. You can also add more terms.
         </p>

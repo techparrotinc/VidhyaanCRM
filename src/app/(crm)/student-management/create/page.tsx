@@ -11,6 +11,7 @@ import { isLearningCentre } from '@/lib/institution'
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
 import { DedupDialog, DedupPayload } from "@/components/dedup/DedupDialog"
+import { AppSelect } from '@/components/ui/app-select'
 
 const format = (date: Date, formatStr: string): string => {
   const yyyy = date.getFullYear()
@@ -293,7 +294,7 @@ export default function CreateStudentPage() {
               <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                 Gender
               </label>
-              <select
+              <AppSelect
                 name="gender"
                 value={formData.gender}
                 onChange={handleInputChange}
@@ -303,7 +304,7 @@ export default function CreateStudentPage() {
                 <option value="MALE">Male</option>
                 <option value="FEMALE">Female</option>
                 <option value="OTHER">Other</option>
-              </select>
+              </AppSelect>
             </div>
 
             <div>
@@ -345,7 +346,7 @@ export default function CreateStudentPage() {
               <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                 Academic Year
               </label>
-              <select
+              <AppSelect
                 name="academicYearId"
                 value={formData.academicYearId}
                 onChange={handleInputChange}
@@ -357,7 +358,7 @@ export default function CreateStudentPage() {
                     {y.name}
                   </option>
                 ))}
-              </select>
+              </AppSelect>
             </div>
 
             {isLC !== true && (
@@ -366,7 +367,7 @@ export default function CreateStudentPage() {
                   <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                     Class
                   </label>
-                  <select
+                  <AppSelect
                     name="gradeLabel"
                     value={formData.gradeLabel}
                     onChange={e => {
@@ -382,7 +383,7 @@ export default function CreateStudentPage() {
                       </option>
                     ))}
                     <option value="__manage__">＋ Add class…</option>
-                  </select>
+                  </AppSelect>
                 </div>
 
                 <div>
@@ -390,7 +391,7 @@ export default function CreateStudentPage() {
                     Section
                   </label>
                   {sectionOptions.length > 0 ? (
-                    <select
+                    <AppSelect
                       name="section"
                       value={formData.section}
                       onChange={handleInputChange}
@@ -400,7 +401,7 @@ export default function CreateStudentPage() {
                       {sectionOptions.map(s => (
                         <option key={s} value={s}>{s}</option>
                       ))}
-                    </select>
+                    </AppSelect>
                   ) : (
                     <input
                       type="text"
@@ -443,7 +444,7 @@ export default function CreateStudentPage() {
                 <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Course
                 </label>
-                <select
+                <AppSelect
                   value={courseId}
                   onChange={e => setCourseId(e.target.value)}
                   className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition"
@@ -452,13 +453,13 @@ export default function CreateStudentPage() {
                   {courses.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
               <div>
                 <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                   Batch
                 </label>
-                <select
+                <AppSelect
                   value={batchId}
                   onChange={e => setBatchId(e.target.value)}
                   className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition"
@@ -469,7 +470,7 @@ export default function CreateStudentPage() {
                       {b.name}{b.course ? ` (${b.course.name})` : ''}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
               {selectedCourse && (
                 <div className="sm:col-span-2 rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3">

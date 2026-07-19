@@ -14,6 +14,7 @@ import {
   UserPlus,
 } from 'lucide-react'
 import { getGradeLabel } from '@/constants/grades'
+import { AppSelect } from '@/components/ui/app-select'
 
 type Stage = {
   id: string
@@ -61,7 +62,7 @@ function StageSelect({
   const color = getStageColor(admission.stage?.name || admission.stage)
   return (
     <div className="relative">
-      <select
+      <AppSelect
         value={admission.stage?.id ?? ''}
         onChange={(e) => {
           e.stopPropagation()
@@ -81,12 +82,7 @@ function StageSelect({
             {stage.name}
           </option>
         ))}
-      </select>
-      <ChevronDown
-        className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none"
-        size={10}
-        style={{ color: color.text }}
-      />
+      </AppSelect>
     </div>
   )
 }

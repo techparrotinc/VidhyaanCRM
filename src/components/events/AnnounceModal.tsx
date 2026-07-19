@@ -6,6 +6,7 @@ import {
   Search, X, AlertTriangle, Check
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AppSelect } from '@/components/ui/app-select'
 
 type Audience = 'PARENTS' | 'LEADS' | 'ALL' | 'CUSTOM'
 
@@ -195,7 +196,7 @@ export default function AnnounceModal({
                   </div>
 
                   {audience === 'PARENTS' && (preview?.grades.length ?? 0) > 0 && (
-                    <select
+                    <AppSelect
                       value={gradeLabel}
                       onChange={(e) => setGradeLabel(e.target.value)}
                       className="mt-2 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white text-slate-600 focus:outline-none focus:border-[#1565D8] cursor-pointer"
@@ -204,7 +205,7 @@ export default function AnnounceModal({
                       {preview?.grades.map((g) => (
                         <option key={g.label} value={g.label}>{g.label} · {g.count} parent{g.count !== 1 ? 's' : ''}</option>
                       ))}
-                    </select>
+                    </AppSelect>
                   )}
 
                   {audience === 'CUSTOM' && (

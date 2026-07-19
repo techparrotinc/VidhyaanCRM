@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import Script from 'next/script'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { AppSelect } from '@/components/ui/app-select'
 import {
   Check,
   ChevronLeft,
@@ -631,7 +632,7 @@ export default function UpgradePlanPage() {
         </span>
         <label className="inline-flex items-center gap-2 text-[11px] font-bold text-slate-600">
           <span>Plan capacity:</span>
-          <select
+          <AppSelect
             value={selectedSlab}
             onChange={(e) => setSelectedSlab(e.target.value)}
             className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-800 outline-none focus:border-[#1565D8] cursor-pointer shadow-xs"
@@ -641,7 +642,7 @@ export default function UpgradePlanPage() {
                 {SLAB_LABELS[s]}{s === slab ? ' (your size)' : ''}
               </option>
             ))}
-          </select>
+          </AppSelect>
         </label>
       </div>
       {selectedSlab !== slab && (

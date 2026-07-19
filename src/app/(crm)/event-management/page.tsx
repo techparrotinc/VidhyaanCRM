@@ -10,6 +10,7 @@ import {
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EVENT_TYPES, EVENT_TYPE_LABELS, EventType } from '@/constants/events'
+import { AppSelect } from '@/components/ui/app-select'
 
 type Scope = 'upcoming' | 'past'
 type View = 'list' | 'calendar'
@@ -192,19 +193,19 @@ export default function EventManagementPage() {
               ))}
             </div>
 
-            <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} className={selectCls}>
+            <AppSelect value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1) }} className={selectCls}>
               <option value="">All statuses</option>
               <option value="DRAFT">Draft</option>
               <option value="PUBLISHED">Published</option>
               <option value="CANCELLED">Cancelled</option>
-            </select>
+            </AppSelect>
 
-            <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }} className={selectCls}>
+            <AppSelect value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(1) }} className={selectCls}>
               <option value="">All types</option>
               {EVENT_TYPES.map(t => (
                 <option key={t} value={t}>{EVENT_TYPE_LABELS[t]}</option>
               ))}
-            </select>
+            </AppSelect>
 
             <div className="relative flex-1 min-w-[200px] max-w-xs ml-auto">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />

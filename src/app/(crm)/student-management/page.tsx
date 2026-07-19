@@ -15,6 +15,7 @@ import { useSession } from 'next-auth/react'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useAcademicYearStore } from '@/stores/academic-year.store'
 import { CheckSquare, Trash2, X, Loader2, GraduationCap } from 'lucide-react'
+import { AppSelect } from '@/components/ui/app-select'
 
 const STATUS_CONFIG = {
   ACTIVE: {
@@ -314,7 +315,7 @@ export default function StudentListingPage() {
             </div>
 
             {/* Grade filter */}
-            <select
+            <AppSelect
               value={gradeLabel}
               onChange={e => {
                 setGradeLabel(e.target.value)
@@ -328,7 +329,7 @@ export default function StudentListingPage() {
                   {g.label}
                 </option>
               ))}
-            </select>
+            </AppSelect>
 
             {/* Export button */}
             <button

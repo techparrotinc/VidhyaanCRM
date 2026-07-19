@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { FIELD_TYPE_LABELS, type FieldType, type FormField, type FormSchema, type FormSection } from '@/lib/forms/types'
 import { FormPreview } from './FormPreview'
+import { AppSelect } from '@/components/ui/app-select'
 
 let uidSeq = 0
 const uid = (p: string) => `${p}_${Date.now().toString(36)}_${(uidSeq++).toString(36)}`
@@ -143,7 +144,7 @@ export function FormBuilder({ meta, initial }: { meta: FormMeta; initial: FormVa
       {/* Meta */}
       <div className="grid gap-4 md:grid-cols-3">
         <Field label="Type">
-          <select
+          <AppSelect
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
             value={value.purpose}
             onChange={(e) => setValue((v) => ({ ...v, purpose: e.target.value }))}
@@ -151,7 +152,7 @@ export function FormBuilder({ meta, initial }: { meta: FormMeta; initial: FormVa
             {meta.purposes.map((p) => (
               <option key={p.value} value={p.value}>{p.label}</option>
             ))}
-          </select>
+          </AppSelect>
         </Field>
         <Field label="Form Name">
           <input
@@ -239,7 +240,7 @@ export function FormBuilder({ meta, initial }: { meta: FormMeta; initial: FormVa
                         placeholder="Field label"
                         onChange={(e) => updateField(secIdx, fldIdx, { label: e.target.value })}
                       />
-                      <select
+                      <AppSelect
                         className="min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                         value={field.type}
                         onChange={(e) => updateField(secIdx, fldIdx, { type: e.target.value as FieldType })}
@@ -247,7 +248,7 @@ export function FormBuilder({ meta, initial }: { meta: FormMeta; initial: FormVa
                         {FIELD_TYPES.map((t) => (
                           <option key={t} value={t}>{FIELD_TYPE_LABELS[t]}</option>
                         ))}
-                      </select>
+                      </AppSelect>
                     </div>
                     <button
                       onClick={() => removeField(secIdx, fldIdx)}
@@ -275,7 +276,7 @@ export function FormBuilder({ meta, initial }: { meta: FormMeta; initial: FormVa
                       </span>
                     )}
                     {field.type === 'related' && (
-                      <select
+                      <AppSelect
                         className="rounded border border-slate-200 bg-white px-2 py-1 text-xs"
                         value={field.relatedTo ?? 'course'}
                         onChange={(e) => updateField(secIdx, fldIdx, { relatedTo: e.target.value as any })}
@@ -283,7 +284,7 @@ export function FormBuilder({ meta, initial }: { meta: FormMeta; initial: FormVa
                         <option value="course">Course</option>
                         <option value="counsellor">Counsellor</option>
                         <option value="academicYear">Academic Year</option>
-                      </select>
+                      </AppSelect>
                     )}
                     {field.type === 'picklist' && (
                       <input

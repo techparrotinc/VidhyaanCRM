@@ -18,6 +18,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
 import { GRADE_OPTIONS } from '@/constants/grades'
 import { DedupDialog, DedupPayload } from "@/components/dedup/DedupDialog"
+import { AppSelect } from '@/components/ui/app-select'
 
 const format = (date: Date, formatStr: string): string => {
   const yyyy = date.getFullYear()
@@ -358,7 +359,7 @@ export default function CreateAdmissionPage() {
                   Applying For Grade <span className="text-red-500">*</span>
                 </label>
                 <div className="relative w-full">
-                  <select
+                  <AppSelect
                     name="gradeSought"
                     value={formData.gradeSought}
                     onChange={handleInputChange}
@@ -369,8 +370,7 @@ export default function CreateAdmissionPage() {
                     {GRADE_OPTIONS.map(g => (
                       <option key={g.value} value={g.value}>{g.label}</option>
                     ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-slate-450 pointer-events-none" />
+                  </AppSelect>
                 </div>
               </div>
 
@@ -379,7 +379,7 @@ export default function CreateAdmissionPage() {
                   Academic Year <span className="text-red-500">*</span>
                 </label>
                 <div className="relative w-full">
-                  <select
+                  <AppSelect
                     name="academicYearId"
                     value={formData.academicYearId}
                     onChange={handleInputChange}
@@ -390,8 +390,7 @@ export default function CreateAdmissionPage() {
                     {dbAcademicYears.map(y => (
                       <option key={y.id} value={y.id}>{y.name}</option>
                     ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-slate-455 pointer-events-none" />
+                  </AppSelect>
                 </div>
               </div>
 
@@ -461,7 +460,7 @@ export default function CreateAdmissionPage() {
                   Initial Stage <span className="text-red-500">*</span>
                 </label>
                 <div className="relative w-full">
-                  <select
+                  <AppSelect
                     name="stageId"
                     value={formData.stageId}
                     onChange={handleInputChange}
@@ -472,8 +471,7 @@ export default function CreateAdmissionPage() {
                     {dbStages.map(s => (
                       <option key={s.id} value={s.id}>{s.name} {s.isWon ? '(Won)' : s.isLost ? '(Lost)' : ''}</option>
                     ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-slate-455 pointer-events-none" />
+                  </AppSelect>
                 </div>
               </div>
 
@@ -482,7 +480,7 @@ export default function CreateAdmissionPage() {
                   Assigned Counsellor
                 </label>
                 <div className="relative w-full">
-                  <select
+                  <AppSelect
                     name="assignedToId"
                     value={formData.assignedToId}
                     onChange={handleInputChange}
@@ -492,8 +490,7 @@ export default function CreateAdmissionPage() {
                     {dbCounsellors.map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-slate-455 pointer-events-none" />
+                  </AppSelect>
                 </div>
               </div>
 
@@ -502,7 +499,7 @@ export default function CreateAdmissionPage() {
                   Priority
                 </label>
                 <div className="relative w-full">
-                  <select
+                  <AppSelect
                     name="priority"
                     value={formData.priority}
                     onChange={handleInputChange}
@@ -512,8 +509,7 @@ export default function CreateAdmissionPage() {
                     <option value="MEDIUM">Medium</option>
                     <option value="HIGH">High</option>
                     <option value="URGENT">Urgent</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-slate-455 pointer-events-none" />
+                  </AppSelect>
                 </div>
               </div>
             </div>

@@ -5,6 +5,7 @@ import { Plus, Inbox } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getGradeLabel } from '@/constants/grades'
 import { config, type, pipeline as configPipeline } from '@/lib/admission-settings-config'
+import { AppSelect } from '@/components/ui/app-select'
 
 type KanbanViewProps = {
   loading: boolean
@@ -120,7 +121,7 @@ export default function KanbanView({
 
                         <div className="mt-1 pt-2 border-t border-slate-100 flex items-center justify-between" onClick={e => e.stopPropagation()}>
                           <span className="text-[10px] text-slate-400 uppercase font-bold">Stage</span>
-                          <select
+                          <AppSelect
                             value={a.stageId}
                             onChange={(e) => onMoveStage(a.id, e.target.value)}
                             className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 text-[11px] focus:outline-none focus:border-blue-500 font-medium cursor-pointer"
@@ -130,7 +131,7 @@ export default function KanbanView({
                                 {s.label}
                               </option>
                             ))}
-                          </select>
+                          </AppSelect>
                         </div>
                       </div>
                     )

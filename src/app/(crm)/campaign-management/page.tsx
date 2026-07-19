@@ -20,6 +20,7 @@ import {
 import { useCampaigns } from '@/hooks/useCampaigns'
 import { useCampaignQuota } from '@/hooks/useCampaignQuota'
 import { CampaignCard } from './components/CampaignCard'
+import { AppSelect } from '@/components/ui/app-select'
 
 const tabs = [
   { label: 'All', value: '', icon: null },
@@ -285,7 +286,7 @@ export default function CampaignListPage() {
 
           <div className="relative flex-shrink-0">
             <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-            <select
+            <AppSelect
               value={channelFilter}
               onChange={(e) => {
                 setChannelFilter(e.target.value)
@@ -297,7 +298,7 @@ export default function CampaignListPage() {
               <option value="EMAIL">Email</option>
               <option value="SMS">SMS</option>
               <option value="WHATSAPP">WhatsApp</option>
-            </select>
+            </AppSelect>
           </div>
         </div>
 

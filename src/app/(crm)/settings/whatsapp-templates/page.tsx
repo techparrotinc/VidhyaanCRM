@@ -13,6 +13,7 @@ import VariablesBuilder from '@/components/whatsapp/VariablesBuilder'
 import { previewTemplateBody } from '@/lib/campaign/templateParams'
 import { WA_TEMPLATE_CATEGORIES, waCategoryLabel } from '@/constants/whatsapp-template-categories'
 import { waTemplateTrigger } from '@/constants/whatsapp-template-triggers'
+import { AppSelect } from '@/components/ui/app-select'
 
 type OrgTemplate = {
   id: string
@@ -428,7 +429,7 @@ export default function WhatsappTemplatesPage() {
                       placeholder="MSG91 template name (exact)"
                       className={`${inputClass} font-mono`}
                     />
-                    <select
+                    <AppSelect
                       value={form.language}
                       onChange={e => setForm(f => ({ ...f, language: e.target.value }))}
                       className={`${inputClass} bg-white`}
@@ -436,8 +437,8 @@ export default function WhatsappTemplatesPage() {
                       {['en', 'en_US', 'ta', 'hi', 'te', 'kn', 'ml'].map(l => (
                         <option key={l} value={l}>{l}</option>
                       ))}
-                    </select>
-                    <select
+                    </AppSelect>
+                    <AppSelect
                       value={form.category}
                       onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                       className={`${inputClass} bg-white`}
@@ -445,7 +446,7 @@ export default function WhatsappTemplatesPage() {
                       {WA_TEMPLATE_CATEGORIES.map(c => (
                         <option key={c.value} value={c.value}>{c.label}</option>
                       ))}
-                    </select>
+                    </AppSelect>
                   </div>
                   <textarea
                     value={form.body}

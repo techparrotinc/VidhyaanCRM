@@ -2,6 +2,7 @@
 
 import { X, Plus } from 'lucide-react'
 import { TEMPLATE_TOKENS } from '@/lib/campaign/templateParams'
+import { AppSelect } from '@/components/ui/app-select'
 
 /**
  * Ordered variable mapping builder: position n in the list fills {{n}} in
@@ -23,7 +24,7 @@ export default function VariablesBuilder({
               <span className="text-xs font-mono font-bold text-slate-400 w-10 flex-shrink-0">
                 {'{{'}{i + 1}{'}}'}
               </span>
-              <select
+              <AppSelect
                 value={token}
                 onChange={e => {
                   const next = [...variables]
@@ -35,7 +36,7 @@ export default function VariablesBuilder({
                 {TEMPLATE_TOKENS.map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}
-              </select>
+              </AppSelect>
               <button
                 type="button"
                 onClick={() => onChange(variables.filter((_, idx) => idx !== i))}

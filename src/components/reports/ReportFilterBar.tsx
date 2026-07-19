@@ -5,6 +5,7 @@ import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
 import { X, Bookmark, ChevronDown, Trash2 } from 'lucide-react'
 import { DatePicker } from '@/components/ui/datetime-picker'
+import { AppSelect } from '@/components/ui/app-select'
 
 // Filter bar rendered from a report's registry config (via /reports/meta).
 // State lives in URL query params — links are shareable by construction.
@@ -50,7 +51,7 @@ function EntitySelect({
   // user has already applied.
   if (data && options.length <= 1 && !value) return null
   return (
-    <select
+    <AppSelect
       value={value}
       onChange={e => onSelect(e.target.value)}
       className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-medium text-slate-700"
@@ -59,7 +60,7 @@ function EntitySelect({
       {options.map(o => (
         <option key={o.value} value={o.value}>{o.label}</option>
       ))}
-    </select>
+    </AppSelect>
   )
 }
 
@@ -123,7 +124,7 @@ export function ReportFilterBar({ reportKey, configs, values, onChange }: Props)
         }
         if (config.type === 'enum') {
           return (
-            <select
+            <AppSelect
               key={config.key}
               value={values[config.key] ?? ''}
               onChange={e => set(config.key, e.target.value)}
@@ -133,7 +134,7 @@ export function ReportFilterBar({ reportKey, configs, values, onChange }: Props)
               {(config.options ?? []).map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
-            </select>
+            </AppSelect>
           )
         }
         if (config.type === 'entity') {

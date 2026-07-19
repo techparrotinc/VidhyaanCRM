@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/datetime-picker'
+import { AppSelect } from '@/components/ui/app-select'
 
 interface AcademicYear {
   id: string
@@ -230,7 +231,7 @@ export default function AcademicYearSettingsPage() {
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
                     Type
                   </label>
-                  <select
+                  <AppSelect
                     value={type}
                     onChange={(e) => setType(e.target.value)}
                     className="w-full text-sm border border-slate-200 rounded-lg p-2 bg-white outline-none focus:border-[#1565D8]"
@@ -239,7 +240,7 @@ export default function AcademicYearSettingsPage() {
                     <option value="FINANCIAL">FINANCIAL</option>
                     <option value="CALENDAR">CALENDAR</option>
                     <option value="CUSTOM">CUSTOM</option>
-                  </select>
+                  </AppSelect>
                 </div>
 
                 <div>

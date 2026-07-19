@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { DatePicker } from '@/components/ui/datetime-picker'
 import { X, Info, Loader2 } from 'lucide-react'
+import { AppSelect } from '@/components/ui/app-select'
 
 interface Course {
   id: string
@@ -125,7 +126,7 @@ export default function EnrollModal({
                   Loading courses...
                 </div>
               ) : (
-                <select
+                <AppSelect
                   value={courseId}
                   onChange={(e) => {
                     if (e.target.value === '__manage__') { router.push('/settings/courses'); return }
@@ -141,7 +142,7 @@ export default function EnrollModal({
                     </option>
                   ))}
                   <option value="__manage__">＋ Add course…</option>
-                </select>
+                </AppSelect>
               )}
             </div>
 

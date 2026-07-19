@@ -52,6 +52,7 @@ import LeadPageHeader from '@/components/leads/LeadPageHeader'
 import LeadProgressStrip from '@/components/leads/LeadProgressStrip'
 import { mapGradeValue } from '@/lib/utils/gradeMapping'
 import { institutionMode, admissionNoun } from '@/lib/institution'
+import { AppSelect } from '@/components/ui/app-select'
 
 interface Lead {
   id: string
@@ -1327,7 +1328,7 @@ export default function LeadDetailPage() {
             <label className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 block">
               Reason (optional)
             </label>
-            <select
+            <AppSelect
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm w-full focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20"
@@ -1338,7 +1339,7 @@ export default function LeadDetailPage() {
               <option value="Not interested in board">Prefers different curriculum</option>
               <option value="Joined another school">Joined elsewhere</option>
               <option value="Other">Other / Not specified</option>
-            </select>
+            </AppSelect>
           </div>
 
           <div className="flex items-center justify-end gap-3">
@@ -1390,7 +1391,7 @@ export default function LeadDetailPage() {
                 Follow-up Time
               </label>
               <div className="relative">
-                <select
+                <AppSelect
                   value={dialogFollowUpTime}
                   onChange={(e) => setDialogFollowUpTime(e.target.value)}
                   className="w-full h-9 px-3 pr-8 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] appearance-none cursor-pointer"
@@ -1398,8 +1399,7 @@ export default function LeadDetailPage() {
                   {timeSlots.map(slot => (
                     <option key={slot} value={slot}>{slot}</option>
                   ))}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={13} />
+                </AppSelect>
               </div>
             </div>
           </div>

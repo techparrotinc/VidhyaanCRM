@@ -8,6 +8,7 @@ import { useCounsellors } from '@/hooks/useCounsellors'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { usePipelineStages } from '@/hooks/usePipelineStages'
 import { useClassOptions } from '@/hooks/useClassOptions'
+import { AppSelect } from '@/components/ui/app-select'
 
 interface LeadRecord {
   id: string
@@ -358,7 +359,7 @@ export default function ConvertToAdmissionModal({
               <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide block mb-1">
                 APPLYING FOR *
               </label>
-              <select
+              <AppSelect
                 required
                 value={form.gradeSought}
                 onChange={(e) => setForm(prev => ({ ...prev, gradeSought: e.target.value }))}
@@ -371,7 +372,7 @@ export default function ConvertToAdmissionModal({
                     {opt.label}
                   </option>
                 ))}
-              </select>
+              </AppSelect>
               {isFieldInvalid('gradeSought') && (
                 <span className="text-xs text-red-500 block mt-1">
                   {getFieldError('gradeSought')}
@@ -385,11 +386,11 @@ export default function ConvertToAdmissionModal({
                 ACADEMIC YEAR *
               </label>
               {loadingOptions ? (
-                <select disabled className="form-input-style opacity-60">
+                <AppSelect disabled className="form-input-style opacity-60">
                   <option>Loading...</option>
-                </select>
+                </AppSelect>
               ) : (
-                <select
+                <AppSelect
                   required
                   value={form.academicYearId}
                   onChange={(e) => setForm(prev => ({ ...prev, academicYearId: e.target.value }))}
@@ -402,7 +403,7 @@ export default function ConvertToAdmissionModal({
                       {ay.name} {ay.status === 'ACTIVE' ? '(Current)' : ''}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               )}
               {isFieldInvalid('academicYearId') && (
                 <span className="text-xs text-red-500 block mt-1">
@@ -417,11 +418,11 @@ export default function ConvertToAdmissionModal({
                 INITIAL STAGE *
               </label>
               {loadingOptions ? (
-                <select disabled className="form-input-style opacity-60">
+                <AppSelect disabled className="form-input-style opacity-60">
                   <option>Loading...</option>
-                </select>
+                </AppSelect>
               ) : (
-                <select
+                <AppSelect
                   required
                   value={form.stageId}
                   onChange={(e) => setForm(prev => ({ ...prev, stageId: e.target.value }))}
@@ -434,7 +435,7 @@ export default function ConvertToAdmissionModal({
                       {stage.name}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               )}
               {isFieldInvalid('stageId') && (
                 <span className="text-xs text-red-500 block mt-1">
@@ -455,11 +456,11 @@ export default function ConvertToAdmissionModal({
                 ASSIGN TO
               </label>
               {loadingOptions ? (
-                <select disabled className="form-input-style opacity-60">
+                <AppSelect disabled className="form-input-style opacity-60">
                   <option>Loading...</option>
-                </select>
+                </AppSelect>
               ) : (
-                <select
+                <AppSelect
                   value={form.assignedToId}
                   onChange={(e) => setForm(prev => ({ ...prev, assignedToId: e.target.value }))}
                   className={`form-input-style ${form.assignedToId ? 'has-value' : ''}`}
@@ -470,7 +471,7 @@ export default function ConvertToAdmissionModal({
                       {c.name}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               )}
             </div>
 

@@ -8,6 +8,7 @@ import { useWhatsappTemplates } from '@/hooks/useWhatsappTemplates'
 import { previewTemplateBody } from '@/lib/campaign/templateParams'
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
+import { AppSelect } from '@/components/ui/app-select'
 
 // Dynamic Mail Icon (from lucide)
 function MailIcon({ className }: { className?: string }) {
@@ -251,14 +252,14 @@ export function StepThree({
               : <>Each recipient gets a unique link. Insert <code className="rounded bg-slate-100 px-1">{'{{link}}'}</code> where it should appear in your message.</>}
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <select
+            <AppSelect
               className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
               value={formTemplateId}
               onChange={(e) => onFormTemplateChange(e.target.value)}
             >
               <option value="">No form</option>
               {forms.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-            </select>
+            </AppSelect>
             {formTemplateId && channel !== 'WHATSAPP' && (
               <button
                 type="button"
@@ -365,7 +366,7 @@ export function StepThree({
               </div>
             ) : (
               <>
-                <select
+                <AppSelect
                   value={selectedTemplateId}
                   onChange={(e) => {
                     const t = templates.find((t: any) => t.id === e.target.value)
@@ -380,7 +381,7 @@ export function StepThree({
                       {t.name}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
 
                 {selectedTemplate && (
                   <div className="mt-3 p-4 bg-green-50 border border-green-100 rounded-xl">
@@ -593,7 +594,7 @@ export function StepThree({
                     <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       Time
                     </label>
-                    <select
+                    <AppSelect
                       value={scheduleTime}
                       onChange={(e) => handleTimeChange(e.target.value)}
                       className="w-full h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition"
@@ -618,7 +619,7 @@ export function StepThree({
                       <option value="17:30">5:30 PM</option>
                       <option value="18:00">6:00 PM</option>
                       <option value="18:30">6:30 PM</option>
-                    </select>
+                    </AppSelect>
                   </div>
                 </div>
               )}

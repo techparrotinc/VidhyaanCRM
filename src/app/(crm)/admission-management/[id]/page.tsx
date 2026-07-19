@@ -54,6 +54,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import RecordSkeleton from "@/components/shared/RecordSkeleton"
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { DatePicker } from '@/components/ui/datetime-picker'
+import { AppSelect } from '@/components/ui/app-select'
 import {
   Dialog,
   DialogContent,
@@ -689,7 +690,7 @@ export default function AdmissionDetailPage() {
             <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
               {/* Stage dropdown */}
               <div className="relative" onClick={(e) => e.stopPropagation()}>
-                <select
+                <AppSelect
                   value={admission.stageId || ''}
                   onChange={async (e) => {
                     const newStageId = e.target.value
@@ -725,14 +726,7 @@ export default function AdmissionDetailPage() {
                       {stage.name}
                     </option>
                   ))}
-                </select>
-                <ChevronDown
-                  className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                  size={10}
-                  style={{
-                    color: getStageColor(admission.stage?.name).text
-                  }}
-                />
+                </AppSelect>
               </div>
 
               {/* Status badge */}
@@ -1192,7 +1186,7 @@ export default function AdmissionDetailPage() {
 
             <div>
               <label className="text-xs font-semibold text-slate-500 mb-1 block">Class / Grade</label>
-              <select
+              <AppSelect
                 value={convertStudentGrade}
                 onChange={(e) => setConvertStudentGrade(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
@@ -1204,7 +1198,7 @@ export default function AdmissionDetailPage() {
                 {convertStudentGrade && !GRADE_OPTIONS.some(opt => opt.value === convertStudentGrade) && (
                   <option value={convertStudentGrade}>{getGradeLabel(convertStudentGrade)}</option>
                 )}
-              </select>
+              </AppSelect>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

@@ -25,6 +25,7 @@ import {
 } from './leadConfig'
 import { useCourseOptions } from '@/hooks/useCourseOptions'
 import { DatePicker } from '@/components/ui/datetime-picker'
+import { AppSelect } from '@/components/ui/app-select'
 
 export interface EditLeadFormData {
   name?: string
@@ -210,7 +211,7 @@ export default function LeadsTable(props: LeadsTableProps) {
                         {/* 3. Applying For */}
                         <div className="lg:col-span-1 min-w-0">
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">{applyingForLabel[institutionType as keyof typeof applyingForLabel]}</span>
-                          <select
+                          <AppSelect
                             value={editFormData.applyingFor || ''}
                             onChange={(e) => onEditFormChange({ ...editFormData, applyingFor: e.target.value })}
                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none cursor-pointer min-w-0"
@@ -232,13 +233,13 @@ export default function LeadsTable(props: LeadsTableProps) {
                                 </option>
                               ))
                             )}
-                          </select>
+                          </AppSelect>
                         </div>
 
                         {/* 4. Source */}
                         <div className="lg:col-span-1 min-w-0">
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Source</span>
-                          <select
+                          <AppSelect
                             value={editFormData.source || ''}
                             onChange={(e) => onEditFormChange({ ...editFormData, source: e.target.value })}
                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none cursor-pointer min-w-0"
@@ -249,13 +250,13 @@ export default function LeadsTable(props: LeadsTableProps) {
                                 • {src.label}
                               </option>
                             ))}
-                          </select>
+                          </AppSelect>
                         </div>
 
                         {/* 5. Counsellor */}
                         <div className="lg:col-span-1 min-w-0">
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Counsellor</span>
-                          <select
+                          <AppSelect
                             value={editFormData.counsellor || ''}
                             onChange={(e) => onEditFormChange({ ...editFormData, counsellor: e.target.value || '' })}
                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none cursor-pointer min-w-0"
@@ -266,13 +267,13 @@ export default function LeadsTable(props: LeadsTableProps) {
                                 {c.name}
                               </option>
                             ))}
-                          </select>
+                          </AppSelect>
                         </div>
 
                         {/* 6. Status */}
                         <div className="lg:col-span-1 min-w-0">
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Status</span>
-                          <select
+                          <AppSelect
                             value={editFormData.status || ''}
                             onChange={(e) => onEditFormChange({ ...editFormData, status: e.target.value })}
                             className={`w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 appearance-none cursor-pointer min-w-0 border-l-4 ${
@@ -288,7 +289,7 @@ export default function LeadsTable(props: LeadsTableProps) {
                                 {statusLabels[st] || st}
                               </option>
                             ))}
-                          </select>
+                          </AppSelect>
                         </div>
 
                         {/* 7. Follow-up Date */}

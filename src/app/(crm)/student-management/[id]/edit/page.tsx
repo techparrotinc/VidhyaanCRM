@@ -9,6 +9,7 @@ import { useClassOptions } from '@/hooks/useClassOptions'
 import { isLearningCentre } from '@/lib/institution'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { DatePicker } from '@/components/ui/datetime-picker'
+import { AppSelect } from '@/components/ui/app-select'
 
 const inputClass =
   'w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition'
@@ -263,7 +264,7 @@ export default function EditStudentPage() {
 
                 <div>
                   <label className={labelClass}>Gender</label>
-                  <select
+                  <AppSelect
                     name="gender"
                     value={form.gender}
                     onChange={handleChange}
@@ -272,7 +273,7 @@ export default function EditStudentPage() {
                     <option value="MALE">Male</option>
                     <option value="FEMALE">Female</option>
                     <option value="OTHER">Other</option>
-                  </select>
+                  </AppSelect>
                 </div>
 
                 <div>
@@ -289,7 +290,7 @@ export default function EditStudentPage() {
                   <>
                     <div>
                       <label className={labelClass}>Class</label>
-                      <select
+                      <AppSelect
                         name="gradeLabel"
                         value={form.gradeLabel}
                         onChange={e => {
@@ -307,7 +308,7 @@ export default function EditStudentPage() {
                           <option value={form.gradeLabel}>{form.gradeLabel}</option>
                         )}
                         <option value="__manage__">＋ Add class…</option>
-                      </select>
+                      </AppSelect>
                     </div>
 
                     <div>
@@ -315,7 +316,7 @@ export default function EditStudentPage() {
                       {(() => {
                         const sections = classOptions.find(c => c.name === form.gradeLabel)?.sections ?? []
                         return sections.length > 0 ? (
-                          <select
+                          <AppSelect
                             name="section"
                             value={form.section}
                             onChange={handleChange}
@@ -327,7 +328,7 @@ export default function EditStudentPage() {
                             {form.section && !sections.includes(form.section) && (
                               <option value={form.section}>{form.section}</option>
                             )}
-                          </select>
+                          </AppSelect>
                         ) : (
                           <input
                             name="section"
@@ -344,7 +345,7 @@ export default function EditStudentPage() {
                 {isLC && (
                   <div>
                     <label className={labelClass}>Batch</label>
-                    <select
+                    <AppSelect
                       name="batchId"
                       value={form.batchId}
                       onChange={handleChange}
@@ -355,7 +356,7 @@ export default function EditStudentPage() {
                           {b.name}{b.course ? ` (${b.course.name})` : ''}
                         </option>
                       ))}
-                    </select>
+                    </AppSelect>
                   </div>
                 )}
 
@@ -371,7 +372,7 @@ export default function EditStudentPage() {
 
                 <div>
                   <label className={labelClass}>Status</label>
-                  <select
+                  <AppSelect
                     name="status"
                     value={form.status}
                     onChange={handleChange}
@@ -381,12 +382,12 @@ export default function EditStudentPage() {
                     <option value="TRANSFERRED">Transferred</option>
                     <option value="SUSPENDED">Suspended</option>
                     <option value="DROPPED_OUT">Dropped Out</option>
-                  </select>
+                  </AppSelect>
                 </div>
 
                 <div>
                   <label className={labelClass}>Academic Year</label>
-                  <select
+                  <AppSelect
                     name="academicYearId"
                     value={form.academicYearId}
                     onChange={handleChange}
@@ -397,7 +398,7 @@ export default function EditStudentPage() {
                         {ay.name}
                       </option>
                     ))}
-                  </select>
+                  </AppSelect>
                 </div>
               </div>
             </div>

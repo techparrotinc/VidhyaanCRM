@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Plus, Pencil, Trash2, BookOpen, Users } from 'lucide-react'
 import { BatchesTab } from '@/components/settings/BatchesTab'
+import { AppSelect } from '@/components/ui/app-select'
 
 const CATEGORY_LABELS: Record<string, string> = {
   MUSIC: 'Music',
@@ -279,7 +280,7 @@ export default function CoursesSettingsPage() {
               <label className="text-xs font-medium text-slate-600">
                 Category
               </label>
-              <select
+              <AppSelect
                 name="category"
                 value={form.category}
                 onChange={handleChange}
@@ -291,7 +292,7 @@ export default function CoursesSettingsPage() {
                     {label}
                   </option>
                 ))}
-              </select>
+              </AppSelect>
             </div>
 
             {/* Fee Amount */}
@@ -315,7 +316,7 @@ export default function CoursesSettingsPage() {
               <label className="text-xs font-medium text-slate-600">
                 Billing Frequency
               </label>
-              <select
+              <AppSelect
                 name="frequency"
                 value={form.frequency}
                 onChange={handleChange}
@@ -326,7 +327,7 @@ export default function CoursesSettingsPage() {
                     {label}
                   </option>
                 ))}
-              </select>
+              </AppSelect>
             </div>
 
             {/* Billing Day */}

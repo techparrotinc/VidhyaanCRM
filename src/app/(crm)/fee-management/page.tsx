@@ -14,6 +14,7 @@ import { KpiTile } from '@/components/fees/KpiTile'
 import { InvoiceTable, type InvoiceRow } from '@/components/fees/InvoiceTable'
 import { computeCollectionRate } from '@/lib/fees'
 import { createPortal } from 'react-dom'
+import { AppSelect } from '@/components/ui/app-select'
 import { useAcademicYears }
   from '@/hooks/useAcademicYears'
 import { GRADE_OPTIONS, getGradeLabel }
@@ -744,7 +745,7 @@ export default function FeeManagementPage() {
               </div>
 
               {/* Grade dropdown */}
-              <select
+              <AppSelect
                 value={gradeLabel}
                 onChange={e => {
                   setGradeLabel(e.target.value)
@@ -759,13 +760,13 @@ export default function FeeManagementPage() {
                     {getGradeLabel(g)}
                   </option>
                 ))}
-              </select>
+              </AppSelect>
 
               {/* SCHOOL Dropdowns */}
               {institutionType === 'SCHOOL' && (
                 <>
                   {/* Term dropdown */}
-                  <select
+                  <AppSelect
                     value={termFilter}
                     onChange={e => {
                       setTermFilter(e.target.value)
@@ -780,7 +781,7 @@ export default function FeeManagementPage() {
                         {t.name}
                       </option>
                     ))}
-                  </select>
+                  </AppSelect>
                 </>
               )}
 
@@ -788,7 +789,7 @@ export default function FeeManagementPage() {
               {institutionType === 'LEARNING_CENTER' && (
                 <>
                   {/* Course dropdown */}
-                  <select
+                  <AppSelect
                     value={courseFilter}
                     onChange={e => {
                       setCourseFilter(e.target.value)
@@ -803,12 +804,12 @@ export default function FeeManagementPage() {
                         {c.name}
                       </option>
                     ))}
-                  </select>
+                  </AppSelect>
                 </>
               )}
 
               {/* Month dropdown */}
-              <select
+              <AppSelect
                 value={monthFilter}
                 onChange={e => {
                   setMonthFilter(e.target.value)
@@ -823,7 +824,7 @@ export default function FeeManagementPage() {
                     {m.label}
                   </option>
                 ))}
-              </select>
+              </AppSelect>
 
               {/* Export button */}
               <button

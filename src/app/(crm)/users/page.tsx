@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useBranches } from '@/hooks/useBranches'
+import { AppSelect } from '@/components/ui/app-select'
 
 interface UserBranch {
   id: string
@@ -482,7 +483,7 @@ export default function UsersPage() {
 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Assign Role</label>
-                <select
+                <AppSelect
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]"
@@ -492,7 +493,7 @@ export default function UsersPage() {
                   <option value="RECEPTIONIST">Receptionist</option>
                   <option value="ACCOUNTANT">Accountant</option>
                   <option value="TEACHER">Teacher</option>
-                </select>
+                </AppSelect>
               </div>
 
               {branches.length > 1 && inviteRole !== 'ORG_ADMIN' && (
@@ -595,7 +596,7 @@ export default function UsersPage() {
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Role</label>
-                <select
+                <AppSelect
                   value={editRoleValue}
                   onChange={(e) => setEditRoleValue(e.target.value)}
                   disabled={editRoleValue === 'ORG_ADMIN'}
@@ -607,7 +608,7 @@ export default function UsersPage() {
                   <option value="RECEPTIONIST">Receptionist</option>
                   <option value="ACCOUNTANT">Accountant</option>
                   <option value="TEACHER">Teacher</option>
-                </select>
+                </AppSelect>
                 {editRoleValue === 'ORG_ADMIN' && (
                   <p className="text-[10px] text-slate-400">The owner role can&rsquo;t be reassigned here.</p>
                 )}

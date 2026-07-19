@@ -21,6 +21,7 @@ import { GRADE_OPTIONS } from '@/constants/grades'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { DatePicker } from '@/components/ui/datetime-picker'
+import { AppSelect } from '@/components/ui/app-select'
 
 type MoveAction = 'PROMOTE' | 'RETAIN' | 'ALUMNI' | 'SKIP'
 
@@ -277,12 +278,12 @@ export default function PromoteStudentsPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-slate-500">Current Class</label>
-              <select value={sourceGrade} onChange={(e) => { setSourceGrade(e.target.value); setActions({}) }} className={inputCls}>
+              <AppSelect value={sourceGrade} onChange={(e) => { setSourceGrade(e.target.value); setActions({}) }} className={inputCls}>
                 <option value="">Select class</option>
                 {GRADE_LABELS.map((g) => (
                   <option key={g} value={g}>{g}</option>
                 ))}
-              </select>
+              </AppSelect>
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-slate-500">Section (optional)</label>
@@ -329,7 +330,7 @@ export default function PromoteStudentsPage() {
                       <td className="px-4 py-2.5 text-slate-500">{s.rollNumber || '—'}</td>
                       <td className="px-4 py-2.5 text-slate-500">{s.section || '—'}</td>
                       <td className="px-4 py-2.5">
-                        <select
+                        <AppSelect
                           value={actionFor(s.id)}
                           onChange={(e) => setActions((prev) => ({ ...prev, [s.id]: e.target.value as MoveAction }))}
                           className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] cursor-pointer"
@@ -338,7 +339,7 @@ export default function PromoteStudentsPage() {
                           <option value="RETAIN">Retain (same class)</option>
                           <option value="ALUMNI">Mark Alumni</option>
                           <option value="SKIP">Skip</option>
-                        </select>
+                        </AppSelect>
                       </td>
                     </tr>
                   ))}
@@ -368,21 +369,21 @@ export default function PromoteStudentsPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-slate-500">Target Academic Year</label>
-              <select value={targetYearId} onChange={(e) => setTargetYearId(e.target.value)} className={inputCls}>
+              <AppSelect value={targetYearId} onChange={(e) => setTargetYearId(e.target.value)} className={inputCls}>
                 <option value="">Select year</option>
                 {years.map((y: any) => (
                   <option key={y.id} value={y.id}>{y.name}{y.status === 'ACTIVE' ? ' (active)' : ''}</option>
                 ))}
-              </select>
+              </AppSelect>
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-slate-500">Promote to Class</label>
-              <select value={targetGrade} onChange={(e) => setTargetGrade(e.target.value)} className={inputCls}>
+              <AppSelect value={targetGrade} onChange={(e) => setTargetGrade(e.target.value)} className={inputCls}>
                 <option value="">Select class</option>
                 {GRADE_LABELS.map((g) => (
                   <option key={g} value={g}>{g}</option>
                 ))}
-              </select>
+              </AppSelect>
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-slate-500">Section</label>
@@ -450,14 +451,14 @@ export default function PromoteStudentsPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold text-slate-500">Fee Plan</label>
-                  <select value={selectedPlanId} onChange={(e) => choosePlan(e.target.value)} className={inputCls}>
+                  <AppSelect value={selectedPlanId} onChange={(e) => choosePlan(e.target.value)} className={inputCls}>
                     <option value="">Select an existing plan (or add lines below)</option>
                     {plans.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}{p.gradeLabel ? ` — ${p.gradeLabel}` : ''}
                       </option>
                     ))}
-                  </select>
+                  </AppSelect>
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold text-slate-500">Due Date</label>

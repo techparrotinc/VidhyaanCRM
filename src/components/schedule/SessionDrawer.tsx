@@ -5,6 +5,7 @@ import { X, Link2, Send, CalendarClock, Ban, ClipboardCheck, AlertTriangle } fro
 import { DateTimePicker } from '@/components/ui/datetime-picker'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import type { ScheduleSession } from './types'
+import { AppSelect } from '@/components/ui/app-select'
 
 const DURATION_PRESETS = [30, 45, 60]
 
@@ -251,7 +252,7 @@ export function SessionDrawer({
                       className="w-20 px-2 py-1.5 text-xs border border-slate-200 rounded-lg"
                     />
                   </div>
-                  <select
+                  <AppSelect
                     value={newTeacherId}
                     onChange={e => setNewTeacherId(e.target.value)}
                     className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"
@@ -260,7 +261,7 @@ export function SessionDrawer({
                     {teachers.map(t => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
-                  </select>
+                  </AppSelect>
                   <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
                     <input
                       type="checkbox"

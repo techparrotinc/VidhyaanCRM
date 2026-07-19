@@ -41,6 +41,7 @@ import { mapGradeValue } from '@/lib/utils/gradeMapping'
 import { DedupDialog, DedupPayload } from "@/components/dedup/DedupDialog"
 import { institutionMode } from '@/lib/institution'
 import { useClassOptions } from '@/hooks/useClassOptions'
+import { AppSelect } from '@/components/ui/app-select'
 
 const format = (date: Date, formatStr: string): string => {
   const yyyy = date.getFullYear()
@@ -694,7 +695,7 @@ export default function AddLeadPage() {
                       <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         Applying For (Grade) <span className="text-red-500 ml-0.5">*</span>
                       </label>
-                      <select
+                      <AppSelect
                         name="gradeSought"
                         value={formData.gradeSought}
                         onChange={(e) => {
@@ -708,7 +709,7 @@ export default function AddLeadPage() {
                           <option key={cls.gradeSlug + cls.name} value={cls.gradeSlug}>{cls.name}</option>
                         ))}
                         <option value="__manage__">＋ Add class…</option>
-                      </select>
+                      </AppSelect>
                       {errors.gradeSought && (
                         <span className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
                           <AlertCircle className="size-3" />
@@ -722,7 +723,7 @@ export default function AddLeadPage() {
                       <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         Academic Year
                       </label>
-                      <select
+                      <AppSelect
                         name="academicYearId"
                         value={formData.academicYearId}
                         onChange={handleInputChange}
@@ -732,7 +733,7 @@ export default function AddLeadPage() {
                         {dbAcademicYears.map(year => (
                           <option key={year.id} value={year.id}>{year.name}</option>
                         ))}
-                      </select>
+                      </AppSelect>
                     </div>
 
                     {/* Child's Name */}
@@ -852,7 +853,7 @@ export default function AddLeadPage() {
                       <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         Course / Program <span className="text-red-500 ml-0.5">*</span>
                       </label>
-                      <select
+                      <AppSelect
                         name="course"
                         value={formData.course}
                         onChange={(e) => {
@@ -866,7 +867,7 @@ export default function AddLeadPage() {
                           <option key={course} value={course}>{course}</option>
                         ))}
                         <option value="__manage__">＋ Add course…</option>
-                      </select>
+                      </AppSelect>
                       {errors.course && (
                         <span className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
                           <AlertCircle className="size-3" />
@@ -888,7 +889,7 @@ export default function AddLeadPage() {
                       <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         Batch / Timing
                       </label>
-                      <select
+                      <AppSelect
                         name="batch"
                         value={formData.batch}
                         onChange={handleInputChange}
@@ -898,7 +899,7 @@ export default function AddLeadPage() {
                         {(batchOptions.length > 0 ? batchOptions : ['Morning', 'Afternoon', 'Evening', 'Weekend']).map(batch => (
                           <option key={batch} value={batch}>{batch}</option>
                         ))}
-                      </select>
+                      </AppSelect>
                     </div>
 
                     {/* Student Age */}
@@ -950,7 +951,7 @@ export default function AddLeadPage() {
                     <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       Assign Counsellor <span className="text-red-500 ml-0.5">*</span>
                     </label>
-                    <select
+                    <AppSelect
                       name="counsellorId"
                       value={formData.assignedToId}
                       onChange={(e) => setFormData(prev => ({ ...prev, assignedToId: e.target.value }))}
@@ -962,7 +963,7 @@ export default function AddLeadPage() {
                           {c.name}
                         </option>
                       ))}
-                    </select>
+                    </AppSelect>
                     {errors.counsellorId && (
                       <span className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
                         <AlertCircle className="size-3" />
@@ -976,7 +977,7 @@ export default function AddLeadPage() {
                     <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       Lead Status
                     </label>
-                    <select
+                    <AppSelect
                       name="status"
                       value={formData.status}
                       onChange={handleInputChange}
@@ -985,7 +986,7 @@ export default function AddLeadPage() {
                       {statusOptions.map(status => (
                         <option key={status.value} value={status.value}>{status.label}</option>
                       ))}
-                    </select>
+                    </AppSelect>
                   </div>
 
                   {/* Follow-up Date */}
@@ -1048,7 +1049,7 @@ export default function AddLeadPage() {
                     <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       Follow-up Time <span className="text-red-500 ml-0.5">*</span>
                     </label>
-                    <select
+                    <AppSelect
                       name="followUpTime"
                       value={followUpTime}
                       onChange={(e) => setFollowUpTime(e.target.value)}
@@ -1058,7 +1059,7 @@ export default function AddLeadPage() {
                       {timeSlots.map(slot => (
                         <option key={slot.value} value={slot.value}>{slot.label}</option>
                       ))}
-                    </select>
+                    </AppSelect>
                     {errors.followUpTime && (
                       <span className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
                         <AlertCircle className="size-3" />
@@ -1097,7 +1098,7 @@ export default function AddLeadPage() {
                     <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                       CAMPAIGN (OPTIONAL)
                     </label>
-                    <select
+                    <AppSelect
                       name="campaignId"
                       value={formData.campaignId}
                       onChange={handleInputChange}
@@ -1109,7 +1110,7 @@ export default function AddLeadPage() {
                           {c.name}
                         </option>
                       ))}
-                    </select>
+                    </AppSelect>
                     <p className="text-[11px] text-slate-400 mt-1">
                       Link this lead to a marketing campaign for tracking ROI
                     </p>

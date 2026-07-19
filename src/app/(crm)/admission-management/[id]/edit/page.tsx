@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
 import { GRADE_OPTIONS } from '@/constants/grades'
+import { AppSelect } from '@/components/ui/app-select'
 
 const format = (date: Date, formatStr: string): string => {
   const yyyy = date.getFullYear()
@@ -386,7 +387,7 @@ export default function EditAdmissionPage() {
                   Applying For Grade <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <select
+                  <AppSelect
                     name="gradeSought"
                     value={formData.gradeSought}
                     onChange={handleInputChange}
@@ -397,8 +398,7 @@ export default function EditAdmissionPage() {
                     {GRADE_OPTIONS.map(g => (
                       <option key={g.value} value={g.value}>{g.label}</option>
                     ))}
-                  </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                  </AppSelect>
                 </div>
               </div>
 
@@ -407,7 +407,7 @@ export default function EditAdmissionPage() {
                   Academic Year
                 </label>
                 <div className="relative">
-                  <select
+                  <AppSelect
                     name="academicYearId"
                     value={formData.academicYearId}
                     onChange={handleInputChange}
@@ -417,8 +417,7 @@ export default function EditAdmissionPage() {
                     {dbAcademicYears.map(y => (
                       <option key={y.id} value={y.id}>{y.name}</option>
                     ))}
-                  </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                  </AppSelect>
                 </div>
               </div>
 
@@ -485,7 +484,7 @@ export default function EditAdmissionPage() {
                 Stage
               </label>
               <div className="relative">
-                <select
+                <AppSelect
                   name="stageId"
                   value={formData.stageId}
                   onChange={handleInputChange}
@@ -495,8 +494,7 @@ export default function EditAdmissionPage() {
                   {dbStages.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                </AppSelect>
               </div>
             </div>
 
@@ -505,7 +503,7 @@ export default function EditAdmissionPage() {
                 Assigned Counsellor
               </label>
               <div className="relative">
-                <select
+                <AppSelect
                   name="assignedToId"
                   value={formData.assignedToId}
                   onChange={handleInputChange}
@@ -515,8 +513,7 @@ export default function EditAdmissionPage() {
                   {dbCounsellors.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                </AppSelect>
               </div>
             </div>
 
@@ -525,7 +522,7 @@ export default function EditAdmissionPage() {
                 Priority
               </label>
               <div className="relative">
-                <select
+                <AppSelect
                   name="priority"
                   value={formData.priority}
                   onChange={handleInputChange}
@@ -535,8 +532,7 @@ export default function EditAdmissionPage() {
                   <option value="MEDIUM">Medium</option>
                   <option value="HIGH">High</option>
                   <option value="URGENT">Urgent</option>
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                </AppSelect>
               </div>
             </div>
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Send, X, Mail, MessageSquare, Copy, CheckCircle2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AppSelect } from '@/components/ui/app-select'
 
 type Channel = 'EMAIL' | 'SMS' | 'WHATSAPP'
 
@@ -104,10 +105,10 @@ export function SendFormButton({
               <div className="mt-5 space-y-4">
                 <div>
                   <label className="mb-1 block text-[11px] font-bold uppercase tracking-widest text-slate-500">Form</label>
-                  <select className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={formId} onChange={(e) => setFormId(e.target.value)}>
+                  <AppSelect className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={formId} onChange={(e) => setFormId(e.target.value)}>
                     {forms.length > 0 && <option value="">Auto — use default form</option>}
                     {forms.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-                  </select>
+                  </AppSelect>
                   {!loadingForms && forms.length === 0 && (
                     <p className="mt-1 text-xs text-amber-600">
                       No published form yet. Create and publish one in Settings → Admission Forms, then come back here.

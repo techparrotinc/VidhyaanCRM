@@ -5,6 +5,7 @@ import { CalendarClock, Clock, MapPin, Pencil, Plus, Trash2, User } from 'lucide
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { AppSelect } from '@/components/ui/app-select'
 import {
   Dialog,
   DialogContent,
@@ -209,7 +210,7 @@ export default function TimetablePage() {
 
         {/* Class / section picker */}
         <div className="flex items-center gap-2">
-          <select
+          <AppSelect
             value={gradeLabel}
             onChange={(e) => {
               setGradeLabel(e.target.value)
@@ -222,8 +223,8 @@ export default function TimetablePage() {
             {options.map((o) => (
               <option key={o.name} value={o.name}>{o.name}</option>
             ))}
-          </select>
-          <select
+          </AppSelect>
+          <AppSelect
             value={section}
             onChange={(e) => setSection(e.target.value)}
             className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/30"
@@ -232,7 +233,7 @@ export default function TimetablePage() {
             {sectionsForClass.map((s) => (
               <option key={s} value={s}>Section {s}</option>
             ))}
-          </select>
+          </AppSelect>
         </div>
       </div>
 
@@ -340,7 +341,7 @@ export default function TimetablePage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <label className="text-xs font-semibold text-slate-600 block mb-1">Day</label>
-                <select
+                <AppSelect
                   value={form.dayOfWeek}
                   onChange={(e) => setForm({ ...form, dayOfWeek: Number(e.target.value) })}
                   className="w-full h-10 rounded-xl border border-slate-200 px-3 text-sm"
@@ -348,7 +349,7 @@ export default function TimetablePage() {
                   {DAYS.map((d, i) => (
                     <option key={d} value={i + 1}>{d}</option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
               <div>
                 <label className="text-xs font-semibold text-slate-600 block mb-1">Start time</label>
@@ -379,7 +380,7 @@ export default function TimetablePage() {
               </div>
               <div className="col-span-2">
                 <label className="text-xs font-semibold text-slate-600 block mb-1">Teacher (optional)</label>
-                <select
+                <AppSelect
                   value={form.teacherId}
                   onChange={(e) => setForm({ ...form, teacherId: e.target.value })}
                   className="w-full h-10 rounded-xl border border-slate-200 px-3 text-sm"
@@ -388,7 +389,7 @@ export default function TimetablePage() {
                   {teachers.map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
               <div className="col-span-2">
                 <label className="text-xs font-semibold text-slate-600 block mb-1">Room (optional)</label>

@@ -16,6 +16,7 @@ import {
   Download, Mail, Ban, Percent
 } from 'lucide-react'
 import { INVOICE_TYPE_LABELS } from '@/lib/fees'
+import { AppSelect } from '@/components/ui/app-select'
 
 const STATUS_CONFIG = {
   UNPAID: {
@@ -734,7 +735,7 @@ export default function InvoiceDetailPage() {
                     <label className="text-xs font-medium text-slate-600">
                       Payment Method
                     </label>
-                    <select
+                    <AppSelect
                       value={paymentForm.method}
                       onChange={e =>
                         setPaymentForm(prev => ({
@@ -748,7 +749,7 @@ export default function InvoiceDetailPage() {
                           {label}
                         </option>
                       ))}
-                    </select>
+                    </AppSelect>
                   </div>
 
                   {/* Method-specific fields */}
@@ -1012,7 +1013,7 @@ export default function InvoiceDetailPage() {
               <label className="text-xs font-medium text-slate-600">
                 Discount Type
               </label>
-              <select
+              <AppSelect
                 value={concessionForm.type}
                 onChange={e =>
                   setConcessionForm(prev => ({
@@ -1023,7 +1024,7 @@ export default function InvoiceDetailPage() {
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                 <option value="PERCENTAGE">Percentage</option>
                 <option value="FIXED_AMOUNT">Fixed Amount</option>
-              </select>
+              </AppSelect>
             </div>
 
             <div className="flex flex-col gap-1">

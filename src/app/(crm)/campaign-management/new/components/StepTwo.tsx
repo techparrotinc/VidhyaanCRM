@@ -6,6 +6,7 @@ import { GRADE_OPTIONS } from '@/constants/grades'
 import { useCounsellors } from '@/hooks/useCounsellors'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { DatePicker } from '@/components/ui/datetime-picker'
+import { AppSelect } from '@/components/ui/app-select'
 
 interface Option {
   value: 'LEADS' | 'STUDENTS' | 'BOTH'
@@ -200,7 +201,7 @@ export function StepTwo({
     // Lead Status
     if (filter.field === 'status' && (audiencePool === 'LEADS')) {
       return (
-        <select
+        <AppSelect
           value={filter.value}
           onChange={(e) => handleFilterChange(index, 'value', e.target.value)}
           className="flex-1 h-9 px-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-[#1565D8]"
@@ -211,14 +212,14 @@ export function StepTwo({
           <option value="FOLLOW_UP">Follow Up</option>
           <option value="CONVERTED">Converted</option>
           <option value="REJECTED">Rejected</option>
-        </select>
+        </AppSelect>
       )
     }
 
     // Student Status (or BOTH status)
     if (filter.field === 'status' && (audiencePool === 'STUDENTS' || audiencePool === 'BOTH')) {
       return (
-        <select
+        <AppSelect
           value={filter.value}
           onChange={(e) => handleFilterChange(index, 'value', e.target.value)}
           className="flex-1 h-9 px-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-[#1565D8]"
@@ -229,14 +230,14 @@ export function StepTwo({
           <option value="TRANSFERRED">Transferred</option>
           <option value="SUSPENDED">Suspended</option>
           <option value="DROPPED_OUT">Dropped Out</option>
-        </select>
+        </AppSelect>
       )
     }
 
     // Grades
     if (filter.field === 'gradeSought' || filter.field === 'gradeLabel') {
       return (
-        <select
+        <AppSelect
           value={filter.value}
           onChange={(e) => handleFilterChange(index, 'value', e.target.value)}
           className="flex-1 h-9 px-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-[#1565D8]"
@@ -247,14 +248,14 @@ export function StepTwo({
               {g.label}
             </option>
           ))}
-        </select>
+        </AppSelect>
       )
     }
 
     // Source
     if (filter.field === 'source') {
       return (
-        <select
+        <AppSelect
           value={filter.value}
           onChange={(e) => handleFilterChange(index, 'value', e.target.value)}
           className="flex-1 h-9 px-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-[#1565D8]"
@@ -267,14 +268,14 @@ export function StepTwo({
           <option value="SOCIAL_MEDIA">Social Media</option>
           <option value="VIDHYAAN">Vidhyaan</option>
           <option value="OTHER">Other</option>
-        </select>
+        </AppSelect>
       )
     }
 
     // Assigned Counsellor
     if (filter.field === 'assignedToId') {
       return (
-        <select
+        <AppSelect
           value={filter.value}
           onChange={(e) => handleFilterChange(index, 'value', e.target.value)}
           className="flex-1 h-9 px-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-[#1565D8]"
@@ -285,14 +286,14 @@ export function StepTwo({
               {c.name}
             </option>
           ))}
-        </select>
+        </AppSelect>
       )
     }
 
     // Academic Year
     if (filter.field === 'academicYearId') {
       return (
-        <select
+        <AppSelect
           value={filter.value}
           onChange={(e) => handleFilterChange(index, 'value', e.target.value)}
           className="flex-1 h-9 px-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-[#1565D8]"
@@ -303,14 +304,14 @@ export function StepTwo({
               {y.name}
             </option>
           ))}
-        </select>
+        </AppSelect>
       )
     }
 
     // Course ID
     if (filter.field === 'courseId') {
       return (
-        <select
+        <AppSelect
           value={filter.value}
           onChange={(e) => handleFilterChange(index, 'value', e.target.value)}
           className="flex-1 h-9 px-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-[#1565D8]"
@@ -321,7 +322,7 @@ export function StepTwo({
               {c.name}
             </option>
           ))}
-        </select>
+        </AppSelect>
       )
     }
 
@@ -439,7 +440,7 @@ export function StepTwo({
               {audienceFilters.map((filter, index) => (
                 <div key={index} className="flex items-center gap-2">
                   {/* Field dropdown */}
-                  <select
+                  <AppSelect
                     value={filter.field}
                     onChange={(e) => handleFilterChange(index, 'field', e.target.value)}
                     className="flex-1 h-9 px-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-[#1565D8]"
@@ -450,7 +451,7 @@ export function StepTwo({
                         {f.label}
                       </option>
                     ))}
-                  </select>
+                  </AppSelect>
 
                   {/* Dynamic Value Input */}
                   {renderFilterValueInput(filter, index)}

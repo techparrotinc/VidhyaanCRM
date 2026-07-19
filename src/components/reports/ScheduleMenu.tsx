@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { CalendarClock, ChevronDown, Trash2, Send, CheckCircle2, AlertCircle } from 'lucide-react'
+import { AppSelect } from '@/components/ui/app-select'
 
 // Email-schedule popover on report pages. Personal schedules only; sends
 // fire in the daily 08:00 IST window with the creator's role scoping.
@@ -193,7 +194,7 @@ export function ScheduleMenu({ reportKey }: { reportKey: string }) {
             <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
               Email this report
             </p>
-            <select
+            <AppSelect
               value={cadence}
               onChange={e => setCadence(e.target.value)}
               className="w-full h-9 rounded-lg border border-slate-200 px-2.5 text-sm"
@@ -201,9 +202,9 @@ export function ScheduleMenu({ reportKey }: { reportKey: string }) {
               {CADENCES.map(c => (
                 <option key={c.value} value={c.value}>{c.label}</option>
               ))}
-            </select>
+            </AppSelect>
             {views.length > 0 && (
-              <select
+              <AppSelect
                 value={savedViewId}
                 onChange={e => setSavedViewId(e.target.value)}
                 className="w-full h-9 rounded-lg border border-slate-200 px-2.5 text-sm"
@@ -212,7 +213,7 @@ export function ScheduleMenu({ reportKey }: { reportKey: string }) {
                 {views.map(v => (
                   <option key={v.id} value={v.id}>View: {v.name}</option>
                 ))}
-              </select>
+              </AppSelect>
             )}
             <input
               value={recipients}

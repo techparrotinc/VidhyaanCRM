@@ -15,7 +15,7 @@ import { onLeadAssigned } from '@/lib/whatsapp/emitters'
 import { findMatches, loadDedupConfig, dedupFields, lockDedupPhone } from '@/lib/dedup'
 import { assertNotDuplicate } from '@/lib/dedup/guard'
 import { isPaidPlan } from '@/lib/billing/plan-status'
-import { parseQuery, paginationShape, enumParam, textParam } from '@/lib/api/query'
+import { parseQuery, paginationShape, enumParam, textParam, dateParam, istRange } from '@/lib/api/query'
 import { Errors } from '@/lib/api/errors'
 import { checkEmailDeliverable } from '@/lib/email/validate'
 
@@ -36,7 +36,9 @@ export const GET = route({
       counsellorId: textParam,
       assignedToId: textParam,
       search: textParam,
-      academicYearId: textParam
+      academicYearId: textParam,
+      createdFrom: dateParam,
+      createdTo: dateParam
     })
     const { page, limit, status, source, priority, search, academicYearId } = q
     const counsellorId = q.counsellorId ?? q.assignedToId
@@ -48,6 +50,8 @@ export const GET = route({
     if (status) where.status = status
     if (source) where.source = source
     if (priority) where.priority = priority
+    const createdWindow = istRange(q.createdFrom, q.createdTo)
+    if (createdWindow) where.createdAt = createdWindow
     if (counsellorId) {
       where.assignedToId = counsellorId
     }

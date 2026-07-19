@@ -7,7 +7,7 @@ import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db/client'
 import { redis } from '@/lib/redis'
 import { AdmissionStatus, LeadPriority } from '@prisma/client'
-import { asEnum } from '@/lib/api/query'
+import { asEnum, istRange } from '@/lib/api/query'
 import { Errors } from '@/lib/api/errors'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
 import { createAdmissionWithUniqueCode } from '@/lib/admission-code'
@@ -34,6 +34,7 @@ export const GET = route({
     const assignedToId = searchParams.get('assignedToId') ?? searchParams.get('counsellorId') ?? undefined
     const priority = searchParams.get('priority') ?? undefined
     const dateFrom = searchParams.get('dateFrom') ?? undefined
+    const dateTo = searchParams.get('dateTo') ?? undefined
     const status = searchParams.get('status') ?? undefined
     const search = searchParams.get('search') ?? undefined
     const academicYearId = searchParams.get('academicYearId') ?? undefined
@@ -77,8 +78,16 @@ export const GET = route({
           priority: asEnum(LeadPriority, priority, 'priority')
         }
       }),
-      ...(dateFrom && {
-        createdAt: { gte: new Date(dateFrom) }
+      // IST-day windows for YYYY-MM-DD bounds; full ISO datetimes keep the
+      // legacy exact-gte behaviour so existing callers don't shift
+      ...((dateFrom || dateTo) && {
+        createdAt:
+          [dateFrom, dateTo].filter(Boolean).every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d!))
+            ? istRange(dateFrom, dateTo)
+            : {
+                ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+                ...(dateTo ? { lte: new Date(dateTo) } : {})
+              }
       }),
       ...(status && { status: asEnum(AdmissionStatus, status, 'status') }),
       ...(academicYearId && {

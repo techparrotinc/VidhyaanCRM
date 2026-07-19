@@ -39,7 +39,7 @@ export type AiChatState = {
   creditsLeft: number | null // AI credit wallet balance (free + purchased)
 }
 
-type TokenCache = { token: string; expiresAt: number }
+type TokenCache = { token: string; expiresAt: number; academicYearId: string | null }
 
 /**
  * Chat state + transport. Token minted by the ERP (module-gated) and cached
@@ -59,10 +59,19 @@ export function useAiChat() {
   const abortRef = useRef<AbortController | null>(null)
 
   const getToken = useCallback(async (): Promise<string | null> => {
-    if (tokenRef.current && tokenRef.current.expiresAt > Date.now() + 30_000) {
+    // token claims carry the academic year — a stale cached token would keep
+    // answering for the previous year after the user switches the AY picker
+    const academicYearId = useAcademicYearStore.getState().selectedYearId ?? null
+    if (
+      tokenRef.current &&
+      tokenRef.current.expiresAt > Date.now() + 30_000 &&
+      tokenRef.current.academicYearId === academicYearId
+    ) {
       return tokenRef.current.token
     }
-    const res = await fetch('/api/v1/ai/token')
+    const res = await fetch('/api/v1/ai/token', {
+      headers: academicYearId ? { 'x-academic-year-id': academicYearId } : undefined
+    })
     if (res.status === 403 || res.status === 402) {
       setState((s) => ({ ...s, entitled: false }))
       return null
@@ -71,7 +80,8 @@ export function useAiChat() {
     const json = await res.json()
     tokenRef.current = {
       token: json.data.token,
-      expiresAt: Date.now() + json.data.expiresIn * 1000
+      expiresAt: Date.now() + json.data.expiresIn * 1000,
+      academicYearId
     }
     setState((s) => ({
       ...s,
@@ -202,7 +212,8 @@ export function useAiChat() {
             if (evt.type === 'usage') {
               setState((s) => ({
                 ...s,
-                creditsLeft: typeof evt.creditsRemaining === 'number' ? evt.creditsRemaining : s.creditsLeft
+                creditsLeft: typeof evt.creditsRemaining === 'number' ? evt.creditsRemaining : s.creditsLeft,
+                remainingToday: typeof evt.remainingToday === 'number' ? evt.remainingToday : s.remainingToday
               }))
             }
             if (evt.type === 'done') {

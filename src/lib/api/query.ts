@@ -30,6 +30,26 @@ export const textParam = z
   .optional()
   .transform(v => (v === '' ? undefined : v))
 
+/** Optional YYYY-MM-DD filter (invalid → 422, empty → undefined). */
+export const dateParam = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .optional()
+  .or(z.literal('').transform(() => undefined))
+
+/**
+ * createdAt/paidAt-style window from optional YYYY-MM-DD bounds, resolved as
+ * IST business days (orgs operate in IST; a bare UTC parse would shift the
+ * window by 5.5h and drop early-morning records).
+ */
+export function istRange(from?: string, to?: string): { gte?: Date; lte?: Date } | undefined {
+  if (!from && !to) return undefined
+  return {
+    ...(from ? { gte: new Date(`${from}T00:00:00+05:30`) } : {}),
+    ...(to ? { lte: new Date(`${to}T23:59:59.999+05:30`) } : {})
+  }
+}
+
 /** Runtime enum check for values from bodies/stored JSON. Invalid → 422. */
 export function asEnum<T extends Record<string, string>>(
   enumObj: T,

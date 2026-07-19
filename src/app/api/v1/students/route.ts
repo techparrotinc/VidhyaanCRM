@@ -6,7 +6,7 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { Gender, StudentStatus } from '@prisma/client'
 import { prisma } from '@/lib/db/client'
-import { parseQuery, paginationShape, enumParam } from '@/lib/api/query'
+import { parseQuery, paginationShape, enumParam, dateParam, istRange } from '@/lib/api/query'
 import { getGradeLabel } from '@/constants/grades'
 import { assertFreeTierLimit } from '@/lib/billing/limits'
 import { findMatches, loadDedupConfig, dedupFields, lockDedupPhone } from '@/lib/dedup'
@@ -29,9 +29,11 @@ export const GET = route({
   handler: async ({ req, db }) => {
     const { searchParams } = new URL(req.url)
 
-    const { page, limit, status } = parseQuery(req.url, {
+    const { page, limit, status, createdFrom, createdTo } = parseQuery(req.url, {
       ...paginationShape,
-      status: enumParam(StudentStatus)
+      status: enumParam(StudentStatus),
+      createdFrom: dateParam,
+      createdTo: dateParam
     })
     const rawGradeParam = searchParams.get('gradeLabel') ?? searchParams.get('grade') ?? undefined
     const gradeLabel = rawGradeParam ? getGradeLabel(rawGradeParam) : undefined
@@ -45,6 +47,8 @@ export const GET = route({
 
     const where: any = { deletedAt: null }
     if (status) where.status = status
+    const createdWindow = istRange(createdFrom, createdTo)
+    if (createdWindow) where.createdAt = createdWindow
     if (gradeLabel) {
       where.gradeLabel = gradeLabel
     }

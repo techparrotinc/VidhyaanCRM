@@ -3,6 +3,7 @@ import { ok } from '@/lib/api/respond'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { startOfMonth, endOfMonth, parseISO } from 'date-fns'
+import { istRange } from '@/lib/api/query'
 
 export const GET = route({
   module: MODULES.FEE_MANAGEMENT,
@@ -46,12 +47,22 @@ export const GET = route({
         gradeLabel
       }
     }
-    const monthWindow = month
-      ? {
-          gte: startOfMonth(parseISO(month + '-01')),
-          lte: endOfMonth(parseISO(month + '-01'))
-        }
-      : null
+    // Arbitrary day range (IST) takes precedence over the month shortcut —
+    // lets callers ask "collection this week / today", not just whole months.
+    const fromParam = searchParams.get('from') ?? undefined
+    const toParam = searchParams.get('to') ?? undefined
+    const dayWindow =
+      [fromParam, toParam].filter(Boolean).every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d!))
+        ? istRange(fromParam, toParam)
+        : undefined
+    const monthWindow =
+      dayWindow ??
+      (month
+        ? {
+            gte: startOfMonth(parseISO(month + '-01')),
+            lte: endOfMonth(parseISO(month + '-01'))
+          }
+        : null)
     if (monthWindow) {
       baseWhere.createdAt = monthWindow
     }

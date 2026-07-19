@@ -165,6 +165,11 @@ export async function applyGatewayPayment(input: {
 
   const payment = await withReceiptNumber(order.orgId, (receiptNumber) =>
     prisma.$transaction(async (tx) => {
+      // Same lock as the manual payment route: paidAmount is recomputed from
+      // the payment set read here, so a manual payment settling concurrently
+      // must not interleave or one side's total goes stale.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`invoice-pay:${order.invoiceId}`}))`
+
       const invoice = await tx.invoice.findFirstOrThrow({
         where: { id: order.invoiceId, orgId: order.orgId },
         include: { payments: { where: { deletedAt: null } } }

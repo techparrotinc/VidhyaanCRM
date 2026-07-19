@@ -67,31 +67,37 @@ export const POST = route({
     }
     const body = paymentSchema.parse(await req.json())
 
-    const invoice = await db.invoice.findFirst({
-      where: { id, orgId: user.orgId, deletedAt: null },
-      include: { payments: { where: { deletedAt: null } } }
-    })
-    if (!invoice) {
-      throw Errors.notFound('Invoice')
-    }
-    if (!isPayable(invoice.status)) {
-      throw Errors.businessRule(`Invoice is ${invoice.status.toLowerCase()} and cannot accept payments`)
-    }
-
-    const alreadyPaid = sumSuccessfulPayments(invoice.payments)
-    const balance = remainingBalance(invoice.totalAmount, alreadyPaid)
-    if (body.amount > balance) {
-      throw Errors.businessRule(`Amount exceeds the remaining balance of ₹${balance}`)
-    }
-
-    const newPaidAmount = sumSuccessfulPayments([
-      ...invoice.payments,
-      { status: 'SUCCESS', amount: body.amount }
-    ])
-    const newStatus = nextInvoiceStatus(invoice.totalAmount, newPaidAmount)
-
-    const payment = await withReceiptNumber(user.orgId, (receiptNumber) =>
+    const { payment, invoice, newStatus, newPaidAmount } = await withReceiptNumber(user.orgId, (receiptNumber) =>
       db.$transaction(async (tx) => {
+        // Balance check and payment create must see the same payment set:
+        // two concurrent full-amount payments each read balance before either
+        // commits and both settle (double-pay). The advisory xact lock
+        // serializes the whole check-then-write section per invoice.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`invoice-pay:${id}`}))`
+
+        const invoice = await tx.invoice.findFirst({
+          where: { id, orgId: user.orgId, deletedAt: null },
+          include: { payments: { where: { deletedAt: null } } }
+        })
+        if (!invoice) {
+          throw Errors.notFound('Invoice')
+        }
+        if (!isPayable(invoice.status)) {
+          throw Errors.businessRule(`Invoice is ${invoice.status.toLowerCase()} and cannot accept payments`)
+        }
+
+        const alreadyPaid = sumSuccessfulPayments(invoice.payments)
+        const balance = remainingBalance(invoice.totalAmount, alreadyPaid)
+        if (body.amount > balance) {
+          throw Errors.businessRule(`Amount exceeds the remaining balance of ₹${balance}`)
+        }
+
+        const newPaidAmount = sumSuccessfulPayments([
+          ...invoice.payments,
+          { status: 'SUCCESS', amount: body.amount }
+        ])
+        const newStatus = nextInvoiceStatus(invoice.totalAmount, newPaidAmount)
+
         const created = await tx.payment.create({
           data: {
             receiptNumber,
@@ -137,7 +143,7 @@ export const POST = route({
           }
         })
 
-        return created
+        return { payment: created, invoice, newStatus, newPaidAmount }
       })
     )
 

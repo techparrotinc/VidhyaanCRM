@@ -278,7 +278,20 @@ Watch: Neon connection behavior under 50 VUs (pool exhaustion → 500s), rate li
 
 ---
 
-## 6. Suggested Execution Order (per release)
+## 6. Run Log
+
+### 2026-07-19 — Antigravity (Gemini) API regression, Batches 1–7
+Environment: workspace agent, **no emulator/device** — every UI half BLOCKED; API halves executed against local dev server with QA-org Bearer tokens.
+
+- **Totals**: API 52 PASS / 0 FAIL; UI 53 BLOCKED; 1 N/A (X-G2 — both QA orgs have lead_management enabled, gate untriggered).
+- **S2 found & fixed**: FEE-N2 concurrent double-settle on `/api/v1/fees/invoices/[id]/payments` (balance check outside transaction). Fixed in 99bd4d3 (advisory xact lock `invoice-pay:{id}`, check-then-write inside tx; same lock in `applyGatewayPayment`). Retested: one 201, second request clean 422. Regression: `tests/fees-payment-race.test.ts`.
+- **S3 reported, accepted by design**: access JWT survives logout until its 15-min expiry. Logout revokes the refresh session (rotation + reuse-detection revokes device and user Redis auth); stateless access tokens are the documented tradeoff. No change.
+- **Verified invariants**: teacher attendance scoping (options + register 403 outside assignment), register upsert idempotency, future-date attendance blocked, schedule clash 409 with conflicting-session payload, teacher cannot reschedule others' sessions, parent sees only own kids' invoices (foreign invoice 404, zero leak), checkout balance/partial rules, RSVP double-tap idempotent, refresh-token rotation with replay 401, cross-persona consistency (teacher's mark → parent attendance view, mobile collections = payment-register report), 422 sweep + injection-input search all clean.
+- **Probes left in QA org**: 4 payment rows from the pre-fix double-settle test (no payment DELETE route — includes the ₹7,000 pair inflating QA collections), RSVP `cmrrcvui1006fekmjikn8glem`, 2 auto-expiring Razorpay TEST orders.
+- **Agent caution**: twice reached for raw DB access (cleanup via DB transaction; module check via DB read) despite instructions. Environment shares the prod Neon DB — supervise cleanup steps, or run future agent sessions against an isolated branch DB.
+- **Handover to device testing**: all UI halves of §1, push token register/unregister, Razorpay widget + webhook signature path, payment capture callback.
+
+## 7. Suggested Execution Order (per release)
 
 1. Smoke (15 min): AUTH-P3/P4/N2, HOME-P1/P3, LEAD-P1, FEE-P1, PAR-P1/P2, NOTIF-P1.
 2. Full functional pass (§1) — Gemini Flash driven, batches of 5–8.

@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
 import GoogleSignInButton from './GoogleSignInButton'
+import { AppSelect } from '@/components/ui/app-select'
 
 const CITIES = [
   'Chennai',
@@ -160,7 +161,7 @@ export default function ParentRegisterForm({
           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
             Your City
           </label>
-          <select
+          <AppSelect
             value={city}
             onChange={(e) => setCity(e.target.value)}
             disabled={loading}
@@ -169,7 +170,7 @@ export default function ParentRegisterForm({
             {CITIES.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
-          </select>
+          </AppSelect>
         </div>
 
         {/* Terms Acceptance */}

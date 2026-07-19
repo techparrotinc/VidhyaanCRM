@@ -29,6 +29,7 @@ import { DateTimePicker } from '@/components/ui/datetime-picker'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GRADE_LABEL_OPTIONS } from '@/constants/grades'
+import { AppSelect } from '@/components/ui/app-select'
 
 interface Kid {
   id: string
@@ -522,7 +523,7 @@ export default function ParentProfilePage() {
                 <label className="text-[10px] font-extrabold text-slate-450 uppercase tracking-wider block mb-1">Current City</label>
                 <div className="relative">
                   <MapPin className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
-                  <select
+                  <AppSelect
                     value={formData.city}
                     onChange={e => setFormData({ ...formData, city: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200/80 rounded-xl py-2.5 pl-10 pr-4 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#1565D8] focus:bg-white transition appearance-none cursor-pointer"
@@ -530,7 +531,7 @@ export default function ParentProfilePage() {
                     {CITIES.map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
-                  </select>
+                  </AppSelect>
                 </div>
               </div>
 
@@ -929,7 +930,7 @@ export default function ParentProfilePage() {
 
                 <div>
                   <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Gender</label>
-                  <select
+                  <AppSelect
                     value={kidFormData.gender}
                     onChange={e => setKidFormData({ ...kidFormData, gender: e.target.value as any })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
@@ -938,13 +939,13 @@ export default function ParentProfilePage() {
                     <option value="MALE">Male</option>
                     <option value="FEMALE">Female</option>
                     <option value="OTHER">Other</option>
-                  </select>
+                  </AppSelect>
                 </div>
               </div>
 
               <div>
                 <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Current Class / Grade</label>
-                <select
+                <AppSelect
                   value={kidFormData.grade}
                   onChange={e => setKidFormData({ ...kidFormData, grade: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#1565D8] focus:bg-white transition"
@@ -953,7 +954,7 @@ export default function ParentProfilePage() {
                   {GRADES.map(g => (
                     <option key={g} value={g}>{g}</option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
 
               <div className="flex gap-3 pt-2">

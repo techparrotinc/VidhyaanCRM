@@ -67,6 +67,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
+import { AppSelect } from '@/components/ui/app-select'
 import {
   Dialog,
   DialogContent,
@@ -1422,7 +1423,7 @@ export default function LearningCenterDetailPage() {
                   </div>
                   <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase tracking-wider text-slate-400">Preferred Batch</label>
-                    <select
+                    <AppSelect
                       value={enquiryForm.batchScheduleId}
                       onChange={(e) => setEnquiryForm({ ...enquiryForm, batchScheduleId: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none cursor-pointer focus:border-blue-500"
@@ -1433,7 +1434,7 @@ export default function LearningCenterDetailPage() {
                           {b.name} ({b.daysOfWeek?.join(', ') || ''} {b.startTime}-{b.endTime})
                         </option>
                       ))}
-                    </select>
+                    </AppSelect>
                   </div>
                   
                   <Button
@@ -1675,7 +1676,7 @@ export default function LearningCenterDetailPage() {
 
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Select Batch (Optional)</label>
-                <select
+                <AppSelect
                   value={enquiryForm.batchScheduleId}
                   onChange={(e) => setEnquiryForm({ ...enquiryForm, batchScheduleId: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none cursor-pointer focus:border-blue-500"
@@ -1686,7 +1687,7 @@ export default function LearningCenterDetailPage() {
                       {b.name} ({b.daysOfWeek?.join(', ') || ''} {b.startTime}-{b.endTime})
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
 
               <div className="space-y-1">

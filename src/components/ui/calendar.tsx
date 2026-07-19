@@ -3,6 +3,7 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { usePopoverClose } from "@/components/ui/popover"
+import { AppSelect } from "@/components/ui/app-select"
 
 interface CalendarProps {
   mode?: "single"
@@ -90,7 +91,7 @@ export function Calendar({
   }
 
   const headerSelect =
-    'appearance-none bg-transparent text-xs font-bold text-slate-800 rounded-md px-1 py-0.5 hover:bg-slate-100 focus:outline-none focus:ring-1 focus:ring-[#1565D8]/30 cursor-pointer'
+    'w-full bg-transparent text-xs font-bold text-slate-800 rounded-md px-1.5 py-0.5 hover:bg-slate-100 focus:outline-none focus:ring-1 focus:ring-[#1565D8]/30 cursor-pointer'
 
   return (
     <div className={bare ? 'w-[260px]' : 'p-3 bg-white border border-slate-200 rounded-xl shadow-lg w-[260px]'}>
@@ -103,26 +104,30 @@ export function Calendar({
           <ChevronLeft size={16} />
         </button>
         <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
-          <select
-            aria-label="Month"
-            value={month}
-            onChange={e => setViewDate(new Date(year, Number(e.target.value), 1))}
-            className={headerSelect}
-          >
-            {monthNames.map((name, i) => (
-              <option key={name} value={i}>{name}</option>
-            ))}
-          </select>
-          <select
-            aria-label="Year"
-            value={year}
-            onChange={e => setViewDate(new Date(Number(e.target.value), month, 1))}
-            className={headerSelect}
-          >
-            {yearOptions.map(y => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
+          <div className="w-[96px]">
+            <AppSelect
+              aria-label="Month"
+              value={month}
+              onChange={e => setViewDate(new Date(year, Number(e.target.value), 1))}
+              className={headerSelect}
+            >
+              {monthNames.map((name, i) => (
+                <option key={name} value={i}>{name}</option>
+              ))}
+            </AppSelect>
+          </div>
+          <div className="w-[72px]">
+            <AppSelect
+              aria-label="Year"
+              value={year}
+              onChange={e => setViewDate(new Date(Number(e.target.value), month, 1))}
+              className={headerSelect}
+            >
+              {yearOptions.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </AppSelect>
+          </div>
         </div>
         <button
           type="button"

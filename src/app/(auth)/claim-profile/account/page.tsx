@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2, User, Phone, Mail, Award, AlertCircle } from 'lucide-react'
+import { AppSelect } from '@/components/ui/app-select'
 
 export default function ClaimAccountPage() {
   const router = useRouter()
@@ -230,7 +231,7 @@ export default function ClaimAccountPage() {
               </label>
               <div className="relative flex items-center">
                 <Award className="absolute left-4 text-slate-400 w-5 h-5 pointer-events-none" />
-                <select
+                <AppSelect
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
                   disabled={loading}
@@ -244,7 +245,7 @@ export default function ClaimAccountPage() {
                   <option value="IT Manager">IT Manager</option>
                   <option value="Owner/Management">Owner / Management</option>
                   <option value="Other">Other</option>
-                </select>
+                </AppSelect>
               </div>
             </div>
 

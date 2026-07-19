@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
 import { Card } from '@/components/ui/card'
+import { AppSelect } from '@/components/ui/app-select'
 
 // Zod Validation Schema matching API
 const contactFormSchema = z.object({
@@ -221,7 +222,7 @@ export default function ContactUsPage() {
                           I am a... <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
-                          <select
+                          <AppSelect
                             id="role"
                             {...register('role')}
                             className="w-full bg-slate-50 border border-slate-200 focus:border-[#1565D8] focus:bg-white rounded-xl pl-4 pr-10 py-3.5 text-xs font-medium outline-none transition-all focus:ring-2 focus:ring-[#1565D8]/20 focus:ring-offset-0 appearance-none cursor-pointer"
@@ -230,7 +231,7 @@ export default function ContactUsPage() {
                             <option value="SCHOOL">School Administrator</option>
                             <option value="LEARNING_CENTER">Learning Center Manager</option>
                             <option value="OTHER">Other Partner</option>
-                          </select>
+                          </AppSelect>
                           <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400">
                             <ChevronDown className="w-4 h-4" />
                           </div>

@@ -14,6 +14,7 @@ import {
 import { LanguageTagInput } from '@/components/ui/LanguageTagInput'
 import { ExamFocusTagInput } from '@/components/ui/ExamFocusTagInput'
 import { GRADE_RANGE_OPTIONS } from '@/constants/grades'
+import { AppSelect } from '@/components/ui/app-select'
 
 const institutionTypeLabels: Record<string, string> = {
   SCHOOL: 'School',
@@ -416,7 +417,7 @@ export default function RegisterPage() {
                       <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                         Institution Type <span className="text-red-500">*</span>
                       </label>
-                      <select
+                      <AppSelect
                         value={institutionType}
                         onChange={(e) => setInstitutionType(e.target.value)}
                         className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-700 focus:outline-none focus:border-[#1565D8] transition-all text-xs cursor-pointer"
@@ -425,7 +426,7 @@ export default function RegisterPage() {
                         {Object.entries(institutionTypeLabels).map(([val, label]) => (
                           <option key={val} value={val}>{label}</option>
                         ))}
-                      </select>
+                      </AppSelect>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -433,7 +434,7 @@ export default function RegisterPage() {
                         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                           City <span className="text-red-500">*</span>
                         </label>
-                        <select
+                        <AppSelect
                           value={city}
                           onChange={(e) => setCity(e.target.value)}
                           className="w-full h-9 px-2 bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-700 focus:outline-none focus:border-[#1565D8] transition-all text-xs cursor-pointer"
@@ -446,14 +447,14 @@ export default function RegisterPage() {
                           <option value="Hyderabad">Hyderabad</option>
                           <option value="Pune">Pune</option>
                           <option value="Kolkata">Kolkata</option>
-                        </select>
+                        </AppSelect>
                       </div>
 
                       <div className="space-y-0.5">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                           Role <span className="text-red-500">*</span>
                         </label>
-                        <select
+                        <AppSelect
                           value={role}
                           onChange={(e) => setRole(e.target.value)}
                           className="w-full h-9 px-2 bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-700 focus:outline-none focus:border-[#1565D8] transition-all text-xs cursor-pointer"
@@ -466,7 +467,7 @@ export default function RegisterPage() {
                           <option value="IT Manager">IT Manager</option>
                           <option value="Owner/Management">Owner</option>
                           <option value="Other">Other</option>
-                        </select>
+                        </AppSelect>
                       </div>
                     </div>
 
@@ -510,7 +511,7 @@ export default function RegisterPage() {
                           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                             Curriculum <span className="text-red-500">*</span>
                           </label>
-                          <select
+                          <AppSelect
                             value={board}
                             onChange={(e) => setBoard(e.target.value)}
                             className="w-full h-9 px-2 bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-700 focus:outline-none focus:border-[#1565D8] transition-all text-xs cursor-pointer"
@@ -523,14 +524,14 @@ export default function RegisterPage() {
                             <option value="Cambridge">Cambridge</option>
                             <option value="IGCSE">IGCSE</option>
                             <option value="Other">Other</option>
-                          </select>
+                          </AppSelect>
                         </div>
 
                         <div className="space-y-0.5">
                           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                             School Type <span className="text-red-500">*</span>
                           </label>
-                          <select
+                          <AppSelect
                             value={schoolType}
                             onChange={(e) => setSchoolType(e.target.value)}
                             className="w-full h-9 px-2 bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-700 focus:outline-none focus:border-[#1565D8] transition-all text-xs cursor-pointer"
@@ -541,7 +542,7 @@ export default function RegisterPage() {
                                 {opt.label}
                               </option>
                             ))}
-                          </select>
+                          </AppSelect>
                         </div>
                       </div>
                     )}
@@ -551,7 +552,7 @@ export default function RegisterPage() {
                         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
                           Center Category <span className="text-red-500">*</span>
                         </label>
-                        <select
+                        <AppSelect
                           value={centerCategory}
                           onChange={(e) => setCenterCategory(e.target.value)}
                           className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-700 focus:outline-none focus:border-[#1565D8] transition-all text-xs cursor-pointer"
@@ -563,7 +564,7 @@ export default function RegisterPage() {
                               {cat.label}
                             </option>
                           ))}
-                        </select>
+                        </AppSelect>
                       </div>
                     )}
 
@@ -578,7 +579,7 @@ export default function RegisterPage() {
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <select
+                            <AppSelect
                               value={gradeFrom}
                               onChange={(e) => setGradeFrom(e.target.value)}
                               className="flex-1 h-9 px-2 bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-700 focus:outline-none focus:border-[#1565D8] text-[11px] cursor-pointer"
@@ -586,9 +587,9 @@ export default function RegisterPage() {
                               {grades.map((g) => (
                                 <option key={g} value={g}>{g}</option>
                               ))}
-                            </select>
+                            </AppSelect>
                             <span className="text-slate-400 text-xs font-bold">to</span>
-                            <select
+                            <AppSelect
                               value={gradeTo}
                               onChange={(e) => setGradeTo(e.target.value)}
                               className="flex-1 h-9 px-2 bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-700 focus:outline-none focus:border-[#1565D8] text-[11px] cursor-pointer"
@@ -596,7 +597,7 @@ export default function RegisterPage() {
                               {grades.map((g) => (
                                 <option key={g} value={g}>{g}</option>
                               ))}
-                            </select>
+                            </AppSelect>
                           </div>
                         )}
                       </div>

@@ -21,6 +21,7 @@ import {
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { AppSelect } from '@/components/ui/app-select'
 
 interface SchoolMedia {
   id: string
@@ -256,7 +257,7 @@ export default function ParentBookmarksPage() {
             </span>
 
             {/* Board Filter */}
-            <select
+            <AppSelect
               value={filterBoard}
               onChange={(e) => setFilterBoard(e.target.value)}
               className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-650 cursor-pointer focus:outline-none focus:border-[#1565D8]"
@@ -265,10 +266,10 @@ export default function ParentBookmarksPage() {
               {boards.map(b => (
                 <option key={b} value={b}>{b}</option>
               ))}
-            </select>
+            </AppSelect>
 
             {/* City Filter */}
-            <select
+            <AppSelect
               value={filterCity}
               onChange={(e) => setFilterCity(e.target.value)}
               className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-650 cursor-pointer focus:outline-none focus:border-[#1565D8]"
@@ -277,10 +278,10 @@ export default function ParentBookmarksPage() {
               {cities.map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
-            </select>
+            </AppSelect>
 
             {/* Admissions Filter */}
-            <select
+            <AppSelect
               value={filterAdmissions}
               onChange={(e) => setFilterAdmissions(e.target.value)}
               className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-slate-650 cursor-pointer focus:outline-none focus:border-[#1565D8]"
@@ -288,12 +289,12 @@ export default function ParentBookmarksPage() {
               <option value="all">Admission Status</option>
               <option value="open">Admissions Open</option>
               <option value="closed">Admissions Closed</option>
-            </select>
+            </AppSelect>
           </div>
 
           <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
             <span className="shrink-0 font-extrabold text-slate-450 uppercase tracking-wider">Sort by:</span>
-            <select
+            <AppSelect
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
               className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-bold text-[#1565D8] cursor-pointer focus:outline-none"
@@ -302,7 +303,7 @@ export default function ParentBookmarksPage() {
               <option value="az">A-Z Name</option>
               <option value="rating">Rating</option>
               <option value="distance">Distance</option>
-            </select>
+            </AppSelect>
           </div>
         </div>
       )}

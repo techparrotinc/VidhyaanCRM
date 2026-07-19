@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { AppSelect } from '@/components/ui/app-select'
 
 interface Row {
   orgId: string; name: string; status: string; institutionType: string
@@ -138,15 +139,15 @@ export default function UsageOverviewPage() {
                 className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-4 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
             </div>
             <div className="relative">
-              <select value={planFilter} onChange={(e) => setPlanFilter(e.target.value)} className="appearance-none bg-white rounded-lg border border-slate-200 py-2 pl-3 pr-8 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500">
+              <AppSelect value={planFilter} onChange={(e) => setPlanFilter(e.target.value)} className="appearance-none bg-white rounded-lg border border-slate-200 py-2 pl-3 pr-8 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500">
                 <option value="ALL">All Plans</option><option value="free">Free</option><option value="starter">Starter</option><option value="growth">Growth</option><option value="enterprise">Enterprise</option>
-              </select>
+              </AppSelect>
               <ChevronDown className="absolute right-2.5 top-1/2 w-3.5 h-3.5 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
             <div className="relative">
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="appearance-none bg-white rounded-lg border border-slate-200 py-2 pl-3 pr-8 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500">
+              <AppSelect value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="appearance-none bg-white rounded-lg border border-slate-200 py-2 pl-3 pr-8 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500">
                 <option value="ALL">All Statuses</option><option value="ACTIVE">Active</option><option value="TRIAL">Trial</option><option value="SUSPENDED">Suspended</option>
-              </select>
+              </AppSelect>
               <ChevronDown className="absolute right-2.5 top-1/2 w-3.5 h-3.5 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
             <button onClick={() => setRiskOnly((v) => !v)} className={`text-xs font-bold px-3 py-2 rounded-lg border transition ${riskOnly ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>

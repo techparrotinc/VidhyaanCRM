@@ -13,6 +13,7 @@ import {
 import { LanguageTagInput } from '@/components/ui/LanguageTagInput'
 import { ExamFocusTagInput } from '@/components/ui/ExamFocusTagInput'
 import { GRADE_RANGE_OPTIONS } from '@/constants/grades'
+import { AppSelect } from '@/components/ui/app-select'
 
 const institutionTypes = [
   { value: 'SCHOOL', label: 'School' },
@@ -240,7 +241,7 @@ export default function OnboardingStep1() {
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   School Type <span className="text-red-500">*</span>
                 </label>
-                <select
+                <AppSelect
                   value={schoolType}
                   onChange={(e) => setSchoolType(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
@@ -250,7 +251,7 @@ export default function OnboardingStep1() {
                       {opt.label}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
             )}
 
@@ -260,7 +261,7 @@ export default function OnboardingStep1() {
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   Center Category <span className="text-red-500">*</span>
                 </label>
-                <select
+                <AppSelect
                   value={centerCategory}
                   onChange={(e) => setCenterCategory(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer bg-white"
@@ -271,7 +272,7 @@ export default function OnboardingStep1() {
                       {cat.label}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
             )}
 
@@ -410,7 +411,7 @@ export default function OnboardingStep1() {
                 <div className="flex items-center gap-3">
                   <div className="flex-1">
                     <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">From</span>
-                    <select
+                    <AppSelect
                       value={gradeFrom}
                       onChange={(e) => setGradeFrom(e.target.value)}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] text-xs cursor-pointer"
@@ -418,12 +419,12 @@ export default function OnboardingStep1() {
                       {grades.map((g) => (
                         <option key={g} value={g}>{g}</option>
                       ))}
-                    </select>
+                    </AppSelect>
                   </div>
                   <span className="text-slate-400 font-bold self-end pb-3 text-sm">to</span>
                   <div className="flex-1">
                     <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">To</span>
-                    <select
+                    <AppSelect
                       value={gradeTo}
                       onChange={(e) => setGradeTo(e.target.value)}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] text-xs cursor-pointer"
@@ -431,7 +432,7 @@ export default function OnboardingStep1() {
                       {grades.map((g) => (
                         <option key={g} value={g}>{g}</option>
                       ))}
-                    </select>
+                    </AppSelect>
                   </div>
                 </div>
               )}

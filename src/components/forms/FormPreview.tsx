@@ -2,6 +2,7 @@
 
 import { X, IndianRupee } from 'lucide-react'
 import type { FormField, FormSchema } from '@/lib/forms/types'
+import { AppSelect } from '@/components/ui/app-select'
 
 // Read-only render of a form as a parent sees it. Mobile-first single column.
 // P2's public /apply/[token] page will reuse this layout with live inputs.
@@ -105,19 +106,19 @@ function PreviewField({
       break
     case 'picklist':
       control = (
-        <select disabled className={base}>
+        <AppSelect disabled className={base}>
           <option>{field.placeholder || 'Select…'}</option>
           {(field.options ?? []).map((o) => <option key={o}>{o}</option>)}
-        </select>
+        </AppSelect>
       )
       break
     case 'related': {
       const opts = relatedSources[field.relatedTo ?? 'course'] ?? []
       control = (
-        <select disabled className={base}>
+        <AppSelect disabled className={base}>
           <option>Select…</option>
           {opts.map((o) => <option key={o.id}>{o.label}</option>)}
-        </select>
+        </AppSelect>
       )
       break
     }

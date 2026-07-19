@@ -122,7 +122,7 @@ export function DateTimePicker({
       </button>
 
       {open && (
-        <div className={`absolute left-0 z-[60] flex bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+        <div className={`absolute left-0 z-[60] flex bg-white rounded-xl shadow-xl border border-slate-200 ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
           <div className="p-3">
             <Calendar
               mode="single"

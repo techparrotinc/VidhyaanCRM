@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Search, Loader2, ArrowRight, MapPin, Building, Award } from 'lucide-react'
+import { AppSelect } from '@/components/ui/app-select'
 
 interface SchoolResult {
   id: string
@@ -214,7 +215,7 @@ export default function ClaimProfilePage() {
             </div>
 
             <div className="w-full md:w-[180px]">
-              <select
+              <AppSelect
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-base appearance-none cursor-pointer"
@@ -227,7 +228,7 @@ export default function ClaimProfilePage() {
                 <option value="Hyderabad">Hyderabad</option>
                 <option value="Pune">Pune</option>
                 <option value="Kolkata">Kolkata</option>
-              </select>
+              </AppSelect>
             </div>
 
             <button

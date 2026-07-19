@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Check, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/datetime-picker'
 import {
   Dialog,
   DialogContent,
@@ -157,12 +158,12 @@ export default function ScheduleVisitModal({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Preferred Date *</label>
-                <input
-                  type="date"
-                  required
+                <DatePicker
                   value={form.preferredDate}
-                  onChange={(e) => setForm({ ...form, preferredDate: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-202 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
+                  onChange={(ymd) => setForm({ ...form, preferredDate: ymd })}
+                  placeholder="Pick a date"
+                  minDate={new Date()}
+                  clearable={false}
                 />
               </div>
               <div className="space-y-1">

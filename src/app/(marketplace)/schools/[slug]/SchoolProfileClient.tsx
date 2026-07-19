@@ -72,6 +72,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
+import { AppSelect } from '@/components/ui/app-select'
 import {
   Dialog,
   DialogContent,
@@ -1220,7 +1221,7 @@ export default function SchoolProfilePage() {
                     onChange={(e) => setEnquiryForm({ ...enquiryForm, childName: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-semibold outline-none focus:border-blue-500"
                   />
-                  <select
+                  <AppSelect
                     value={enquiryForm.gradeSought}
                     onChange={(e) => setEnquiryForm({ ...enquiryForm, gradeSought: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-semibold outline-none cursor-pointer focus:border-blue-500"
@@ -1228,7 +1229,7 @@ export default function SchoolProfilePage() {
                     {GRADE_OPTIONS.map((g) => (
                       <option key={g.value} value={g.value}>{g.label}</option>
                     ))}
-                  </select>
+                  </AppSelect>
                   <input
                     type="tel"
                     placeholder="Parent Phone Number"
@@ -1733,7 +1734,7 @@ export default function SchoolProfilePage() {
                   </div>
                   <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase tracking-wider text-slate-400">Grade applying for</label>
-                    <select
+                    <AppSelect
                       value={enquiryForm.gradeSought}
                       onChange={(e) => setEnquiryForm({ ...enquiryForm, gradeSought: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold outline-none cursor-pointer focus:border-blue-500"
@@ -1741,7 +1742,7 @@ export default function SchoolProfilePage() {
                       {GRADE_OPTIONS.map((g) => (
                         <option key={g.value} value={g.value}>{g.label}</option>
                       ))}
-                    </select>
+                    </AppSelect>
                   </div>
                   <div className="space-y-1">
                     <label className="text-[9px] font-black uppercase tracking-wider text-slate-400">Message (Optional)</label>
@@ -2035,7 +2036,7 @@ export default function SchoolProfilePage() {
 
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Grade Sought</label>
-                <select
+                <AppSelect
                   value={enquiryForm.gradeSought}
                   onChange={(e) => setEnquiryForm({ ...enquiryForm, gradeSought: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none cursor-pointer focus:border-blue-500"
@@ -2043,7 +2044,7 @@ export default function SchoolProfilePage() {
                   {GRADE_OPTIONS.map((g) => (
                     <option key={g.value} value={g.value}>{g.label}</option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
 
               <div className="space-y-1">

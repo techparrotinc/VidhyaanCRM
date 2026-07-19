@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { Star, Send, CheckCircle2, X, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AppSelect } from '@/components/ui/app-select'
 import {
   Dialog,
   DialogContent,
@@ -278,7 +279,7 @@ export default function ReviewModal({ open, onOpenChange, schoolId, categories, 
                     {kids.length > 0 && (
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Which Child?</label>
-                        <select
+                        <AppSelect
                           value={kidId}
                           onChange={(e) => setKidId(e.target.value)}
                           className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-blue-500 cursor-pointer"
@@ -287,7 +288,7 @@ export default function ReviewModal({ open, onOpenChange, schoolId, categories, 
                           {kids.map((k) => (
                             <option key={k.id} value={k.id}>{k.name}</option>
                           ))}
-                        </select>
+                        </AppSelect>
                       </div>
                     )}
                     <div className="space-y-1.5">

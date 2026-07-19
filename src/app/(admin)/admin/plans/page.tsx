@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 interface SlabPrice {
   slab: 'S50' | 'S100' | 'S200' | 'S500' | 'S500_PLUS'
@@ -329,12 +330,7 @@ export default function AdminPlansPage() {
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Launch Offer Ends (Optional)</label>
-                  <input
-                    type="date"
-                    value={slabLaunchEnds}
-                    onChange={(e) => setSlabLaunchEnds(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500"
-                  />
+                  <DatePicker value={slabLaunchEnds} onChange={setSlabLaunchEnds} placeholder="Pick a date" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Bundled AI Credits/mo</label>

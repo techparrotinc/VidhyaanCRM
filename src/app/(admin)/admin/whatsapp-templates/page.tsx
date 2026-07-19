@@ -8,6 +8,7 @@ import VariablesBuilder from '@/components/whatsapp/VariablesBuilder'
 import { previewTemplateBody } from '@/lib/campaign/templateParams'
 import { WA_TEMPLATE_CATEGORIES, waCategoryLabel } from '@/constants/whatsapp-template-categories'
 import { waTemplateTrigger } from '@/constants/whatsapp-template-triggers'
+import { AppSelect } from '@/components/ui/app-select'
 
 type SharedTemplate = {
   id: string
@@ -239,7 +240,7 @@ export default function AdminWhatsappTemplatesPage() {
             </div>
             <div>
               <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 block mb-1">Language</label>
-              <select
+              <AppSelect
                 value={form.language}
                 onChange={e => setForm(f => ({ ...f, language: e.target.value }))}
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -251,11 +252,11 @@ export default function AdminWhatsappTemplatesPage() {
                 <option value="te">Telugu (te)</option>
                 <option value="kn">Kannada (kn)</option>
                 <option value="ml">Malayalam (ml)</option>
-              </select>
+              </AppSelect>
             </div>
             <div>
               <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 block mb-1">Category</label>
-              <select
+              <AppSelect
                 value={form.category}
                 onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -263,7 +264,7 @@ export default function AdminWhatsappTemplatesPage() {
                 {WA_TEMPLATE_CATEGORIES.map(c => (
                   <option key={c.value} value={c.value}>{c.label}</option>
                 ))}
-              </select>
+              </AppSelect>
             </div>
             <div className="flex items-end pb-1">
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer">

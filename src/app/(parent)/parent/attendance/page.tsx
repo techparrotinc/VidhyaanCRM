@@ -6,6 +6,8 @@ import { fetcher } from '@/lib/fetcher'
 import { CalendarPlus, Clock, Loader2, X } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AttendanceCalendar, type CalendarRecord, type CalendarStats } from '@/components/attendance/AttendanceCalendar'
+import { AppSelect } from '@/components/ui/app-select'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 type LeaveRequest = {
   id: string
@@ -216,7 +218,7 @@ export default function ParentAttendancePage() {
               {kids.length > 1 && (
                 <div>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">Child</label>
-                  <select
+                  <AppSelect
                     value={leaveForm.studentId}
                     onChange={(e) => setLeaveForm({ ...leaveForm, studentId: e.target.value })}
                     className="w-full h-10 rounded-xl border border-slate-200 px-3 text-sm font-medium"
@@ -224,27 +226,25 @@ export default function ParentAttendancePage() {
                     {kids.map((k) => (
                       <option key={k.id} value={k.id}>{k.name}</option>
                     ))}
-                  </select>
+                  </AppSelect>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">From</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={leaveForm.fromDate}
-                    onChange={(e) => setLeaveForm({ ...leaveForm, fromDate: e.target.value, toDate: e.target.value > leaveForm.toDate ? e.target.value : leaveForm.toDate })}
-                    className="w-full h-10 rounded-xl border border-slate-200 px-3 text-sm"
+                    onChange={(ymd) => setLeaveForm({ ...leaveForm, fromDate: ymd, toDate: ymd > leaveForm.toDate ? ymd : leaveForm.toDate })}
+                    clearable={false}
                   />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">To</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={leaveForm.toDate}
-                    min={leaveForm.fromDate}
-                    onChange={(e) => setLeaveForm({ ...leaveForm, toDate: e.target.value })}
-                    className="w-full h-10 rounded-xl border border-slate-200 px-3 text-sm"
+                    minDate={leaveForm.fromDate ? new Date(`${leaveForm.fromDate}T00:00:00`) : undefined}
+                    onChange={(ymd) => setLeaveForm({ ...leaveForm, toDate: ymd })}
+                    clearable={false}
                   />
                 </div>
               </div>

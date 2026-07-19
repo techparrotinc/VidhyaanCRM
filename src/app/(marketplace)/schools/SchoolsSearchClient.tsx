@@ -46,6 +46,7 @@ import MarketplaceHeader from '@/components/MarketplaceHeader'
 import CompareBar from '@/components/CompareBar'
 import { SearchAutocomplete } from '@/components/marketplace/SearchAutocomplete'
 import LocationSelector from '@/components/LocationSelector'
+import { AppSelect } from '@/components/ui/app-select'
 import {
   Dialog,
   DialogContent,
@@ -521,14 +522,14 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
               {/* Category Selector */}
               <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-full sm:w-[48%] md:w-52 md:flex-none shrink-0 gap-2">
                 <LayoutGrid className="w-4 h-4 text-slate-400 shrink-0" />
-                <select
+                <AppSelect
                   value={category}
                   onChange={(e) => setCategory(e.target.value as 'schools' | 'centers')}
                   className="bg-transparent text-slate-705 outline-none text-xs font-bold w-full cursor-pointer"
                 >
                   <option value="schools">🏫 Schools</option>
                   <option value="centers">💃 Learning Centers</option>
-                </select>
+                </AppSelect>
               </div>
 
               {/* Search Input */}
@@ -579,7 +580,7 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                 Sort by:
               </span>
-              <select
+              <AppSelect
                 value={filters.sortBy}
                 onChange={(e) => {
                   setFilters({ ...filters, sortBy: e.target.value })
@@ -592,7 +593,7 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
                 <option value="distance">Distance Nearest</option>
                 <option value="enquiries">Most Enquiries</option>
                 <option value="newest">Newest Listed</option>
-              </select>
+              </AppSelect>
             </div>
 
             {/* Board Quick Filter Pills */}
@@ -1363,7 +1364,7 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
 
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase tracking-wider text-slate-405 block">Grade Sought</label>
-                <select
+                <AppSelect
                   value={enquiryForm.gradeSought}
                   onChange={(e) => setEnquiryForm({ ...enquiryForm, gradeSought: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium outline-none cursor-pointer focus:border-blue-500"
@@ -1371,7 +1372,7 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
                   {GRADE_OPTIONS.map((g) => (
                     <option key={g.value} value={g.value}>{g.label}</option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
 
               <div className="space-y-1">

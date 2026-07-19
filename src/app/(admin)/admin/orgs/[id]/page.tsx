@@ -32,6 +32,8 @@ import { Button } from '@/components/ui/button'
 import MessagingAllowanceCard from '@/components/admin/MessagingAllowanceCard'
 import OrgRevenueMetrics from '@/components/admin/OrgRevenueMetrics'
 import OrgUsageMetrics from '@/components/admin/OrgUsageMetrics'
+import { AppSelect } from '@/components/ui/app-select'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 interface Module {
   id: string
@@ -450,7 +452,7 @@ export default function OrgDetailPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-bold text-slate-450 uppercase tracking-wider block mb-1">Type</label>
-                  <select
+                  <AppSelect
                     value={notifType}
                     onChange={(e) => setNotifType(e.target.value)}
                     className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden hover:border-slate-350 focus:border-blue-500"
@@ -458,12 +460,12 @@ export default function OrgDetailPage() {
                     <option value="INFO">Info</option>
                     <option value="WARNING">Warning</option>
                     <option value="ALERT">Alert</option>
-                  </select>
+                  </AppSelect>
                 </div>
 
                 <div>
                   <label className="text-[10px] font-bold text-slate-455 uppercase tracking-wider block mb-1">Channel</label>
-                  <select
+                  <AppSelect
                     value={notifChannel}
                     onChange={(e) => setNotifChannel(e.target.value)}
                     className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden hover:border-slate-350 focus:border-blue-500"
@@ -471,7 +473,7 @@ export default function OrgDetailPage() {
                     <option value="IN_APP">In App</option>
                     <option value="EMAIL">Email</option>
                     <option value="BOTH">Both</option>
-                  </select>
+                  </AppSelect>
                 </div>
               </div>
 
@@ -542,20 +544,20 @@ export default function OrgDetailPage() {
               {/* Institution Type */}
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Institution Type</label>
-                <select
+                <AppSelect
                   value={editInstitutionType}
                   onChange={(e) => setEditInstitutionType(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden hover:border-slate-350 focus:border-blue-500"
                 >
                   <option value="SCHOOL">School</option>
                   <option value="LEARNING_CENTER">Learning Center</option>
-                </select>
+                </AppSelect>
               </div>
 
               {/* Status */}
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Status</label>
-                <select
+                <AppSelect
                   value={editStatus}
                   onChange={(e) => setEditStatus(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden hover:border-slate-350 focus:border-blue-500"
@@ -565,13 +567,13 @@ export default function OrgDetailPage() {
                   <option value="ACTIVE">Active</option>
                   <option value="SUSPENDED">Suspended</option>
                   <option value="CANCELLED">Cancelled</option>
-                </select>
+                </AppSelect>
               </div>
 
               {/* Plan */}
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Plan</label>
-                <select
+                <AppSelect
                   value={editPlanId}
                   onChange={(e) => setEditPlanId(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden hover:border-slate-350 focus:border-blue-500"
@@ -580,7 +582,7 @@ export default function OrgDetailPage() {
                   {plans.map((p) => (
                     <option key={p.id} value={p.id}>{p.name} ({p.slug})</option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
 
               {/* Lead Cap */}
@@ -598,12 +600,7 @@ export default function OrgDetailPage() {
               {/* Trial Ends Date */}
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Trial Ends At</label>
-                <input
-                  type="date"
-                  value={editTrialEndsAt}
-                  onChange={(e) => setEditTrialEndsAt(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden"
-                />
+                <DatePicker value={editTrialEndsAt} onChange={setEditTrialEndsAt} placeholder="Pick a date" />
               </div>
 
               {/* Negotiated Billing Discount */}

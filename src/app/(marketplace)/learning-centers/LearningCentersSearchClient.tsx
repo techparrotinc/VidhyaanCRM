@@ -51,6 +51,7 @@ import { SearchAutocomplete } from '@/components/marketplace/SearchAutocomplete'
 import LocationSelector from '@/components/LocationSelector'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import { AppSelect } from '@/components/ui/app-select'
 import {
   Dialog,
   DialogContent,
@@ -593,7 +594,7 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
             {/* Category dropdown */}
             <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-full sm:w-[48%] md:w-56 md:flex-none shrink-0 gap-2">
               <LayoutGrid className="w-4 h-4 text-slate-400 shrink-0" />
-              <select
+              <AppSelect
                 value={categoryVal}
                 onChange={(e) => setCategoryVal(e.target.value)}
                 className="bg-transparent text-slate-700 outline-none text-xs font-bold w-full cursor-pointer"
@@ -606,7 +607,7 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
                 <option value="Academic Coaching">Academic Coaching</option>
                 <option value="Skill Development">Skill Development</option>
                 <option value="Language Classes">Language Classes</option>
-              </select>
+              </AppSelect>
             </div>
 
             {/* Search Input */}
@@ -647,7 +648,7 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
               Sort by:
             </span>
-            <select
+            <AppSelect
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg outline-none cursor-pointer hover:bg-slate-100 transition"
@@ -659,7 +660,7 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
               {lat !== null && lng !== null && (
                 <option value="distance">Distance Nearest</option>
               )}
-            </select>
+            </AppSelect>
           </div>
 
           {/* Activity Pills row */}

@@ -46,24 +46,28 @@ type AppSelectProps = {
   'aria-label'?: string
   title?: string
   style?: React.CSSProperties
-  /** Accepted for drop-in parity with native selects; fires when the menu closes. */
-  onBlur?: () => void
+  /** Drop-in parity with native selects (incl. react-hook-form register):
+      fired with the same e.target shim right after a pick. */
+  onBlur?: (e: { target: any; type?: any }) => void
   children: React.ReactNode
 }
 
-export function AppSelect({
-  value,
-  onChange,
-  name,
-  id,
-  className = '',
-  disabled,
-  children,
-  title,
-  style,
-  onBlur,
-  'aria-label': ariaLabel
-}: AppSelectProps) {
+export const AppSelect = React.forwardRef<HTMLButtonElement, AppSelectProps>(function AppSelect(
+  {
+    value,
+    onChange,
+    name,
+    id,
+    className = '',
+    disabled,
+    children,
+    title,
+    style,
+    onBlur,
+    'aria-label': ariaLabel
+  },
+  forwardedRef
+) {
   const [open, setOpen] = React.useState(false)
   const [dropUp, setDropUp] = React.useState(false)
   const rootRef = React.useRef<HTMLDivElement | null>(null)
@@ -110,15 +114,17 @@ export function AppSelect({
   const pick = (opt: OptionEntry) => {
     if (opt.disabled) return
     setOpen(false)
-    onChange?.({
+    const shim = {
       target: { value: opt.value, name: name ?? '' }
-    } as unknown as React.ChangeEvent<HTMLSelectElement>)
-    onBlur?.()
+    } as unknown as React.ChangeEvent<HTMLSelectElement>
+    onChange?.(shim)
+    onBlur?.(shim)
   }
 
   return (
     <div ref={rootRef} className="relative w-full min-w-0">
       <button
+        ref={forwardedRef}
         type="button"
         id={id}
         title={title}
@@ -178,4 +184,4 @@ export function AppSelect({
       )}
     </div>
   )
-}
+})

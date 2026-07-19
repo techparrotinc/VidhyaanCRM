@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { AppSelect } from '@/components/ui/app-select'
 
 interface Organization {
   id: string
@@ -342,14 +343,14 @@ export default function AdminOrgsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Institution Type</label>
-                  <select
+                  <AppSelect
                     value={createForm.institutionType}
                     onChange={(e) => setCreateForm((f) => ({ ...f, institutionType: e.target.value }))}
                     className="w-full rounded-lg border border-slate-200 p-2.5 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500"
                   >
                     <option value="SCHOOL">School</option>
                     <option value="LEARNING_CENTER">Learning Center</option>
-                  </select>
+                  </AppSelect>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Admin Role</label>
@@ -466,7 +467,7 @@ export default function AdminOrgsPage() {
 
           {/* Status Dropdown */}
           <div className="relative">
-            <select
+            <AppSelect
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
               className="appearance-none bg-white rounded-lg border border-slate-200 py-2 pl-3 pr-8 text-xs font-semibold text-slate-700 outline-hidden hover:border-slate-350 focus:border-blue-500 transition duration-150"
@@ -476,13 +477,13 @@ export default function AdminOrgsPage() {
               <option value="TRIAL">Trial</option>
               <option value="SUSPENDED">Suspended</option>
               <option value="PENDING_VERIFICATION">Pending Verification</option>
-            </select>
+            </AppSelect>
             <ChevronDown className="absolute right-2.5 top-1/2 w-3.5 h-3.5 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
 
           {/* Institution Type Dropdown */}
           <div className="relative">
-            <select
+            <AppSelect
               value={typeFilter}
               onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
               className="appearance-none bg-white rounded-lg border border-slate-200 py-2 pl-3 pr-8 text-xs font-semibold text-slate-700 outline-hidden hover:border-slate-350 focus:border-blue-500 transition duration-150"
@@ -490,7 +491,7 @@ export default function AdminOrgsPage() {
               <option value="ALL">All Types</option>
               <option value="SCHOOL">School</option>
               <option value="LEARNING_CENTER">Learning Center</option>
-            </select>
+            </AppSelect>
             <ChevronDown className="absolute right-2.5 top-1/2 w-3.5 h-3.5 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
         </div>
@@ -680,7 +681,7 @@ export default function AdminOrgsPage() {
             <div className="flex items-center gap-2.5">
               <span className="text-xs font-semibold text-slate-400">Rows per page:</span>
               <div className="relative">
-                <select
+                <AppSelect
                   value={limit}
                   onChange={(e) => { setLimit(parseInt(e.target.value)); setPage(1); }}
                   className="appearance-none bg-white rounded-lg border border-slate-200 py-1.5 pl-2.5 pr-7 text-xs font-semibold text-slate-700 outline-hidden hover:border-slate-350"
@@ -688,7 +689,7 @@ export default function AdminOrgsPage() {
                   <option value={10}>10</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
-                </select>
+                </AppSelect>
                 <ChevronDown className="absolute right-2 top-1/2 w-3.5 h-3.5 -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>
             </div>

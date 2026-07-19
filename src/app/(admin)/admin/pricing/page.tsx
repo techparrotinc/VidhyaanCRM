@@ -17,6 +17,8 @@ import {
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { AppSelect } from '@/components/ui/app-select'
+import { DatePicker } from '@/components/ui/datetime-picker'
 import {
   PLAN_CATALOG,
   SLABS,
@@ -453,7 +455,7 @@ export default function AdminPricingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Scenario</label>
-              <select
+              <AppSelect
                 value={assumptions.scenarioKey}
                 onChange={(e) => updateAssumptions({ scenarioKey: e.target.value })}
                 className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500 bg-white"
@@ -461,7 +463,7 @@ export default function AdminPricingPage() {
                 {SCENARIOS.map((s) => (
                   <option key={s.key} value={s.key}>{s.name}</option>
                 ))}
-              </select>
+              </AppSelect>
             </div>
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
@@ -577,8 +579,7 @@ export default function AdminPricingPage() {
             </div>
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Expires</label>
-              <input type="date" value={newExpiry} onChange={(e) => setNewExpiry(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 p-2 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500" />
+              <DatePicker value={newExpiry} onChange={setNewExpiry} placeholder="Pick a date" />
             </div>
             <Button type="submit" disabled={couponSaving} className="bg-blue-600 text-white hover:bg-blue-700 font-bold py-2 text-xs flex items-center justify-center gap-1">
               {couponSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (<><Plus className="w-3.5 h-3.5" /> Create</>)}

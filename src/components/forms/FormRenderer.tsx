@@ -5,6 +5,8 @@ import { appAlert } from '@/components/ui/app-alert'
 import { useEffect, useRef, useState } from 'react'
 import { IndianRupee, CheckCircle2, Loader2, Upload, AlertCircle } from 'lucide-react'
 import type { FormField, FormSchema } from '@/lib/forms/types'
+import { AppSelect } from '@/components/ui/app-select'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 interface LoadedForm {
   status: 'OPEN' | 'SUBMITTED' | 'EXPIRED'
@@ -258,24 +260,24 @@ function RenderField({
       break
     case 'picklist':
       control = (
-        <select className={base} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)}>
+        <AppSelect className={base} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)}>
           <option value="">{field.placeholder || 'Select…'}</option>
           {(field.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
+        </AppSelect>
       )
       break
     case 'related': {
       const opts = relatedOptions[field.relatedTo ?? 'course'] ?? []
       control = (
-        <select className={base} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)}>
+        <AppSelect className={base} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)}>
           <option value="">Select…</option>
           {opts.map((o) => <option key={o.id} value={o.label}>{o.label}</option>)}
-        </select>
+        </AppSelect>
       )
       break
     }
     case 'date':
-      control = <input type="date" className={base} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} />
+      control = <DatePicker value={String(value ?? '')} onChange={onChange} placeholder="Pick a date" />
       break
     case 'numeric':
       control = <input type="number" inputMode="numeric" className={base} placeholder={field.placeholder} value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} />

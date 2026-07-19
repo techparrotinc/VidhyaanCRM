@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 interface Parent {
   id: string
@@ -235,21 +236,13 @@ export default function AdminParentsPage() {
 
           <div className="flex items-center gap-2 border border-slate-200 bg-white rounded-lg px-2.5 py-1 text-slate-650 w-full sm:w-auto justify-between sm:justify-start">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Joined:</span>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="text-xs font-semibold text-slate-700 outline-hidden focus:text-blue-600 bg-transparent border-0 p-0"
-              title="Joined date from"
-            />
+            <div className="w-36">
+              <DatePicker value={startDate} onChange={setStartDate} placeholder="From" />
+            </div>
             <span className="text-[10px] font-bold text-slate-400 uppercase">to</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="text-xs font-semibold text-slate-700 outline-hidden focus:text-blue-600 bg-transparent border-0 p-0"
-              title="Joined date to"
-            />
+            <div className="w-36">
+              <DatePicker value={endDate} onChange={setEndDate} placeholder="To" />
+            </div>
             {(startDate || endDate) && (
               <button
                 onClick={() => { setStartDate(''); setEndDate(''); }}

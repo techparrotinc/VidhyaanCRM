@@ -17,6 +17,8 @@ import {
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { AppSelect } from '@/components/ui/app-select'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 interface AuditLog {
   id: string
@@ -213,7 +215,7 @@ export default function AuditLogsPage() {
 
           {/* Action Filter */}
           <div className="relative">
-            <select
+            <AppSelect
               value={actionFilter}
               onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
               className="w-full appearance-none bg-white rounded-lg border border-slate-200 py-1.5 pl-3 pr-8 text-xs font-semibold text-slate-700 outline-hidden focus:border-blue-500"
@@ -226,28 +228,18 @@ export default function AuditLogsPage() {
               <option value="IMPERSONATION_START">Impersonation Start</option>
               <option value="PIN_SET">PIN Set</option>
               <option value="PIN_RESET">PIN Reset</option>
-            </select>
+            </AppSelect>
             <ChevronDown className="absolute right-2.5 top-1/2 w-3.5 h-3.5 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
 
           {/* Date From */}
           <div className="relative">
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-              className="w-full rounded-lg border border-slate-200 py-1.5 px-3 text-xs font-semibold text-slate-700 outline-hidden"
-            />
+            <DatePicker value={dateFrom} onChange={(ymd) => { setDateFrom(ymd); setPage(1); }} placeholder="From" />
           </div>
 
           {/* Date To */}
           <div className="relative">
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-              className="w-full rounded-lg border border-slate-200 py-1.5 px-3 text-xs font-semibold text-slate-700 outline-hidden"
-            />
+            <DatePicker value={dateTo} onChange={(ymd) => { setDateTo(ymd); setPage(1); }} placeholder="To" />
           </div>
         </div>
 

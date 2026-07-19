@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, AlertCircle, MapPin, ExternalLink, HelpCircle } from 'lucide-react'
+import { AppSelect } from '@/components/ui/app-select'
 import {
   INSTITUTION_CONFIG,
   type InstitutionType,
@@ -424,7 +425,7 @@ export default function OnboardingStep2() {
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 State <span className="text-red-500">*</span>
               </label>
-              <select
+              <AppSelect
                 value={state}
                 onChange={(e) => setState(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8] transition-all text-sm cursor-pointer"
@@ -435,7 +436,7 @@ export default function OnboardingStep2() {
                     {s}
                   </option>
                 ))}
-              </select>
+              </AppSelect>
             </div>
 
             {/* Pincode */}

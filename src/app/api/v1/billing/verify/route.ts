@@ -233,11 +233,33 @@ export async function POST(req: NextRequest) {
       </div>
     `
 
+    // Attach the branded GST invoice PDF (best-effort — the mail still goes
+    // out without it if rendering fails).
+    let invoiceAttachment: { name: string; content: string; mime_type: string }[] = []
+    if (transaction) {
+      try {
+        const { buildSubscriptionInvoiceData } = await import('@/lib/billing/subscription-invoice-data')
+        const { renderSubscriptionInvoicePdf } = await import('@/lib/pdf/subscription-invoice-pdf')
+        const invoiceData = await buildSubscriptionInvoiceData(transaction.id, user.orgId)
+        if (invoiceData) {
+          const pdfBuffer = await renderSubscriptionInvoicePdf(invoiceData)
+          invoiceAttachment = [{
+            name: `${invoiceData.invoiceNo}.pdf`,
+            content: pdfBuffer.toString('base64'),
+            mime_type: 'application/pdf'
+          }]
+        }
+      } catch (e) {
+        console.error('Invoice PDF attachment failed (email sent without it):', e)
+      }
+    }
+
     await sendTransactionalEmail({
       to: orgEmail,
       subject: `Payment Successful: ${plan.name} Plan Activated!`,
       htmlBody: paymentSuccessHtml,
-      textBody: `Your payment was successful and the ${plan.name} Plan is activated.`
+      textBody: `Your payment was successful and the ${plan.name} Plan is activated.`,
+      attachments: invoiceAttachment
     }).catch(err => console.error('Failed to send payment verification email:', err))
 
     // 10. Audit logging

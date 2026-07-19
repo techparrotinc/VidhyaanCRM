@@ -16,7 +16,17 @@ export interface SubscriptionInvoiceData {
   poNumber?: string | null
   placeOfSupply?: string | null
   userEmail?: string | null
-  seller: { name: string; address?: string | null; gstin?: string | null; pan?: string | null }
+  seller: {
+    name: string
+    address?: string | null
+    gstin?: string | null
+    pan?: string | null
+    signatoryName?: string | null
+    /** Signature image (uploaded in Admin Settings) — absolute URL or data URL. */
+    signatoryImageUrl?: string | null
+    /** Rubber stamp image — absolute URL or data URL. */
+    stampImageUrl?: string | null
+  }
   billTo: { name: string; attn?: string | null; address?: string | null; gstin?: string | null }
   shipTo: { name: string; address?: string | null }
   item: { description: string; details: string[]; qty: number; rate: number; sac: string }
@@ -104,8 +114,11 @@ const s = StyleSheet.create({
   grand: { borderTopWidth: 1, borderTopColor: '#0f172a', borderBottomWidth: 1, borderBottomColor: '#0f172a', backgroundColor: '#f8fafc' },
   balanceDue: { fontSize: 10, fontFamily: 'Helvetica-Bold' },
   paidRed: { color: '#dc2626' },
-  signBlock: { alignItems: 'flex-end', padding: 14, paddingTop: 26 },
-  signLine: { fontSize: 8.5, color: '#0f172a', marginTop: 22, borderTopWidth: 1, borderTopColor: '#94a3b8', paddingTop: 4, width: 160, textAlign: 'center' },
+  signBlock: { alignItems: 'center', padding: 14, paddingTop: 24 },
+  signImages: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, minHeight: 20 },
+  signImg: { height: 52, objectFit: 'contain' },
+  stampImg: { height: 64, objectFit: 'contain', opacity: 0.9 },
+  signLine: { fontSize: 8.5, color: '#0f172a', marginTop: 16, borderTopWidth: 1, borderTopColor: '#94a3b8', paddingTop: 4, width: 170, textAlign: 'center' },
   qrRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
   qrImg: { width: 74, height: 74 },
   qrText: { fontSize: 8, color: '#475569', width: 180 },
@@ -248,8 +261,22 @@ export function SubscriptionInvoicePDF({ data }: { data: SubscriptionInvoiceData
                 <Text style={s.balanceDue}>Rs.{inr(balance)}</Text>
               </View>
               <View style={s.signBlock}>
-                <Text style={{ fontSize: 8.5, color: '#0f172a' }}>{data.seller.name}</Text>
-                <Text style={s.signLine}>Authorized Signatory</Text>
+                <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#0f172a' }}>{data.seller.name}</Text>
+                {(data.seller.signatoryImageUrl || data.seller.stampImageUrl) ? (
+                  <View style={s.signImages}>
+                    {data.seller.signatoryImageUrl ? (
+                      // eslint-disable-next-line jsx-a11y/alt-text
+                      <Image style={s.signImg} src={data.seller.signatoryImageUrl} />
+                    ) : null}
+                    {data.seller.stampImageUrl ? (
+                      // eslint-disable-next-line jsx-a11y/alt-text
+                      <Image style={s.stampImg} src={data.seller.stampImageUrl} />
+                    ) : null}
+                  </View>
+                ) : null}
+                <Text style={s.signLine}>
+                  {data.seller.signatoryName ? `${data.seller.signatoryName} — ` : ''}Authorized Signatory
+                </Text>
               </View>
             </View>
           </View>

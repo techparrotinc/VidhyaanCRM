@@ -16,12 +16,22 @@ function clientForToken(token: string): SendMailClient {
   return client
 }
 
+export interface EmailAttachment {
+  /** File name shown in the mail client. */
+  name: string
+  /** Base64-encoded content. */
+  content: string
+  mime_type: string
+}
+
 interface SendArgs {
   to: string
   toName?: string
   subject: string
   htmlBody: string
   textBody?: string
+  /** Delivered via ZeptoMail; the SES failover sends without attachments. */
+  attachments?: EmailAttachment[]
 }
 
 // Single delivery pipeline for both send kinds:
@@ -31,7 +41,7 @@ interface SendArgs {
 // domain must be verified in SES or its sends fail and the Zepto error wins.
 async function deliver(
   kind: 'transactional' | 'campaign',
-  { to, toName, subject, htmlBody, textBody }: SendArgs
+  { to, toName, subject, htmlBody, textBody, attachments }: SendArgs
 ): Promise<{ success: boolean; suppressed?: boolean }> {
   if (await isEmailSuppressed(to)) {
     console.warn(`Email: skipping suppressed address (${kind}): ${to}`)
@@ -49,6 +59,7 @@ async function deliver(
       subject,
       htmlbody: htmlBody,
       textbody: textBody ?? '',
+      ...(attachments?.length ? { attachments } : {})
     })
   const viaSes = () =>
     sendViaSes({ to, toName, subject, htmlBody, textBody, fromEmail, fromName })

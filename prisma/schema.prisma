@@ -3161,6 +3161,9 @@ model PlatformSettings {
   // atomic increment on this singleton row, never count()+1
   invoiceSeq            Int            @default(0) @map("invoice_seq")
   // Seller details printed on subscription GST invoices
+  signatoryName         String?        @map("signatory_name")
+  signatoryImageUrl     String?        @map("signatory_image_url")
+  stampImageUrl         String?        @map("stamp_image_url")
   businessName          String?        @map("business_name")
   businessAddress       String?        @map("business_address")
   businessGstin         String?        @map("business_gstin")

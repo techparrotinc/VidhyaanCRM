@@ -57,7 +57,8 @@ const platformSettingsSchema = z.object({
   pricesIncludeGst: z.boolean().optional(),
   businessName: strOpt(200),
   businessAddress: strOpt(500),
-  businessGstin: strOpt(20)
+  businessGstin: strOpt(20),
+  signatoryName: strOpt(120)
 })
 
 // Never send secret ciphertext to the client. Strip the *Enc columns + the
@@ -209,6 +210,7 @@ export async function PUT(req: NextRequest) {
         businessName: body.businessName !== undefined ? body.businessName : undefined,
         businessAddress: body.businessAddress !== undefined ? body.businessAddress : undefined,
         businessGstin: body.businessGstin !== undefined ? body.businessGstin.toUpperCase() : undefined,
+        signatoryName: body.signatoryName !== undefined ? body.signatoryName : undefined,
       }
     })
 

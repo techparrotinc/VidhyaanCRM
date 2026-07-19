@@ -48,6 +48,10 @@ export default function AdminSettingsPage() {
   const [businessName, setBusinessName] = useState('')
   const [businessAddress, setBusinessAddress] = useState('')
   const [businessGstin, setBusinessGstin] = useState('')
+  const [signatoryName, setSignatoryName] = useState('')
+  const [signatoryImageUrl, setSignatoryImageUrl] = useState<string | null>(null)
+  const [stampImageUrl, setStampImageUrl] = useState<string | null>(null)
+  const [uploadingBranding, setUploadingBranding] = useState<'signatory' | 'stamp' | null>(null)
 
   // Emails
   const [fromEmailAddress, setFromEmailAddress] = useState('')
@@ -126,6 +130,9 @@ export default function AdminSettingsPage() {
       setBusinessName(data.businessName || '')
       setBusinessAddress(data.businessAddress || '')
       setBusinessGstin(data.businessGstin || '')
+      setSignatoryName(data.signatoryName || '')
+      setSignatoryImageUrl(data.signatoryImageUrl || null)
+      setStampImageUrl(data.stampImageUrl || null)
 
       setFromEmailAddress(data.fromEmailAddress || '')
       setSupportEmail(data.supportEmail || '')
@@ -233,6 +240,7 @@ export default function AdminSettingsPage() {
         businessName,
         businessAddress,
         businessGstin,
+        signatoryName,
         usageHourlyRate,
         usageMinutesPerAction: usageMinutes
       }
@@ -260,6 +268,25 @@ export default function AdminSettingsPage() {
       appAlert(err.message || 'Failed to update settings')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const uploadBranding = async (kind: 'signatory' | 'stamp', file: File | null, clear = false) => {
+    setUploadingBranding(kind)
+    try {
+      const fd = new FormData()
+      fd.append('kind', kind)
+      if (clear) fd.append('clear', 'true')
+      else if (file) fd.append('file', file)
+      const res = await fetch('/api/admin/settings/branding', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      if (kind === 'signatory') setSignatoryImageUrl(data.url)
+      else setStampImageUrl(data.url)
+    } catch (e: any) {
+      alert(e.message || 'Upload failed')
+    } finally {
+      setUploadingBranding(null)
     }
   }
 
@@ -404,6 +431,49 @@ export default function AdminSettingsPage() {
                   className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
                 />
               </div>
+              <div>
+                <label className="block text-slate-450 mb-1.5">Authorized Signatory Name</label>
+                <input
+                  type="text"
+                  value={signatoryName}
+                  onChange={(e) => setSignatoryName(e.target.value)}
+                  placeholder="e.g. R. Badrinath"
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+              </div>
+              {([['signatory', 'Signature Image', signatoryImageUrl], ['stamp', 'Rubber Stamp Image', stampImageUrl]] as const).map(([kind, label, url]) => (
+                <div key={kind}>
+                  <label className="block text-slate-450 mb-1.5">{label}</label>
+                  <div className="flex items-center gap-3">
+                    {url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={url} alt={label} className="h-12 max-w-28 object-contain border border-slate-200 rounded-lg bg-white p-1" />
+                    ) : (
+                      <span className="text-[10px] text-slate-400 font-semibold">Not set</span>
+                    )}
+                    <label className="cursor-pointer text-[10px] font-bold text-blue-600 hover:underline">
+                      {uploadingBranding === kind ? 'Uploading…' : url ? 'Replace' : 'Upload'}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="hidden"
+                        disabled={uploadingBranding !== null}
+                        onChange={(e) => uploadBranding(kind, e.target.files?.[0] ?? null)}
+                      />
+                    </label>
+                    {url && (
+                      <button
+                        type="button"
+                        onClick={() => uploadBranding(kind, null, true)}
+                        className="text-[10px] font-bold text-red-500 hover:underline"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[9px] text-slate-400 mt-1">PNG/JPG/WebP, max 2MB — printed on GST invoices.</p>
+                </div>
+              ))}
             </div>
           </Card>
 

@@ -202,6 +202,10 @@ export async function createGstInvoice(params: {
       type: 'invoice',
       currency: 'INR',
       receipt: params.receipt,
+      // Razorpay renders this as the hosted invoice's number — keeping it
+      // identical to our receipt means the hosted copy and our own PDF show
+      // the same VID<year>-<seq> number.
+      invoice_number: params.receipt,
       customer: params.customer,
       line_items: [
         {

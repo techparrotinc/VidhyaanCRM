@@ -99,6 +99,17 @@ const authConfig: NextAuthConfig = {
               mustEnrol2fa = await orgPolicyRequires(assignment.orgId ?? null, assignment.role)
             }
 
+            // A fresh, fully verified primary-factor login re-proves identity —
+            // clear any user-level Redis revocation (mobile refresh-token reuse
+            // detection, 2FA reset, …). Revocation's job is to kill EXISTING
+            // sessions; blanket-blocking new logins for the 30-day TTL locked
+            // out single-admin orgs with no recovery path (deactivated staff
+            // are still stopped above by the ACTIVE/INVITED status check).
+            const { clearUserRevocation } = await import('@/lib/auth/roleRevocation')
+            await clearUserRevocation(user.id).catch((e) =>
+              console.error('clearUserRevocation on login failed:', e)
+            )
+
             return {
               id: user.id,
               name: user.name,

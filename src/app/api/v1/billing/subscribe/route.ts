@@ -8,6 +8,7 @@ import { computeProrationCredit } from '@/lib/billing/proration'
 import { validateCoupon } from '@/lib/billing/coupons'
 import { applyPercentOff } from '@/lib/billing/money'
 import { TransactionType } from '@prisma/client'
+import { getRazorpayCredentials } from '@/lib/platform-config'
 
 export async function POST(req: NextRequest) {
   try {
@@ -226,11 +227,17 @@ export async function POST(req: NextRequest) {
     })
 
     // 7. Return payload for frontend checkout
+    // Checkout key MUST come from the same credential source as the
+    // order/invoice creation and the verify fetch — env
+    // NEXT_PUBLIC_RAZORPAY_KEY_ID could point at a DIFFERENT Razorpay account
+    // than the admin-managed platform config, sending the payment where
+    // fetchPayment can never find it ("id does not exist").
+    const rzCreds = await getRazorpayCredentials()
     return NextResponse.json({
       orderId: invoice.order_id,
       amount: invoice.amount,
       currency: 'INR',
-      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'mock_public_key'
+      keyId: rzCreds.keyId === 'mock_key' ? 'mock_public_key' : rzCreds.keyId
     })
 
   } catch (error: any) {

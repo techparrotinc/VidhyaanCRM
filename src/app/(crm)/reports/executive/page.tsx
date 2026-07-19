@@ -4,7 +4,7 @@ import useSWR from 'swr'
 import { fetcher } from '@/lib/fetcher'
 import { useAcademicYearStore } from '@/stores/academic-year.store'
 import { KpiCard, KpiCardSkeleton } from '@/components/reports/KpiCard'
-import { AttentionStrip, AttentionItem } from '@/components/reports/AttentionStrip'
+import { AttentionItem } from '@/components/reports/AttentionStrip'
 import { ChartCard, ChartCardSkeleton, WidgetError } from '@/components/reports/ChartCard'
 import { FeeTrendChart, FunnelChart, SourceBars, CapacityBars, MethodDonut, SimpleBars } from '@/components/reports/charts'
 import { Users, Target, GraduationCap, Wallet, AlertCircle, RefreshCw } from 'lucide-react'
@@ -96,7 +96,8 @@ export default function ExecutiveDashboard() {
         </div>
       </div>
 
-      {d && d.attention.length > 0 && <AttentionStrip items={d.attention} />}
+      {/* Attention strip intentionally NOT rendered here — it already lives on
+          the main dashboard; the executive report page stays analytics-only. */}
 
       {isLoading || !d ? (
         <>

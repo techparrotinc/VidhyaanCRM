@@ -16,7 +16,7 @@ import { useAcademicYearStore } from '@/stores/academic-year.store'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { useBranchStore } from '@/stores/branch.store'
 import { useBranches } from '@/hooks/useBranches'
-import { Menu, LogOut, User, Settings, Calendar, ChevronDown, Building2 } from 'lucide-react'
+import { Menu, LogOut, User, Settings, Calendar, ChevronDown, Building2, Crown } from 'lucide-react'
 
 export default function CrmLayout({ children }: { children: React.ReactNode }) {
   const { sidebarCollapsed, mobileSidebarOpen, toggleMobileSidebar, closeMobileSidebar } = useUIStore()
@@ -67,6 +67,18 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
 
   const academicYear = selectedYearName ?? 'Academic Year'
   const [isMobile, setIsMobile] = useState(false)
+  // Header Upgrade button for non-paying orgs — default true so paid orgs
+  // never see it flash while the fetch resolves.
+  const [isPaid, setIsPaid] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/v1/settings/org-type')
+      .then((r) => r.json())
+      .then((json) => {
+        if (json?.success && typeof json.data?.isPaid === 'boolean') setIsPaid(json.data.isPaid)
+      })
+      .catch(() => {})
+  }, [])
 
   // Detect mobile viewport
   useEffect(() => {
@@ -276,6 +288,18 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
                 </>
               )}
             </div>
+
+            {/* Upgrade CTA — always visible for non-paying orgs so the path
+                to a paid plan is one click from anywhere in the app. */}
+            {!isPaid && (
+              <button
+                onClick={() => router.push('/settings/billing/upgrade')}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#1565D8] to-[#1E40AF] text-white text-xs font-semibold shadow-sm hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                <Crown className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
+                <span>Upgrade</span>
+              </button>
+            )}
 
             {/* Vidhyaan AI launcher mounts here (top-right, Neon-style) */}
             <div id="ai-launcher-slot" className="flex items-center" />

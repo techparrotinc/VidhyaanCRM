@@ -273,9 +273,10 @@ export async function fetchPayment(paymentId: string): Promise<{
   order_id: string | null
   invoice_id: string | null
   amount: number
+  method: string | null
 } | null> {
   if (paymentId?.startsWith('pay_mock_') && process.env.NODE_ENV === 'development') {
-    return { id: paymentId, status: 'captured', order_id: null, invoice_id: null, amount: 0 }
+    return { id: paymentId, status: 'captured', order_id: null, invoice_id: null, amount: 0, method: 'mock' }
   }
   try {
     const { client: razorpay } = await getRazorpay()
@@ -285,7 +286,8 @@ export async function fetchPayment(paymentId: string): Promise<{
       status: payment.status,
       order_id: payment.order_id ?? null,
       invoice_id: payment.invoice_id ?? null,
-      amount: Number(payment.amount)
+      amount: Number(payment.amount),
+      method: payment.method ?? null
     }
   } catch (error) {
     console.error('[Razorpay] fetchPayment error:', error)

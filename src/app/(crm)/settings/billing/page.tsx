@@ -377,12 +377,28 @@ export default function BillingSettingsPage() {
                       </span>
                     </td>
                     <td className="p-4">
-                      {tx.invoiceUrl ? (
-                        <a href={tx.invoiceUrl} target="_blank" rel="noreferrer" className="text-[#1565D8] hover:underline font-bold">
-                          Download
-                        </a>
+                      {tx.status === 'SUCCESS' ? (
+                        <span className="flex items-center gap-2">
+                          <a
+                            href={`/api/v1/billing/invoices/${tx.id}/pdf`}
+                            className="text-[#1565D8] hover:underline font-bold"
+                          >
+                            Download
+                          </a>
+                          {tx.invoiceUrl && (
+                            <a
+                              href={tx.invoiceUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-slate-400 hover:text-slate-600 hover:underline text-[10px] font-semibold"
+                              title="Razorpay hosted copy"
+                            >
+                              hosted
+                            </a>
+                          )}
+                        </span>
                       ) : (
-                        <span className="text-slate-400">Available soon</span>
+                        <span className="text-slate-400">—</span>
                       )}
                     </td>
                   </tr>

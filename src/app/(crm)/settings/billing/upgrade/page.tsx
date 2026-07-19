@@ -63,6 +63,9 @@ export default function UpgradePlanPage() {
   const [studentCount, setStudentCount] = useState(0)
   const [slab, setSlab] = useState('S50')
   const [selectedSlab, setSelectedSlab] = useState('S50')
+  // Slab the org actually paid for — a bigger selected slab on the SAME plan
+  // is a capacity upgrade, not "already subscribed"
+  const [paidSlab, setPaidSlab] = useState<string | null>(null)
   const [enabledCycles, setEnabledCycles] = useState<string[]>(['MONTHLY', 'ANNUAL'])
   const [pricesIncludeGst, setPricesIncludeGst] = useState(false)
   const [billingCycle, setBillingCycle] = useState<'MONTHLY' | 'QUARTERLY' | 'ANNUAL'>('ANNUAL')
@@ -102,6 +105,7 @@ export default function UpgradePlanPage() {
       setPlans(data.plans)
       setStudentCount(data.studentCount ?? 0)
       setSlab(data.slab ?? 'S50')
+      setPaidSlab(data.paidSlab ?? null)
       setSelectedSlab((prev) => (prev === 'S50' ? data.slab ?? 'S50' : prev))
       setProration(data.proration ?? null)
       setBillingProfile(data.billingProfile ?? null)
@@ -679,6 +683,10 @@ export default function UpgradePlanPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mt-8">
         {plans.filter((p) => p.slug !== 'free').map((plan) => {
           const isCurrent = org?.planId === plan.id
+          // Same plan, larger slab than the one paid for → capacity upgrade
+          const isSlabUpgrade =
+            isCurrent &&
+            SLAB_ORDER.indexOf(selectedSlab) > SLAB_ORDER.indexOf(paidSlab ?? slab)
           const isFlagship = plan.slug === 'enterprise'
           const sp = getSlabPrice(plan)
           const monthly = getMonthly(plan)
@@ -749,10 +757,10 @@ export default function UpgradePlanPage() {
 
               <div className="mt-8">
                 <button
-                  disabled={isCurrent && !isRenewable}
+                  disabled={isCurrent && !isRenewable && !isSlabUpgrade}
                   onClick={() => { setSummaryPlan(plan); window.scrollTo({ top: 0 }) }}
                   className={`w-full py-2.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                    isCurrent && !isRenewable
+                    isCurrent && !isRenewable && !isSlabUpgrade
                       ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                       : isCurrent
                         ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
@@ -761,7 +769,13 @@ export default function UpgradePlanPage() {
                           : 'bg-slate-900 hover:bg-slate-800 text-white shadow-sm'
                   }`}
                 >
-                  {isCurrent ? (isRenewable ? 'Renew Plan' : 'Current Active Plan') : 'Select Plan & Subscribe'}
+                  {isCurrent
+                    ? isSlabUpgrade
+                      ? `Upgrade Capacity — ${SLAB_LABELS[selectedSlab]}`
+                      : isRenewable
+                        ? 'Renew Plan'
+                        : 'Current Active Plan'
+                    : 'Select Plan & Subscribe'}
                 </button>
               </div>
             </div>

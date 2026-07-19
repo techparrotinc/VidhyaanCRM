@@ -11,8 +11,7 @@ import { api } from './api'
  *    gateway calls, global fetch still handles everything else.
  *  - Token minting goes through this app's own `api()` (Bearer-aware
  *    already) instead of a raw same-origin fetch.
- * History/delete/feedback are not ported — out of scope for the mobile P2
- * ask (citations + action cards + streaming chat only).
+ * History/resume/delete ported 2026-07-19 (I2 parity); feedback still web-only.
  */
 
 const GATEWAY = process.env.EXPO_PUBLIC_AI_GATEWAY_URL ?? 'https://ai.vidhyaan.com'
@@ -246,9 +245,88 @@ export function useAiChat() {
     setState((s) => ({ ...s, messages: [], status: 'idle', error: null }))
   }, [])
 
+  // non-streaming gateway calls — global fetch is fine here
+  const authedFetch = useCallback(
+    async (path: string, init?: RequestInit) => {
+      const token = await getToken()
+      if (!token) return null
+      return fetch(`${GATEWAY}${path}`, {
+        ...init,
+        headers: { ...(init?.headers ?? {}), authorization: `Bearer ${token}` }
+      })
+    },
+    [getToken]
+  )
+
+  const loadHistory = useCallback(async (): Promise<
+    { id: string; title: string | null; messageCount: number; lastMessageAt: string | null }[]
+  > => {
+    try {
+      const res = await authedFetch('/v1/ai/history')
+      if (!res?.ok) return []
+      return (await res.json()).conversations ?? []
+    } catch {
+      return []
+    }
+  }, [authedFetch])
+
+  const loadConversation = useCallback(
+    async (id: string) => {
+      try {
+        const res = await authedFetch(`/v1/ai/session/${id}`)
+        if (!res?.ok) return false
+        const data = await res.json()
+        sessionRef.current = data.id
+        setState((s) => ({
+          ...s,
+          status: 'idle',
+          error: null,
+          messages: (data.messages ?? []).map((m: any) => ({
+            id: m.id,
+            role: m.role,
+            text: m.text,
+            citations: m.citations,
+            serverMessageId: m.role === 'assistant' ? m.id : undefined
+          }))
+        }))
+        return true
+      } catch {
+        return false
+      }
+    },
+    [authedFetch]
+  )
+
+  const deleteConversation = useCallback(
+    async (id: string) => {
+      try {
+        await authedFetch(`/v1/ai/session/${id}`, { method: 'DELETE' })
+        if (sessionRef.current === id) {
+          sessionRef.current = null
+          setState((s) => ({ ...s, messages: [] }))
+        }
+        return true
+      } catch {
+        return false
+      }
+    },
+    [authedFetch]
+  )
+
   const checkEntitlement = useCallback(async () => {
     await getToken()
   }, [getToken])
 
-  return { ...state, send, stop, newConversation, checkEntitlement, confirmAction, cancelAction }
+  return {
+    ...state,
+    send,
+    stop,
+    newConversation,
+    checkEntitlement,
+    confirmAction,
+    cancelAction,
+    loadHistory,
+    loadConversation,
+    deleteConversation
+  }
 }

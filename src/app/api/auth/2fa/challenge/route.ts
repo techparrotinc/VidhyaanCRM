@@ -71,7 +71,10 @@ export async function POST(req: NextRequest) {
       if (!otp && !devBypass) {
         return NextResponse.json({ success: false, error: 'INVALID_OTP' }, { status: 401 })
       }
-      if (otp) {
+      // A bypass code skips validation entirely — the login UI auto-sends an
+      // OTP on reaching the code screen, so a real unconsumed row usually
+      // exists and would otherwise fail the bcrypt compare against 1234/123456.
+      if (otp && !devBypass) {
         if (otp.attempts >= 5) {
           await prisma.otpCode.delete({ where: { id: otp.id } })
           return NextResponse.json({ success: false, error: 'INVALID_OTP' }, { status: 401 })

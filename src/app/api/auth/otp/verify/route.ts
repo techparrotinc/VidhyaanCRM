@@ -19,9 +19,12 @@ export async function POST(req: NextRequest) {
     }
     const { contact, code } = parsed.data
 
-    // Dev bypass
-    const isDevBypass = process.env.NODE_ENV === 'development' && code === '1234'
-    
+    // Dev bypass + env-gated QA test phones (web codes are 4-digit)
+    const { isTestPhoneBypass } = await import('@/lib/auth/otp')
+    const isDevBypass =
+      (process.env.NODE_ENV === 'development' && code === '1234') ||
+      isTestPhoneBypass(contact, code)
+
     if (isDevBypass) {
       return NextResponse.json({ success: true })
     }

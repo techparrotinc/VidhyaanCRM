@@ -15,12 +15,14 @@ export function generateOTP(): string {
 /**
  * Env-gated QA bypass, mirroring the mobile login (api/mobile/v1/auth/verify):
  * identifiers listed in MOBILE_TEST_PHONES (comma-separated) accept code
- * 123456 on any deployment. Needed because the NODE_ENV=development bypass
- * only exists on localhost — QA numbers with no real SIM could never log in
- * on deployed non-prod builds. Empty/unset = no bypass, prod-safe default.
+ * 123456 — or 1234, because the web login renders four OTP boxes (real codes
+ * are 4-digit) and a 6-digit code can't be typed there. Needed because the
+ * NODE_ENV=development bypass only exists on localhost — QA numbers with no
+ * real SIM could never log in on deployed non-prod builds. Empty/unset = no
+ * bypass, prod-safe default.
  */
 export function isTestPhoneBypass(identifier: string, code: string): boolean {
-  if (code !== '123456') return false
+  if (code !== '123456' && code !== '1234') return false
   const testPhones = (process.env.MOBILE_TEST_PHONES ?? '')
     .split(',')
     .map((p) => p.trim())

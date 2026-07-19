@@ -53,6 +53,7 @@ import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 import { Skeleton } from "@/components/ui/skeleton"
 import RecordSkeleton from "@/components/shared/RecordSkeleton"
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { DatePicker } from '@/components/ui/datetime-picker'
 import {
   Dialog,
   DialogContent,
@@ -1181,12 +1182,11 @@ export default function AdmissionDetailPage() {
 
             <div>
               <label className="text-xs font-semibold text-slate-500 mb-1 block">Date of Birth</label>
-              <input
-                type="date"
+              <DatePicker
                 value={convertStudentDob}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => setConvertStudentDob(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 min-w-0 cursor-pointer"
+                onChange={setConvertStudentDob}
+                placeholder="Pick date of birth"
+                maxDate={new Date()}
               />
             </div>
 

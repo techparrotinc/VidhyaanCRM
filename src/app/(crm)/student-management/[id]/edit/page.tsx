@@ -8,6 +8,7 @@ import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { useClassOptions } from '@/hooks/useClassOptions'
 import { isLearningCentre } from '@/lib/institution'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 const inputClass =
   'w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition'
@@ -276,12 +277,12 @@ export default function EditStudentPage() {
 
                 <div>
                   <label className={labelClass}>Date of Birth</label>
-                  <input
-                    type="date"
-                    name="dateOfBirth"
+                  <DatePicker
                     value={form.dateOfBirth}
-                    onChange={handleChange}
-                    className={inputClass} />
+                    onChange={(ymd) => setForm(prev => ({ ...prev, dateOfBirth: ymd }))}
+                    placeholder="Pick date of birth"
+                    maxDate={new Date()}
+                  />
                 </div>
 
                 {!isLC && (
@@ -291,7 +292,10 @@ export default function EditStudentPage() {
                       <select
                         name="gradeLabel"
                         value={form.gradeLabel}
-                        onChange={e => setForm(prev => ({ ...prev, gradeLabel: e.target.value, section: '' }))}
+                        onChange={e => {
+                          if (e.target.value === '__manage__') { router.push('/settings/classes'); return }
+                          setForm(prev => ({ ...prev, gradeLabel: e.target.value, section: '' }))
+                        }}
                         className={inputClass}>
                         <option value="">Select class</option>
                         {classOptions.map(c => (
@@ -302,6 +306,7 @@ export default function EditStudentPage() {
                         {form.gradeLabel && !classOptions.some(c => c.name === form.gradeLabel) && (
                           <option value={form.gradeLabel}>{form.gradeLabel}</option>
                         )}
+                        <option value="__manage__">＋ Add class…</option>
                       </select>
                     </div>
 

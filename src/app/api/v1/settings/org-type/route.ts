@@ -9,19 +9,18 @@ export const GET = route({
       select: { institutionType: true }
     })
     
-    const addon = await prisma.organizationModule.findFirst({
-      where: {
-        orgId: user.orgId,
-        module: {
-          slug: 'whatsapp_addon'
-        },
-        enabled: true
-      }
+    // One query feeds both the WhatsApp add-on flag and the module locks the
+    // settings nav renders (premium settings grey out on the free plan).
+    const orgModules = await prisma.organizationModule.findMany({
+      where: { orgId: user.orgId, enabled: true },
+      select: { module: { select: { slug: true } } }
     })
+    const enabledModules = orgModules.map((m) => m.module.slug)
 
     return ok({
       institutionType: org?.institutionType || 'SCHOOL',
-      isWhatsappActive: !!addon
+      isWhatsappActive: enabledModules.includes('whatsapp_addon'),
+      enabledModules
     })
   }
 })

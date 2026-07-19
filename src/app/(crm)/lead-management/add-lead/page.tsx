@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 
 import { Card } from "@/components/ui/card"
+import { DatePicker } from '@/components/ui/datetime-picker'
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
@@ -696,13 +697,17 @@ export default function AddLeadPage() {
                       <select
                         name="gradeSought"
                         value={formData.gradeSought}
-                        onChange={handleInputChange}
+                        onChange={(e) => {
+                          if (e.target.value === '__manage__') { router.push('/settings/classes'); return }
+                          handleInputChange(e)
+                        }}
                         className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.gradeSought ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-slate-200'}`}
                       >
                         <option value="">Select grade</option>
                         {classOptions.map(cls => (
                           <option key={cls.gradeSlug + cls.name} value={cls.gradeSlug}>{cls.name}</option>
                         ))}
+                        <option value="__manage__">＋ Add class…</option>
                       </select>
                       {errors.gradeSought && (
                         <span className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
@@ -850,13 +855,17 @@ export default function AddLeadPage() {
                       <select
                         name="course"
                         value={formData.course}
-                        onChange={handleInputChange}
+                        onChange={(e) => {
+                          if (e.target.value === '__manage__') { router.push('/settings/courses'); return }
+                          handleInputChange(e)
+                        }}
                         className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition ${errors.course ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-slate-200'}`}
                       >
                         <option value="">Select course</option>
                         {courses.map(course => (
                           <option key={course} value={course}>{course}</option>
                         ))}
+                        <option value="__manage__">＋ Add course…</option>
                       </select>
                       {errors.course && (
                         <span className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1">
@@ -912,12 +921,11 @@ export default function AddLeadPage() {
                       <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
                         Preferred Start Date
                       </label>
-                      <input
-                        type="date"
-                        name="startDate"
+                      <DatePicker
                         value={formData.startDate}
-                        onChange={handleInputChange}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-800 font-medium focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 focus:bg-white transition"
+                        onChange={(ymd) => setFormData(prev => ({ ...prev, startDate: ymd }))}
+                        placeholder="Pick a start date"
+                        minDate={new Date()}
                       />
                     </div>
                   </div>

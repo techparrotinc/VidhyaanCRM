@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { DatePicker } from '@/components/ui/datetime-picker'
 import { X, Info, Loader2 } from 'lucide-react'
 
 interface Course {
@@ -28,6 +30,7 @@ export default function EnrollModal({
   onClose,
   toast
 }: EnrollModalProps) {
+  const router = useRouter()
   const [courseId, setCourseId] = useState('')
   const [startDate, setStartDate] = useState('')
   const [courses, setCourses] = useState<Course[]>([])
@@ -124,7 +127,10 @@ export default function EnrollModal({
               ) : (
                 <select
                   value={courseId}
-                  onChange={(e) => setCourseId(e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value === '__manage__') { router.push('/settings/courses'); return }
+                    setCourseId(e.target.value)
+                  }}
                   required
                   className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
@@ -134,6 +140,7 @@ export default function EnrollModal({
                       {course.name} - ₹{course.amount.toLocaleString('en-IN')} ({course.frequency.toLowerCase().replace('_', ' ')})
                     </option>
                   ))}
+                  <option value="__manage__">＋ Add course…</option>
                 </select>
               )}
             </div>
@@ -141,13 +148,7 @@ export default function EnrollModal({
             {/* Start Date */}
             <div className="flex flex-col">
               <label className="text-xs text-slate-500 mb-1 font-medium">Start date</label>
-              <input
-                type="date"
-                required
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <DatePicker value={startDate} onChange={setStartDate} clearable={false} />
             </div>
 
             {/* Info box */}

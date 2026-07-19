@@ -9,6 +9,7 @@ import { buildSettingsNav } from '@/components/settings/settingsNav'
 export default function SettingsLandingPage() {
   const [institutionType, setInstitutionType] = useState<string>('SCHOOL')
   const [isWhatsappActive, setIsWhatsappActive] = useState(false)
+  const [enabledModules, setEnabledModules] = useState<string[]>([])
   const [query, setQuery] = useState('')
 
   useEffect(() => {
@@ -18,6 +19,7 @@ export default function SettingsLandingPage() {
         if (data.success) {
           if (data.data?.institutionType) setInstitutionType(data.data.institutionType)
           if (data.data?.isWhatsappActive !== undefined) setIsWhatsappActive(data.data.isWhatsappActive)
+          if (Array.isArray(data.data?.enabledModules)) setEnabledModules(data.data.enabledModules)
         }
       })
       .catch(err => console.error('Failed to fetch org type:', err))
@@ -26,7 +28,8 @@ export default function SettingsLandingPage() {
   const allSections = buildSettingsNav({
     isLearningCenter: institutionType === 'LEARNING_CENTER',
     isWhatsappActive,
-    institutionType
+    institutionType,
+    enabledModules
   })
 
   // Search filters across name + description; empty sections drop out

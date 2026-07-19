@@ -369,7 +369,10 @@ export default function CreateStudentPage() {
                   <select
                     name="gradeLabel"
                     value={formData.gradeLabel}
-                    onChange={e => setFormData(prev => ({ ...prev, gradeLabel: e.target.value, section: '' }))}
+                    onChange={e => {
+                      if (e.target.value === '__manage__') { router.push('/settings/classes'); return }
+                      setFormData(prev => ({ ...prev, gradeLabel: e.target.value, section: '' }))
+                    }}
                     className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition"
                   >
                     <option value="">Select Class</option>
@@ -378,6 +381,7 @@ export default function CreateStudentPage() {
                         {c.name}
                       </option>
                     ))}
+                    <option value="__manage__">＋ Add class…</option>
                   </select>
                 </div>
 

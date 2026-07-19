@@ -15,6 +15,7 @@ type DateTimePickerProps = {
   /** hide the time selector (all-day events, DOB fields) */
   dateOnly?: boolean
   minDate?: Date
+  maxDate?: Date
   clearable?: boolean
 }
 
@@ -46,6 +47,7 @@ export function DateTimePicker({
   placeholder = 'Pick date & time',
   dateOnly = false,
   minDate,
+  maxDate,
   clearable = true
 }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false)
@@ -79,7 +81,8 @@ export function DateTimePicker({
   }
 
   const isPastDisabled = (d: Date) =>
-    !!minDate && d < new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate())
+    (!!minDate && d < new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate())) ||
+    (!!maxDate && d > new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate(), 23, 59, 59))
 
   return (
     <div ref={rootRef} className="relative w-full">
@@ -154,5 +157,47 @@ export function DateTimePicker({
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * Date-only variant for forms that store 'YYYY-MM-DD' strings — the branded
+ * replacement for native <input type="date"> (same look as the follow-up
+ * picker). Converts at the boundary with LOCAL date parts so the calendar
+ * day never shifts across timezones.
+ */
+export function DatePicker({
+  value,
+  onChange,
+  placeholder = 'Pick a date',
+  minDate,
+  maxDate,
+  clearable = true
+}: {
+  value: string
+  onChange: (ymd: string) => void
+  placeholder?: string
+  minDate?: Date
+  maxDate?: Date
+  clearable?: boolean
+}) {
+  const iso = value ? new Date(`${value}T00:00:00`).toISOString() : ''
+  return (
+    <DateTimePicker
+      dateOnly
+      value={iso}
+      onChange={(v) => {
+        if (!v) {
+          onChange('')
+          return
+        }
+        const d = new Date(v)
+        onChange(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
+      }}
+      placeholder={placeholder}
+      minDate={minDate}
+      maxDate={maxDate}
+      clearable={clearable}
+    />
   )
 }

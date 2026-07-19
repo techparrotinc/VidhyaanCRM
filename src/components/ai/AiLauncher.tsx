@@ -15,8 +15,27 @@ import { useAiChat } from './useAiChat'
 export function AiLauncher() {
   const [open, setOpen] = useState(false)
   const [slot, setSlot] = useState<HTMLElement | null>(null)
+  // ai_copilot is a plan module — free-listing orgs shouldn't see the pill at
+  // all (the gateway would refuse them anyway). Fail open while loading /
+  // on fetch errors, mirroring Sidebar's module handling.
+  const [aiEnabled, setAiEnabled] = useState(true)
   const chat = useAiChat()
   const hasConversation = chat.messages.length > 0
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/v1/school-profile')
+      .then(r => r.json())
+      .then(json => {
+        if (cancelled) return
+        const mods = json?.enabledModules
+        if (Array.isArray(mods) && mods.length > 0) setAiEnabled(mods.includes('ai_copilot'))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Header renders before this component in the tree; grab the slot after mount
   // (retry briefly in case of hydration ordering).
@@ -44,6 +63,8 @@ export function AiLauncher() {
       )}
     </button>
   )
+
+  if (!aiEnabled) return null
 
   return (
     <>

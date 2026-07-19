@@ -5,6 +5,7 @@ import { CheckCircle, Users, GraduationCap, Plus, X, ArrowRight } from 'lucide-r
 import { GRADE_OPTIONS } from '@/constants/grades'
 import { useCounsellors } from '@/hooks/useCounsellors'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 interface Option {
   value: 'LEADS' | 'STUDENTS' | 'BOTH'
@@ -327,12 +328,13 @@ export function StepTwo({
     // Date From / To
     if (filter.field === 'dateFrom' || filter.field === 'dateTo') {
       return (
-        <input
-          type="date"
-          value={filter.value}
-          onChange={(e) => handleFilterChange(index, 'value', e.target.value)}
-          className="flex-1 h-9 px-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-[#1565D8]"
-        />
+        <div className="flex-1 min-w-0">
+          <DatePicker
+            value={filter.value}
+            onChange={(ymd) => handleFilterChange(index, 'value', ymd)}
+            placeholder="Pick a date"
+          />
+        </div>
       )
     }
 

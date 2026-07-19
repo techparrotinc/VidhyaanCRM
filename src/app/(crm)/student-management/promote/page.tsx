@@ -20,6 +20,7 @@ import {
 import { GRADE_OPTIONS } from '@/constants/grades'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { useConfirm } from '@/components/ui/confirm-dialog'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 type MoveAction = 'PROMOTE' | 'RETAIN' | 'ALUMNI' | 'SKIP'
 
@@ -460,7 +461,7 @@ export default function PromoteStudentsPage() {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold text-slate-500">Due Date</label>
-                  <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={`${inputCls} cursor-pointer`} />
+                  <DatePicker value={dueDate} onChange={setDueDate} placeholder="Pick a due date" clearable={false} />
                 </div>
               </div>
 

@@ -14,6 +14,7 @@ export default function SettingsLayout({
   const pathname = usePathname()
   const [institutionType, setInstitutionType] = useState<string>('SCHOOL')
   const [isWhatsappActive, setIsWhatsappActive] = useState(false)
+  const [enabledModules, setEnabledModules] = useState<string[]>([])
 
   useEffect(() => {
     fetch('/api/v1/settings/org-type')
@@ -26,6 +27,9 @@ export default function SettingsLayout({
           if (data.data?.isWhatsappActive !== undefined) {
             setIsWhatsappActive(data.data.isWhatsappActive)
           }
+          if (Array.isArray(data.data?.enabledModules)) {
+            setEnabledModules(data.data.enabledModules)
+          }
         }
       })
       .catch((err) => console.error('Failed to fetch org type:', err))
@@ -34,7 +38,8 @@ export default function SettingsLayout({
   const sections = buildSettingsNav({
     isLearningCenter: institutionType === 'LEARNING_CENTER',
     isWhatsappActive,
-    institutionType
+    institutionType,
+    enabledModules
   })
 
   const isActive = (path: string) => {

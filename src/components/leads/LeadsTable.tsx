@@ -24,6 +24,7 @@ import {
   leadRowBorderColor,
 } from './leadConfig'
 import { useCourseOptions } from '@/hooks/useCourseOptions'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 export interface EditLeadFormData {
   name?: string
@@ -293,12 +294,11 @@ export default function LeadsTable(props: LeadsTableProps) {
                         {/* 7. Follow-up Date */}
                         <div className="lg:col-span-1 min-w-0">
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 md:hidden">Follow-up Date</span>
-                          <input
-                            type="date"
-                            min={todayStr}
+                          <DatePicker
                             value={editFormData.followUpDate || ''}
-                            onChange={(e) => onEditFormChange({ ...editFormData, followUpDate: e.target.value })}
-                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 min-w-0 cursor-pointer"
+                            onChange={(ymd) => onEditFormChange({ ...editFormData, followUpDate: ymd })}
+                            placeholder="Follow-up date"
+                            minDate={new Date()}
                           />
                         </div>
                       </div>

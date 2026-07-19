@@ -11,6 +11,7 @@ import {
 import { getGradeLabel } from '@/constants/grades'
 import { useClassOptions } from '@/hooks/useClassOptions'
 import type { Applicant } from './shared'
+import { DatePicker } from '@/components/ui/datetime-picker'
 
 type ConvertToStudentModalProps = {
   applicant: Applicant | null
@@ -122,12 +123,11 @@ export default function ConvertToStudentModal({
 
             <div>
               <label className="text-xs font-semibold text-slate-500 mb-1.5 block font-sans">Date of Birth</label>
-              <input
-                type="date"
+              <DatePicker
                 value={dob}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => setDob(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 min-w-0 cursor-pointer"
+                onChange={setDob}
+                placeholder="Pick date of birth"
+                maxDate={new Date()}
               />
             </div>
 

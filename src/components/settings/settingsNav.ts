@@ -44,9 +44,15 @@ export function buildSettingsNav(opts: {
   isLearningCenter: boolean
   isWhatsappActive: boolean
   institutionType?: string | null
+  /** Enabled module slugs — premium settings lock when their module is off. */
+  enabledModules?: string[]
 }): SettingsNavSection[] {
-  const { isLearningCenter, isWhatsappActive, institutionType } = opts
+  const { isLearningCenter, isWhatsappActive, institutionType, enabledModules } = opts
   const noun = institutionNoun(institutionType)
+  // Fail open while the module list hasn't loaded (mirrors Sidebar) so links
+  // never flash locked for entitled orgs.
+  const moduleLocked = (slug: string) =>
+    Array.isArray(enabledModules) && enabledModules.length > 0 && !enabledModules.includes(slug)
 
   return [
     {
@@ -99,13 +105,15 @@ export function buildSettingsNav(opts: {
                 name: 'Admission Pipeline',
                 path: '/settings/pipeline',
                 icon: GitMerge,
-                description: 'Stages your admissions move through'
+                description: 'Stages your admissions move through',
+                locked: moduleLocked('admission_management'),
               },
               {
                 name: 'Terms',
                 path: '/settings/terms',
                 icon: CalendarDays,
-                description: 'Term dates used for fee schedules'
+                description: 'Term dates used for fee schedules',
+                locked: moduleLocked('fee_management'),
               }
             ]
           : [
@@ -120,13 +128,15 @@ export function buildSettingsNav(opts: {
           name: isLearningCenter ? 'Enrolment Forms' : 'Admission Forms',
           path: '/settings/admission-forms',
           icon: ClipboardList,
-          description: 'Digital forms sent to parents for enquiries, admissions and campaigns'
+          description: 'Digital forms sent to parents for enquiries, admissions and campaigns',
+          locked: moduleLocked('forms_requests'),
         },
         {
           name: 'Attendance',
           path: '/settings/attendance',
           icon: CalendarCheck,
-          description: 'Working days, holidays, teacher assignments and absence alerts'
+          description: 'Working days, holidays, teacher assignments and absence alerts',
+          locked: moduleLocked('attendance'),
         },
         {
           name: 'Duplicate Detection',
@@ -143,13 +153,15 @@ export function buildSettingsNav(opts: {
           name: 'Fee Plans',
           path: '/settings/fee-plans',
           icon: Receipt,
-          description: 'Fee structures applied per grade'
+          description: 'Fee structures applied per grade',
+          locked: moduleLocked('fee_management'),
         },
         {
           name: 'Payments',
           path: '/settings/payments',
           icon: CreditCard,
-          description: 'Online payment gateway and payout policies'
+          description: 'Online payment gateway and payout policies',
+          locked: moduleLocked('payment_gateway'),
         }
       ]
     },
@@ -179,14 +191,14 @@ export function buildSettingsNav(opts: {
           path: '/settings/whatsapp-templates',
           icon: MessageCircle,
           description: 'Approved message templates for campaigns',
-          locked: !isWhatsappActive
+          locked: !isWhatsappActive || moduleLocked('whatsapp_sms_notifications')
         },
         {
           name: 'WhatsApp Messages',
           path: '/settings/whatsapp-messages',
           icon: MessageCircle,
           description: 'Parent replies inbox and sent-message delivery log',
-          locked: !isWhatsappActive
+          locked: !isWhatsappActive || moduleLocked('whatsapp_sms_notifications')
         }
       ]
     },
@@ -214,7 +226,8 @@ export function buildSettingsNav(opts: {
           name: 'API Keys',
           path: '/settings/api-keys',
           icon: Key,
-          description: 'Programmatic access to your workspace'
+          description: 'Programmatic access to your workspace',
+          locked: moduleLocked('api_access'),
         }
       ]
     },

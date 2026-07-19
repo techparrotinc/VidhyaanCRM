@@ -421,7 +421,7 @@ export const GET = route({
         }
       }),
 
-      // Org meta — plan + trial state (drives plan-aware upsell + real countdown)
+      // Org meta — plan + trial/grace state (drives plan-aware upsell + real countdown)
       db.organization.findUnique({
         where: { id: orgId },
         select: {
@@ -434,6 +434,12 @@ export const GET = route({
               monthlyPrice: true,
               planModules: { select: { moduleSlug: true } }
             }
+          },
+          subscriptions: {
+            where: { deletedAt: null },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: { status: true, graceEndsAt: true }
           }
         }
       }),
@@ -568,6 +574,47 @@ export const GET = route({
         }),
       ])
 
+    // Lazy grace sweep: the daily cron normally downgrades a lapsed grace
+    // period, but a dashboard load can land first (or the env's DB may never
+    // be cron-swept). Same page-load-reconcile pattern billing uses; the
+    // conditional update inside downgradeOrgToFree makes cron races a no-op.
+    let planMeta = orgMeta
+    let moduleRows = orgModuleRows
+    const graceEndsAt = orgMeta?.subscriptions?.[0]?.graceEndsAt ?? null
+    if (orgMeta?.status === 'GRACE_PERIOD' && graceEndsAt && graceEndsAt < now) {
+      try {
+        const { downgradeOrgToFree } = await import('@/lib/billing/lifecycle')
+        await downgradeOrgToFree(orgId, 'grace ended — swept on dashboard load')
+        ;[planMeta, moduleRows] = await Promise.all([
+          db.organization.findUnique({
+            where: { id: orgId },
+            select: {
+              status: true,
+              trialEndsAt: true,
+              plan: {
+                select: {
+                  slug: true, name: true, monthlyPrice: true,
+                  planModules: { select: { moduleSlug: true } }
+                }
+              },
+              subscriptions: {
+                where: { deletedAt: null },
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+                select: { status: true, graceEndsAt: true }
+              }
+            }
+          }),
+          db.organizationModule.findMany({
+            where: { orgId, enabled: true },
+            select: { module: { select: { slug: true } } }
+          })
+        ])
+      } catch (e) {
+        console.error('lazy grace downgrade failed:', e)
+      }
+    }
+
     const result = {
       marketplace: {
         reviews: {
@@ -665,15 +712,15 @@ export const GET = route({
       },
       meta: (() => {
         const enabled = new Set<string>()
-        orgMeta?.plan?.planModules?.forEach(pm => enabled.add(pm.moduleSlug))
-        orgModuleRows.forEach(r => { if (r.module?.slug) enabled.add(r.module.slug) })
-        const planSlug = orgMeta?.plan?.slug ?? 'free'
-        const status = (orgMeta?.status as string) ?? 'TRIAL'
+        planMeta?.plan?.planModules?.forEach(pm => enabled.add(pm.moduleSlug))
+        moduleRows.forEach(r => { if (r.module?.slug) enabled.add(r.module.slug) })
+        const planSlug = planMeta?.plan?.slug ?? 'free'
+        const status = (planMeta?.status as string) ?? 'TRIAL'
         const isPaid =
           status === 'ACTIVE' &&
           planSlug !== 'free' &&
-          Number(orgMeta?.plan?.monthlyPrice ?? 0) > 0
-        const trialEndsAt = orgMeta?.trialEndsAt ?? null
+          Number(planMeta?.plan?.monthlyPrice ?? 0) > 0
+        const trialEndsAt = planMeta?.trialEndsAt ?? null
         const trialDaysLeft = trialEndsAt
           ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - now.getTime()) / 86400000))
           : null
@@ -681,16 +728,24 @@ export const GET = route({
         // (or in envs where it never does) the org can sit in TRIAL past its
         // end date — the banner must say "ended", not "ends today".
         const trialExpired = trialEndsAt ? new Date(trialEndsAt).getTime() < now.getTime() : false
+        const inGrace = status === 'GRACE_PERIOD'
+        const metaGraceEndsAt = inGrace ? planMeta?.subscriptions?.[0]?.graceEndsAt ?? null : null
+        const graceDaysLeft = metaGraceEndsAt
+          ? Math.max(0, Math.ceil((new Date(metaGraceEndsAt).getTime() - now.getTime()) / 86400000))
+          : null
         return {
           institutionType: school?.institutionType ?? 'SCHOOL',
           orgStatus: status,
           planSlug,
-          planName: orgMeta?.plan?.name ?? 'Free',
+          planName: planMeta?.plan?.name ?? 'Free',
           isPaid,
           isTrial: status === 'TRIAL',
           trialEndsAt,
           trialDaysLeft,
           trialExpired,
+          inGrace,
+          graceEndsAt: metaGraceEndsAt,
+          graceDaysLeft,
           enabledModules: Array.from(enabled)
         }
       })(),

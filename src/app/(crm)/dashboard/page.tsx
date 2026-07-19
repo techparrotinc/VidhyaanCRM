@@ -101,6 +101,11 @@ export default function DashboardPage() {
   const isTrial: boolean = meta?.isTrial ?? false
   const trialDaysLeft: number | null = meta?.trialDaysLeft ?? null
   const trialExpired: boolean = meta?.trialExpired ?? false
+  const inGrace: boolean = meta?.inGrace ?? false
+  const graceEndsAt: string | null = meta?.graceEndsAt ?? null
+  const graceEndsLabel = graceEndsAt
+    ? new Date(graceEndsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+    : null
   const planName: string = meta?.planName ?? 'Free'
   const enabledModules: string[] = meta?.enabledModules ?? []
   const hasModule = (slug: string) => enabledModules.includes(slug)
@@ -325,11 +330,27 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {isPaid && !isTrial && (
-            <span className="hidden sm:inline-flex items-center gap-1.5 bg-green-50 border border-green-100 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full">
+          {/* Plan-state pill — always present so the org's plan is visible at
+              a glance in every state (paid / trial / trial-ended grace / free). */}
+          {isPaid && !isTrial ? (
+            <Link href="/settings/billing" className="hidden sm:inline-flex items-center gap-1.5 bg-green-50 border border-green-100 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-green-100 transition">
               <CheckCircle2 size={13} strokeWidth={2} />
               {planName} plan active
-            </span>
+            </Link>
+          ) : isTrial && !trialExpired ? (
+            <Link href="/settings/billing" className="hidden sm:inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-amber-100 transition">
+              <Crown size={13} strokeWidth={2} className="fill-amber-500 text-amber-600" />
+              Trial{trialDaysLeft != null ? ` · ${trialDaysLeft} day${trialDaysLeft === 1 ? '' : 's'} left` : ''}
+            </Link>
+          ) : inGrace || (isTrial && trialExpired) ? (
+            <Link href="/settings/billing/upgrade" className="hidden sm:inline-flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-red-100 transition">
+              <Crown size={13} strokeWidth={2} />
+              Trial ended
+            </Link>
+          ) : (
+            <Link href="/settings/billing" className="hidden sm:inline-flex items-center gap-1.5 bg-slate-100 border border-slate-200 text-slate-600 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-slate-200 transition">
+              {planName} plan
+            </Link>
           )}
           <Link href="/settings/school-profile">
             <Button variant="outline" className="text-sm font-semibold px-4 py-2 h-9 rounded-lg border-slate-200 text-slate-700 hover:bg-slate-50">
@@ -359,20 +380,24 @@ export default function DashboardPage() {
           {/* ============ CONTEXT STRIP (single, priority-picked) ============ */}
           {/* Trial countdown — always shown during a trial (time-sensitive, so it
               is NOT suppressed by the profile-completion strip below). */}
-          {isTrial && !contextStripDismissed && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3.5 md:px-6 flex flex-col md:flex-row gap-3 md:items-center">
+          {(isTrial || inGrace) && !contextStripDismissed && (
+            <div className={`${inGrace || trialExpired ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'} border rounded-2xl px-5 py-3.5 md:px-6 flex flex-col md:flex-row gap-3 md:items-center`}>
               <div className="flex items-center gap-2.5 min-w-0">
-                <span className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                  <Crown className="w-4 h-4 text-amber-600 fill-amber-500" strokeWidth={1.5} />
+                <span className={`w-8 h-8 rounded-lg ${inGrace || trialExpired ? 'bg-red-100' : 'bg-amber-100'} flex items-center justify-center shrink-0`}>
+                  <Crown className={`w-4 h-4 ${inGrace || trialExpired ? 'text-red-600' : 'text-amber-600 fill-amber-500'}`} strokeWidth={1.5} />
                 </span>
-                <p className="text-sm text-amber-900 font-medium leading-snug">
-                  {trialExpired ? 'Premium trial ended.' : 'Premium trial active.'}{" "}
+                <p className={`text-sm ${inGrace || trialExpired ? 'text-red-900' : 'text-amber-900'} font-medium leading-snug`}>
+                  {inGrace || trialExpired ? 'Premium trial ended.' : 'Premium trial active.'}{" "}
                   <span className="font-bold">
-                    {trialExpired
-                      ? 'Upgrade to keep premium features.'
-                      : trialDaysLeft != null
-                        ? (trialDaysLeft === 0 ? 'Ends today.' : `${trialDaysLeft} day${trialDaysLeft > 1 ? 's' : ''} left.`)
-                        : 'Enjoy full access.'}
+                    {inGrace
+                      ? (graceEndsLabel
+                          ? `Premium access until ${graceEndsLabel} — upgrade to keep it.`
+                          : 'Upgrade to keep premium features.')
+                      : trialExpired
+                        ? 'Upgrade to keep premium features.'
+                        : trialDaysLeft != null
+                          ? (trialDaysLeft === 0 ? 'Ends today.' : `${trialDaysLeft} day${trialDaysLeft > 1 ? 's' : ''} left.`)
+                          : 'Enjoy full access.'}
                   </span>
                 </p>
               </div>
@@ -422,7 +447,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             </Card>
-          ) : isTrial || isPaid ? null : (
+          ) : isTrial || isPaid || inGrace ? null : (
             /* Paid/trial state lives in the header (plan pill + Manage listing) —
                only free orgs still get an upsell strip here. */
             <div className="bg-blue-50 border border-blue-100 rounded-2xl px-5 py-3.5 md:px-6 flex flex-col sm:flex-row sm:items-center gap-3">

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/db/client'
-import { createOTP, sendOTP } from '@/lib/auth/otp'
+import { createOTP, sendOTP, isTestPhoneBypass } from '@/lib/auth/otp'
 import { OtpChannel, OtpPurpose } from '@prisma/client'
 import { otpSendLimiter } from '@/lib/ratelimit'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
@@ -33,6 +33,14 @@ export async function POST(req: NextRequest) {
     }
 
     const contactToUse = isPhone ? cleanedContact : contact
+
+    // QA test phones (MOBILE_TEST_PHONES) log in with the bypass code — no
+    // real SMS exists for them, so don't attempt a send OR burn the rate
+    // limit: repeated QA attempts were 429-ing and stranding the login UI on
+    // the PIN screen. Report success so the UI advances to code entry.
+    if (isTestPhoneBypass(contactToUse, '1234')) {
+      return NextResponse.json({ success: true, message: 'OTP sent successfully', expiresIn: 600, channel: isEmail ? 'EMAIL' : 'SMS' })
+    }
 
     // Rate Limiting
     const rateLimit = await otpSendLimiter(`otp_send_${contactToUse}`)

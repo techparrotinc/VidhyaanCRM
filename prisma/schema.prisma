@@ -3904,6 +3904,8 @@ model Holiday {
   academicYearId String?  @map("academic_year_id")
   date           DateTime @db.Date
   name           String
+  /// CUSTOM (org-added) | NATIONAL (seeded from the platform national-holiday list)
+  source         String   @default("CUSTOM")
   createdAt      DateTime @default(now()) @map("created_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)

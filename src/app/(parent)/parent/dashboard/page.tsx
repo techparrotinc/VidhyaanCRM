@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { ShieldCheck, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import EnrolledDashboard, { type EnrolledData } from '@/components/parent/dashboard/EnrolledDashboard'
+import { HolidayAnnouncementBanner } from '@/components/dashboard/HolidayAnnouncementBanner'
 import DiscoveryDashboard, { type DiscoveryStats } from '@/components/parent/dashboard/DiscoveryDashboard'
 
 interface SchoolData {
@@ -97,7 +98,12 @@ export default function ParentDashboard() {
   return (
     <div className="animate-fade-in pb-12">
       {data.persona === 'ENROLLED' ? (
-        <EnrolledDashboard data={data} parentName={parentName} />
+        <>
+          <div className="mb-6">
+            <HolidayAnnouncementBanner endpoint="/api/v1/parent/holidays" />
+          </div>
+          <EnrolledDashboard data={data} parentName={parentName} />
+        </>
       ) : (
         <DiscoveryDashboard
           parentName={parentName}

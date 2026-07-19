@@ -38,6 +38,7 @@ import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SetupBanner } from "@/components/dashboard/SetupBanner"
+import { HolidayAnnouncementBanner } from "@/components/dashboard/HolidayAnnouncementBanner"
 import { AttentionStrip } from "@/components/reports/AttentionStrip"
 import { useAcademicYearStore } from "@/stores/academic-year.store"
 
@@ -82,6 +83,9 @@ const formatINR = (amount: number) =>
 
 export default function DashboardPage() {
   const [contextStripDismissed, setContextStripDismissed] = useState(false)
+  // Setup checklist banner and the profile-completion strip both say "finish
+  // setting up" — only one may show at a time (checklist wins).
+  const [setupBannerVisible, setSetupBannerVisible] = useState(false)
   const [dashData, setDashData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -365,8 +369,11 @@ export default function DashboardPage() {
         </div>
       </header>
 
+      {/* ============ HOLIDAY ANNOUNCEMENT (dismiss = per session) ============ */}
+      <HolidayAnnouncementBanner endpoint="/api/v1/holidays/upcoming" />
+
       {/* ============ ONE-TIME SETUP CHECKLIST (paid orgs) ============ */}
-      <SetupBanner />
+      <SetupBanner onVisibleChange={setSetupBannerVisible} />
 
       {error ? (
         <div className="text-center py-20">
@@ -428,7 +435,7 @@ export default function DashboardPage() {
 
           {/* Secondary strip — profile completion, else plan status (only when
               there's no separate trial strip already carrying the plan message). */}
-          {profileCompletion !== null && profileCompletion < 100 ? (
+          {profileCompletion !== null && profileCompletion < 100 && !setupBannerVisible ? (
             <Card className={`bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6 border-l-4 ${profileCompletion >= 50 ? 'border-l-amber-500' : 'border-l-red-500'}`}>
               <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 md:gap-8">
                 <div className="flex-1 min-w-0">

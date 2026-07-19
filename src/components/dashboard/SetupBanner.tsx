@@ -18,7 +18,12 @@ type SetupSummary = {
  * Shown only for paid/trialing orgs with an incomplete checklist;
  * dismissal is persisted server-side in org settings.
  */
-export function SetupBanner() {
+export function SetupBanner({
+  onVisibleChange
+}: {
+  /** Lets the dashboard suppress overlapping "finish setting up" strips. */
+  onVisibleChange?: (visible: boolean) => void
+}) {
   const [summary, setSummary] = useState<SetupSummary | null>(null)
   const [hidden, setHidden] = useState(false)
 
@@ -29,8 +34,14 @@ export function SetupBanner() {
       .catch(() => {})
   }, [])
 
-  if (!summary || hidden) return null
-  if (!summary.isPaid || summary.bannerDismissed || summary.pct >= 100) return null
+  const visible =
+    !!summary && !hidden && summary.isPaid && !summary.bannerDismissed && summary.pct < 100
+
+  useEffect(() => {
+    onVisibleChange?.(visible)
+  }, [visible, onVisibleChange])
+
+  if (!visible || !summary) return null
 
   const dismiss = () => {
     setHidden(true)

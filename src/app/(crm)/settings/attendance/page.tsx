@@ -18,7 +18,7 @@ type AttendanceSettings = {
   absenceAlerts: { enabled: boolean; portal: boolean; whatsapp: boolean; sms: boolean }
   autoMarkOnline: boolean
 }
-type Holiday = { id: string; date: string; name: string }
+type Holiday = { id: string; date: string; name: string; source?: string }
 type Assignment = {
   id: string
   gradeLabel: string | null
@@ -250,14 +250,43 @@ function HolidaysTab({ confirm }: { confirm: ReturnType<typeof useConfirm> }) {
   const [to, setTo] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [nationalEnabled, setNationalEnabled] = useState<boolean | null>(null)
+  const [togglingNational, setTogglingNational] = useState(false)
 
   const load = useCallback(() => {
     fetch('/api/v1/settings/attendance/holidays')
       .then(r => r.json())
-      .then(json => setHolidays(json?.data?.holidays ?? []))
+      .then(json => {
+        setHolidays(json?.data?.holidays ?? [])
+        setNationalEnabled(json?.data?.nationalEnabled ?? false)
+      })
       .catch(() => setHolidays([]))
   }, [])
   useEffect(load, [load])
+
+  const toggleNational = async () => {
+    if (nationalEnabled === null || togglingNational) return
+    const target = !nationalEnabled
+    if (!target) {
+      const okToDisable = await confirm({
+        title: 'Turn off national holidays?',
+        message: 'Upcoming national holidays (Republic Day, Independence Day, Gandhi Jayanti, Christmas) will be removed from the holiday calendar. Past dates are kept.',
+        confirmLabel: 'Turn off'
+      })
+      if (!okToDisable) return
+    }
+    setTogglingNational(true)
+    const res = await fetch('/api/v1/settings/attendance/holidays', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nationalEnabled: target })
+    })
+    setTogglingNational(false)
+    if (res.ok) {
+      setNationalEnabled(target)
+      load()
+    }
+  }
 
   const add = async () => {
     if (!name || !from) return
@@ -299,6 +328,34 @@ function HolidaysTab({ confirm }: { confirm: ReturnType<typeof useConfirm> }) {
 
   return (
     <div className="space-y-6 mt-4">
+      <Card>
+        <CardContent className="p-6 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">National holidays</p>
+            <p className="text-sm font-normal leading-relaxed text-slate-500 mt-0.5">
+              Auto-adds Republic Day, Independence Day, Gandhi Jayanti and Christmas each year.
+              Festival holidays (Diwali, Holi, Eid…) vary by date — add them below.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!!nationalEnabled}
+            onClick={toggleNational}
+            disabled={nationalEnabled === null || togglingNational}
+            className={`relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
+              nationalEnabled ? 'bg-[#1565D8]' : 'bg-slate-200'
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                nationalEnabled ? 'translate-x-[22px]' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-wrap items-end gap-3">
@@ -342,7 +399,14 @@ function HolidaysTab({ confirm }: { confirm: ReturnType<typeof useConfirm> }) {
               {holidays.map(h => (
                 <div key={h.id} className="py-2.5 flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">{h.name}</p>
+                    <p className="text-sm font-medium text-slate-900 flex items-center gap-2">
+                      {h.name}
+                      {h.source === 'NATIONAL' && (
+                        <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-blue-50 text-[#1565D8]">
+                          National
+                        </span>
+                      )}
+                    </p>
                     <p className="text-xs font-normal text-slate-400">
                       {new Date(`${h.date}T00:00:00`).toLocaleDateString('en-IN', {
                         weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'

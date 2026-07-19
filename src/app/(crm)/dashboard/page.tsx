@@ -387,18 +387,27 @@ export default function DashboardPage() {
                   <Crown className={`w-4 h-4 ${inGrace || trialExpired ? 'text-red-600' : 'text-amber-600 fill-amber-500'}`} strokeWidth={1.5} />
                 </span>
                 <p className={`text-sm ${inGrace || trialExpired ? 'text-red-900' : 'text-amber-900'} font-medium leading-snug`}>
-                  {inGrace || trialExpired ? 'Premium trial ended.' : 'Premium trial active.'}{" "}
-                  <span className="font-bold">
-                    {inGrace
-                      ? (graceEndsLabel
-                          ? `Premium access until ${graceEndsLabel} — upgrade to keep it.`
-                          : 'Upgrade to keep premium features.')
-                      : trialExpired
-                        ? 'Upgrade to keep premium features.'
-                        : trialDaysLeft != null
+                  {inGrace ? (
+                    <>
+                      Your trial has ended, but premium features stay on until{' '}
+                      <span className="font-bold">{graceEndsLabel ?? 'the grace period ends'}</span> as a grace
+                      period.{' '}
+                      <span className="font-bold">Upgrade before then, or your account moves to the Free plan.</span>
+                    </>
+                  ) : trialExpired ? (
+                    <>
+                      Premium trial ended. <span className="font-bold">Upgrade to keep premium features.</span>
+                    </>
+                  ) : (
+                    <>
+                      Premium trial active.{' '}
+                      <span className="font-bold">
+                        {trialDaysLeft != null
                           ? (trialDaysLeft === 0 ? 'Ends today.' : `${trialDaysLeft} day${trialDaysLeft > 1 ? 's' : ''} left.`)
                           : 'Enjoy full access.'}
-                  </span>
+                      </span>
+                    </>
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-3 md:ml-auto shrink-0">

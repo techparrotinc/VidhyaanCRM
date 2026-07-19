@@ -39,6 +39,8 @@ export const GET = route({
       academicYearId: textParam,
       createdFrom: dateParam,
       createdTo: dateParam,
+      followUpFrom: dateParam,
+      followUpTo: dateParam,
       uncontacted: z.enum(['24h', '48h', '72h']).optional()
         .or(z.literal('').transform(() => undefined))
     })
@@ -54,6 +56,8 @@ export const GET = route({
     if (priority) where.priority = priority
     const createdWindow = istRange(q.createdFrom, q.createdTo)
     if (createdWindow) where.createdAt = createdWindow
+    const followUpWindow = istRange(q.followUpFrom, q.followUpTo)
+    if (followUpWindow) where.nextFollowUpAt = followUpWindow
     if (counsellorId) {
       where.assignedToId = counsellorId
     }

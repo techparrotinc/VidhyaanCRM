@@ -1,6 +1,6 @@
 import { route } from '@/lib/api/compose'
 import { paginated } from '@/lib/api/respond'
-import { parseQuery, paginationShape, textParam } from '@/lib/api/query'
+import { parseQuery, paginationShape, textParam, dateParam, istRange } from '@/lib/api/query'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 
@@ -14,13 +14,17 @@ export const GET = route({
   handler: async ({ req, db, user }) => {
     const q = parseQuery(req.url, {
       ...paginationShape,
-      studentId: textParam
+      studentId: textParam,
+      from: dateParam,
+      to: dateParam
     })
 
+    const paidWindow = istRange(q.from, q.to)
     const where = {
       orgId: user.orgId,
       deletedAt: null,
-      ...(q.studentId ? { studentId: q.studentId } : {})
+      ...(q.studentId ? { studentId: q.studentId } : {}),
+      ...(paidWindow ? { paidAt: paidWindow } : {})
     }
 
     const [payments, total] = await Promise.all([

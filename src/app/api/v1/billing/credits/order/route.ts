@@ -6,6 +6,7 @@ import { createGstInvoice } from '@/lib/integrations/razorpay'
 import { TransactionType } from '@prisma/client'
 import { getPack } from '@/lib/credits/constants'
 import { getRazorpayCredentials } from '@/lib/platform-config'
+import { nextPlatformInvoiceNumber } from '@/lib/billing/platform-invoice-number'
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,8 +29,8 @@ export async function POST(req: NextRequest) {
     }
 
     const amountInPaise = Math.round(pack.priceInr * 100)
-    // Razorpay caps receipt at 40 chars
-    const receipt = `CRD-${session.user.orgId.slice(-8)}-${Date.now()}`
+    // Sequential platform invoice number (VID<year>-<seq>)
+    const receipt = await nextPlatformInvoiceNumber()
 
     // GST invoice (same as subscriptions): auto-creates the Checkout order,
     // hosted invoice becomes downloadable once paid.

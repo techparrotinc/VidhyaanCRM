@@ -3157,6 +3157,9 @@ model PlatformSettings {
   // true → catalog prices are the final amount (GST carved out on the invoice);
   // false → 18% GST is added on top at checkout
   pricesIncludeGst      Boolean        @default(false) @map("prices_include_gst")
+  // Platform GST-invoice number sequence (receipt "VID<year>-<seq>") —
+  // atomic increment on this singleton row, never count()+1
+  invoiceSeq            Int            @default(0) @map("invoice_seq")
   // Seller details printed on subscription GST invoices
   businessName          String?        @map("business_name")
   businessAddress       String?        @map("business_address")

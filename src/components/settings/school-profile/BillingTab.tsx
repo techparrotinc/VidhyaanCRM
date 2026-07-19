@@ -22,6 +22,14 @@ export default function BillingTab() {
   const [city, setCity] = useState('')
   const [state, setState] = useState('')
   const [pincode, setPincode] = useState('')
+  // Ship-To (optional — invoices fall back to the billing address)
+  const [shipSame, setShipSame] = useState(true)
+  const [shipAddressLine, setShipAddressLine] = useState('')
+  const [shipCity, setShipCity] = useState('')
+  const [shipState, setShipState] = useState('')
+  const [shipPincode, setShipPincode] = useState('')
+  // Printed as "P.O.#" on GST invoices when set
+  const [poNumber, setPoNumber] = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -35,6 +43,15 @@ export default function BillingTab() {
           setCity(parts.city || '')
           setState(parts.state || '')
           setPincode(parts.pincode || '')
+          const ship = data.billingProfile.shippingParts
+          if (ship?.addressLine) {
+            setShipSame(false)
+            setShipAddressLine(ship.addressLine || '')
+            setShipCity(ship.city || '')
+            setShipState(ship.state || '')
+            setShipPincode(ship.pincode || '')
+          }
+          setPoNumber(data.billingProfile.poNumber || '')
         }
       } catch (e) {
         console.error('Failed to load billing profile:', e)
@@ -53,7 +70,16 @@ export default function BillingTab() {
       const res = await fetch('/api/v1/billing/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gstin: gstin || '', addressLine, city, state, pincode })
+        body: JSON.stringify({
+          gstin: gstin || '',
+          addressLine, city, state, pincode,
+          // Same-as-billing clears the stored Ship-To so invoices fall back
+          shippingAddressLine: shipSame ? '' : shipAddressLine,
+          shippingCity: shipSame ? '' : shipCity,
+          shippingState: shipSame ? '' : shipState,
+          shippingPincode: shipSame ? '' : shipPincode,
+          poNumber: poNumber || ''
+        })
       })
       const data = await res.json()
       if (!res.ok) {
@@ -144,6 +170,63 @@ export default function BillingTab() {
             onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
             placeholder="600001"
             className={inputCls}
+          />
+        </div>
+
+        <div className="space-y-1.5 md:col-span-2 pt-2">
+          <label className={labelCls}>Ship-To Address</label>
+          <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={shipSame}
+              onChange={(e) => setShipSame(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 accent-[#1565D8]"
+            />
+            Same as billing address
+          </label>
+        </div>
+
+        {!shipSame && (
+          <>
+            <div className="space-y-1.5 md:col-span-2">
+              <input
+                type="text"
+                value={shipAddressLine}
+                onChange={(e) => setShipAddressLine(e.target.value)}
+                placeholder="Door No, Street Name, Locality"
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelCls}>City</label>
+              <input type="text" value={shipCity} onChange={(e) => setShipCity(e.target.value)} className={inputCls} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelCls}>State</label>
+              <input type="text" value={shipState} onChange={(e) => setShipState(e.target.value)} className={inputCls} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelCls}>Pincode</label>
+              <input
+                type="text"
+                value={shipPincode}
+                onChange={(e) => setShipPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="600001"
+                className={inputCls}
+              />
+            </div>
+          </>
+        )}
+
+        <div className="space-y-1.5 md:col-span-2 pt-2">
+          <label className={labelCls}>P.O. Number (optional)</label>
+          <input
+            type="text"
+            value={poNumber}
+            onChange={(e) => setPoNumber(e.target.value)}
+            placeholder="Printed as P.O.# on your GST invoices"
+            maxLength={50}
+            className={`${inputCls} md:w-80`}
           />
         </div>
       </div>

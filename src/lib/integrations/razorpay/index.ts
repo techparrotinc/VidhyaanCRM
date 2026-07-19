@@ -153,6 +153,13 @@ export async function createGstInvoice(params: {
       zipcode?: string
       country?: string
     }
+    shipping_address?: {
+      line1?: string
+      city?: string
+      state?: string
+      zipcode?: string
+      country?: string
+    }
   }
   lineItemName: string
   description?: string
@@ -168,6 +175,10 @@ export async function createGstInvoice(params: {
    *  customers by contact/email and then ignores inline billing_address, so
    *  the address must travel on the invoice itself to be visible. */
   billToText?: string
+  /** Invoice issue date (defaults to now) — rendered as the invoice date. */
+  issuedAt?: Date
+  /** Payment-link expiry; doubles as the printed due date. */
+  expireBy?: Date
 }): Promise<{ id: string; order_id: string; short_url: string; amount: number }> {
   const isDev = process.env.NODE_ENV === 'development'
   const { client: razorpay, isMock } = await getRazorpay()
@@ -199,12 +210,22 @@ export async function createGstInvoice(params: {
           amount: baseInPaise,
           quantity: 1
         },
+        // Intra/inter-state split shown explicitly (Razorpay's hosted invoice
+        // has no native tax table): CGST + SGST at 9% each. Paise rounding:
+        // SGST takes the remainder so the two always sum to the exact GST.
         {
-          name: 'GST 18% (SAC 998314)',
-          amount: gstInPaise,
+          name: 'CGST @ 9%',
+          amount: Math.floor(gstInPaise / 2),
+          quantity: 1
+        },
+        {
+          name: 'SGST @ 9% (SAC 998314)',
+          amount: gstInPaise - Math.floor(gstInPaise / 2),
           quantity: 1
         }
       ],
+      date: Math.floor((params.issuedAt ?? new Date()).getTime() / 1000),
+      expire_by: params.expireBy ? Math.floor(params.expireBy.getTime() / 1000) : undefined,
       sms_notify: 0,
       email_notify: 0,
       terms: params.sellerTerms || undefined,

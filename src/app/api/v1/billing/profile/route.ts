@@ -12,7 +12,14 @@ const profileSchema = z.object({
   addressLine: z.string().trim().max(200).optional(),
   city: z.string().trim().max(100).optional(),
   state: z.string().trim().max(100).optional(),
-  pincode: z.string().trim().regex(/^[0-9]{6}$/, 'Pincode must be 6 digits').optional().or(z.literal('').transform(() => undefined))
+  pincode: z.string().trim().regex(/^[0-9]{6}$/, 'Pincode must be 6 digits').optional().or(z.literal('').transform(() => undefined)),
+  // Ship-To (optional — invoices fall back to the billing address)
+  shippingAddressLine: z.string().trim().max(200).optional(),
+  shippingCity: z.string().trim().max(100).optional(),
+  shippingState: z.string().trim().max(100).optional(),
+  shippingPincode: z.string().trim().regex(/^[0-9]{6}$/, 'Pincode must be 6 digits').optional().or(z.literal('').transform(() => undefined)),
+  // Printed as "P.O.#" on GST invoices when set
+  poNumber: z.string().trim().max(50).optional().or(z.literal('').transform(() => undefined))
 })
 
 /** Billing profile (Bill-To address + GSTIN) — printed on GST invoices. */
@@ -33,7 +40,7 @@ export async function PUT(req: NextRequest) {
         { status: 422 }
       )
     }
-    const { gstin, addressLine, city, state, pincode } = parsed.data
+    const { gstin, addressLine, city, state, pincode, shippingAddressLine, shippingCity, shippingState, shippingPincode, poNumber } = parsed.data
 
     const org = await prisma.organization.findUniqueOrThrow({
       where: { id: session.user.orgId },
@@ -47,16 +54,28 @@ export async function PUT(req: NextRequest) {
       ...(state !== undefined ? { state } : {}),
       ...(pincode !== undefined ? { pincode } : {})
     }
+    const shippingAddress = {
+      ...(settings.shippingAddress || {}),
+      ...(shippingAddressLine !== undefined ? { addressLine: shippingAddressLine } : {}),
+      ...(shippingCity !== undefined ? { city: shippingCity } : {}),
+      ...(shippingState !== undefined ? { state: shippingState } : {}),
+      ...(shippingPincode !== undefined ? { pincode: shippingPincode } : {})
+    }
 
     await prisma.organization.update({
       where: { id: session.user.orgId },
       data: {
         ...(gstin !== undefined ? { gstNumber: gstin } : {}),
-        settings: { ...settings, billingAddress }
+        settings: {
+          ...settings,
+          billingAddress,
+          shippingAddress,
+          ...(poNumber !== undefined ? { billingPoNumber: poNumber || null } : {})
+        }
       }
     })
 
-    return NextResponse.json({ success: true, billingAddress, gstin: gstin ?? undefined })
+    return NextResponse.json({ success: true, billingAddress, shippingAddress, poNumber, gstin: gstin ?? undefined })
   } catch (error: any) {
     console.error('Billing profile update error:', error)
     return NextResponse.json(

@@ -148,7 +148,11 @@ export async function GET(req: NextRequest) {
           city: mainBranch?.city ?? '',
           state: mainBranch?.state ?? '',
           pincode: mainBranch?.pincode ?? ''
-        }
+        },
+        shippingParts: (((org?.settings as any) || {}).shippingAddress as
+          | { addressLine?: string; city?: string; state?: string; pincode?: string }
+          | undefined) ?? null,
+        poNumber: (((org?.settings as any) || {}).billingPoNumber as string | undefined) ?? null
       }
     })
 

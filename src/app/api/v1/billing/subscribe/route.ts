@@ -9,6 +9,7 @@ import { validateCoupon } from '@/lib/billing/coupons'
 import { applyPercentOff } from '@/lib/billing/money'
 import { TransactionType } from '@prisma/client'
 import { getRazorpayCredentials } from '@/lib/platform-config'
+import { nextPlatformInvoiceNumber } from '@/lib/billing/platform-invoice-number'
 
 export async function POST(req: NextRequest) {
   try {
@@ -111,9 +112,9 @@ export async function POST(req: NextRequest) {
     }
 
     const amountInPaise = Math.round(price * 100)
-    // Razorpay caps receipt at 40 chars — short org suffix + timestamp (27 chars);
-    // the full orgId travels in notes for reconciliation.
-    const receipt = `ORD-${session.user.orgId.slice(-8)}-${Date.now()}`
+    // Sequential platform invoice number (VID<year>-<seq>) — printed as the
+    // Razorpay receipt; the full orgId travels in notes for reconciliation.
+    const receipt = await nextPlatformInvoiceNumber()
 
     // 5. Create Razorpay GST Invoice (auto-creates the Checkout order and a
     // hosted invoice that becomes downloadable once paid). Adds 18% GST.
@@ -147,6 +148,16 @@ export async function POST(req: NextRequest) {
       | { addressLine?: string; city?: string; state?: string; pincode?: string }
       | undefined
     const branch = storedBilling?.addressLine ? storedBilling : org.branches[0]
+    // Ship-To defaults to the billing address unless the org set one in
+    // Settings → Billing (settings.shippingAddress)
+    const storedShipping = ((org.settings as any) || {}).shippingAddress as
+      | { addressLine?: string; city?: string; state?: string; pincode?: string }
+      | undefined
+    const shipTo = storedShipping?.addressLine ? storedShipping : branch
+    const poNumber = (((org.settings as any) || {}).billingPoNumber as string | undefined) || undefined
+    const issuedAt = new Date()
+    // "Due on receipt": payable immediately; the link stays valid 7 days
+    const expireBy = new Date(issuedAt.getTime() + 7 * 86400000)
 
     const cycleLabel = billingCycle === 'ANNUAL' ? 'Annual' : billingCycle === 'QUARTERLY' ? 'Quarterly' : 'Monthly'
     const invoice = await createGstInvoice({
@@ -161,6 +172,15 @@ export async function POST(req: NextRequest) {
               city: branch.city ?? undefined,
               state: branch.state ?? undefined,
               zipcode: branch.pincode ?? undefined,
+              country: 'IN'
+            }
+          : undefined,
+        shipping_address: shipTo
+          ? {
+              line1: shipTo.addressLine ?? undefined,
+              city: shipTo.city ?? undefined,
+              state: shipTo.state ?? undefined,
+              zipcode: shipTo.pincode ?? undefined,
               country: 'IN'
             }
           : undefined
@@ -180,10 +200,19 @@ export async function POST(req: NextRequest) {
         `Billed To: ${org.name}`,
         branch?.addressLine &&
           [branch.addressLine, branch.city, branch.state, branch.pincode].filter(Boolean).join(', '),
-        effectiveGstin && `Customer GSTIN: ${effectiveGstin}`
+        shipTo?.addressLine &&
+          `Ship To: ${[shipTo.addressLine, shipTo.city, shipTo.state, shipTo.pincode].filter(Boolean).join(', ')}`,
+        effectiveGstin && `Customer GSTIN: ${effectiveGstin}`,
+        poNumber && `P.O.#: ${poNumber}`,
+        `Invoice No: ${receipt}`,
+        `Date: ${issuedAt.toLocaleDateString('en-IN')}`,
+        'Terms: Due on receipt',
+        `Due Date: ${issuedAt.toLocaleDateString('en-IN')}`
       ]
         .filter(Boolean)
         .join(' | '),
+      issuedAt,
+      expireBy,
       // Seller identification block — printed on the hosted invoice
       sellerTerms: [
         platform?.businessName && `Sold by: ${platform.businessName}`,
@@ -194,7 +223,7 @@ export async function POST(req: NextRequest) {
       ]
         .filter(Boolean)
         .join(' | '),
-      notes: { orgId: session.user.orgId, planSlug, billingCycle, slab: pricing.slab }
+      notes: { orgId: session.user.orgId, planSlug, billingCycle, slab: pricing.slab, invoiceNo: receipt, ...(poNumber ? { poNumber } : {}) }
     })
 
     // 6. Save pending transaction to DB (amount = total charged, incl. GST)

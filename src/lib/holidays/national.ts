@@ -23,7 +23,13 @@ export const NATIONAL_HOLIDAYS: { month: number; day: number; name: string }[] =
 export type HolidaySettings = {
   nationalEnabled: boolean
   nationalSeededYears: number[]
+  /** Show the dashboard holiday greeting banner at all. */
+  greetingEnabled: boolean
+  /** How many days before a holiday the greeting starts showing. */
+  greetingLeadDays: number
 }
+
+export const DEFAULT_GREETING_LEAD_DAYS = 7
 
 /** 'YYYY-MM-DD' for the current IST day. */
 export function istTodayString(): string {
@@ -42,7 +48,15 @@ export function resolveHolidaySettings(
         : institutionType === 'SCHOOL',
     nationalSeededYears: Array.isArray(raw.nationalSeededYears)
       ? raw.nationalSeededYears.filter((y: unknown) => typeof y === 'number')
-      : []
+      : [],
+    greetingEnabled:
+      typeof raw.greetingEnabled === 'boolean' ? raw.greetingEnabled : true,
+    greetingLeadDays:
+      typeof raw.greetingLeadDays === 'number' &&
+      raw.greetingLeadDays >= 1 &&
+      raw.greetingLeadDays <= 60
+        ? Math.round(raw.greetingLeadDays)
+        : DEFAULT_GREETING_LEAD_DAYS
   }
 }
 
@@ -157,6 +171,7 @@ function mergeHolidaySettings(orgSettings: unknown, patch: Partial<HolidaySettin
 export type HolidayRange = {
   name: string
   source: string
+  message: string | null
   /** 'YYYY-MM-DD' inclusive bounds — single-day holidays have start === end. */
   startDate: string
   endDate: string
@@ -164,7 +179,7 @@ export type HolidayRange = {
 
 /** Merge consecutive same-name rows (e.g. a 3-day break) into one range. */
 export function groupHolidayRanges(
-  rows: { name: string; source: string; date: Date }[]
+  rows: { name: string; source: string; message?: string | null; date: Date }[]
 ): HolidayRange[] {
   const ranges: HolidayRange[] = []
   for (const row of rows) {
@@ -172,8 +187,15 @@ export function groupHolidayRanges(
     const last = ranges[ranges.length - 1]
     if (last && last.name === row.name && nextDay(last.endDate) === dateStr) {
       last.endDate = dateStr
+      last.message = last.message ?? row.message ?? null
     } else {
-      ranges.push({ name: row.name, source: row.source, startDate: dateStr, endDate: dateStr })
+      ranges.push({
+        name: row.name,
+        source: row.source,
+        message: row.message ?? null,
+        startDate: dateStr,
+        endDate: dateStr
+      })
     }
   }
   return ranges
@@ -183,6 +205,18 @@ function nextDay(dateStr: string): string {
   const d = toDbDate(dateStr)
   d.setUTCDate(d.getUTCDate() + 1)
   return dbDateToString(d)
+}
+
+/** Flat national-holiday dates for the given years, sorted ascending. */
+export function nationalHolidayList(years: number[]): { date: string; name: string }[] {
+  return years
+    .flatMap(y =>
+      NATIONAL_HOLIDAYS.map(h => ({
+        date: `${y}-${String(h.month).padStart(2, '0')}-${String(h.day).padStart(2, '0')}`,
+        name: h.name
+      }))
+    )
+    .sort((a, b) => a.date.localeCompare(b.date))
 }
 
 export function daysBetween(fromStr: string, toStr: string): number {

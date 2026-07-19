@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { DateTimePicker } from '@/components/ui/datetime-picker'
+import { DateTimePicker, DatePicker } from '@/components/ui/datetime-picker'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { isLearningCentre } from '@/lib/institution'
@@ -18,7 +18,7 @@ type AttendanceSettings = {
   absenceAlerts: { enabled: boolean; portal: boolean; whatsapp: boolean; sms: boolean }
   autoMarkOnline: boolean
 }
-type Holiday = { id: string; date: string; name: string; source?: string }
+type Holiday = { id: string; date: string; name: string; source?: string; message?: string | null }
 type Assignment = {
   id: string
   gradeLabel: string | null
@@ -246,12 +246,16 @@ function GeneralTab() {
 function HolidaysTab({ confirm }: { confirm: ReturnType<typeof useConfirm> }) {
   const [holidays, setHolidays] = useState<Holiday[] | null>(null)
   const [name, setName] = useState('')
+  const [message, setMessage] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [nationalEnabled, setNationalEnabled] = useState<boolean | null>(null)
   const [togglingNational, setTogglingNational] = useState(false)
+  const [greetingEnabled, setGreetingEnabled] = useState<boolean | null>(null)
+  const [greetingLeadDays, setGreetingLeadDays] = useState(7)
+  const [savingGreeting, setSavingGreeting] = useState(false)
 
   const load = useCallback(() => {
     fetch('/api/v1/settings/attendance/holidays')
@@ -259,10 +263,35 @@ function HolidaysTab({ confirm }: { confirm: ReturnType<typeof useConfirm> }) {
       .then(json => {
         setHolidays(json?.data?.holidays ?? [])
         setNationalEnabled(json?.data?.nationalEnabled ?? false)
+        setGreetingEnabled(json?.data?.greetingEnabled ?? true)
+        setGreetingLeadDays(json?.data?.greetingLeadDays ?? 7)
       })
       .catch(() => setHolidays([]))
   }, [])
   useEffect(load, [load])
+
+  const patchGreeting = async (patch: { greetingEnabled?: boolean; greetingLeadDays?: number }) => {
+    setSavingGreeting(true)
+    await fetch('/api/v1/settings/attendance/holidays', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch)
+    }).catch(() => {})
+    setSavingGreeting(false)
+  }
+
+  const toggleGreeting = () => {
+    if (greetingEnabled === null || savingGreeting) return
+    const target = !greetingEnabled
+    setGreetingEnabled(target)
+    patchGreeting({ greetingEnabled: target })
+  }
+
+  const saveLeadDays = (raw: number) => {
+    const days = Math.min(60, Math.max(1, Math.round(raw) || 7))
+    setGreetingLeadDays(days)
+    patchGreeting({ greetingLeadDays: days })
+  }
 
   const toggleNational = async () => {
     if (nationalEnabled === null || togglingNational) return
@@ -292,12 +321,17 @@ function HolidaysTab({ confirm }: { confirm: ReturnType<typeof useConfirm> }) {
     if (!name || !from) return
     setSaving(true)
     setError(null)
-    const fromDate = from.slice(0, 10)
-    const toDate = to ? to.slice(0, 10) : ''
-    const body =
-      toDate && toDate !== fromDate
-        ? { name, range: { from: fromDate, to: toDate } }
-        : { name, date: fromDate }
+    // DatePicker emits local 'YYYY-MM-DD' — no UTC conversion, so the chosen
+    // calendar day is exactly what gets stored (no IST off-by-one).
+    const fromDate = from
+    const toDate = to
+    const body = {
+      name,
+      ...(message.trim() ? { message: message.trim() } : {}),
+      ...(toDate && toDate !== fromDate
+        ? { range: { from: fromDate, to: toDate } }
+        : { date: fromDate })
+    }
     const res = await fetch('/api/v1/settings/attendance/holidays', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -310,6 +344,7 @@ function HolidaysTab({ confirm }: { confirm: ReturnType<typeof useConfirm> }) {
       return
     }
     setName('')
+    setMessage('')
     setFrom('')
     setTo('')
     load()
@@ -357,6 +392,51 @@ function HolidaysTab({ confirm }: { confirm: ReturnType<typeof useConfirm> }) {
       </Card>
 
       <Card>
+        <CardContent className="p-6 flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-900">Holiday greeting on dashboard</p>
+            <p className="text-sm font-normal leading-relaxed text-slate-500 mt-0.5">
+              Shows an announcement banner to staff and parents ahead of each holiday.
+            </p>
+            {greetingEnabled && (
+              <div className="flex items-center gap-2 mt-3">
+                <span className="text-sm text-slate-600">Show</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={greetingLeadDays}
+                  onChange={e => setGreetingLeadDays(Number(e.target.value))}
+                  onBlur={e => saveLeadDays(Number(e.target.value))}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                  }}
+                  className="w-16 rounded-lg border border-slate-200 px-2 py-1.5 text-sm font-semibold text-slate-900 text-center focus:outline-none focus:ring-2 focus:ring-[#1565D8]/30"
+                />
+                <span className="text-sm text-slate-600">days before the holiday</span>
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!!greetingEnabled}
+            onClick={toggleGreeting}
+            disabled={greetingEnabled === null || savingGreeting}
+            className={`relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
+              greetingEnabled ? 'bg-[#1565D8]' : 'bg-slate-200'
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                greetingEnabled ? 'translate-x-[22px]' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardContent className="p-6">
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex-1 min-w-44">
@@ -366,19 +446,29 @@ function HolidaysTab({ confirm }: { confirm: ReturnType<typeof useConfirm> }) {
             <div className="w-48">
               <label className={label}>Date / from</label>
               <div className="mt-1">
-                <DateTimePicker value={from} onChange={setFrom} dateOnly placeholder="Pick date" />
+                <DatePicker value={from} onChange={setFrom} placeholder="Pick date" />
               </div>
             </div>
             <div className="w-48">
               <label className={label}>To (optional)</label>
               <div className="mt-1">
-                <DateTimePicker value={to} onChange={setTo} dateOnly placeholder="Same day" />
+                <DatePicker value={to} onChange={setTo} placeholder="Same day" />
               </div>
             </div>
             <Button onClick={add} disabled={saving || !name || !from} className="bg-[#1565D8] hover:bg-[#0f56be] text-sm font-semibold">
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
               Add
             </Button>
+          </div>
+          <div className="mt-3">
+            <label className={label}>Greeting message (optional, shown on the dashboard banner)</label>
+            <input
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              maxLength={200}
+              placeholder="e.g. School reopens Monday — happy Diwali!"
+              className={input}
+            />
           </div>
           {error && <p className="text-sm font-medium text-red-600 mt-2">{error}</p>}
         </CardContent>
@@ -411,6 +501,7 @@ function HolidaysTab({ confirm }: { confirm: ReturnType<typeof useConfirm> }) {
                       {new Date(`${h.date}T00:00:00`).toLocaleDateString('en-IN', {
                         weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
                       })}
+                      {h.message ? ` · ${h.message}` : ''}
                     </p>
                   </div>
                   <button type="button" onClick={() => remove(h)} className="text-slate-300 hover:text-red-500">

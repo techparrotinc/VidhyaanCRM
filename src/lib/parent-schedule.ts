@@ -60,6 +60,7 @@ export interface ScheduleItem {
   subtitle: string | null
   studentId: string | null
   studentName: string | null
+  orgId: string | null
   orgName: string | null
   href: string | null
 }
@@ -152,6 +153,7 @@ export async function buildSchedule(
         location: true,
         startsAt: true,
         endsAt: true,
+        orgId: true,
         organization: { select: { name: true } }
       }
     }),
@@ -192,6 +194,7 @@ export async function buildSchedule(
           subtitle: [slot.teacher?.name, slot.room].filter(Boolean).join(' · ') || null,
           studentId: ward.id,
           studentName: ward.name,
+          orgId: ward.orgId,
           orgName: ward.orgName,
           href: '/parent/timetable'
         })
@@ -208,6 +211,7 @@ export async function buildSchedule(
           subtitle: 'Batch class',
           studentId: ward.id,
           studentName: ward.name,
+          orgId: ward.orgId,
           orgName: ward.orgName,
           href: '/parent/timetable'
         })
@@ -225,11 +229,13 @@ export async function buildSchedule(
       subtitle: e.location || 'Event',
       studentId: null,
       studentName: null,
+      orgId: e.orgId,
       orgName: e.organization.name,
       href: '/parent/events'
     })
   }
 
+  const wardOrg = new Map(wards.map((w) => [w.id, w.orgId]))
   for (const inv of invoices) {
     const balance = Number(inv.totalAmount) - Number(inv.paidAmount)
     items.push({
@@ -241,6 +247,7 @@ export async function buildSchedule(
       subtitle: `₹${balance.toLocaleString('en-IN')} balance`,
       studentId: inv.studentId,
       studentName: inv.student.name,
+      orgId: wardOrg.get(inv.studentId) ?? null,
       orgName: null,
       href: '/parent/fees'
     })

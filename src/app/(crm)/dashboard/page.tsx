@@ -39,6 +39,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SetupBanner } from "@/components/dashboard/SetupBanner"
 import { HolidayAnnouncementBanner } from "@/components/dashboard/HolidayAnnouncementBanner"
+import { HolidayCalendarCard } from "@/components/dashboard/HolidayCalendarCard"
 import { AttentionStrip } from "@/components/reports/AttentionStrip"
 import { useAcademicYearStore } from "@/stores/academic-year.store"
 
@@ -1062,8 +1063,9 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          {/* ============ RECENT ACTIVITY ============ */}
-          <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          {/* ============ RECENT ACTIVITY + HOLIDAY CALENDAR ============ */}
+          <section className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-5 items-stretch">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">RECENT ACTIVITY</h3>
               <Link href="/lead-management" className="text-sm font-semibold text-[#1565D8] hover:underline">View all →</Link>
@@ -1092,6 +1094,9 @@ export default function DashboardPage() {
                 })}
               </div>
             )}
+          </div>
+
+          <HolidayCalendarCard endpoint="/api/v1/holidays" />
           </section>
 
           {/* ============ UPSELL (only when NOT on a paid plan) ============ */}

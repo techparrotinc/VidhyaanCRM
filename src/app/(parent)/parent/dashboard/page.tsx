@@ -97,13 +97,13 @@ export default function ParentDashboard() {
 
   return (
     <div className="animate-fade-in pb-12">
+      {/* Self-hides when no upcoming holiday — safe for both personas.
+          Discovery parents with an alumni ward still get the greeting. */}
+      <div className="mb-6 empty:mb-0">
+        <HolidayAnnouncementBanner endpoint="/api/v1/parent/holidays" />
+      </div>
       {data.persona === 'ENROLLED' ? (
-        <>
-          <div className="mb-6">
-            <HolidayAnnouncementBanner endpoint="/api/v1/parent/holidays" />
-          </div>
-          <EnrolledDashboard data={data} parentName={parentName} />
-        </>
+        <EnrolledDashboard data={data} parentName={parentName} />
       ) : (
         <DiscoveryDashboard
           parentName={parentName}

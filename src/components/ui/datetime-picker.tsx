@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { CalendarDays, Clock, X } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 
@@ -22,8 +23,12 @@ type DateTimePickerProps = {
 const pad = (n: number) => String(n).padStart(2, '0')
 
 function formatDisplay(date: Date, dateOnly: boolean) {
+  // Date-only fields are often narrow (w-48 form columns) — skip the weekday
+  // so the full date never truncates.
+  if (dateOnly) {
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
   const d = date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
-  if (dateOnly) return d
   const t = date.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })
   return `${d} · ${t}`
 }
@@ -51,23 +56,50 @@ export function DateTimePicker({
   clearable = true
 }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false)
-  // Open upward when the trigger sits near the viewport bottom, so the
-  // calendar never renders clipped below the fold.
-  const [dropUp, setDropUp] = React.useState(false)
+  // Rendered in a body portal with fixed positioning so no ancestor
+  // overflow-hidden (Card et al.) can ever clip the calendar. Opens upward
+  // when the trigger sits near the viewport bottom.
+  const [pos, setPos] = React.useState<{ top?: number; bottom?: number; left: number } | null>(null)
   const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const popupRef = React.useRef<HTMLDivElement | null>(null)
   const timeListRef = React.useRef<HTMLDivElement | null>(null)
   const current = value ? new Date(value) : null
 
   const timeValue = current ? `${pad(current.getHours())}:${pad(current.getMinutes())}` : '09:00'
 
+  const updatePos = React.useCallback(() => {
+    const r = rootRef.current?.getBoundingClientRect()
+    if (!r) return
+    const POPUP_HEIGHT = 360
+    const POPUP_WIDTH = dateOnly ? 320 : 448
+    const spaceBelow = window.innerHeight - r.bottom
+    const up = spaceBelow < POPUP_HEIGHT && r.top > spaceBelow
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - POPUP_WIDTH - 8))
+    setPos(
+      up
+        ? { bottom: window.innerHeight - r.top + 4, left }
+        : { top: r.bottom + 4, left }
+    )
+  }, [dateOnly])
+
   React.useEffect(() => {
     if (!open) return
     const close = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      if (rootRef.current?.contains(t) || popupRef.current?.contains(t)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
-  }, [open])
+    // Keep the fixed-position popup glued to the trigger while any ancestor
+    // scrolls or the window resizes.
+    window.addEventListener('scroll', updatePos, true)
+    window.addEventListener('resize', updatePos)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      window.removeEventListener('scroll', updatePos, true)
+      window.removeEventListener('resize', updatePos)
+    }
+  }, [open, updatePos])
 
   // Scroll the time column to the selected (or 9 AM) slot on open
   React.useEffect(() => {
@@ -92,12 +124,7 @@ export function DateTimePicker({
       <button
         type="button"
         onClick={() => {
-          if (!open && rootRef.current) {
-            const r = rootRef.current.getBoundingClientRect()
-            const spaceBelow = window.innerHeight - r.bottom
-            const POPUP_HEIGHT = 360
-            setDropUp(spaceBelow < POPUP_HEIGHT && r.top > spaceBelow)
-          }
+          if (!open) updatePos()
           setOpen((o) => !o)
         }}
         className="w-full flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-left focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 cursor-pointer hover:border-slate-300 transition-colors"
@@ -121,8 +148,12 @@ export function DateTimePicker({
         )}
       </button>
 
-      {open && (
-        <div className={`absolute left-0 z-[60] flex bg-white rounded-xl shadow-xl border border-slate-200 ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+      {open && pos && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={popupRef}
+          style={{ position: 'fixed', top: pos.top, bottom: pos.bottom, left: pos.left }}
+          className="z-[60] flex bg-white rounded-xl shadow-xl border border-slate-200"
+        >
           <div className="p-3">
             <Calendar
               mode="single"
@@ -166,7 +197,8 @@ export function DateTimePicker({
               </div>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

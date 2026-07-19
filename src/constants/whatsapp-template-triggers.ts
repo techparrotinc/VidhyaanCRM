@@ -15,7 +15,8 @@ export const WA_TEMPLATE_TRIGGERS: Record<string, string> = {
   admission_payment_required: 'Sends to the parent automatically when their application reaches a payment-required stage',
   admission_confirmation: 'Sends to the parent automatically when the admission is confirmed (won stage)',
   admission_rejected: 'Sends to the parent automatically when the application is rejected',
-  holiday_announcement: 'Use in campaigns — fill in the holiday reason and reopening date at compose time',
+  holiday_announcement:
+    'Sends to guardians automatically on holiday mornings (08:30 IST) when holiday greetings are enabled in Settings → Attendance; also usable in campaigns with compose-time reason and reopening date',
   fee_invoice: 'Sends to the guardian automatically when a fee invoice is raised',
   fee_invoice_with_payment_link:
     'Sends to the guardian automatically when a fee invoice is raised — includes a tap-to-pay link (preferred over the plain version)',
@@ -44,6 +45,7 @@ export const waTemplateTrigger = (msg91TemplateId: string): string | null =>
  * known template from Meta (instead of the var1..varN placeholder guess).
  */
 export const WA_TEMPLATE_DEFAULT_VARIABLES: Record<string, string[]> = {
+  holiday_announcement: ['parentName', 'schoolName', 'reason', 'resumeDate'],
   review_request: ['parentName', 'kidName', 'schoolName', 'link'],
   event_announcement: ['parentName', 'schoolName', 'event', 'date', 'location'],
   class_reminder: ['parentName', 'kidName', 'batch', 'date', 'time', 'link', 'schoolName'],

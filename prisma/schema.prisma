@@ -3906,6 +3906,8 @@ model Holiday {
   name           String
   /// CUSTOM (org-added) | NATIONAL (seeded from the platform national-holiday list)
   source         String   @default("CUSTOM")
+  /// Optional greeting line shown on the dashboard banner ("School reopens Monday")
+  message        String?
   createdAt      DateTime @default(now()) @map("created_at")
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)

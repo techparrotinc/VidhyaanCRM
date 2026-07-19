@@ -85,13 +85,13 @@ export async function GET(req: NextRequest) {
 
   const nextEventByOrg = new Map<string, ScheduleItem>()
   for (const item of schedule) {
-    if (item.type !== 'EVENT' || !item.orgName) continue
-    if (!nextEventByOrg.has(item.orgName)) nextEventByOrg.set(item.orgName, item)
+    if (item.type !== 'EVENT' || !item.orgId) continue
+    if (!nextEventByOrg.has(item.orgId)) nextEventByOrg.set(item.orgId, item)
   }
 
   const kids = wards.map((w) => {
     const inv = dueByStudent.get(w.id)
-    const nextEvent = nextEventByOrg.get(w.orgName)
+    const nextEvent = nextEventByOrg.get(w.orgId)
     return {
       studentId: w.id,
       name: w.name,

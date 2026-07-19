@@ -35,41 +35,78 @@ export const GET = route({
         select: { settings: true, institutionType: true }
       })
     ])
+    const hs = org ? resolveHolidaySettings(org.settings, org.institutionType) : null
     return ok({
       holidays: holidays.map(h => ({ ...h, date: dbDateToString(h.date) })),
-      nationalEnabled: org
-        ? resolveHolidaySettings(org.settings, org.institutionType).nationalEnabled
-        : false
+      nationalEnabled: hs?.nationalEnabled ?? false,
+      greetingEnabled: hs?.greetingEnabled ?? true,
+      greetingLeadDays: hs?.greetingLeadDays ?? 7
     })
   }
 })
 
-// National-holiday toggle: ON seeds current + next year, OFF removes future
-// seeded rows (past NATIONAL rows stay — attendance history depends on them).
+// Holiday preferences. nationalEnabled ON seeds current + next year, OFF
+// removes future seeded rows (past NATIONAL rows stay — attendance history
+// depends on them). greetingEnabled/greetingLeadDays drive the dashboard
+// announcement banner.
+const patchSchema = z
+  .object({
+    nationalEnabled: z.boolean().optional(),
+    greetingEnabled: z.boolean().optional(),
+    greetingLeadDays: z.number().int().min(1).max(60).optional()
+  })
+  .refine(v => Object.values(v).some(x => x !== undefined), {
+    message: 'Nothing to update'
+  })
+
 export const PATCH = route({
   module: MODULES.ATTENDANCE,
   roles: [ROLES.ORG_ADMIN],
   handler: async ({ req, db, user }) => {
-    const body = z.object({ nationalEnabled: z.boolean() }).parse(await req.json())
+    const body = patchSchema.parse(await req.json())
     const org = await db.organization.findUnique({
       where: { id: user.orgId },
       select: { settings: true, institutionType: true }
     })
     if (!org) throw Errors.notFound('Organization')
-    await setNationalHolidaysEnabled(
-      db,
-      user.orgId,
-      org.settings,
-      org.institutionType,
-      body.nationalEnabled
-    )
-    return ok({ nationalEnabled: body.nationalEnabled })
+
+    // Merge greeting fields into settings first, so a combined request
+    // survives the settings write done inside setNationalHolidaysEnabled.
+    let settings = (org.settings as any) || {}
+    const greetingPatch: Record<string, unknown> = {}
+    if (body.greetingEnabled !== undefined) greetingPatch.greetingEnabled = body.greetingEnabled
+    if (body.greetingLeadDays !== undefined) greetingPatch.greetingLeadDays = body.greetingLeadDays
+    if (Object.keys(greetingPatch).length > 0) {
+      settings = { ...settings, holidays: { ...(settings.holidays ?? {}), ...greetingPatch } }
+    }
+
+    if (body.nationalEnabled !== undefined) {
+      await setNationalHolidaysEnabled(
+        db,
+        user.orgId,
+        settings,
+        org.institutionType,
+        body.nationalEnabled
+      )
+    } else if (Object.keys(greetingPatch).length > 0) {
+      await db.organization.update({
+        where: { id: user.orgId },
+        data: { settings }
+      })
+    }
+
+    const resolved = resolveHolidaySettings(settings, org.institutionType)
+    return ok({
+      ...resolved,
+      nationalEnabled: body.nationalEnabled ?? resolved.nationalEnabled
+    })
   }
 })
 
 const postSchema = z
   .object({
     name: z.string().trim().min(1).max(200),
+    message: z.string().trim().max(200).optional(),
     date: z.string().regex(DATE_RE).optional(),
     range: z
       .object({ from: z.string().regex(DATE_RE), to: z.string().regex(DATE_RE) })
@@ -100,7 +137,13 @@ export const POST = route({
     }
 
     const result = await db.holiday.createMany({
-      data: dates.map(d => ({ orgId: user.orgId, date: toDbDate(d), name: body.name, academicYearId })),
+      data: dates.map(d => ({
+        orgId: user.orgId,
+        date: toDbDate(d),
+        name: body.name,
+        message: body.message || null,
+        academicYearId
+      })),
       skipDuplicates: true
     })
     return created({ created: result.count })

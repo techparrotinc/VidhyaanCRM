@@ -144,10 +144,16 @@ export function Calendar({
 
       <div className="grid grid-cols-7 gap-1">
         {cells.map((cell, idx) => {
+          const cellDate = new Date(cell.dateStr)
           const isSelected = selectedDate &&
-            selectedDate.getFullYear() === new Date(cell.dateStr).getFullYear() &&
-            selectedDate.getMonth() === new Date(cell.dateStr).getMonth() &&
-            selectedDate.getDate() === new Date(cell.dateStr).getDate()
+            selectedDate.getFullYear() === cellDate.getFullYear() &&
+            selectedDate.getMonth() === cellDate.getMonth() &&
+            selectedDate.getDate() === cellDate.getDate()
+          const now = new Date()
+          const isToday =
+            now.getFullYear() === cellDate.getFullYear() &&
+            now.getMonth() === cellDate.getMonth() &&
+            now.getDate() === cellDate.getDate()
 
           return (
             <button
@@ -163,6 +169,8 @@ export function Calendar({
               className={`h-7 w-7 text-xs rounded-md flex items-center justify-center transition cursor-pointer ${
                 isSelected
                   ? "bg-[#1565D8] text-white font-bold"
+                  : isToday
+                  ? "ring-1 ring-inset ring-[#1565D8] text-[#1565D8] font-bold hover:bg-blue-50"
                   : cell.isCurrentMonth
                   ? "text-slate-700 hover:bg-slate-100"
                   : "text-slate-350 hover:bg-slate-100"

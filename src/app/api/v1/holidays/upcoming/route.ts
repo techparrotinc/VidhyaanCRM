@@ -5,7 +5,8 @@ import {
   ensureNationalHolidays,
   groupHolidayRanges,
   istTodayString,
-  daysBetween
+  daysBetween,
+  resolveHolidaySettings
 } from '@/lib/holidays/national'
 
 /**
@@ -29,14 +30,18 @@ export const GET = route({
       where: { date: { gte: toDbDate(today) } },
       orderBy: { date: 'asc' },
       take: 20,
-      select: { name: true, source: true, date: true }
+      select: { name: true, source: true, message: true, date: true }
     })
 
     const ranges = groupHolidayRanges(rows)
     const nearest = ranges[0]
-    // Announce only when the holiday is current or near (Groww-style banner).
+    // Announce only when enabled and the holiday is within the org's
+    // configured lead window (Groww-style banner; default 7 days).
+    const hs = resolveHolidaySettings(org?.settings, org?.institutionType ?? '')
     const next =
-      nearest && daysBetween(today, nearest.startDate) <= 30
+      hs.greetingEnabled &&
+      nearest &&
+      daysBetween(today, nearest.startDate) <= hs.greetingLeadDays
         ? { ...nearest, daysUntil: Math.max(0, daysBetween(today, nearest.startDate)) }
         : null
 

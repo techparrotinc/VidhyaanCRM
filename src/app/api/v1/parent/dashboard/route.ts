@@ -18,6 +18,8 @@ interface Reminder {
   title: string
   detail: string | null
   href: string
+  /** null = not tied to one org (always visible under an org filter) */
+  orgId: string | null
 }
 
 /**
@@ -125,6 +127,7 @@ export async function GET() {
         take: 3,
         select: {
           id: true,
+          orgId: true,
           childName: true,
           preferredDate: true,
           status: true,
@@ -209,26 +212,31 @@ export async function GET() {
     )
 
     // Derived reminders — no Reminder model; everything is computable
+    const wardOrgById = new Map(wards.map((w) => [w.id, w.orgId]))
     const reminders: Reminder[] = []
-    const in7days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    // IST calendar-day compare: an invoice due today is "due", not "overdue".
+    const in7daysStr = dates[dates.length - 1]
     for (const inv of dueInvoices) {
       if (!inv.dueDate) continue
+      const dueStr = istDateString(inv.dueDate)
       const balance = Number(inv.totalAmount) - Number(inv.paidAmount)
-      if (inv.dueDate < new Date()) {
+      if (dueStr < todayIst) {
         reminders.push({
           type: 'FEE_OVERDUE',
           severity: 'URGENT',
           title: `Fee overdue for ${inv.student.name}`,
           detail: `${inv.invoiceNumber} · ₹${balance.toLocaleString('en-IN')} outstanding`,
-          href: '/parent/fees'
+          href: '/parent/fees',
+          orgId: wardOrgById.get(inv.student.id) ?? null
         })
-      } else if (inv.dueDate <= in7days) {
+      } else if (dueStr <= in7daysStr) {
         reminders.push({
           type: 'FEE_DUE_SOON',
           severity: 'WARN',
-          title: `Fee due ${istDateString(inv.dueDate)} for ${inv.student.name}`,
+          title: `Fee due ${dueStr} for ${inv.student.name}`,
           detail: `${inv.invoiceNumber} · ₹${balance.toLocaleString('en-IN')}`,
-          href: '/parent/fees'
+          href: '/parent/fees',
+          orgId: wardOrgById.get(inv.student.id) ?? null
         })
       }
     }
@@ -238,7 +246,8 @@ export async function GET() {
         severity: 'INFO',
         title: `Trial class for ${t.childName} at ${t.school.name}`,
         detail: t.preferredDate ? `Preferred date ${istDateString(t.preferredDate)} · ${t.status}` : t.status,
-        href: '/parent/applications'
+        href: '/parent/applications',
+        orgId: t.orgId
       })
     }
     const soonEvents = schedule.filter(
@@ -250,7 +259,8 @@ export async function GET() {
         severity: 'INFO',
         title: `Upcoming: ${e.title}`,
         detail: `${e.date} ${e.startTime ?? ''} · ${e.orgName ?? ''}`.trim(),
-        href: '/parent/events'
+        href: '/parent/events',
+        orgId: e.orgId
       })
     }
     if (!parent.email) {
@@ -259,7 +269,8 @@ export async function GET() {
         severity: 'INFO',
         title: 'Add your email address',
         detail: 'Get fee receipts and event updates by email',
-        href: '/parent/profile'
+        href: '/parent/profile',
+        orgId: null
       })
     }
     const severityRank = { URGENT: 0, WARN: 1, INFO: 2 }
@@ -301,6 +312,13 @@ export async function GET() {
       fees: {
         dueCount: dueInvoices.length,
         totalBalance,
+        invoices: dueInvoices.map((inv) => ({
+          invoiceNumber: inv.invoiceNumber,
+          dueDate: inv.dueDate,
+          studentId: inv.student.id,
+          studentName: inv.student.name,
+          balance: Number(inv.totalAmount) - Number(inv.paidAmount)
+        })),
         nextDue: dueInvoices[0]
           ? {
               invoiceNumber: dueInvoices[0].invoiceNumber,

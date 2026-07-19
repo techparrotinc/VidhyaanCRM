@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Video, Users, Clock, ChevronRight } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { DateTimePicker } from '@/components/ui/datetime-picker'
+import { DatePicker } from '@/components/ui/datetime-picker'
 import { useAcademicYearStore } from '@/stores/academic-year.store'
 import { institutionNoun, isLearningCentre } from '@/lib/institution'
 import { SessionDrawer } from '@/components/schedule/SessionDrawer'
@@ -148,7 +148,7 @@ export default function SchedulePage() {
             </button>
           </div>
           <div className="w-44">
-            <DateTimePicker value={`${date}T00:00:00`} onChange={iso => iso && setDate(iso.slice(0, 10))} dateOnly clearable={false} />
+            <DatePicker value={date} onChange={d => d && setDate(d)} clearable={false} />
           </div>
         </div>
       </div>

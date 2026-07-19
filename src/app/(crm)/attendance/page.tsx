@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ArrowLeft, CalendarOff, CheckCircle2, Circle, Plus, School, Trash2, Users, Video } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { DateTimePicker } from '@/components/ui/datetime-picker'
+import { DatePicker } from '@/components/ui/datetime-picker'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { isLearningCentre } from '@/lib/institution'
 import { RegisterGrid, type RosterStudent, type ExistingMark } from '@/components/attendance/RegisterGrid'
@@ -54,6 +54,28 @@ export default function AttendancePage() {
   const [sessions, setSessions] = useState<SessionRow[] | null>(null)
   const [holiday, setHoliday] = useState<{ name: string } | null>(null)
   const [isWorkingDay, setIsWorkingDay] = useState(true)
+  // Long-weekend nudge: name of a holiday on the adjacent day (yesterday or
+  // tomorrow), so staff expect extra absences around it.
+  const [adjacentHoliday, setAdjacentHoliday] = useState<string | null>(null)
+
+  useEffect(() => {
+    setAdjacentHoliday(null)
+    const shiftDay = (d: string, delta: number) => {
+      const t = new Date(`${d}T00:00:00.000Z`)
+      t.setUTCDate(t.getUTCDate() + delta)
+      return t.toISOString().slice(0, 10)
+    }
+    const prev = shiftDay(date, -1)
+    const next = shiftDay(date, 1)
+    fetch(`/api/v1/holidays?from=${prev}&to=${next}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(json => {
+        const rows: { date: string; name: string }[] = json?.data?.holidays ?? []
+        const adj = rows.find(h => h.date !== date)
+        setAdjacentHoliday(adj ? adj.name : null)
+      })
+      .catch(() => {})
+  }, [date])
   const [sessionDialogOpen, setSessionDialogOpen] = useState(false)
 
   // Register data
@@ -211,10 +233,9 @@ export default function AttendancePage() {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="w-44 sm:w-52">
-            <DateTimePicker
-              value={date ? `${date}T00:00:00` : ''}
-              onChange={iso => iso && setDate(iso.slice(0, 10))}
-              dateOnly
+            <DatePicker
+              value={date}
+              onChange={d => d && setDate(d)}
               clearable={false}
             />
           </div>
@@ -238,6 +259,14 @@ export default function AttendancePage() {
             <CalendarOff className="h-5 w-5 text-slate-400 shrink-0" />
             <p className="text-sm font-medium text-slate-600">
               {holiday!.name} — this day is a holiday. Attendance is not marked on holidays.
+            </p>
+          </div>
+        )}
+        {!blocked && adjacentHoliday && (
+          <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+            <CalendarOff className="h-5 w-5 text-blue-400 shrink-0" />
+            <p className="text-sm font-medium text-blue-700">
+              Adjacent to a holiday ({adjacentHoliday}) — expect higher absences today.
             </p>
           </div>
         )}

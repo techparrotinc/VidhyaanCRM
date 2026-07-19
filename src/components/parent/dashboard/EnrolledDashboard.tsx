@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Bell,
+  Building2,
   CalendarCheck,
   CalendarClock,
   CalendarDays,
@@ -17,6 +18,7 @@ import {
   Receipt,
   Sparkles
 } from 'lucide-react'
+import { HolidayCalendarCard } from '@/components/dashboard/HolidayCalendarCard'
 
 export interface Ward {
   id: string
@@ -37,8 +39,17 @@ export interface ScheduleItem {
   subtitle: string | null
   studentId: string | null
   studentName: string | null
+  orgId: string | null
   orgName: string | null
   href: string | null
+}
+
+export interface DueInvoiceLite {
+  invoiceNumber: string
+  dueDate: string | null
+  studentId: string
+  studentName: string
+  balance: number
 }
 
 export interface Reminder {
@@ -47,6 +58,7 @@ export interface Reminder {
   title: string
   detail: string | null
   href: string
+  orgId?: string | null
 }
 
 export interface EnrolledData {
@@ -66,6 +78,7 @@ export interface EnrolledData {
   fees: {
     dueCount: number
     totalBalance: number
+    invoices: DueInvoiceLite[]
     nextDue: { invoiceNumber: string; dueDate: string | null; studentName: string; balance: number } | null
   }
   reminders: Reminder[]
@@ -109,21 +122,49 @@ function timeAgo(iso: string): string {
 }
 
 export default function EnrolledDashboard({ data, parentName }: { data: EnrolledData; parentName: string }) {
+  const [activeOrgId, setActiveOrgId] = useState<string | 'ALL'>('ALL')
   const [activeWardId, setActiveWardId] = useState<string | 'ALL'>('ALL')
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const firstName = parentName.split(' ')[0]
 
-  const urgentReminder = data.reminders.find((r) => r.severity === 'URGENT') ?? null
-  const otherReminders = data.reminders.filter((r) => r !== urgentReminder)
+  const multiOrg = data.organizations.length > 1
+
+  const wards = useMemo(
+    () => (activeOrgId === 'ALL' ? data.wards : data.wards.filter((w) => w.orgId === activeOrgId)),
+    [data.wards, activeOrgId]
+  )
+  const wardIds = useMemo(() => new Set(wards.map((w) => w.id)), [wards])
+
+  const inOrgScope = (i: ScheduleItem) =>
+    activeOrgId === 'ALL' ||
+    (i.studentId !== null ? wardIds.has(i.studentId) : i.orgId === null || i.orgId === activeOrgId)
+
+  const selectOrg = (orgId: string | 'ALL') => {
+    setActiveOrgId(orgId)
+    setActiveWardId('ALL')
+  }
+
+  const scopedReminders = useMemo(
+    () =>
+      data.reminders.filter(
+        (r) => activeOrgId === 'ALL' || r.orgId == null || r.orgId === activeOrgId
+      ),
+    [data.reminders, activeOrgId]
+  )
+  const urgentReminder = scopedReminders.find((r) => r.severity === 'URGENT') ?? null
+  const otherReminders = scopedReminders.filter((r) => r !== urgentReminder)
 
   const todayItems = useMemo(
     () =>
       data.scheduleToday.filter(
-        (i) => activeWardId === 'ALL' || i.studentId === null || i.studentId === activeWardId
+        (i) =>
+          inOrgScope(i) &&
+          (activeWardId === 'ALL' || i.studentId === null || i.studentId === activeWardId)
       ),
-    [data.scheduleToday, activeWardId]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data.scheduleToday, activeWardId, activeOrgId, wardIds]
   )
 
   const currentClassFor = (wardId: string) =>
@@ -131,12 +172,27 @@ export default function EnrolledDashboard({ data, parentName }: { data: Enrolled
   const attendanceFor = (wardId: string) => data.attendance.find((a) => a.studentId === wardId)
 
   const avgAttendance = useMemo(() => {
-    const vals = data.attendance.map((a) => a.percentage).filter((p): p is number => p !== null)
+    const vals = data.attendance
+      .filter((a) => wardIds.has(a.studentId))
+      .map((a) => a.percentage)
+      .filter((p): p is number => p !== null)
     if (vals.length === 0) return null
     return Math.round(vals.reduce((s, v) => s + v, 0) / vals.length)
-  }, [data.attendance])
+  }, [data.attendance, wardIds])
 
-  const eventsThisWeek = data.scheduleWeek.filter((i) => i.type === 'EVENT')
+  // Fees scoped to selected org (invoices come pre-sorted by dueDate asc)
+  const fees = useMemo(() => {
+    if (activeOrgId === 'ALL') return data.fees
+    const invoices = data.fees.invoices.filter((inv) => wardIds.has(inv.studentId))
+    return {
+      dueCount: invoices.length,
+      totalBalance: invoices.reduce((s, inv) => s + inv.balance, 0),
+      invoices,
+      nextDue: invoices[0] ?? null
+    }
+  }, [data.fees, activeOrgId, wardIds])
+
+  const eventsThisWeek = data.scheduleWeek.filter((i) => i.type === 'EVENT' && inOrgScope(i))
 
   return (
     <div className="space-y-7 -mt-2">
@@ -162,6 +218,43 @@ export default function EnrolledDashboard({ data, parentName }: { data: Enrolled
           )}
         </Link>
       </div>
+
+      {/* ===== ORG SWITCHER (multi-institution parents) ===== */}
+      {multiOrg && (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+          <button
+            onClick={() => selectOrg('ALL')}
+            className={`shrink-0 flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-bold transition cursor-pointer border ${
+              activeOrgId === 'ALL'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            All institutions
+          </button>
+          {data.organizations.map((o) => (
+            <button
+              key={o.orgId}
+              onClick={() => selectOrg(o.orgId)}
+              className={`shrink-0 flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-bold transition cursor-pointer border ${
+                activeOrgId === o.orgId
+                  ? 'bg-[#1565D8] text-white border-[#1565D8] shadow-sm'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-blue-200'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate max-w-[180px]">{o.name}</span>
+              <span
+                className={`min-w-[18px] h-[18px] px-1 rounded-full text-[9px] font-black flex items-center justify-center ${
+                  activeOrgId === o.orgId ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                {o.wardCount}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ===== URGENT ALERT ===== */}
       {urgentReminder && (
@@ -189,7 +282,7 @@ export default function EnrolledDashboard({ data, parentName }: { data: Enrolled
         <div className="lg:col-span-2 space-y-7">
           {/* ===== WARD CARDS (horizontal scroll) ===== */}
           <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none snap-x">
-            {data.wards.map((w, idx) => {
+            {wards.map((w, idx) => {
               const current = currentClassFor(w.id)
               const att = attendanceFor(w.id)
               return (
@@ -261,9 +354,9 @@ export default function EnrolledDashboard({ data, parentName }: { data: Enrolled
             >
               <div className="relative w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center group-hover:scale-105 transition">
                 <Receipt className="w-5.5 h-5.5" />
-                {data.fees.dueCount > 0 && (
+                {fees.dueCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center">
-                    {data.fees.dueCount}
+                    {fees.dueCount}
                   </span>
                 )}
               </div>
@@ -310,7 +403,7 @@ export default function EnrolledDashboard({ data, parentName }: { data: Enrolled
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-black text-slate-900">Today</h3>
               <div className="flex items-center gap-2">
-                {data.wards.length > 1 && (
+                {wards.length > 1 && (
                   <div className="flex gap-1.5">
                     <button
                       onClick={() => setActiveWardId('ALL')}
@@ -322,7 +415,7 @@ export default function EnrolledDashboard({ data, parentName }: { data: Enrolled
                     >
                       All
                     </button>
-                    {data.wards.map((w) => (
+                    {wards.map((w) => (
                       <button
                         key={w.id}
                         onClick={() => setActiveWardId(w.id)}
@@ -394,17 +487,17 @@ export default function EnrolledDashboard({ data, parentName }: { data: Enrolled
         {/* ================= RIGHT RAIL ================= */}
         <div className="space-y-7">
           {/* ===== FEES CARD ===== */}
-          {data.fees.dueCount > 0 && data.fees.nextDue ? (
+          {fees.dueCount > 0 && fees.nextDue ? (
             !urgentReminder && (
               <div className="rounded-3xl bg-slate-900 text-white p-5 shadow-lg">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Fees due</p>
                 <p className="text-3xl font-black tracking-tight mt-1">
-                  ₹{data.fees.totalBalance.toLocaleString('en-IN')}
+                  ₹{fees.totalBalance.toLocaleString('en-IN')}
                 </p>
                 <p className="text-xs text-slate-400 font-semibold mt-1 truncate">
-                  {data.fees.nextDue.invoiceNumber} · {data.fees.nextDue.studentName}
-                  {data.fees.nextDue.dueDate &&
-                    ` · due ${new Date(data.fees.nextDue.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
+                  {fees.nextDue.invoiceNumber} · {fees.nextDue.studentName}
+                  {fees.nextDue.dueDate &&
+                    ` · due ${new Date(fees.nextDue.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
                 </p>
                 <Link
                   href="/parent/fees"
@@ -425,6 +518,9 @@ export default function EnrolledDashboard({ data, parentName }: { data: Enrolled
               </div>
             </div>
           )}
+
+          {/* ===== HOLIDAY CALENDAR ===== */}
+          <HolidayCalendarCard endpoint="/api/v1/parent/holidays" variant="parent" />
 
           {/* ===== REMINDERS ===== */}
           {otherReminders.length > 0 && (

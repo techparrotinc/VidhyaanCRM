@@ -70,6 +70,23 @@ export function PopoverContent({
   const context = React.useContext(PopoverContext)
   if (!context) throw new Error("PopoverContent must be used within Popover")
   const contentRef = React.useRef<HTMLDivElement | null>(null)
+  // Flip above the trigger when the content would clip below the viewport
+  // (fields near the bottom of long forms). Measured after render so the
+  // real content height decides.
+  const [dropUp, setDropUp] = React.useState(false)
+
+  React.useLayoutEffect(() => {
+    if (!context.open) {
+      setDropUp(false)
+      return
+    }
+    const trigger = context.triggerRef.current
+    const content = contentRef.current
+    if (!trigger || !content) return
+    const rect = trigger.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    setDropUp(spaceBelow < content.offsetHeight + 8 && rect.top > spaceBelow)
+  }, [context.open, context.triggerRef])
 
   React.useEffect(() => {
     if (!context.open) return
@@ -92,7 +109,7 @@ export function PopoverContent({
   return (
     <div
       ref={contentRef}
-      className={`absolute left-0 mt-1 z-[9999] ${className}`}
+      className={`absolute left-0 z-[9999] ${dropUp ? 'bottom-full mb-1' : 'mt-1'} ${className}`}
     >
       {children}
     </div>

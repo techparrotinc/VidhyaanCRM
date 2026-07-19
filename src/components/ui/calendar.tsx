@@ -9,11 +9,15 @@ interface CalendarProps {
   selected?: string | Date
   onSelect?: (date: Date) => void
   initialFocus?: boolean
+  /** Drop the own border/shadow chrome when a parent popup already draws one
+      (DateTimePicker) — prevents the double-box look. */
+  bare?: boolean
 }
 
 export function Calendar({
   selected,
   onSelect,
+  bare = false,
 }: CalendarProps) {
   const selectedDate = selected ? new Date(selected) : null
   const [viewDate, setViewDate] = React.useState(() => selectedDate || new Date())
@@ -89,7 +93,7 @@ export function Calendar({
     'appearance-none bg-transparent text-xs font-bold text-slate-800 rounded-md px-1 py-0.5 hover:bg-slate-100 focus:outline-none focus:ring-1 focus:ring-[#1565D8]/30 cursor-pointer'
 
   return (
-    <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-lg w-[260px]">
+    <div className={bare ? 'w-[260px]' : 'p-3 bg-white border border-slate-200 rounded-xl shadow-lg w-[260px]'}>
       <div className="flex items-center justify-between mb-2">
         <button
           type="button"

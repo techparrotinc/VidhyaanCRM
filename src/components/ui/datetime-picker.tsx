@@ -51,6 +51,9 @@ export function DateTimePicker({
   clearable = true
 }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false)
+  // Open upward when the trigger sits near the viewport bottom, so the
+  // calendar never renders clipped below the fold.
+  const [dropUp, setDropUp] = React.useState(false)
   const rootRef = React.useRef<HTMLDivElement | null>(null)
   const timeListRef = React.useRef<HTMLDivElement | null>(null)
   const current = value ? new Date(value) : null
@@ -88,7 +91,15 @@ export function DateTimePicker({
     <div ref={rootRef} className="relative w-full">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          if (!open && rootRef.current) {
+            const r = rootRef.current.getBoundingClientRect()
+            const spaceBelow = window.innerHeight - r.bottom
+            const POPUP_HEIGHT = 360
+            setDropUp(spaceBelow < POPUP_HEIGHT && r.top > spaceBelow)
+          }
+          setOpen((o) => !o)
+        }}
         className="w-full flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-left focus:outline-none focus:border-[#1565D8] focus:ring-2 focus:ring-[#1565D8]/10 cursor-pointer hover:border-slate-300 transition-colors"
       >
         <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={1.8} />
@@ -111,10 +122,11 @@ export function DateTimePicker({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-[60] flex bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
+        <div className={`absolute left-0 z-[60] flex bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
           <div className="p-3">
             <Calendar
               mode="single"
+              bare
               selected={current ?? undefined}
               onSelect={(d: Date) => {
                 if (isPastDisabled(d)) return

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { formatINRFull, formatPct } from './format'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Pencil } from 'lucide-react'
@@ -153,6 +154,12 @@ export function ReportTable({
                         value={row[c.key]}
                         onSave={v => onEdit(row.__rowId as string, c.editable!, v)}
                       />
+                    ) : c === columns[0] && typeof row.__href === 'string' ? (
+                      // Drill-down: queries may attach __href (never exported —
+                      // serialisers emit declared columns only)
+                      <Link href={row.__href} className="font-medium text-[#1565D8] hover:underline">
+                        {renderCell(row[c.key], c.format)}
+                      </Link>
                     ) : (
                       renderCell(row[c.key], c.format)
                     )}

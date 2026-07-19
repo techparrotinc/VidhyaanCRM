@@ -18,12 +18,18 @@ export default function PageTransitionProvider({ children }: { children: React.R
         anchor &&
         anchor.href &&
         anchor.target !== '_blank' &&
+        !anchor.hasAttribute('download') && // download links must hit the network directly
         !e.defaultPrevented &&
         e.button === 0 && // Only left clicks
         !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey // No keyboard modifiers
       ) {
         const targetUrl = new URL(anchor.href)
         const currentUrl = new URL(window.location.href)
+
+        // API endpoints (file exports, PDFs) are not pages — router.push turns
+        // them into an RSC fetch that strips the query string, so the export
+        // format param was lost and every download came back as CSV.
+        if (targetUrl.pathname.startsWith('/api/')) return
 
         // Intercept internal page navigations that result in a new route path
         if (targetUrl.origin === currentUrl.origin && targetUrl.pathname !== currentUrl.pathname) {
@@ -32,12 +38,16 @@ export default function PageTransitionProvider({ children }: { children: React.R
 
           const startTime = Date.now()
 
+          // Preserve query + hash — pushing pathname alone dropped filters
+          // from deep links like /lead-management?uncontacted=48h
+          const dest = targetUrl.pathname + targetUrl.search + targetUrl.hash
+
           // Prefetch the target route for smoother transition
-          router.prefetch(targetUrl.pathname)
+          router.prefetch(dest)
 
           // Perform navigation with minimum 1.5s constraint
           setTimeout(() => {
-            router.push(targetUrl.pathname)
+            router.push(dest)
             
             const elapsed = Date.now() - startTime
             const delay = Math.max(0, 1500 - elapsed)

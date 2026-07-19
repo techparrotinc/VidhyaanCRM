@@ -83,6 +83,8 @@ export default function FeeManagementPage() {
   const [isInitialized, setIsInitialized] = useState(false)
   const searchParams = useSearchParams()
   const [studentIdFilter, setStudentIdFilter] = useState<string | null>(null)
+  // Deep link from dashboards: ?status=OVERDUE&age=60 → invoices overdue 60+ days
+  const [ageFilter, setAgeFilter] = useState<string | null>(null)
   // Carry-forward view: unsettled invoices from previous academic years
   const [arrearsMode, setArrearsMode] = useState(false)
 
@@ -158,6 +160,8 @@ export default function FeeManagementPage() {
           params.set('gradeLabel', gradeLabel)
         if (studentIdFilter)
           params.set('studentId', studentIdFilter)
+        if (ageFilter && activeStatus === 'OVERDUE')
+          params.set('age', ageFilter)
 
         if (institutionType === 'SCHOOL') {
           if (termFilter && termFilter !== 'all') {
@@ -192,7 +196,7 @@ export default function FeeManagementPage() {
       } finally {
         if (seq === invoiceSeqRef.current) setIsLoading(false)
       }
-    }, [page, activeStatus, search, gradeLabel, termFilter, monthFilter, courseFilter, institutionType, studentIdFilter, selectedYearId, arrearsMode]
+    }, [page, activeStatus, search, gradeLabel, termFilter, monthFilter, courseFilter, institutionType, studentIdFilter, ageFilter, selectedYearId, arrearsMode]
   )
 
   const fetchSummary = useCallback(
@@ -244,6 +248,10 @@ export default function FeeManagementPage() {
         if (urlStudentId) {
           setStudentIdFilter(urlStudentId)
         }
+        const urlStatus = searchParams?.get('status')
+        if (urlStatus) setActiveStatus(urlStatus)
+        const urlAge = searchParams?.get('age')
+        if (urlAge && /^\d+$/.test(urlAge)) setAgeFilter(urlAge)
 
         const orgRes = await fetch('/api/v1/settings/org-type')
         const orgJson = await orgRes.json()
@@ -674,6 +682,7 @@ export default function FeeManagementPage() {
                     onClick={() => {
                       setActiveStatus(tab.key)
                       setStudentIdFilter(null)
+                      setAgeFilter(null)
                       setPage(1)
                     }}
                     className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap flex-shrink-0 border-b-2 transition-colors ${
@@ -699,6 +708,21 @@ export default function FeeManagementPage() {
               </div>
             </div>
           </div>
+
+          {ageFilter && activeStatus === 'OVERDUE' && (
+            <div className="px-4 sm:px-6 pt-3">
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] font-semibold text-red-700">
+                Overdue {ageFilter}+ days
+                <button
+                  onClick={() => setAgeFilter(null)}
+                  className="ml-1 text-red-400 hover:text-red-700"
+                  aria-label="Clear overdue-age filter"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            </div>
+          )}
 
           {/* ── FILTER BAR ── */}
           <div className="px-4 sm:px-6 pt-4">

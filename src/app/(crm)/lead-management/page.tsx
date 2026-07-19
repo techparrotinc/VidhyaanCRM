@@ -9,7 +9,7 @@ import { fetcher } from '@/lib/fetcher'
 import { format } from 'date-fns'
 import { useCounsellors } from '@/hooks/useCounsellors'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
 import TableSkeleton from '@/components/shared/TableSkeleton'
@@ -64,6 +64,7 @@ import {
 
 export default function LeadManagementPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const searchTimeout = useRef<NodeJS.Timeout | undefined>(undefined)
 
   const handleNavigate = (path: string) => {
@@ -80,13 +81,15 @@ export default function LeadManagementPage() {
     limit: 25,
     totalPages: 0
   })
-  const [filters, setFilters] = useState({
-    status: '',
+  // Deep links from dashboards pre-apply filters (?status=…&uncontacted=48h).
+  const [filters, setFilters] = useState(() => ({
+    status: searchParams?.get('status') ?? '',
     source: '',
     counsellorId: '',
     search: '',
     priority: ''
-  })
+  }))
+  const [uncontacted, setUncontacted] = useState(() => searchParams?.get('uncontacted') ?? '')
   const [filterDateRange, setFilterDateRange] = useState<string | null>(null)
 
   // Use shared hook for active counsellors
@@ -118,8 +121,9 @@ export default function LeadManagementPage() {
       ...(filters.source && { source: filters.source }),
       ...(filters.priority && { priority: filters.priority }),
       ...(selectedYearId && { academicYearId: selectedYearId }),
+      ...(uncontacted && { uncontacted }),
     })
-  }, [currentPage, search, statusFilter, counsellorFilter, filters.source, filters.priority, selectedYearId])
+  }, [currentPage, search, statusFilter, counsellorFilter, filters.source, filters.priority, selectedYearId, uncontacted])
 
   const { data, error: swrError, isLoading: loading, mutate } = useSWR<any>(
     `/api/v1/leads?${params.toString()}`,
@@ -517,6 +521,7 @@ export default function LeadManagementPage() {
       priority: ''
     })
     setSearchQuery('')
+    setUncontacted('')
   }
 
   // Handle individual lead selection
@@ -633,6 +638,22 @@ export default function LeadManagementPage() {
             onViewChange={setActiveView}
             onClearAll={handleClearFilters}
           />
+
+          {uncontacted && (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] font-semibold text-red-700">
+                <TriangleAlert size={12} strokeWidth={2} />
+                Uncontacted for {uncontacted}+
+                <button
+                  onClick={() => setUncontacted('')}
+                  className="ml-1 text-red-400 hover:text-red-700"
+                  aria-label="Clear uncontacted filter"
+                >
+                  <X size={12} strokeWidth={2} />
+                </button>
+              </span>
+            </div>
+          )}
 
           {/* SECTION 4 — TAB STRIP */}
           <section 

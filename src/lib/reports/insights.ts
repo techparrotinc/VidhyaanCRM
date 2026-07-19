@@ -47,7 +47,9 @@ export function buildExecutiveAttention(
         pct >= 100
           ? `${g.grade} is full (${g.filled}/${g.total} seats)`
           : `${g.grade} at ${pct}% of capacity (${g.filled}/${g.total} seats)`,
-      href: '/admission-management?view=capacity'
+      // Capacity chart lives on the admission-pipeline report; the list page
+      // has no capacity view.
+      href: '/reports/r/admission-pipeline'
     })
   }
 

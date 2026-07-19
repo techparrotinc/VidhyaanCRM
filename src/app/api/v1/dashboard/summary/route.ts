@@ -3,6 +3,8 @@ import { ok } from '@/lib/api/respond'
 import { LeadStatus, PaymentStatus, InvoiceStatus } from '@prisma/client'
 import { redis } from '@/lib/redis'
 import { prisma } from '@/lib/db'
+import { buildExecutiveAttention } from '@/lib/reports/insights'
+import { OPEN_LEAD_STATUSES, OPEN_INVOICE_STATUSES } from '@/lib/reports/queries/scope'
 
 export const GET = route({
   handler: async ({ req, db, user, org }) => {
@@ -10,7 +12,8 @@ export const GET = route({
     const { searchParams } = new URL(req.url)
     const academicYearId = searchParams.get('academicYearId') ?? undefined
 
-    const cacheKey = `dashboard:summary:v2:${orgId}:${academicYearId || 'all'}`
+    // v4: adds leads.followUpsDueToday + fees.collectedToday + attention strip
+    const cacheKey = `dashboard:summary:v4:${orgId}:${academicYearId || 'all'}`
     const cached = await redis.get(cacheKey)
     if (cached) {
       return ok(JSON.parse(cached))
@@ -48,6 +51,10 @@ export const GET = route({
     )
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    // Attention-strip windows — same definitions as the executive dashboard
+    const h48Ago = new Date(now.getTime() - 48 * 60 * 60 * 1000)
+    const d14Ago = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
+    const d60Ago = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000)
 
     // Overdue must be derived, not read from the stored status: the
     // UNPAID→OVERDUE flip only happens when the fee-management page is
@@ -104,7 +111,12 @@ export const GET = route({
       overdueOutstandingAgg,
       eventsThisMonthCount,
       orgMeta,
-      orgModuleRows
+      orgModuleRows,
+      followUpsDueTodayCount,
+      collectedTodayAgg,
+      uncontacted48h,
+      overdue60Agg,
+      stuckAdmissions
     ] = await Promise.all([
 
       // Total leads
@@ -430,6 +442,59 @@ export const GET = route({
       db.organizationModule.findMany({
         where: { orgId, enabled: true },
         select: { module: { select: { slug: true } } }
+      }),
+
+      // Follow-ups due today (incl. already-overdue ones — the actionable queue)
+      db.lead.count({
+        where: {
+          orgId,
+          deletedAt: null,
+          ...ayScope,
+          nextFollowUpAt: { lt: new Date(startOfToday.getTime() + 86400000) },
+          status: { notIn: [LeadStatus.CONVERTED, LeadStatus.NOT_INTERESTED] }
+        }
+      }),
+
+      // Fees collected today
+      db.payment.aggregate({
+        where: {
+          orgId,
+          status: PaymentStatus.SUCCESS,
+          ...paymentAyScope,
+          paidAt: { gte: startOfToday }
+        },
+        _sum: { amount: true }
+      }),
+
+      // Attention strip inputs (same rules as /reports/dashboards/executive)
+      db.lead.count({
+        where: {
+          orgId,
+          deletedAt: null,
+          ...ayScope,
+          firstContactedAt: null,
+          status: { in: [...OPEN_LEAD_STATUSES] },
+          createdAt: { lt: h48Ago }
+        }
+      }),
+      db.invoice.aggregate({
+        where: {
+          orgId,
+          deletedAt: null,
+          status: { in: [...OPEN_INVOICE_STATUSES] },
+          dueDate: { lt: d60Ago }
+        },
+        _sum: { totalAmount: true, paidAmount: true },
+        _count: { _all: true }
+      }),
+      db.admission.count({
+        where: {
+          orgId,
+          deletedAt: null,
+          ...ayScope,
+          status: 'IN_PROGRESS',
+          updatedAt: { lt: d14Ago }
+        }
       })
     ])
 
@@ -531,7 +596,8 @@ export const GET = route({
           source: l.source,
           count: l._count.source
         })),
-        unassigned: unassignedLeadCount
+        unassigned: unassignedLeadCount,
+        followUpsDueToday: followUpsDueTodayCount
       },
       comparisons: {
         enquiries: { current: leadsCreatedThisMonth, previous: leadsCreatedLastMonth },
@@ -554,6 +620,7 @@ export const GET = route({
           ?? 0,
         collectedLastMonth:
           feeCollectedLastMonth._sum.amount ?? 0,
+        collectedToday: collectedTodayAgg._sum.amount ?? 0,
         overdue:
           Number(feeOverdue._sum.totalAmount ?? 0) - Number(feeOverdue._sum.paidAmount ?? 0),
         upcoming:
@@ -610,6 +677,10 @@ export const GET = route({
         const trialDaysLeft = trialEndsAt
           ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - now.getTime()) / 86400000))
           : null
+        // Cron flips TRIAL → GRACE_PERIOD after expiry, but until it runs
+        // (or in envs where it never does) the org can sit in TRIAL past its
+        // end date — the banner must say "ended", not "ends today".
+        const trialExpired = trialEndsAt ? new Date(trialEndsAt).getTime() < now.getTime() : false
         return {
           institutionType: school?.institutionType ?? 'SCHOOL',
           orgStatus: status,
@@ -619,13 +690,25 @@ export const GET = route({
           isTrial: status === 'TRIAL',
           trialEndsAt,
           trialDaysLeft,
+          trialExpired,
           enabledModules: Array.from(enabled)
         }
       })(),
       upcomingEvents,
       eventsThisMonth: eventsThisMonthCount,
       recentActivity: recentActivities,
-      upcomingFollowUps
+      upcomingFollowUps,
+      attention: buildExecutiveAttention({
+        uncontacted48h,
+        invoicesOverdue60d: overdue60Agg._count._all,
+        overdue60dAmount:
+          Number(overdue60Agg._sum.totalAmount ?? 0) -
+          Number(overdue60Agg._sum.paidAmount ?? 0),
+        // Capacity chips stay executive-only — operational strip keeps to
+        // act-now items
+        gradesNearCapacity: [],
+        stuckAdmissions
+      })
     }
 
     // 5 min cache: the summary is 13 aggregate queries; a short TTL meant the

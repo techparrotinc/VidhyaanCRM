@@ -23,6 +23,7 @@ import {
   Pencil,
   AlertCircle,
   Loader2,
+  X,
   UserPlus,
   Archive as ArchiveIcon,
   ArchiveRestore
@@ -82,6 +83,12 @@ export default function AdmissionManagementPage() {
   })
   const [isNavigating, setIsNavigating] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  // Deep link from dashboards: ?stuck=14d → in-progress applications idle 14+ days
+  const initialUrlParams = useSearchParams()
+  const [stuckFilter, setStuckFilter] = useState(() => {
+    const v = initialUrlParams?.get('stuck') ?? ''
+    return /^\d+d$/.test(v) ? v : ''
+  })
   const [activeStageFilter, setActiveStageFilter] =
     useState<string | null>(null)
 
@@ -239,8 +246,12 @@ export default function AdmissionManagementPage() {
       params.set('academicYearId', selectedYearId)
     }
 
+    if (stuckFilter) {
+      params.set('stuck', stuckFilter)
+    }
+
     return params.toString()
-  }, [currentPage, searchQuery, activeStageId, counsellorFilter, priorityFilter, dateRange, showArchived, selectedYearId])
+  }, [currentPage, searchQuery, activeStageId, counsellorFilter, priorityFilter, dateRange, showArchived, selectedYearId, stuckFilter])
 
   const { data: admissionsData, error: swrError, isLoading: loading, mutate } = useSWR<any>(
     `/api/v1/admissions?${buildQueryParams()}`,
@@ -608,6 +619,7 @@ export default function AdmissionManagementPage() {
     setActiveStageFilter(null)
     setActiveStageId('all')
     setSelectedItems([])
+    setStuckFilter('')
   }
 
   const handleSearchInput = (value: string) => {
@@ -1320,6 +1332,22 @@ export default function AdmissionManagementPage() {
               ))}
             </div>
           </div>
+
+          {stuckFilter && (
+            <div className="px-4 pb-2">
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-semibold text-amber-700">
+                <AlertCircle className="w-3 h-3" />
+                Idle for {stuckFilter.replace('d', '')}+ days
+                <button
+                  onClick={() => setStuckFilter('')}
+                  className="ml-1 text-amber-400 hover:text-amber-700"
+                  aria-label="Clear idle filter"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            </div>
+          )}
 
           {/* SECTION 3 — FILTER BAR / SEARCH / TABLE / PAGINATION CARD */}
           {activeView === 'list' && (loading || filteredApplicants.length > 0) ? (

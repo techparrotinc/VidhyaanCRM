@@ -104,6 +104,11 @@ export const GET = route({
     // Arrears mode pins its own unsettled-status set; the status tab doesn't apply.
     if (!arrears && status === 'OVERDUE') {
       Object.assign(where, overdueDerivedWhere)
+      // Deep link from dashboards: ?age=60 narrows to invoices overdue N+ days.
+      const ageDays = parseInt(searchParams.get('age') ?? '', 10)
+      if (Number.isFinite(ageDays) && ageDays > 0) {
+        where.dueDate = { lt: new Date(now.getTime() - ageDays * 24 * 60 * 60 * 1000) }
+      }
     } else if (!arrears && status && status !== '') {
       where.status = asEnum(InvoiceStatus, status, 'status')
     }

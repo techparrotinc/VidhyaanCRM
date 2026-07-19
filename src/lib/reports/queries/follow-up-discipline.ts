@@ -65,7 +65,7 @@ export const followUpDiscipline: ReportQuery = {
     const leads = await ctx.db.lead.findMany({
       where: whereFor(ctx, filters),
       select: {
-        leadCode: true, parentName: true, kidName: true, phone: true,
+        id: true, leadCode: true, parentName: true, kidName: true, phone: true,
         gradeSought: true, priority: true, status: true,
         nextFollowUpAt: true, updatedAt: true, assignedToId: true
       },
@@ -96,6 +96,7 @@ export const followUpDiscipline: ReportQuery = {
         { key: 'phone', label: 'Phone' }
       ],
       rows: leads.map(l => ({
+        __href: `/lead-management/${l.id}`,
         leadCode: l.leadCode,
         parentName: l.parentName,
         kidName: l.kidName ?? '',

@@ -38,6 +38,7 @@ import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SetupBanner } from "@/components/dashboard/SetupBanner"
+import { AttentionStrip } from "@/components/reports/AttentionStrip"
 import { useAcademicYearStore } from "@/stores/academic-year.store"
 
 // ===================================================================
@@ -99,6 +100,7 @@ export default function DashboardPage() {
   const isPaid: boolean = meta?.isPaid ?? false
   const isTrial: boolean = meta?.isTrial ?? false
   const trialDaysLeft: number | null = meta?.trialDaysLeft ?? null
+  const trialExpired: boolean = meta?.trialExpired ?? false
   const planName: string = meta?.planName ?? 'Free'
   const enabledModules: string[] = meta?.enabledModules ?? []
   const hasModule = (slug: string) => enabledModules.includes(slug)
@@ -228,21 +230,21 @@ export default function DashboardPage() {
   const collectedThisMonth = Number(dashData?.fees?.collectedThisMonth ?? 0)
   const collectedLastMonth = Number(dashData?.fees?.collectedLastMonth ?? 0)
   const collectedTrend = collectedThisMonth >= collectedLastMonth ? 'up' : 'down'
-  const feePct = collectedLastMonth > 0
-    ? Math.round(((collectedThisMonth - collectedLastMonth) / collectedLastMonth) * 100)
-    : null
 
   const cmp = dashData?.comparisons
   const pctDelta = (current: number, previous: number) =>
     previous > 0 ? Math.round(((current - previous) / previous) * 100) : null
 
-  // KPI configurations — accent drives the per-metric colour rhythm
+  // KPI configurations — accent drives the per-metric colour rhythm.
+  // Operational "today/this week" numbers only; analytical trends (conversion,
+  // monthly collections, YoY) live on /reports/executive so the two surfaces
+  // never show the same metric.
   const kpis = [
-    { title: "TOTAL ENQUIRIES", value: String(dashData?.leads?.total ?? 0), icon: Users, trend: `+${dashData?.leads?.createdThisMonth ?? 0} this month`, isPremium: false, link: "/lead-management", accent: "blue" },
+    { title: "LEADS TODAY", value: String(dashData?.leads?.createdToday ?? 0), icon: Users, trend: (dashData?.leads?.createdThisWeek ?? 0) > 0 ? `+${dashData.leads.createdThisWeek} this week` : "No leads this week", isPremium: false, link: "/lead-management", accent: "blue" },
+    { title: "FOLLOW-UPS DUE", value: String(dashData?.leads?.followUpsDueToday ?? 0), icon: CalendarDays, trend: (dashData?.leads?.followUpsDueToday ?? 0) > 0 ? "Due or overdue today" : "No follow-ups pending", isPremium: false, link: "/lead-management", accent: "amber" },
+    { title: "UNASSIGNED LEADS", value: String(dashData?.leads?.unassigned ?? 0), icon: UserPlus, trend: (dashData?.leads?.unassigned ?? 0) > 0 ? "Assign to a counsellor" : "No change — all assigned", isPremium: false, link: "/lead-management", accent: "cyan" },
+    { title: "COLLECTED TODAY", value: formatINR(Number(dashData?.fees?.collectedToday ?? 0)), icon: IndianRupee, trend: `${formatINR(collectedThisMonth)} this month`, isPremium: true, link: "/fee-management", accent: "emerald" },
     { title: "PROFILE VIEWS", value: String(dashData?.profile?.views ?? 0), icon: Eye, trend: (dashData?.profile?.viewsThisWeek ?? 0) > 0 ? `+${dashData.profile.viewsThisWeek} this week` : "No change", isPremium: false, link: "/settings/school-profile", accent: "violet" },
-    { title: "LEADS THIS MONTH", value: String(dashData?.leads?.createdThisMonth ?? 0), icon: TrendingUp, trend: (dashData?.leads?.createdToday ?? 0) > 0 ? `+${dashData.leads.createdToday} today` : "No change today", isPremium: true, link: "/lead-management", accent: "cyan" },
-    { title: "FEES RECEIVED", value: formatINR(collectedThisMonth), icon: IndianRupee, trend: feePct === null ? "No prior month data" : `${feePct >= 0 ? '+' : ''}${feePct}% vs last month`, isPremium: true, link: "/fee-management", accent: "emerald" },
-    { title: "CONVERSION RATE", value: `${dashData?.admissions?.conversionRate ?? 0}%`, icon: BarChart2, trend: (cmp?.admittedThisMonth ?? 0) > 0 ? `+${cmp.admittedThisMonth} admitted this month` : "No change", isPremium: true, link: "/reports", accent: "amber" },
     {
       title: instType === 'learning_center' ? "ACTIVE LEARNERS" : "ACTIVE STUDENTS",
       value: String(dashData?.admissions?.admitted ?? 0),
@@ -364,11 +366,13 @@ export default function DashboardPage() {
                   <Crown className="w-4 h-4 text-amber-600 fill-amber-500" strokeWidth={1.5} />
                 </span>
                 <p className="text-sm text-amber-900 font-medium leading-snug">
-                  Premium trial active.{" "}
+                  {trialExpired ? 'Premium trial ended.' : 'Premium trial active.'}{" "}
                   <span className="font-bold">
-                    {trialDaysLeft != null
-                      ? (trialDaysLeft === 0 ? 'Ends today.' : `${trialDaysLeft} day${trialDaysLeft > 1 ? 's' : ''} left.`)
-                      : 'Enjoy full access.'}
+                    {trialExpired
+                      ? 'Upgrade to keep premium features.'
+                      : trialDaysLeft != null
+                        ? (trialDaysLeft === 0 ? 'Ends today.' : `${trialDaysLeft} day${trialDaysLeft > 1 ? 's' : ''} left.`)
+                        : 'Enjoy full access.'}
                   </span>
                 </p>
               </div>
@@ -432,6 +436,11 @@ export default function DashboardPage() {
                 View plans →
               </Link>
             </div>
+          )}
+
+          {/* ============ ATTENTION STRIP ============ */}
+          {(dashData?.attention?.length ?? 0) > 0 && (
+            <AttentionStrip items={dashData.attention} />
           )}
 
           {/* ============ KPI STRIP ============ */}
@@ -1054,7 +1063,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2 text-amber-300">
                   <Crown className="w-4 h-4 fill-amber-300 text-amber-300" strokeWidth={1.5} />
                   <span className="text-xs font-bold uppercase tracking-[0.15em]">
-                    {isTrial && trialDaysLeft != null ? `${trialDaysLeft} DAY${trialDaysLeft === 1 ? '' : 'S'} LEFT IN TRIAL` : 'UPGRADE TO PREMIUM'}
+                    {isTrial && !trialExpired && trialDaysLeft != null ? `${trialDaysLeft} DAY${trialDaysLeft === 1 ? '' : 'S'} LEFT IN TRIAL` : 'UPGRADE TO PREMIUM'}
                   </span>
                 </div>
                 <h3 className="text-xl md:text-2xl font-bold text-white tracking-tight leading-snug max-w-lg mt-3">

@@ -38,7 +38,9 @@ export const GET = route({
       search: textParam,
       academicYearId: textParam,
       createdFrom: dateParam,
-      createdTo: dateParam
+      createdTo: dateParam,
+      uncontacted: z.enum(['24h', '48h', '72h']).optional()
+        .or(z.literal('').transform(() => undefined))
     })
     const { page, limit, status, source, priority, search, academicYearId } = q
     const counsellorId = q.counsellorId ?? q.assignedToId
@@ -54,6 +56,14 @@ export const GET = route({
     if (createdWindow) where.createdAt = createdWindow
     if (counsellorId) {
       where.assignedToId = counsellorId
+    }
+    if (q.uncontacted) {
+      // Attention-strip deep link: open leads never contacted, older than Nh.
+      // Mirrors the executive-dashboard uncontacted48h definition.
+      const hours = parseInt(q.uncontacted, 10)
+      where.firstContactedAt = null
+      where.createdAt = { lt: new Date(Date.now() - hours * 60 * 60 * 1000) }
+      if (!status) where.status = { in: ['NEW', 'CONTACTED', 'INTERESTED', 'FOLLOW_UP_PENDING'] }
     }
     if (academicYearId) {
       // Legacy leads predate AY stamping — include them under every year.

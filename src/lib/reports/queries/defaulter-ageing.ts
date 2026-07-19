@@ -72,7 +72,7 @@ export const defaulterAgeing: ReportQuery = {
     const invoices = await ctx.db.invoice.findMany({
       where: whereFor(ctx, filters, startOfToday),
       select: {
-        invoiceNumber: true, dueDate: true, totalAmount: true, paidAmount: true,
+        id: true, invoiceNumber: true, dueDate: true, totalAmount: true, paidAmount: true,
         student: {
           select: {
             studentCode: true, name: true, gradeLabel: true,
@@ -89,6 +89,7 @@ export const defaulterAgeing: ReportQuery = {
       .map(inv => {
         const amountDue = Number(inv.totalAmount) - Number(inv.paidAmount)
         return {
+          __href: `/fee-management/${inv.id}`,
           studentCode: inv.student.studentCode,
           student: inv.student.name,
           grade: [inv.student.gradeLabel, inv.student.section].filter(Boolean).join(' · '),

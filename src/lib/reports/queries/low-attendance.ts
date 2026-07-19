@@ -125,6 +125,7 @@ export const lowAttendance: ReportQuery = {
         { key: 'guardianPhone', label: 'Guardian Phone' }
       ],
       rows: rows.slice(0, 500).map(r => ({
+        __href: `/student-management/${r.studentId}`,
         student: `${r.name} (${r.studentCode})`,
         class: [r.gradeLabel, r.section].filter(Boolean).join(' — '),
         pct: r.pct,

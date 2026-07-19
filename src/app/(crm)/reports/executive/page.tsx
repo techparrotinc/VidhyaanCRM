@@ -59,6 +59,13 @@ export default function ExecutiveDashboard() {
 
   const d = data?.data
 
+  // Collection rate MTD from the nightly rollup trend (last entry = current
+  // month) — analytical context the operational dashboard doesn't show.
+  const mtd = d?.feeTrend[d.feeTrend.length - 1]
+  const collectionRateMTD = mtd && mtd.billed > 0
+    ? Math.round((mtd.collected / mtd.billed) * 100)
+    : null
+
   if (error) {
     return (
       <div className="p-6">
@@ -113,7 +120,7 @@ export default function ExecutiveDashboard() {
               value={String(d.kpis.leads.value)}
               delta={deltaPct(d.kpis.leads.value, d.kpis.leads.prev)}
               caption={d.compareYear ? `vs ${d.compareYear.name}` : undefined}
-              href="/lead-management"
+              href="/reports/r/lead-funnel"
             />
             <KpiCard
               icon={Target}
@@ -126,7 +133,7 @@ export default function ExecutiveDashboard() {
                   : null
               }
               caption={d.compareYear ? `vs ${d.compareYear.name}` : undefined}
-              href="/lead-management?status=CONVERTED"
+              href="/reports/r/lead-source-effectiveness"
             />
             <KpiCard
               icon={GraduationCap}
@@ -139,7 +146,7 @@ export default function ExecutiveDashboard() {
               }
               delta={deltaPct(d.kpis.admissions.value, d.kpis.admissions.prev)}
               caption={d.kpis.admissions.capacity ? 'admitted vs capacity' : 'admitted this year'}
-              href="/admission-management"
+              href="/reports/r/admission-pipeline"
             />
             <KpiCard
               icon={Wallet}
@@ -147,8 +154,8 @@ export default function ExecutiveDashboard() {
               label="Collected"
               value={formatINR(d.kpis.collectedThisMonth.value)}
               delta={deltaPct(d.kpis.collectedThisMonth.value, d.kpis.collectedThisMonth.prev)}
-              caption="this month vs last"
-              href="/fee-management"
+              caption={collectionRateMTD !== null ? `${collectionRateMTD}% of billed (MTD) · vs last month` : 'this month vs last'}
+              href="/reports/r/fee-collection-summary"
             />
             <KpiCard
               icon={AlertCircle}
@@ -156,7 +163,7 @@ export default function ExecutiveDashboard() {
               label="Outstanding"
               value={formatINR(d.kpis.outstanding.value)}
               caption={`${d.kpis.outstanding.invoices} open invoices`}
-              href="/fee-management?status=OVERDUE"
+              href="/reports/r/defaulter-ageing"
             />
           </div>
 

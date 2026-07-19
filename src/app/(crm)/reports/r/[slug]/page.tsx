@@ -193,6 +193,12 @@ export default function ReportPage({ params }: { params: Promise<{ slug: string 
     return p.toString()
   }, [filters, selectedYearId])
 
+  const exportQs = (fmt: string) => {
+    const p = new URLSearchParams(qs)
+    p.set('format', fmt)
+    return p.toString()
+  }
+
   const { data: summaryData, error: summaryError, isLoading: summaryLoading, mutate } =
     useSWR<{ data: Summary }>(
       meta ? `/api/v1/reports/r/${slug}/summary?${qs}` : null,
@@ -347,9 +353,14 @@ export default function ReportPage({ params }: { params: Promise<{ slug: string 
           {meta && meta.exports.length > 0 && (
             <div className="flex rounded-lg border border-slate-200 bg-white overflow-hidden">
               {meta.exports.map(fmt => (
+                // Plain download anchor. The `download` attribute keeps the
+                // app router from intercepting the click — an intercepted
+                // click refetches as an RSC navigation and drops the query
+                // string, so the server fell back to format=csv.
                 <a
                   key={fmt}
-                  href={`/api/v1/reports/r/${slug}/export?${qs}&format=${fmt}`}
+                  href={`/api/v1/reports/r/${slug}/export?${exportQs(fmt)}`}
+                  download
                   className="inline-flex items-center gap-1 px-3 h-9 text-sm font-semibold text-slate-600 hover:bg-slate-50 border-r border-slate-100 last:border-0"
                 >
                   <Download className="h-3.5 w-3.5" />

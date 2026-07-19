@@ -13,12 +13,29 @@ export function generateOTP(): string {
 }
 
 /**
+ * Env-gated QA bypass, mirroring the mobile login (api/mobile/v1/auth/verify):
+ * identifiers listed in MOBILE_TEST_PHONES (comma-separated) accept code
+ * 123456 on any deployment. Needed because the NODE_ENV=development bypass
+ * only exists on localhost — QA numbers with no real SIM could never log in
+ * on deployed non-prod builds. Empty/unset = no bypass, prod-safe default.
+ */
+export function isTestPhoneBypass(identifier: string, code: string): boolean {
+  if (code !== '123456') return false
+  const testPhones = (process.env.MOBILE_TEST_PHONES ?? '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)
+  return testPhones.includes(identifier)
+}
+
+/**
  * Verify a code against the newest unconsumed OTP for `identifier` and consume
  * it. Mirrors the Credentials authorize() OTP block: 5-attempt cap, bcrypt
  * compare, single-use. Dev bypass code 123456 outside production.
  */
 export async function verifyAndConsumeOtp(identifier: string, code: string): Promise<boolean> {
   if (process.env.NODE_ENV === 'development' && code === '123456') return true
+  if (isTestPhoneBypass(identifier, code)) return true
 
   const otpRecord = await prisma.otpCode.findFirst({
     where: { identifier, consumedAt: null, expiresAt: { gt: new Date() } },

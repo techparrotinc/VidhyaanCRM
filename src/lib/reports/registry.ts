@@ -107,7 +107,9 @@ export const REPORTS: ReportDefinition[] = [
     title: 'Lead Source Effectiveness',
     decision: 'Decide which channel deserves next term’s marketing budget',
     category: 'admissions',
-    allowedRoles: ['ORG_ADMIN'],
+    // BRANCH_ADMIN included so the executive-dashboard Conversion KPI can
+    // deep-link here; rows are branch-scoped by branchIdsFor.
+    allowedRoles: ADMIN_ROLES,
     filters: [branchFilter, dateRange, gradeFilter],
     exports: ['csv', 'xlsx']
   },
@@ -148,7 +150,8 @@ export const REPORTS: ReportDefinition[] = [
     title: 'Fee Collection Summary',
     decision: 'Check cash-flow health this month vs plan and vs last year',
     category: 'finance',
-    allowedRoles: ['ORG_ADMIN', 'ACCOUNTANT'],
+    // BRANCH_ADMIN: exec-dashboard Collected KPI deep-links here (branch-scoped).
+    allowedRoles: ['ORG_ADMIN', 'BRANCH_ADMIN', 'ACCOUNTANT'],
     filters: [branchFilter, dateRange, gradeFilter,
       {
         key: 'invoiceType', label: 'Invoice type', type: 'enum',
@@ -161,7 +164,8 @@ export const REPORTS: ReportDefinition[] = [
     title: 'Outstanding Fees & Defaulter Ageing',
     decision: 'Get today’s collection chase list, oldest and largest first',
     category: 'finance',
-    allowedRoles: ['ORG_ADMIN', 'ACCOUNTANT'],
+    // BRANCH_ADMIN: exec-dashboard Outstanding KPI deep-links here (branch-scoped).
+    allowedRoles: ['ORG_ADMIN', 'BRANCH_ADMIN', 'ACCOUNTANT'],
     filters: [branchFilter, gradeFilter,
       {
         key: 'bucket', label: 'Ageing bucket', type: 'enum',

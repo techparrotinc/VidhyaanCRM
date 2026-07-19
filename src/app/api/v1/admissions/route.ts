@@ -42,6 +42,10 @@ export const GET = route({
     const skip = (page - 1) * limit
 
     const showArchived = searchParams.get('archived') === 'true'
+    // Deep link from dashboards: ?stuck=14d → in-progress applications idle N+ days.
+    // Mirrors the executive-dashboard stuckAdmissions definition.
+    const stuckMatch = /^(\d+)d$/.exec(searchParams.get('stuck') ?? '')
+    const stuckDays = stuckMatch ? parseInt(stuckMatch[1], 10) : null
 
     const where: any = {
       orgId: user.orgId,
@@ -90,6 +94,10 @@ export const GET = route({
               }
       }),
       ...(status && { status: asEnum(AdmissionStatus, status, 'status') }),
+      ...(stuckDays && {
+        status: 'IN_PROGRESS',
+        updatedAt: { lt: new Date(Date.now() - stuckDays * 24 * 60 * 60 * 1000) }
+      }),
       ...(academicYearId && {
         OR: [
           { academicYearId: academicYearId },

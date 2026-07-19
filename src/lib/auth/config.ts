@@ -274,7 +274,10 @@ const authConfig: NextAuthConfig = {
           const contact = credentials.contact as string
           const code = credentials.code as string
 
-          const isDevBypass = process.env.NODE_ENV === 'development' && code === '123456'
+          const { isTestPhoneBypass } = await import('@/lib/auth/otp')
+          const isDevBypass =
+            (process.env.NODE_ENV === 'development' && code === '123456') ||
+            isTestPhoneBypass(contact, code)
           let otpRecord = null
 
           if (!isDevBypass) {

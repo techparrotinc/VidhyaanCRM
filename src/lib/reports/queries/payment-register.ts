@@ -85,7 +85,7 @@ export const paymentRegister: ReportQuery = {
         receiptNumber: true, paidAt: true, amount: true, method: true,
         status: true, createdById: true,
         student: { select: { name: true, gradeLabel: true } },
-        invoice: { select: { invoiceNumber: true } }
+        invoice: { select: { id: true, invoiceNumber: true } }
       },
       orderBy: { paidAt: 'desc' },
       skip: offset,
@@ -114,6 +114,7 @@ export const paymentRegister: ReportQuery = {
         { key: 'collectedBy', label: 'Collected By' }
       ],
       rows: payments.map(p => ({
+        __href: `/fee-management/${p.invoice.id}`,
         receiptNumber: p.receiptNumber,
         paidAt: p.paidAt,
         student: p.student?.name ?? '—',

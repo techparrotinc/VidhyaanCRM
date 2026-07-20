@@ -8,15 +8,26 @@ import { notifyWhatsApp, orgDisplayName } from '@/lib/whatsapp/notify'
 
 type SessionForNotify = {
   id: string
-  batchId: string
+  // Exactly one of batchId (cohort session) / studentId (per-student custom
+  // schedule session) is set — recipients resolve accordingly.
+  batchId: string | null
+  studentId: string | null
   courseId: string | null
   startsAt: Date
   meetingLink: string | null
 }
 
-async function enrolledGuardians(db: OrgScopedClient, batchId: string) {
+// Recipients: a cohort (batch) session notifies every enrolled guardian; a
+// per-student custom-schedule session notifies just that student's guardian.
+async function enrolledGuardians(
+  db: OrgScopedClient,
+  session: Pick<SessionForNotify, 'batchId' | 'studentId'>
+) {
+  const where = session.batchId
+    ? { batchId: session.batchId, deletedAt: null, guardianPhone: { not: null } }
+    : { id: session.studentId ?? '__none__', deletedAt: null, guardianPhone: { not: null } }
   return db.student.findMany({
-    where: { batchId, deletedAt: null, guardianPhone: { not: null } },
+    where,
     select: { name: true, guardianName: true, guardianPhone: true }
   })
 }
@@ -25,8 +36,15 @@ async function batchOrCourseLabel(
   db: OrgScopedClient,
   session: Pick<SessionForNotify, 'batchId' | 'courseId'>
 ): Promise<string> {
-  const batch = await db.studentBatch.findUnique({ where: { id: session.batchId }, select: { name: true } })
-  return batch?.name ?? 'your class'
+  if (session.batchId) {
+    const batch = await db.studentBatch.findUnique({ where: { id: session.batchId }, select: { name: true } })
+    if (batch?.name) return batch.name
+  }
+  if (session.courseId) {
+    const course = await db.course.findUnique({ where: { id: session.courseId }, select: { name: true } })
+    if (course?.name) return course.name
+  }
+  return 'your class'
 }
 
 export async function notifyClassReminder(
@@ -35,7 +53,7 @@ export async function notifyClassReminder(
   session: SessionForNotify
 ): Promise<number> {
   const [guardians, schoolName, label] = await Promise.all([
-    enrolledGuardians(db, session.batchId),
+    enrolledGuardians(db, session),
     orgDisplayName(orgId),
     batchOrCourseLabel(db, session)
   ])
@@ -68,7 +86,7 @@ export async function notifyClassCancelled(
   reason: string
 ): Promise<number> {
   const [guardians, schoolName, label] = await Promise.all([
-    enrolledGuardians(db, session.batchId),
+    enrolledGuardians(db, session),
     orgDisplayName(orgId),
     batchOrCourseLabel(db, session)
   ])
@@ -101,7 +119,7 @@ export async function notifyClassRescheduled(
   previousStartsAt: Date
 ): Promise<number> {
   const [guardians, schoolName, label] = await Promise.all([
-    enrolledGuardians(db, session.batchId),
+    enrolledGuardians(db, session),
     orgDisplayName(orgId),
     batchOrCourseLabel(db, session)
   ])

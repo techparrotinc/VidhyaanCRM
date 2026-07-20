@@ -18,6 +18,10 @@ const courseSchema = z.object({
   ]).default('MONTHLY'),
   billingDay: z.number().min(1).max(28).default(1),
   durationMonths: z.number().optional(),
+  // Custom-schedule inputs (LC): weekly cadence + total package hours. Drive the
+  // per-student schedule builder's default cadence and the session hours cap.
+  hoursPerWeek: z.number().min(0).max(60).optional().nullable(),
+  totalHours: z.number().min(0).max(2000).optional().nullable(),
   isActive: z.boolean().default(true)
 })
 
@@ -63,6 +67,8 @@ export const POST = route({
         frequency: body.frequency,
         billingDay: body.billingDay,
         durationMonths: body.durationMonths,
+        hoursPerWeek: body.hoursPerWeek ?? null,
+        totalHours: body.totalHours ?? null,
         isActive: body.isActive
       }
     })

@@ -12,6 +12,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
 import { DedupDialog, DedupPayload } from "@/components/dedup/DedupDialog"
 import { AppSelect } from '@/components/ui/app-select'
+import { ScheduleBuilder, type ScheduleValue } from '@/components/students/ScheduleBuilder'
 
 const format = (date: Date, formatStr: string): string => {
   const yyyy = date.getFullYear()
@@ -83,7 +84,8 @@ export default function CreateStudentPage() {
   const [courses, setCourses] = useState<any[]>([])
   const [batches, setBatches] = useState<any[]>([])
   const [courseId, setCourseId] = useState('')
-  const [batchId, setBatchId] = useState('')
+  // Schedule choice for the LC enrol flow (join a batch vs custom weekly slots).
+  const [schedule, setSchedule] = useState<ScheduleValue>({ mode: 'none', batchId: '', slots: [] })
   useEffect(() => {
     if (isLC !== true) return
     fetch('/api/v1/options/courses')
@@ -129,7 +131,7 @@ export default function CreateStudentPage() {
           dateOfBirth: dateOfBirth ? format(dateOfBirth, 'yyyy-MM-dd') : undefined,
           gradeLabel: formData.gradeLabel || undefined,
           section: formData.section.trim() || undefined,
-          batchId: batchId || undefined,
+          batchId: (schedule.mode === 'batch' && schedule.batchId) || undefined,
           rollNumber: formData.rollNumber.trim() || undefined,
           academicYearId: formData.academicYearId || undefined,
           guardianName: formData.guardianName.trim() || undefined,
@@ -161,7 +163,12 @@ export default function CreateStudentPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               courseId,
-              startDate: format(new Date(), 'yyyy-MM-dd')
+              startDate: format(new Date(), 'yyyy-MM-dd'),
+              // Custom weekly schedule → per-student slots + generated sessions.
+              // A batched student uses the cohort schedule, so no slots here.
+              ...(schedule.mode === 'custom' && schedule.slots.length > 0
+                ? { schedule: { slots: schedule.slots, startDate: format(new Date(), 'yyyy-MM-dd') } }
+                : {})
             })
           })
         } catch (err) {
@@ -455,22 +462,12 @@ export default function CreateStudentPage() {
                   ))}
                 </AppSelect>
               </div>
-              <div>
-                <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
-                  Batch
-                </label>
-                <AppSelect
-                  value={batchId}
-                  onChange={e => setBatchId(e.target.value)}
-                  className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] transition"
-                >
-                  <option value="">No batch</option>
-                  {batches.map(b => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}{b.course ? ` (${b.course.name})` : ''}
-                    </option>
-                  ))}
-                </AppSelect>
+              <div className="sm:col-span-2">
+                <ScheduleBuilder
+                  course={selectedCourse ?? null}
+                  batches={batches}
+                  onChange={setSchedule}
+                />
               </div>
               {selectedCourse && (
                 <div className="sm:col-span-2 rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3">

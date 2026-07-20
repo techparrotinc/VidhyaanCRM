@@ -50,18 +50,20 @@ export default function EditStudentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Institution mode + masters
-  const [isLC, setIsLC] = useState(false)
+  // Institution mode + masters. Start null (unknown) and gate the class/batch
+  // fields until org-type resolves — otherwise an LC org briefly renders the
+  // school Class/Section fields before the async fetch flips it.
+  const [isLC, setIsLC] = useState<boolean | null>(null)
   useEffect(() => {
     fetch('/api/v1/settings/org-type')
       .then(r => r.json())
       .then(json => setIsLC(isLearningCentre(json?.data?.institutionType)))
-      .catch(() => {})
+      .catch(() => setIsLC(false))
   }, [])
-  const { options: classOptions } = useClassOptions(!isLC)
+  const { options: classOptions } = useClassOptions(isLC === false)
   const [batches, setBatches] = useState<any[]>([])
   useEffect(() => {
-    if (!isLC) return
+    if (isLC !== true) return
     fetch('/api/v1/options/batches')
       .then(r => r.json())
       .then(json => setBatches(json?.data?.batches ?? []))
@@ -286,7 +288,7 @@ export default function EditStudentPage() {
                   />
                 </div>
 
-                {!isLC && (
+                {isLC === false && (
                   <>
                     <div>
                       <label className={labelClass}>Class</label>
@@ -342,7 +344,7 @@ export default function EditStudentPage() {
                   </>
                 )}
 
-                {isLC && (
+                {isLC === true && (
                   <div>
                     <label className={labelClass}>Batch</label>
                     <AppSelect

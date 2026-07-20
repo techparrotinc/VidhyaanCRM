@@ -6,11 +6,38 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db/client'
 import { nextInvoiceNumber } from '@/lib/invoice-number'
+import { HHMM } from '@/lib/timetable'
+import { materializeEnrollment } from '@/lib/schedule/materialize'
+
+// Optional per-student custom weekly schedule. When present, the student gets
+// their own EnrollmentScheduleSlot rows (individual sessions) — mutually
+// exclusive with joining a batch (a batched student inherits the cohort's
+// shared sessions instead).
+const scheduleSlotSchema = z
+  .object({
+    dayOfWeek: z.coerce.number().int().min(1).max(7),
+    startTime: z.string().regex(HHMM, 'Expected HH:mm'),
+    endTime: z.string().regex(HHMM, 'Expected HH:mm'),
+    durationMin: z.coerce.number().int().positive().optional(),
+    teacherId: z.string().trim().optional().nullable(),
+    room: z.string().trim().max(60).optional().nullable()
+  })
+  .refine(s => s.endTime > s.startTime, {
+    message: 'End time must be after start time',
+    path: ['endTime']
+  })
 
 const enrollSchema = z.object({
   courseId: z.string().min(1),
   startDate: z.string().min(1),
-  endDate: z.string().optional()
+  endDate: z.string().optional(),
+  schedule: z
+    .object({
+      slots: z.array(scheduleSlotSchema).min(1).max(14),
+      startDate: z.string().optional(),
+      endDate: z.string().optional()
+    })
+    .optional()
 })
 
 export const GET = route({
@@ -169,6 +196,63 @@ export const POST = route({
       }
     })
 
-    return created(enrollment)
+    // Per-student custom schedule (optional). A batched student uses the cohort
+    // schedule instead, so reject mixing the two.
+    let sessionsCreated = 0
+    if (body.schedule) {
+      if (student.batchId) {
+        throw Errors.conflict(
+          'This student is in a batch and follows its schedule. Remove them from the batch to set a custom schedule.'
+        )
+      }
+      const slotStart = body.schedule.startDate ? new Date(body.schedule.startDate) : null
+      const slotEnd = body.schedule.endDate ? new Date(body.schedule.endDate) : null
+
+      await db.enrollmentScheduleSlot.createMany({
+        data: body.schedule.slots.map(s => ({
+          orgId: user.orgId,
+          enrollmentId: enrollment.id,
+          studentId: id,
+          courseId: body.courseId,
+          dayOfWeek: s.dayOfWeek,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          durationMin: s.durationMin ?? null,
+          teacherId: s.teacherId || null,
+          room: s.room || null,
+          startDate: slotStart,
+          endDate: slotEnd
+        }))
+      })
+
+      const slots = await db.enrollmentScheduleSlot.findMany({
+        where: { enrollmentId: enrollment.id, deletedAt: null }
+      })
+      sessionsCreated = await materializeEnrollment(
+        db,
+        {
+          id: enrollment.id,
+          orgId: user.orgId,
+          branchId: student.branchId ?? null,
+          academicYearId: student.academicYearId ?? null,
+          courseId: body.courseId,
+          studentId: id,
+          totalHours: course.totalHours ?? null
+        },
+        slots.map(r => ({
+          id: r.id,
+          dayOfWeek: r.dayOfWeek,
+          startTime: r.startTime,
+          endTime: r.endTime,
+          durationMin: r.durationMin,
+          teacherId: r.teacherId,
+          startDate: r.startDate,
+          endDate: r.endDate,
+          isActive: r.isActive
+        }))
+      )
+    }
+
+    return created({ ...enrollment, sessionsCreated })
   }
 })

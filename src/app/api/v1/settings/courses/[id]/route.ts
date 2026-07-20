@@ -19,6 +19,9 @@ const courseSchema = z.object({
   ]).default('MONTHLY'),
   billingDay: z.number().min(1).max(28).default(1),
   durationMonths: z.number().optional(),
+  // Custom-schedule inputs (LC) — see POST /settings/courses.
+  hoursPerWeek: z.number().min(0).max(60).optional().nullable(),
+  totalHours: z.number().min(0).max(2000).optional().nullable(),
   isActive: z.boolean().default(true)
 })
 

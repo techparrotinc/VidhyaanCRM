@@ -403,12 +403,15 @@ export default function StudentDetailPage() {
                 label: 'Grade',
                 value: student.gradeLabel
                   ? `${getGradeLabel(student.gradeLabel)}${(student as any).section ? ` · Section ${(student as any).section}` : ''}`
-                  : null
+                  : null,
+                // Learning centres enrol in courses, not grades — hide the row.
+                hide: institutionType === 'LEARNING_CENTER'
               },
               {
                 icon: <Hash className="w-4 h-4" />,
                 label: 'Roll Number',
-                value: student.rollNumber
+                value: student.rollNumber,
+                hide: institutionType === 'LEARNING_CENTER'
               },
               {
                 icon: <BookOpen className="w-4 h-4" />,
@@ -425,7 +428,7 @@ export default function StudentDetailPage() {
                 label: 'Last Updated',
                 value: format(new Date(student.updatedAt), 'd MMM yyyy')
               }
-            ].map((row, i) => (
+            ].filter(row => !(row as any).hide).map((row, i) => (
               <div key={i} className="flex items-start gap-3 py-3 border-b border-slate-100 last:border-0">
                 <span className="text-slate-400 mt-0.5 flex-shrink-0">
                   {row.icon}

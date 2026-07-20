@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/client'
 import { MODULES } from '@/constants/modules'
-import { materializeBatch, defaultTeacherId } from '@/lib/schedule/materialize'
+import { materializeBatch, materializeEnrollment, defaultTeacherId } from '@/lib/schedule/materialize'
 
 // Daily: rolls every active batch's recurring pattern ~2 weeks ahead into
 // CourseSession rows. Idempotent (materializeBatch never touches an
@@ -41,5 +41,72 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ ok: true, batches: batches.length, created })
+  // Per-student custom schedules: every active enrolment that carries schedule
+  // slots. Grouped by enrolment so the course hours budget is shared correctly.
+  const slots = await prisma.enrollmentScheduleSlot.findMany({
+    where: {
+      orgId: { in: orgIds },
+      deletedAt: null,
+      isActive: true,
+      enrollment: { status: 'ACTIVE' }
+    },
+    include: {
+      enrollment: {
+        select: {
+          id: true,
+          orgId: true,
+          courseId: true,
+          studentId: true,
+          student: { select: { branchId: true, academicYearId: true } },
+          course: { select: { totalHours: true } }
+        }
+      }
+    }
+  })
+
+  const byEnrollment = new Map<string, typeof slots>()
+  for (const s of slots) {
+    const arr = byEnrollment.get(s.enrollmentId) ?? []
+    arr.push(s)
+    byEnrollment.set(s.enrollmentId, arr)
+  }
+
+  let enrollmentsDone = 0
+  for (const [enrollmentId, rows] of byEnrollment) {
+    const e = rows[0].enrollment
+    enrollmentsDone++
+    created += await materializeEnrollment(
+      prisma,
+      {
+        id: e.id,
+        orgId: e.orgId,
+        branchId: e.student.branchId,
+        academicYearId: e.student.academicYearId,
+        courseId: e.courseId,
+        studentId: e.studentId,
+        totalHours: e.course?.totalHours ?? null
+      },
+      rows.map(r => ({
+        id: r.id,
+        dayOfWeek: r.dayOfWeek,
+        startTime: r.startTime,
+        endTime: r.endTime,
+        durationMin: r.durationMin,
+        teacherId: r.teacherId,
+        startDate: r.startDate,
+        endDate: r.endDate,
+        isActive: r.isActive
+      }))
+    ).catch(err => {
+      console.error('Schedule materialize enrolment (cron):', enrollmentId, err)
+      return 0
+    })
+  }
+
+  return NextResponse.json({
+    ok: true,
+    batches: batches.length,
+    enrollments: enrollmentsDone,
+    created
+  })
 }

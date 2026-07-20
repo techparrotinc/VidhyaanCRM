@@ -9,6 +9,7 @@ interface UseStudentsParams {
   search?: string
   status?: string
   gradeLabel?: string
+  courseId?: string
   academicYearId?: string
 }
 
@@ -33,6 +34,13 @@ interface Student {
     id: string
     name: string
   } | null
+  batch: {
+    id: string
+    name: string
+  } | null
+  courseEnrollments: {
+    course: { id: string; name: string }
+  }[]
   admission: {
     id: string
     admissionCode: string
@@ -61,6 +69,7 @@ export function useStudents(
     search,
     status,
     gradeLabel,
+    courseId,
     academicYearId
   } = params
 
@@ -71,6 +80,8 @@ export function useStudents(
   if (status) query.set('status', status)
   if (gradeLabel)
     query.set('gradeLabel', gradeLabel)
+  if (courseId)
+    query.set('courseId', courseId)
   if (academicYearId)
     query.set('academicYearId', academicYearId)
 

@@ -15,11 +15,13 @@ export const GET = route({
 
     const status = searchParams.get('status') ?? undefined
     const gradeLabel = searchParams.get('gradeLabel') ?? undefined
+    const courseId = searchParams.get('courseId') ?? undefined
     const academicYearId = searchParams.get('academicYearId') ?? undefined
 
     const where: any = {}
     if (status) where.status = status
     if (gradeLabel) where.gradeLabel = gradeLabel
+    if (courseId) where.courseEnrollments = { some: { courseId, status: 'ACTIVE' } }
     if (academicYearId) where.academicYearId = academicYearId
 
     const students = await db.student.findMany({

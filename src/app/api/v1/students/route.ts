@@ -103,6 +103,13 @@ export const GET = route({
           academicYear: {
             select: { id: true, name: true }
           },
+          batch: {
+            select: { id: true, name: true }
+          },
+          courseEnrollments: {
+            where: { status: 'ACTIVE' },
+            select: { course: { select: { id: true, name: true } } }
+          },
           admission: {
             select: {
               id: true,

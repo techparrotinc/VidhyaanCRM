@@ -32,6 +32,7 @@ type SessionClient = {
   }
   courseSession: {
     findFirst: (args: any) => Promise<{ id: string } | null>
+    findMany: (args: any) => Promise<Array<{ durationMin: number }>>
     create: (args: any) => Promise<unknown>
   }
 }
@@ -58,6 +59,19 @@ function atTime(date: Date, time: string): Date {
   const d = new Date(date)
   d.setHours(h, m, 0, 0)
   return d
+}
+
+/** JS getDay() (0=Sun..6=Sat) → ISO day-of-week (1=Mon..7=Sun), matching
+ *  EnrollmentScheduleSlot.dayOfWeek and TimetableSlot.dayOfWeek. */
+function isoDayOf(date: Date): number {
+  const d = date.getDay()
+  return d === 0 ? 7 : d
+}
+
+function slotDurationMin(slot: Pick<SchedulePattern, 'durationMin' | 'startTime' | 'endTime'>): number {
+  if (slot.durationMin && slot.durationMin > 0) return slot.durationMin
+  const diff = diffMinutes(slot.startTime, slot.endTime)
+  return diff ?? 60
 }
 
 /** Default teacher for a freshly materialized session: the sole
@@ -154,6 +168,147 @@ export async function materializeBatch(
       // anything but that specific clash is a real failure.
       await db.attendanceSession.delete({ where: { id: attendanceSession.id } }).catch(() => {})
       if (err?.code !== 'P2002') throw err
+    }
+  }
+  return created
+}
+
+/** One student's custom per-course weekly slot (EnrollmentScheduleSlot). */
+export type SchedulePattern = {
+  id: string
+  dayOfWeek: number // ISO 1=Mon..7=Sun
+  startTime: string // HH:mm
+  endTime: string // HH:mm
+  durationMin: number | null
+  teacherId: string | null
+  startDate: Date | null
+  endDate: Date | null
+  isActive: boolean
+}
+
+/** The enrollment these slots belong to, plus the course hours budget. */
+export type EnrollmentContext = {
+  id: string
+  orgId: string
+  branchId: string | null
+  academicYearId: string | null
+  courseId: string | null
+  studentId: string
+  /** Course package hours; generation stops once booked minutes reach it. Null = uncapped. */
+  totalHours: number | null
+}
+
+/**
+ * Materializes per-student sessions for one enrollment's custom schedule slots
+ * from `from` (default today) through `from + horizonDays`. Unlike a batch,
+ * these sessions carry studentId/enrollmentId/scheduleSlotId and are marked for
+ * that single student. All the enrollment's slots share the course `totalHours`
+ * budget across every run — occurrences are booked chronologically until the cap
+ * is hit. Idempotent on (scheduleSlotId, startsAt). Returns rows created.
+ */
+export async function materializeEnrollment(
+  db: SessionClient,
+  enrollment: EnrollmentContext,
+  slots: SchedulePattern[],
+  opts: { from?: Date; horizonDays?: number } = {}
+): Promise<number> {
+  const active = slots.filter(s => s.isActive)
+  if (active.length === 0) return 0
+
+  const horizonDays = opts.horizonDays ?? MATERIALIZE_HORIZON_DAYS
+  const from = opts.from ?? new Date()
+
+  // Shared hours budget across all slots AND past runs. Count already-booked
+  // minutes so re-running the cron never exceeds the package once it's full.
+  const budgetMin =
+    enrollment.totalHours && enrollment.totalHours > 0 ? enrollment.totalHours * 60 : Infinity
+  let usedMin = 0
+  if (budgetMin !== Infinity) {
+    const existing = await db.courseSession.findMany({
+      where: { enrollmentId: enrollment.id, deletedAt: null, status: { not: 'CANCELLED' } },
+      select: { durationMin: true }
+    })
+    usedMin = existing.reduce((s, r) => s + r.durationMin, 0)
+  }
+
+  // Collect candidate occurrences across the horizon, chronologically — so the
+  // hours cap cuts off the latest sessions, not an arbitrary slot.
+  type Occ = { slot: SchedulePattern; startsAt: Date; durationMin: number }
+  const occ: Occ[] = []
+  for (let offset = 0; offset <= horizonDays; offset++) {
+    const day = new Date(from)
+    day.setHours(0, 0, 0, 0)
+    day.setDate(day.getDate() + offset)
+    const iso = isoDayOf(day)
+    for (const slot of active) {
+      if (slot.dayOfWeek !== iso) continue
+      if (slot.startDate && day < new Date(slot.startDate.toDateString())) continue
+      if (slot.endDate && day > new Date(slot.endDate.toDateString())) continue
+      occ.push({ slot, startsAt: atTime(day, slot.startTime), durationMin: slotDurationMin(slot) })
+    }
+  }
+  occ.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
+
+  let created = 0
+  for (const o of occ) {
+    // Cap reached — every later occurrence is over budget too, so stop.
+    if (usedMin + o.durationMin > budgetMin) break
+
+    const already = await db.courseSession.findFirst({
+      where: { scheduleSlotId: o.slot.id, startsAt: o.startsAt },
+      select: { id: true }
+    })
+    if (already) {
+      // Existing row already counted in usedMin's seed only if it was in the
+      // DB at seed time; but occurrences we just created this run are not, so
+      // advance the budget to keep the cap correct within a single run.
+      usedMin += o.durationMin
+      continue
+    }
+
+    const dayMidnight = new Date(o.startsAt)
+    dayMidnight.setHours(0, 0, 0, 0)
+    const endsAt = new Date(o.startsAt.getTime() + o.durationMin * 60_000)
+
+    const attendanceSession = await db.attendanceSession.create({
+      data: {
+        orgId: enrollment.orgId,
+        branchId: enrollment.branchId,
+        academicYearId: enrollment.academicYearId,
+        date: dayMidnight,
+        courseId: enrollment.courseId,
+        studentId: enrollment.studentId,
+        enrollmentId: enrollment.id,
+        scheduleSlotId: o.slot.id,
+        startsAt: o.startsAt,
+        endsAt,
+        deliveryMode: 'IN_PERSON'
+      }
+    })
+
+    try {
+      await db.courseSession.create({
+        data: {
+          orgId: enrollment.orgId,
+          branchId: enrollment.branchId,
+          academicYearId: enrollment.academicYearId,
+          courseId: enrollment.courseId,
+          studentId: enrollment.studentId,
+          enrollmentId: enrollment.id,
+          scheduleSlotId: o.slot.id,
+          teacherId: o.slot.teacherId,
+          startsAt: o.startsAt,
+          durationMin: o.durationMin,
+          status: 'SCHEDULED',
+          attendanceSessionId: attendanceSession.id
+        }
+      })
+      created++
+      usedMin += o.durationMin
+    } catch (err: any) {
+      await db.attendanceSession.delete({ where: { id: attendanceSession.id } }).catch(() => {})
+      if (err?.code !== 'P2002') throw err
+      usedMin += o.durationMin
     }
   }
   return created

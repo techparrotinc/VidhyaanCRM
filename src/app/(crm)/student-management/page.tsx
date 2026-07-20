@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import {
@@ -14,8 +14,10 @@ import { createPortal } from 'react-dom'
 import { useSession } from 'next-auth/react'
 import { useConfirm } from '@/components/ui/confirm-dialog'
 import { useAcademicYearStore } from '@/stores/academic-year.store'
-import { CheckSquare, Trash2, X, Loader2, GraduationCap } from 'lucide-react'
+import { isLearningCentre } from '@/lib/institution'
+import { CheckSquare, Trash2, X, Loader2, GraduationCap, CalendarClock } from 'lucide-react'
 import { AppSelect } from '@/components/ui/app-select'
+import { StudentScheduleModal } from '@/components/students/StudentScheduleModal'
 
 const STATUS_CONFIG = {
   ACTIVE: {
@@ -58,15 +60,22 @@ export default function StudentListingPage() {
   const [activeStatus, setActiveStatus] = useState('')
   const [search, setSearch] = useState('')
   const [gradeLabel, setGradeLabel] = useState('')
+  const [courseId, setCourseId] = useState('')
+  const [courseOptions, setCourseOptions] = useState<{ id: string; name: string }[]>([])
   const [page, setPage] = useState(1)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [actionMenuId, setActionMenuId] = useState<string | null>(null)
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
+  // Schedule modal (LC only) — set an enrolled student's weekly classes inline.
+  const [scheduleFor, setScheduleFor] = useState<{ id: string; name: string } | null>(null)
 
   const router = useRouter()
   const { data: session } = useSession()
   const confirm = useConfirm()
   const isOrgAdmin = session?.user?.role === 'ORG_ADMIN'
+  // LC orgs enrol students in courses/programs, not grades — the list swaps the
+  // Grade column + filter for a Course column + course filter.
+  const isLc = isLearningCentre(session?.user?.institutionType)
   const canInviteToPortal = ['ORG_ADMIN', 'BRANCH_ADMIN'].includes(session?.user?.role ?? '')
   const [bulkBusy, setBulkBusy] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
@@ -85,8 +94,23 @@ export default function StudentListingPage() {
     search,
     status: activeStatus || undefined,
     gradeLabel: gradeLabel || undefined,
+    courseId: courseId || undefined,
     academicYearId: selectedYearId || undefined
   })
+
+  // Course filter feed — LC orgs only.
+  useEffect(() => {
+    if (!isLc) return
+    fetch('/api/v1/options/courses')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        const courses = data?.data?.courses ?? data?.courses
+        if (Array.isArray(courses)) {
+          setCourseOptions(courses.map((c: any) => ({ id: c.id, name: c.name })))
+        }
+      })
+      .catch(() => { })
+  }, [isLc])
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -218,11 +242,13 @@ export default function StudentListingPage() {
       params.set('status', activeStatus)
     if (gradeLabel)
       params.set('gradeLabel', gradeLabel)
+    if (courseId)
+      params.set('courseId', courseId)
     window.open(
       `/api/v1/students/export?${params}`,
       '_blank'
     )
-  }, [activeStatus, gradeLabel])
+  }, [activeStatus, gradeLabel, courseId])
 
   const MIN_ROWS = 8
   const emptyRowCount = Math.max(
@@ -314,22 +340,40 @@ export default function StudentListingPage() {
               />
             </div>
 
-            {/* Grade filter */}
-            <AppSelect
-              value={gradeLabel}
-              onChange={e => {
-                setGradeLabel(e.target.value)
-                setPage(1)
-              }}
-              className="h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:border-[#1565D8] transition flex-shrink-0 min-w-[120px]"
-            >
-              <option value="">All Grades</option>
-              {GRADE_OPTIONS.map(g => (
-                <option key={g.value} value={g.label}>
-                  {g.label}
-                </option>
-              ))}
-            </AppSelect>
+            {/* Grade / Course filter */}
+            {isLc ? (
+              <AppSelect
+                value={courseId}
+                onChange={e => {
+                  setCourseId(e.target.value)
+                  setPage(1)
+                }}
+                className="h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:border-[#1565D8] transition flex-shrink-0 min-w-[120px]"
+              >
+                <option value="">All Courses</option>
+                {courseOptions.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </AppSelect>
+            ) : (
+              <AppSelect
+                value={gradeLabel}
+                onChange={e => {
+                  setGradeLabel(e.target.value)
+                  setPage(1)
+                }}
+                className="h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:border-[#1565D8] transition flex-shrink-0 min-w-[120px]"
+              >
+                <option value="">All Grades</option>
+                {GRADE_OPTIONS.map(g => (
+                  <option key={g.value} value={g.label}>
+                    {g.label}
+                  </option>
+                ))}
+              </AppSelect>
+            )}
 
             {/* Export button */}
             <button
@@ -375,7 +419,7 @@ export default function StudentListingPage() {
                     Student
                   </th>
                   <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                    Grade
+                    {isLc ? 'Course' : 'Grade'}
                   </th>
                   <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                     Connect
@@ -484,9 +528,25 @@ export default function StudentListingPage() {
                             </div>
                           </td>
 
-                          {/* Grade */}
+                          {/* Grade / Course */}
                           <td className="px-3 py-2.5">
-                            {student.gradeLabel ? (
+                            {isLc ? (
+                              (() => {
+                                const courseNames = (student.courseEnrollments ?? [])
+                                  .map(e => e.course?.name)
+                                  .filter(Boolean) as string[]
+                                const label = courseNames[0] ?? student.batch?.name
+                                if (!label) {
+                                  return <span className="text-xs text-slate-400">—</span>
+                                }
+                                return (
+                                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                                    {label}
+                                    {courseNames.length > 1 ? ` +${courseNames.length - 1}` : ''}
+                                  </span>
+                                )
+                              })()
+                            ) : student.gradeLabel ? (
                               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
                                 {student.gradeLabel}
                                 {student.section ? ` · ${student.section}` : ''}
@@ -680,6 +740,18 @@ export default function StudentListingPage() {
                 className="w-full px-4 py-2 text-sm text-left text-slate-700 hover:bg-slate-50 transition-colors">
                 Edit
               </button>
+              {isLc && (
+                <button
+                  onClick={() => {
+                    const s = students.find((st: any) => st.id === actionMenuId)
+                    setScheduleFor({ id: actionMenuId, name: s?.name ?? 'Student' })
+                    setActionMenuId(null)
+                  }}
+                  className="w-full flex items-center gap-1.5 px-4 py-2 text-sm text-left text-slate-700 hover:bg-slate-50 transition-colors">
+                  <CalendarClock className="w-3.5 h-3.5" />
+                  Set Schedule
+                </button>
+              )}
               {canInviteToPortal && (
                 <button
                   onClick={() => handleInviteToPortal(actionMenuId)}
@@ -701,6 +773,15 @@ export default function StudentListingPage() {
           document.body
         )
       }
+
+      {scheduleFor && (
+        <StudentScheduleModal
+          studentId={scheduleFor.id}
+          studentName={scheduleFor.name}
+          onClose={() => setScheduleFor(null)}
+          onSaved={() => mutate()}
+        />
+      )}
 
     </div>
   )

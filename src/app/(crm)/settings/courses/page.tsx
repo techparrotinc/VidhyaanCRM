@@ -60,6 +60,8 @@ export default function CoursesSettingsPage() {
     frequency: 'MONTHLY',
     billingDay: '1',
     durationMonths: '',
+    hoursPerWeek: '',
+    totalHours: '',
     isActive: true
   })
 
@@ -103,6 +105,8 @@ export default function CoursesSettingsPage() {
       frequency: 'MONTHLY',
       billingDay: '1',
       durationMonths: '',
+      hoursPerWeek: '',
+      totalHours: '',
       isActive: true
     })
     setEditingCourse(null)
@@ -142,6 +146,8 @@ export default function CoursesSettingsPage() {
           durationMonths: form.durationMonths
             ? Number(form.durationMonths)
             : undefined,
+          hoursPerWeek: form.hoursPerWeek ? Number(form.hoursPerWeek) : null,
+          totalHours: form.totalHours ? Number(form.totalHours) : null,
           isActive: form.isActive
         })
       })
@@ -172,6 +178,8 @@ export default function CoursesSettingsPage() {
       durationMonths: course.durationMonths
         ? String(course.durationMonths)
         : '',
+      hoursPerWeek: course.hoursPerWeek != null ? String(course.hoursPerWeek) : '',
+      totalHours: course.totalHours != null ? String(course.totalHours) : '',
       isActive: course.isActive
     })
     setShowForm(true)
@@ -193,9 +201,11 @@ export default function CoursesSettingsPage() {
       {/* ── HEADER ── */}
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="text-lg font-bold text-slate-900">Courses &amp; Batches</h1>
+          <h1 className="text-lg font-bold text-slate-900">Courses &amp; Group Classes</h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Define the courses your center offers and the batches students attend.
+            Define the courses your center offers. Most students get an individual
+            schedule when enrolled — group classes are optional, for courses taught
+            to several students together at a fixed time.
           </p>
         </div>
         {tab === 'courses' && (
@@ -218,13 +228,13 @@ export default function CoursesSettingsPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2.5 text-sm font-semibold capitalize transition-all ${
+            className={`px-4 py-2.5 text-sm font-semibold transition-all ${
               tab === t
                 ? 'text-[#1565D8] border-b-[3px] border-[#1565D8] mb-[-1px]'
                 : 'text-slate-600 hover:text-slate-800'
             }`}
           >
-            {t}
+            {t === 'batches' ? 'Group Classes' : 'Courses'}
           </button>
         ))}
       </div>
@@ -365,6 +375,43 @@ export default function CoursesSettingsPage() {
               />
               <p className="text-[11px] text-slate-400">
                 Leave blank for ongoing courses with no fixed end date
+              </p>
+            </div>
+
+            {/* Schedule hours — drive the per-student custom-schedule builder */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">
+                Hours per week
+              </label>
+              <input
+                name="hoursPerWeek"
+                type="number"
+                min={0}
+                step="0.5"
+                value={form.hoursPerWeek}
+                onChange={handleChange}
+                placeholder="e.g. 1"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-[11px] text-slate-400">
+                Sets the default weekly cadence when scheduling a student
+              </p>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">
+                Total hours (package)
+              </label>
+              <input
+                name="totalHours"
+                type="number"
+                min={0}
+                value={form.totalHours}
+                onChange={handleChange}
+                placeholder="Leave blank for ongoing"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-[11px] text-slate-400">
+                Custom-schedule sessions stop once these hours are used up
               </p>
             </div>
           </div>

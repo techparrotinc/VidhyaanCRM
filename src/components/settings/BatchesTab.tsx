@@ -17,6 +17,7 @@ type Batch = {
   daysOfWeek: string[]
   startTime: string | null
   endTime: string | null
+  sessionDurationMin: number | null
   capacity: number | null
   isActive: boolean
   _count: { students: number }
@@ -30,6 +31,7 @@ const emptyForm = {
   daysOfWeek: [] as string[],
   startTime: '',
   endTime: '',
+  sessionDurationMin: '',
   capacity: '',
   isActive: true
 }
@@ -74,6 +76,7 @@ export function BatchesTab() {
       daysOfWeek: b.daysOfWeek,
       startTime: b.startTime ?? '',
       endTime: b.endTime ?? '',
+      sessionDurationMin: b.sessionDurationMin ? String(b.sessionDurationMin) : '',
       capacity: b.capacity ? String(b.capacity) : '',
       isActive: b.isActive
     })
@@ -91,7 +94,7 @@ export function BatchesTab() {
 
   const save = async () => {
     if (!form.name.trim()) {
-      setError('Batch name is required')
+      setError('Group class name is required')
       return
     }
     setSaving(true)
@@ -102,6 +105,7 @@ export function BatchesTab() {
       daysOfWeek: form.daysOfWeek,
       startTime: form.startTime || null,
       endTime: form.endTime || null,
+      sessionDurationMin: form.sessionDurationMin ? Number(form.sessionDurationMin) : null,
       capacity: form.capacity ? Number(form.capacity) : null,
       isActive: form.isActive
     }
@@ -130,7 +134,7 @@ export function BatchesTab() {
     }
     const okToDelete = await confirm({
       title: `Delete ${b.name}?`,
-      message: 'The batch will no longer appear in lead forms, student assignment or attendance.',
+      message: 'The group class will no longer appear in enquiry forms, student assignment or attendance.',
       confirmLabel: 'Delete'
     })
     if (!okToDelete) return
@@ -151,15 +155,17 @@ export function BatchesTab() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-slate-500">
-          Batches group students into recurring cohorts — used in enquiry forms, student
-          assignment and attendance sessions.
+          Group classes are an <span className="font-medium text-slate-600">optional</span> way to
+          teach several students together at a fixed time and mark them on one shared attendance
+          sheet. Students who follow their own timing get an individual schedule when enrolled — no
+          group class needed.
         </p>
         <button
           onClick={openCreate}
           className="flex items-center gap-2 px-3 py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap flex-shrink-0"
         >
           <Plus className="w-4 h-4" />
-          Add Batch
+          Add Group Class
         </button>
       </div>
 
@@ -172,7 +178,7 @@ export function BatchesTab() {
       {showForm && (
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <h2 className="text-sm font-semibold text-slate-700 mb-4">
-            {editing ? 'Edit Batch' : 'Add New Batch'}
+            {editing ? 'Edit Group Class' : 'Add New Group Class'}
           </h2>
           {error && (
             <div className="mb-4 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -182,12 +188,12 @@ export function BatchesTab() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-slate-600">
-                Batch Name<span className="text-red-500 ml-0.5">*</span>
+                Group Class Name<span className="text-red-500 ml-0.5">*</span>
               </label>
               <input
                 value={form.name}
                 onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                placeholder="e.g. Morning Batch, Weekend Level 2"
+                placeholder="e.g. Guitar Beginners, Weekend Level 2"
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -242,6 +248,21 @@ export function BatchesTab() {
               />
             </div>
             <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-600">Session length (min)</label>
+              <input
+                type="number"
+                min={5}
+                max={480}
+                value={form.sessionDurationMin}
+                onChange={e => setForm(p => ({ ...p, sessionDurationMin: e.target.value }))}
+                placeholder="Defaults to start–end gap"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-[11px] text-slate-400">
+                Each session&apos;s length. Blank = the start–end time gap.
+              </p>
+            </div>
+            <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-slate-600">Capacity</label>
               <input
                 type="number"
@@ -270,7 +291,7 @@ export function BatchesTab() {
               disabled={saving}
               className="px-4 py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
-              {saving ? 'Saving...' : editing ? 'Update Batch' : 'Save Batch'}
+              {saving ? 'Saving...' : editing ? 'Update Group Class' : 'Save Group Class'}
             </button>
             <button
               onClick={() => setShowForm(false)}
@@ -290,7 +311,7 @@ export function BatchesTab() {
         ) : batches.length === 0 ? (
           <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
             <Layers className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm font-medium text-slate-500">No batches yet</p>
+            <p className="text-sm font-medium text-slate-500">No group classes yet</p>
             <p className="text-xs text-slate-400 mt-1">
               Add batches like Morning, Evening or Weekend to organise students
             </p>

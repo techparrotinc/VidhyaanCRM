@@ -17,7 +17,9 @@ export const GET = route({
         amount: true,
         frequency: true,
         billingDay: true,
-        durationMonths: true
+        durationMonths: true,
+        hoursPerWeek: true,
+        totalHours: true
       },
       orderBy: { name: 'asc' }
     })

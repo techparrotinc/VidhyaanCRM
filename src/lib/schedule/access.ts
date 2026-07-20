@@ -32,10 +32,10 @@ export function teacherSessionWhere(targets: { courseIds: string[]; batchIds: st
 
 function matchesTarget(
   targets: { courseIds: string[]; batchIds: string[] },
-  session: { courseId: string | null; batchId: string }
+  session: { courseId: string | null; batchId: string | null }
 ): boolean {
   if (session.courseId && targets.courseIds.includes(session.courseId)) return true
-  return targets.batchIds.includes(session.batchId)
+  return session.batchId != null && targets.batchIds.includes(session.batchId)
 }
 
 /** Throws 403 unless the user may act on this session (reschedule/cancel = admin only). */
@@ -53,7 +53,7 @@ export function assertCanManage(user: { role: string }): void {
 export async function assertCanAct(
   db: OrgScopedClient,
   user: { id: string; role: string },
-  session: { courseId: string | null; batchId: string }
+  session: { courseId: string | null; batchId: string | null }
 ): Promise<void> {
   if (SCHEDULE_ADMIN_ROLES.includes(user.role)) return
   if (user.role !== ROLES.TEACHER) throw Errors.forbidden('Your role cannot perform this action')

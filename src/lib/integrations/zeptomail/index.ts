@@ -9,10 +9,16 @@ const CAMPAIGN_NAME = 'Vidhyaan Campaigns'
 // Client built lazily from resolved config (admin DB value → env fallback) and
 // cached by token so admin credential changes take effect without a restart.
 let cachedClient: { token: string; client: SendMailClient } | null = null
-function clientForToken(token: string): SendMailClient {
-  if (cachedClient && cachedClient.token === token) return cachedClient.client
+function clientForToken(rawToken: string): SendMailClient {
+  if (cachedClient && cachedClient.token === rawToken) return cachedClient.client
+  // The SDK sends this string verbatim as the Authorization header — it does
+  // NOT add the "Zoho-enczapikey " scheme itself. Tokens pasted from the
+  // Zeptomail dashboard sometimes lose that prefix (env files / linters tend
+  // to mangle values containing a space), so normalize it here instead of
+  // depending on the stored value being exact.
+  const token = rawToken.startsWith('Zoho-enczapikey ') ? rawToken : `Zoho-enczapikey ${rawToken}`
   const client = new SendMailClient({ url: 'api.zeptomail.in/', token })
-  cachedClient = { token, client }
+  cachedClient = { token: rawToken, client }
   return client
 }
 

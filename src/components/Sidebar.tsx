@@ -30,6 +30,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useUIStore } from '@/stores/ui.store'
+import { isLearningCentre } from '@/lib/institution'
 
 interface SidebarProps {
   isMobile?: boolean
@@ -52,6 +53,7 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
   const [profileCompletion, setProfileCompletion] = useState<number | null>(null)
   const [enabledModules, setEnabledModules] = useState<string[]>([])
   const [orgName, setOrgName] = useState('')
+  const [institutionType, setInstitutionType] = useState<string | null>(null)
   const [unreadLeadsCount, setUnreadLeadsCount] = useState(0)
   const [setupPct, setSetupPct] = useState<number | null>(null)
 
@@ -86,6 +88,9 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
           }
           if (data.orgName) {
             setOrgName(data.orgName)
+          }
+          if (data.institutionType) {
+            setInstitutionType(data.institutionType)
           }
         }
       })
@@ -164,8 +169,21 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
 
   const userRole = session?.user?.role || 'SCHOOL_ADMIN'
 
-  // Filter items based on user roles
+  // admission_management is school-only — learning-centre orgs use enrolment,
+  // so the item is hidden entirely (not shown locked with an upgrade prompt).
+  // school-profile is ORG_ADMIN-only, so non-admin roles fall back to the
+  // institutionType carried on the session token.
+  const lc = isLearningCentre(institutionType ?? (session?.user as any)?.institutionType ?? null)
+
+  // Filter items based on user roles + institution type
   const filteredItems = menuItems.filter((item) => {
+    if (lc && item.module === 'admission_management') return false
+    // Timetable (recurring class/section PLAN) is a school concept; Schedule
+    // (dated session OCCURRENCES to act on) is the learning-centre tool. Show
+    // each org exactly one so the two don't read as redundant. Schools gain
+    // Schedule once timetable→session generation ships (Phase C).
+    if (lc && item.href === '/timetable') return false
+    if (!lc && item.href === '/schedule') return false
     if (!item.roles) return true
     return item.roles.includes(userRole)
   })

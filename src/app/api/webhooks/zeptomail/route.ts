@@ -33,11 +33,16 @@ function collect(node: unknown, names: Set<string>, recipients: Map<string, stri
   }
 }
 
+// Zepto's own "Verify" reachability probe sends no auth (its panel says
+// "API call should be unauthenticated") and its body shape is undocumented —
+// seen both empty and `{}`. Always parse and walk the payload first so any
+// probe with no recognizable event_name short-circuits to 200; the shared
+// secret is only enforced once there's an actual bounce event to act on.
+export async function GET() {
+  return NextResponse.json({ success: true, message: 'zeptomail webhook endpoint' })
+}
+
 export async function POST(req: NextRequest) {
-  // Zepto's own "Verify" reachability probe sends no body/auth (its panel
-  // says "API call should be unauthenticated") — always parse first so that
-  // probe gets a clean 200 before any secret check runs. Real bounce events
-  // are checked for the shared secret only once we have JSON to act on.
   let payload: unknown
   try {
     payload = await req.json()
@@ -45,19 +50,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, message: 'ignored non-JSON body' })
   }
 
-  const secret = process.env.ZEPTOMAIL_WEBHOOK_SECRET
-  if (secret) {
-    const provided =
-      req.headers.get('x-webhook-key') ?? req.nextUrl.searchParams.get('key')
-    if (provided !== secret) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-    }
-  }
-
   try {
     const names = new Set<string>()
     const recipients = new Map<string, string>()
     collect(payload, names, recipients, { text: '' })
+
+    if (names.size === 0) {
+      // No recognizable event — treat as a reachability probe, not a real event.
+      return NextResponse.json({ success: true, message: 'no event_name in payload' })
+    }
+
+    const secret = process.env.ZEPTOMAIL_WEBHOOK_SECRET
+    if (secret) {
+      const provided =
+        req.headers.get('x-webhook-key') ?? req.nextUrl.searchParams.get('key')
+      if (provided !== secret) {
+        return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+      }
+    }
 
     const isHard = names.has('hardbounce')
     console.log(

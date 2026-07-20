@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
+import { isLearningCentre } from '@/lib/institution'
 
 export const SLAB_CAPACITY: Record<string, number> = {
   S50: 50,
@@ -36,13 +37,23 @@ export async function syncBundledAiAllowance(orgId: string, planId: string, slab
 // purchase) live outside plan licensing — a plan change must never revoke them.
 const PLAN_INDEPENDENT_MODULES = new Set(['sms_addon', 'whatsapp_addon'])
 
+// admission_management is a school-only surface — LC orgs use enrolment instead.
+// Any plan may grant it, but it must never light up for a learning-centre org.
+const SCHOOL_ONLY_MODULES = new Set(['admission_management'])
+
 /** Remap an org's modules to exactly the given plan's module set. */
 export async function remapOrgModulesToPlan(orgId: string, planId: string): Promise<string[]> {
-  const [planModules, allModules] = await Promise.all([
+  const [planModules, allModules, org] = await Promise.all([
     prisma.planModule.findMany({ where: { planId }, select: { moduleSlug: true } }),
-    prisma.module.findMany({ select: { id: true, slug: true } })
+    prisma.module.findMany({ select: { id: true, slug: true } }),
+    prisma.organization.findUnique({ where: { id: orgId }, select: { institutionType: true } })
   ])
   const planSlugs = new Set(planModules.map((pm) => pm.moduleSlug))
+  // Drop school-only modules for learning-centre orgs so admission management
+  // stays disabled by default regardless of what the plan grants.
+  if (isLearningCentre(org?.institutionType)) {
+    for (const slug of SCHOOL_ONLY_MODULES) planSlugs.delete(slug)
+  }
   for (const mod of allModules) {
     if (PLAN_INDEPENDENT_MODULES.has(mod.slug)) continue
     const shouldEnable = planSlugs.has(mod.slug)

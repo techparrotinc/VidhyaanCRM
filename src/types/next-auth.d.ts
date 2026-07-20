@@ -14,6 +14,7 @@ declare module 'next-auth' {
       impersonatorId: string | null
       impersonationExpiresAt: number | null
       mustEnrol2fa: boolean
+      institutionType: string | null
     } & DefaultSession['user']
   }
 
@@ -28,6 +29,7 @@ declare module 'next-auth' {
     impersonatorId: string | null
     impersonationExpiresAt: number | null
     mustEnrol2fa: boolean
+    institutionType: string | null
   }
 }
 
@@ -43,5 +45,6 @@ declare module 'next-auth/jwt' {
     impersonatorId: string | null
     impersonationExpiresAt: number | null
     mustEnrol2fa: boolean
+    institutionType: string | null
   }
 }

@@ -4,6 +4,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { recalculateAndSaveSchoolScores } from '@/lib/school-profile-helper'
 import { redis } from '@/lib/redis'
+import { isLearningCentre } from '@/lib/institution'
 
 const intLike = z.union([z.string().max(20), z.number()]).transform((v) => String(v)).optional().nullable()
 const str = (max: number) => z.string().max(max).optional().nullable()
@@ -99,12 +100,19 @@ export async function GET(req: NextRequest) {
       if (em.module?.slug) enabledModulesSet.add(em.module.slug)
     })
 
+    // admission_management is school-only. The plan grant above may include it,
+    // but learning-centre orgs use enrolment instead — never surface it for them.
+    if (isLearningCentre(school.institutionType)) {
+      enabledModulesSet.delete('admission_management')
+    }
+
     const enabledModules = Array.from(enabledModulesSet)
 
     return NextResponse.json({
       success: true,
       school,
       orgName: org?.name || school.name,
+      institutionType: school.institutionType,
       enabledModules
     })
   } catch (error: any) {

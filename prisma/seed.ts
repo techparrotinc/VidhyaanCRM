@@ -146,12 +146,15 @@ async function main() {
     ]
   })
 
-  // CRM Package (starter): lead, admission & campaign management
+  // CRM Package (starter): lead, admission, student & campaign management.
+  // admission_management is granted here but stays school-only — remapOrgModulesToPlan
+  // filters it out for learning-centre orgs (see lifecycle.ts).
   await prisma.planModule.createMany({
     data: [
       'lead_management',
       'admission_management',
       'admission_workflow',
+      'student_management',
       'campaign_management',
       'event_management',
       'forms_requests',

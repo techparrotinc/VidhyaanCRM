@@ -466,9 +466,10 @@ const authConfig: NextAuthConfig = {
           try {
             const org = await prisma.organization.findUnique({
               where: { id: orgId },
-              select: { settings: true }
+              select: { settings: true, institutionType: true }
             })
             token.onboardingComplete = !!((org?.settings as any)?.onboardingIsComplete)
+            token.institutionType = org?.institutionType ?? null
           } catch (e) {
             console.error('jwt onboarding flag resolve error:', e)
           }
@@ -531,6 +532,7 @@ const authConfig: NextAuthConfig = {
         session.user.impersonatorId = (token.impersonatorId as string | null) ?? null
         session.user.impersonationExpiresAt = (token.impersonationExpiresAt as number | null) ?? null
         session.user.mustEnrol2fa = !!token.mustEnrol2fa
+        session.user.institutionType = (token.institutionType as string | null) ?? null
       }
       return session
     }

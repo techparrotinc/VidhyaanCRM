@@ -34,6 +34,17 @@ function collect(node: unknown, names: Set<string>, recipients: Map<string, stri
 }
 
 export async function POST(req: NextRequest) {
+  // Zepto's own "Verify" reachability probe sends no body/auth (its panel
+  // says "API call should be unauthenticated") — always parse first so that
+  // probe gets a clean 200 before any secret check runs. Real bounce events
+  // are checked for the shared secret only once we have JSON to act on.
+  let payload: unknown
+  try {
+    payload = await req.json()
+  } catch {
+    return NextResponse.json({ success: true, message: 'ignored non-JSON body' })
+  }
+
   const secret = process.env.ZEPTOMAIL_WEBHOOK_SECRET
   if (secret) {
     const provided =
@@ -41,13 +52,6 @@ export async function POST(req: NextRequest) {
     if (provided !== secret) {
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
     }
-  }
-
-  let payload: unknown
-  try {
-    payload = await req.json()
-  } catch {
-    return NextResponse.json({ success: true, message: 'ignored non-JSON body' })
   }
 
   try {

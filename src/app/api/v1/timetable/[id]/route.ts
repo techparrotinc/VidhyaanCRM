@@ -1,18 +1,27 @@
 import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
-import { ROLES } from '@/constants/roles'
-import { slotSchema, normalizeSlot, assertNoOverlap } from '@/lib/timetable'
+import {
+  slotSchema,
+  normalizeSlot,
+  assertNoOverlap,
+  canManageSlot,
+  TIMETABLE_ADMIN_ROLES,
+  TIMETABLE_MANAGE_ROLES
+} from '@/lib/timetable'
 
-const ADMIN_ROLES = [ROLES.ORG_ADMIN, ROLES.BRANCH_ADMIN]
-
+// Edit a period (incl. in-place subject change). Admins edit any slot; a
+// teacher may edit their OWN periods only.
 export const PATCH = route({
-  roles: ADMIN_ROLES,
-  handler: async ({ req, db, params }) => {
+  roles: TIMETABLE_MANAGE_ROLES,
+  handler: async ({ req, db, user, params }) => {
     const id = (await params)?.id
     if (!id) throw Errors.notFound('Timetable slot not found')
     const existing = await db.timetableSlot.findFirst({ where: { id } })
     if (!existing) throw Errors.notFound('Timetable slot not found')
+    if (!canManageSlot(user, existing)) {
+      throw Errors.forbidden('You can only edit your own periods')
+    }
 
     const body = normalizeSlot(slotSchema.parse(await req.json()))
     await assertNoOverlap(db, body, id)
@@ -36,8 +45,9 @@ export const PATCH = route({
   }
 })
 
+// Hard delete stays admin-only — cancel (recurring/one-off) is the teacher path.
 export const DELETE = route({
-  roles: ADMIN_ROLES,
+  roles: TIMETABLE_ADMIN_ROLES,
   handler: async ({ db, params }) => {
     const id = (await params)?.id
     if (!id) throw Errors.notFound('Timetable slot not found')

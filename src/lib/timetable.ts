@@ -1,7 +1,29 @@
 import { z } from 'zod'
 import { Errors } from '@/lib/api/errors'
+import { ROLES } from '@/constants/roles'
 
 export const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/
+
+export const TIMETABLE_ADMIN_ROLES = [ROLES.ORG_ADMIN, ROLES.BRANCH_ADMIN]
+// Read access includes teachers; edit/swap/cancel is admin OR the slot's own
+// teacher (a teacher managing their own periods).
+export const TIMETABLE_MANAGE_ROLES = [ROLES.ORG_ADMIN, ROLES.BRANCH_ADMIN, ROLES.TEACHER]
+
+/** True if this user may edit/swap/cancel the given slot. */
+export function canManageSlot(
+  user: { id: string; role: string },
+  slot: { teacherId: string | null }
+): boolean {
+  if (TIMETABLE_ADMIN_ROLES.includes(user.role as any)) return true
+  return user.role === ROLES.TEACHER && slot.teacherId === user.id
+}
+
+/** ISO date (YYYY-MM-DD) for a slot's occurrence in the week starting `weekStart` (Monday). */
+export function slotDateInWeek(weekStartISO: string, dayOfWeek: number): string {
+  const d = new Date(`${weekStartISO}T00:00:00.000Z`)
+  d.setUTCDate(d.getUTCDate() + (dayOfWeek - 1))
+  return d.toISOString().slice(0, 10)
+}
 
 export const slotSchema = z.object({
   gradeLabel: z.string().trim().min(1).max(100),

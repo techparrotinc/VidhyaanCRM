@@ -715,6 +715,8 @@ model Organization {
   attendanceSessions    AttendanceSession[]
   teacherAssignments    TeacherAssignment[]
   courseSessions        CourseSession[]
+  scheduleSlots         EnrollmentScheduleSlot[]
+  timetableExceptions   TimetableException[]
   holidays              Holiday[]
   biometricDevices      BiometricDevice[]
   biometricIdentities   BiometricIdentity[]
@@ -1367,21 +1369,21 @@ model TrialClassBooking {
 
 /// Parent account (external actor; mobile-OTP first). Not tenant-scoped.
 model Parent {
-  id        String    @id @default(cuid())
-  phone     String    @unique
+  id           String    @id @default(cuid())
+  phone        String    @unique
   // Every phone this account has ever used — the fallback link that scopes a
   // parent to a Student (linkedStudentsWhere) matches on Student.guardianPhone
   // matching the CURRENT phone. Without this, changing your phone silently
   // drops a student whose school record still has the old number, unless an
   // explicit StudentGuardianLink (parentId-keyed) already covers it.
-  phoneHistory String[] @default([]) @map("phone_history")
-  email     String?   @unique
-  name      String?
-  city      String?
-  pinHash   String?   @map("pin_hash")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  phoneHistory String[]  @default([]) @map("phone_history")
+  email        String?   @unique
+  name         String?
+  city         String?
+  pinHash      String?   @map("pin_hash")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
 
   kids            KidProfile[]
   enquiries       ParentEnquiry[]
@@ -2110,17 +2112,17 @@ model Student {
   phoneNormalized String? @map("phone_normalized") // cleanPhoneNumber(guardianPhone)
   householdId     String? @map("household_id")
 
-  organization        Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  branch              Branch?               @relation(fields: [branchId], references: [id])
-  academicYear        AcademicYear?         @relation(fields: [academicYearId], references: [id])
-  admission           Admission?            @relation(fields: [admissionId], references: [id])
-  batch               StudentBatch?         @relation(fields: [batchId], references: [id])
-  household           Household?            @relation(fields: [householdId], references: [id])
+  organization        Organization             @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  branch              Branch?                  @relation(fields: [branchId], references: [id])
+  academicYear        AcademicYear?            @relation(fields: [academicYearId], references: [id])
+  admission           Admission?               @relation(fields: [admissionId], references: [id])
+  batch               StudentBatch?            @relation(fields: [batchId], references: [id])
+  household           Household?               @relation(fields: [householdId], references: [id])
   invoices            Invoice[]
   payments            Payment[]
   concessions         Concession[]
-  siblingLinksA       SiblingLink[]         @relation("SiblingPrimary")
-  siblingLinksB       SiblingLink[]         @relation("SiblingRelated")
+  siblingLinksA       SiblingLink[]            @relation("SiblingPrimary")
+  siblingLinksB       SiblingLink[]            @relation("SiblingRelated")
   activities          StudentActivity[]
   courseEnrollments   CourseEnrollment[]
   ledgerEntries       LedgerEntry[]
@@ -2129,6 +2131,7 @@ model Student {
   biometricIdentities BiometricIdentity[]
   leaveRequests       LeaveRequest[]
   examResults         ExamResult[]
+  scheduleSlots       EnrollmentScheduleSlot[]
 
   @@unique([orgId, studentCode])
   @@index([orgId, createdAt])
@@ -2449,22 +2452,22 @@ model Concession {
 
 /// Internal CRM event (calendar/meeting); distinct from public open days.
 model Event {
-  id             String      @id @default(cuid())
-  orgId          String      @map("org_id")
-  branchId       String?     @map("branch_id")
-  academicYearId String?     @map("academic_year_id")
-  title          String
-  description    String?
-  type           String? // OPEN_HOUSE, PTM, ANNUAL_DAY... / DEMO_CLASS, WORKSHOP... (institution-specific labels)
-  capacity       Int?
-  status         EventStatus @default(DRAFT) // DRAFT editable; PUBLISHED locked (cancel only)
-  isPublished    Boolean     @default(false) @map("is_published") // deprecated by status; kept until phase 2 decides marketplace flag
-  startsAt       DateTime    @map("starts_at")
-  endsAt         DateTime?   @map("ends_at")
-  location       String?
-  meetingLink    String?     @map("meeting_link") // manual Zoom link Phase 1
-  imageUrl       String?     @map("image_url") // S3 cover image
-  publishedAt    DateTime?   @map("published_at")
+  id              String      @id @default(cuid())
+  orgId           String      @map("org_id")
+  branchId        String?     @map("branch_id")
+  academicYearId  String?     @map("academic_year_id")
+  title           String
+  description     String?
+  type            String? // OPEN_HOUSE, PTM, ANNUAL_DAY... / DEMO_CLASS, WORKSHOP... (institution-specific labels)
+  capacity        Int?
+  status          EventStatus @default(DRAFT) // DRAFT editable; PUBLISHED locked (cancel only)
+  isPublished     Boolean     @default(false) @map("is_published") // deprecated by status; kept until phase 2 decides marketplace flag
+  startsAt        DateTime    @map("starts_at")
+  endsAt          DateTime?   @map("ends_at")
+  location        String?
+  meetingLink     String?     @map("meeting_link") // manual Zoom link Phase 1
+  imageUrl        String?     @map("image_url") // S3 cover image
+  publishedAt     DateTime?   @map("published_at")
   // Exclusive claim held for the duration of an Announce send — the send
   // loop makes many slow external calls (email/SMS/WhatsApp per recipient),
   // too long to hold inside a DB transaction/advisory lock. Without this,
@@ -2473,12 +2476,12 @@ model Event {
   // duplicate EventAnnouncement audit rows. Cleared after the send completes
   // (success or failure); a claim older than the staleness window is
   // reclaimable in case a process crashed mid-send.
-  announcingSince DateTime?  @map("announcing_since")
-  audience       String? // ALL | PARENTS | LEADS (announce default)
-  createdById    String?     @map("created_by_id") // soft reference
-  createdAt      DateTime    @default(now()) @map("created_at")
-  updatedAt      DateTime    @updatedAt @map("updated_at")
-  deletedAt      DateTime?   @map("deleted_at")
+  announcingSince DateTime?   @map("announcing_since")
+  audience        String? // ALL | PARENTS | LEADS (announce default)
+  createdById     String?     @map("created_by_id") // soft reference
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  deletedAt       DateTime?   @map("deleted_at")
 
   organization  Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
   branch        Branch?             @relation(fields: [branchId], references: [id])
@@ -3335,12 +3338,17 @@ model Course {
   frequency      FeeFrequency    @default(MONTHLY)
   billingDay     Int             @default(1) @map("billing_day")
   durationMonths Int?            @map("duration_months")
+  // Custom-schedule inputs (LC): weekly cadence hint + total package hours.
+  // Session generation for a per-student custom schedule stops once totalHours
+  // is consumed (see src/lib/schedule/materialize.ts). Both optional/backward-safe.
+  hoursPerWeek   Int?            @map("hours_per_week")
+  totalHours     Int?            @map("total_hours")
   isActive       Boolean         @default(true) @map("is_active")
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
   deletedAt      DateTime?       @map("deleted_at")
 
-  organization       Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  organization       Organization             @relation(fields: [orgId], references: [id], onDelete: Cascade)
   enrollments        CourseEnrollment[]
   invoices           Invoice[]
   attendanceSessions AttendanceSession[]
@@ -3348,6 +3356,7 @@ model Course {
   teacherAssignments TeacherAssignment[]
   feePlanTemplates   FeePlanTemplate[]
   courseSessions     CourseSession[]
+  scheduleSlots      EnrollmentScheduleSlot[]
 
   @@index([orgId])
   @@map("courses")
@@ -3366,15 +3375,54 @@ model CourseEnrollment {
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
 
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  course       Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  organization  Organization             @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  student       Student                  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course        Course                   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  scheduleSlots EnrollmentScheduleSlot[]
 
   @@unique([studentId, courseId])
   @@index([orgId])
   @@index([studentId])
   @@index([courseId])
   @@map("course_enrollments")
+  @@schema("crm")
+}
+
+/// Per-student individual weekly schedule for a course enrolment (LC 1-on-1 /
+/// custom schedules). A student is EITHER assigned to a batch (shared cohort
+/// sessions) OR carries these slots (per-student sessions) — never both. The
+/// materializer (src/lib/schedule/materialize.ts) rolls each active slot into
+/// per-student CourseSession + AttendanceSession rows, bounded by
+/// startDate/endDate and the course totalHours cap.
+model EnrollmentScheduleSlot {
+  id           String    @id @default(cuid())
+  orgId        String    @map("org_id")
+  enrollmentId String    @map("enrollment_id")
+  studentId    String    @map("student_id")
+  courseId     String    @map("course_id")
+  dayOfWeek    Int       @map("day_of_week") // ISO 1=Mon..7=Sun
+  startTime    String    @map("start_time") // HH:mm
+  endTime      String    @map("end_time") // HH:mm
+  durationMin  Int?      @map("duration_min") // else endTime-startTime diff
+  teacherId    String?   @map("teacher_id") // soft ref (User)
+  room         String?
+  startDate    DateTime? @map("start_date")
+  endDate      DateTime? @map("end_date")
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  organization Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  enrollment   CourseEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course       Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, dayOfWeek, startTime])
+  @@index([orgId])
+  @@index([studentId])
+  @@index([enrollmentId])
+  @@map("enrollment_schedule_slots")
   @@schema("crm")
 }
 
@@ -3806,6 +3854,12 @@ model AttendanceSession {
   date           DateTime  @db.Date
   courseId       String?   @map("course_id")
   batchId        String?   @map("batch_id")
+  // Per-student custom-schedule sessions carry these (soft references); cohort
+  // batch sessions leave them null. Lets a per-student session be marked for a
+  // single student rather than a whole cohort.
+  studentId      String?   @map("student_id")
+  enrollmentId   String?   @map("enrollment_id")
+  scheduleSlotId String?   @map("schedule_slot_id")
   title          String?
   startsAt       DateTime? @map("starts_at")
   endsAt         DateTime? @map("ends_at")
@@ -3822,6 +3876,7 @@ model AttendanceSession {
   @@index([orgId, date])
   @@index([courseId])
   @@index([batchId])
+  @@index([studentId])
   @@map("attendance_sessions")
   @@schema("crm")
 }
@@ -3873,7 +3928,13 @@ model CourseSession {
   branchId            String?             @map("branch_id")
   academicYearId      String?             @map("academic_year_id")
   courseId            String?             @map("course_id")
-  batchId             String              @map("batch_id")
+  // batchId nullable now: a session comes from EITHER a cohort batch (shared) OR
+  // a per-student custom schedule (scheduleSlotId + studentId). Exactly one of
+  // batchId / scheduleSlotId is set. studentId/enrollmentId are soft references.
+  batchId             String?             @map("batch_id")
+  studentId           String?             @map("student_id") // soft ref (Student) — per-student sessions only
+  enrollmentId        String?             @map("enrollment_id") // soft ref (CourseEnrollment) — per-student sessions only
+  scheduleSlotId      String?             @map("schedule_slot_id") // soft ref (EnrollmentScheduleSlot) — per-student sessions only
   teacherId           String?             @map("teacher_id") // soft reference (User) — set from TeacherAssignment at materialize time, editable via reschedule
   startsAt            DateTime            @map("starts_at")
   durationMin         Int                 @map("duration_min")
@@ -3886,13 +3947,18 @@ model CourseSession {
   updatedAt           DateTime            @updatedAt @map("updated_at")
   deletedAt           DateTime?           @map("deleted_at")
 
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  course       Course?      @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  batch        StudentBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  course       Course?       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  batch        StudentBatch? @relation(fields: [batchId], references: [id], onDelete: Cascade)
 
+  // Idempotency: cohort sessions dedupe on (batchId, startsAt); per-student
+  // custom-schedule sessions on (scheduleSlotId, startsAt). Postgres treats
+  // NULLs as distinct, so each partial key only constrains its own source.
   @@unique([batchId, startsAt])
+  @@unique([scheduleSlotId, startsAt])
   @@index([orgId, startsAt])
   @@index([teacherId, startsAt])
+  @@index([studentId, startsAt])
   @@index([courseId])
   @@map("course_sessions")
   @@schema("crm")
@@ -4106,16 +4172,44 @@ model TimetableSlot {
   subject        String
   teacherId      String?  @map("teacher_id")
   room           String?
+  // Recurring cancel: the period stops running from now on but stays visible
+  // (struck-through) as a record. One-off per-date cancels live in
+  // TimetableException instead. cancelledById is a soft ref (platform.users).
+  cancelledAt    DateTime? @map("cancelled_at")
+  cancelReason   String?   @map("cancel_reason")
+  cancelledById  String?   @map("cancelled_by_id")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  teacher      User?        @relation("TimetableTeacher", fields: [teacherId], references: [id])
+  organization Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  teacher      User?                @relation("TimetableTeacher", fields: [teacherId], references: [id])
+  exceptions   TimetableException[]
 
   @@unique([orgId, gradeLabel, sectionKey, dayOfWeek, startTime])
   @@index([orgId, gradeLabel, sectionKey])
   @@index([orgId, teacherId])
   @@map("timetable_slots")
+  @@schema("crm")
+}
+
+/// One-off cancellation of a recurring timetable period on a specific date
+/// ("this Monday's 9am Maths is off"). The recurring slot stays; views hide/
+/// strike the period only on the matching date. createdById is a soft ref.
+model TimetableException {
+  id          String   @id @default(cuid())
+  orgId       String   @map("org_id")
+  slotId      String   @map("slot_id")
+  date        DateTime @db.Date
+  reason      String?
+  createdById String?  @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  slot         TimetableSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+
+  @@unique([slotId, date])
+  @@index([orgId, date])
+  @@map("timetable_exceptions")
   @@schema("crm")
 }
 

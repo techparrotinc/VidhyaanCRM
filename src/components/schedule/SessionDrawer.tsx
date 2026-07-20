@@ -154,8 +154,14 @@ export function SessionDrawer({
         <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-slate-100">
           <div className="min-w-0">
             <h2 className="text-xl font-bold tracking-tight text-slate-900 truncate">
-              {session.course?.name || session.batch?.name || classNoun}
+              {session.student?.name || session.batch?.name || session.course?.name || classNoun}
             </h2>
+            {(session.course?.name || session.batch) && (
+              <p className="text-sm font-semibold text-slate-600 mt-0.5 truncate">
+                {session.course?.name}
+                {session.batch ? `${session.course?.name ? ' · ' : ''}Group class` : ''}
+              </p>
+            )}
             <p className="text-sm font-normal leading-relaxed text-slate-500 mt-0.5">
               {new Date(session.startsAt).toLocaleString('en-IN', {
                 weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit'
@@ -172,15 +178,27 @@ export function SessionDrawer({
           {error && <p className="text-sm font-medium text-red-600">{error}</p>}
 
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <Info label="Batch" value={session.batch?.name ?? '-'} />
+            {session.batch ? (
+              <>
+                <Info label="Group class" value={session.batch.name} />
+                <Info label="Enrolled" value={String(session.batch.enrolledCount)} />
+              </>
+            ) : (
+              <Info label="Student" value={session.student?.name ?? '-'} />
+            )}
             <Info label="Teacher" value={session.teacher?.name ?? 'Unassigned'} />
-            <Info label="Enrolled" value={String(session.batch?.enrolledCount ?? 0)} />
             <Info
               label="Attendance"
               value={
-                session.status === 'COMPLETED' && session.batch
-                  ? `${session.markedCount ?? 0}/${session.batch.enrolledCount} marked`
-                  : '-'
+                session.batch
+                  ? session.status === 'COMPLETED'
+                    ? `${session.markedCount ?? 0}/${session.batch.enrolledCount} marked`
+                    : '-'
+                  : (session.markedCount ?? 0) > 0
+                    ? 'Marked'
+                    : session.status === 'COMPLETED'
+                      ? 'Not marked'
+                      : '-'
               }
             />
           </div>

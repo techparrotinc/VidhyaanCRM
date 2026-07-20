@@ -1,13 +1,16 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Video, Users, Clock, ChevronRight } from 'lucide-react'
+import { Video, Users, Clock, ChevronRight, Search, X, User } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DatePicker } from '@/components/ui/datetime-picker'
+import { AppSelect } from '@/components/ui/app-select'
 import { useAcademicYearStore } from '@/stores/academic-year.store'
 import { institutionNoun, isLearningCentre } from '@/lib/institution'
 import { SessionDrawer } from '@/components/schedule/SessionDrawer'
 import type { ScheduleSession } from '@/components/schedule/types'
+
+type Facet = { id: string; name: string | null }
 
 type DisplayStatus = 'upcoming' | 'ongoing' | 'completed' | 'cancelled'
 
@@ -45,6 +48,18 @@ export default function SchedulePage() {
   const [error, setError] = useState<string | null>(null)
   const [institutionType, setInstitutionType] = useState<string | null>(null)
 
+  // Filters — essential once a centre has hundreds of students / many courses.
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [courseId, setCourseId] = useState('')
+  const [teacherId, setTeacherId] = useState('')
+  const [facets, setFacets] = useState<{ courses: Facet[]; teachers: Facet[] }>({ courses: [], teachers: [] })
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300)
+    return () => clearTimeout(t)
+  }, [search])
+
   const selectedYearId = useAcademicYearStore(s => s.selectedYearId)
 
   useEffect(() => {
@@ -56,26 +71,36 @@ export default function SchedulePage() {
 
   const classNoun = isLearningCentre(institutionType) ? 'Batch' : institutionNoun(institutionType)
 
+  const filterParams = useCallback(
+    (base: Record<string, string>) => {
+      const params = new URLSearchParams(base)
+      if (selectedYearId) params.set('academicYearId', selectedYearId)
+      if (courseId) params.set('courseId', courseId)
+      if (teacherId) params.set('teacherId', teacherId)
+      if (debouncedSearch) params.set('search', debouncedSearch)
+      return params
+    },
+    [selectedYearId, courseId, teacherId, debouncedSearch]
+  )
+
   const loadDay = useCallback(() => {
-    const params = new URLSearchParams({ date })
-    if (selectedYearId) params.set('academicYearId', selectedYearId)
-    fetch(`/api/v1/schedule?${params}`)
+    fetch(`/api/v1/schedule?${filterParams({ date })}`)
       .then(r => r.json())
       .then(json => {
         if (!json.success) throw new Error(json.error || 'Failed to load schedule')
         setSessions(json.data.sessions)
+        if (json.data.facets) setFacets(json.data.facets)
       })
       .catch(err => setError(err.message))
-  }, [date, selectedYearId])
+  }, [date, filterParams])
 
   const loadWeek = useCallback(() => {
     const week = isoWeekOf(date)
-    const params = new URLSearchParams({ week })
-    if (selectedYearId) params.set('academicYearId', selectedYearId)
-    fetch(`/api/v1/schedule?${params}`)
+    fetch(`/api/v1/schedule?${filterParams({ week })}`)
       .then(r => r.json())
       .then(json => {
         if (!json.success) throw new Error(json.error || 'Failed to load schedule')
+        if (json.data.facets) setFacets(json.data.facets)
         const counts: Record<string, { total: number; cancelled: number }> = {}
         for (const s of json.data.sessions as ScheduleSession[]) {
           const key = localDateStr(new Date(s.startsAt))
@@ -86,7 +111,7 @@ export default function SchedulePage() {
         setWeekCounts(counts)
       })
       .catch(err => setError(err.message))
-  }, [date, selectedYearId])
+  }, [date, filterParams])
 
   useEffect(() => {
     setError(null)
@@ -129,7 +154,7 @@ export default function SchedulePage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Schedule</h1>
           <p className="text-sm font-normal leading-relaxed text-slate-500 mt-0.5">
-            {classNoun} sessions — reschedule, cancel and remind guardians.
+            All sessions — reschedule, cancel and remind guardians.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -153,7 +178,60 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      <div className="px-4 sm:px-6 pb-12 flex-1 flex flex-col gap-4 max-w-4xl mx-auto w-full">
+      <div className="px-4 sm:px-6 pb-12 flex-1 flex flex-col gap-4 max-w-5xl mx-auto w-full">
+        {/* Filters — search a student/course, or scope to a course or teacher */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search student or course…"
+              className="w-full h-10 pl-9 pr-9 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-[#1565D8]"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-slate-100"
+              >
+                <X className="h-3.5 w-3.5 text-slate-400" />
+              </button>
+            )}
+          </div>
+          <div className="w-44">
+            <AppSelect
+              value={courseId}
+              onChange={e => setCourseId(e.target.value)}
+              className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white"
+            >
+              <option value="">All courses</option>
+              {facets.courses.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </AppSelect>
+          </div>
+          <div className="w-44">
+            <AppSelect
+              value={teacherId}
+              onChange={e => setTeacherId(e.target.value)}
+              className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white"
+            >
+              <option value="">All teachers</option>
+              {facets.teachers.map(t => (
+                <option key={t.id} value={t.id}>{t.name ?? 'Unnamed'}</option>
+              ))}
+            </AppSelect>
+          </div>
+          {(courseId || teacherId || search) && (
+            <button
+              onClick={() => { setCourseId(''); setTeacherId(''); setSearch('') }}
+              className="h-10 px-3 text-sm font-semibold text-slate-500 hover:text-slate-700"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
         {view === 'day' && (
           <div className="flex gap-2">
             {(['yesterday', 'today', 'tomorrow'] as const).map(k => (
@@ -244,21 +322,42 @@ const STATUS_STYLES: Record<DisplayStatus, string> = {
 function SessionCard({ session, now, onClick }: { session: ScheduleSession; now: Date; onClick: () => void }) {
   const status = displayStatus(session, now)
   const cancelled = status === 'cancelled'
-  const label = session.course?.name || session.batch?.name || 'Session'
+  // Individual session → lead with the student; group class → lead with the
+  // group name. Course is the secondary line either way.
+  const isGroup = !!session.batch
+  const title = session.student?.name || session.batch?.name || session.course?.name || 'Session'
+  const subtitle = isGroup
+    ? session.course?.name || 'Group class'
+    : session.course?.name || null
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full text-left rounded-xl border p-5 transition-all hover:shadow-sm ${
+      className={`w-full text-left rounded-xl border p-4 transition-all hover:shadow-sm ${
         status === 'ongoing' ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200 bg-white hover:border-[#1565D8]/50'
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className={`text-sm font-bold truncate ${cancelled ? 'line-through text-slate-400' : 'text-slate-900'}`}>
-            {label}
-          </p>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={`shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full ${isGroup ? 'bg-violet-50 text-violet-600' : 'bg-blue-50 text-[#1565D8]'}`}>
+              {isGroup ? <Users className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
+            </span>
+            <p className={`text-sm font-bold truncate ${cancelled ? 'line-through text-slate-400' : 'text-slate-900'}`}>
+              {title}
+            </p>
+            {isGroup && (
+              <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-violet-600">
+                <Users className="h-3 w-3" />{session.batch!.enrolledCount}
+              </span>
+            )}
+          </div>
+          {subtitle && (
+            <p className={`text-xs font-semibold mt-1 truncate ${cancelled ? 'text-slate-300' : 'text-slate-600'}`}>
+              {subtitle}
+            </p>
+          )}
           <p className="text-xs font-normal text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
             <Clock className="h-3.5 w-3.5" />
             {new Date(session.startsAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}
@@ -266,11 +365,6 @@ function SessionCard({ session, now, onClick }: { session: ScheduleSession; now:
               {session.durationMin} min
             </span>
             {session.teacher?.name && <span>· {session.teacher.name}</span>}
-            {session.batch && (
-              <span className="inline-flex items-center gap-1">
-                <Users className="h-3.5 w-3.5" /> {session.batch.enrolledCount}
-              </span>
-            )}
             {session.meetingLink && <Video className="h-3.5 w-3.5 text-[#1565D8]" />}
           </p>
           {cancelled && session.cancelReason && (

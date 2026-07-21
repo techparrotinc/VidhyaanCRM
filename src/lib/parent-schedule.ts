@@ -32,10 +32,6 @@ export function isoDayOfWeek(dateStr: string): number {
   return dow === 0 ? 7 : dow
 }
 
-const BATCH_DAY_TO_ISO: Record<string, number> = {
-  Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7
-}
-
 export interface WardLite {
   id: string
   name: string
@@ -43,6 +39,7 @@ export interface WardLite {
   gradeLabel: string | null
   section: string | null
   orgName: string
+  batchId: string | null
   batch: {
     name: string
     daysOfWeek: string[]
@@ -72,6 +69,7 @@ export const wardSelect = {
   gradeLabel: true,
   section: true,
   organization: { select: { name: true, institutionType: true } },
+  batchId: true,
   batch: { select: { name: true, daysOfWeek: true, startTime: true, endTime: true } }
 } satisfies Prisma.StudentSelect
 
@@ -85,6 +83,7 @@ export function toWardLite(s: WardRow): WardLite {
     gradeLabel: s.gradeLabel,
     section: s.section,
     orgName: s.organization.name,
+    batchId: s.batchId,
     batch: s.batch
   }
 }
@@ -104,7 +103,8 @@ function querySlots(w: WardLite) {
     where: {
       orgId: w.orgId, // explicit org scoping — parent routes use the base client
       gradeLabel: w.gradeLabel!,
-      sectionKey: { in: [w.section ?? 'ALL', 'ALL'] }
+      sectionKey: { in: [w.section ?? 'ALL', 'ALL'] },
+      cancelledAt: null // recurring-cancelled periods never show to parents
     },
     orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
     select: {
@@ -131,12 +131,14 @@ export async function buildSchedule(
   if (wards.length === 0 || dates.length === 0) return []
 
   const orgIds = [...new Set(wards.map((w) => w.orgId))]
+  const wardIds = wards.map((w) => w.id)
+  const wardBatchIds = [...new Set(wards.map((w) => w.batchId).filter((v): v is string => !!v))]
   const windowStart = new Date(new Date(`${dates[0]}T00:00:00.000Z`).getTime() - IST_OFFSET_MS)
   const windowEnd = new Date(
     new Date(`${dates[dates.length - 1]}T00:00:00.000Z`).getTime() - IST_OFFSET_MS + 24 * 60 * 60 * 1000
   )
 
-  const [slotMap, events, invoices] = await Promise.all([
+  const [slotMap, events, invoices, courseSessions] = await Promise.all([
     fetchWardTimetableSlots(wards),
     prisma.event.findMany({
       where: {
@@ -173,8 +175,42 @@ export async function buildSchedule(
         studentId: true,
         student: { select: { name: true } }
       }
+    }),
+    // Learning-centre sessions (per-student individual + shared batch), read
+    // from the materialized rows so cancellations and reschedules are honoured.
+    prisma.courseSession.findMany({
+      where: {
+        startsAt: { gte: windowStart, lt: windowEnd },
+        status: { not: 'CANCELLED' },
+        deletedAt: null,
+        OR: [
+          { studentId: { in: wardIds } },
+          ...(wardBatchIds.length ? [{ batchId: { in: wardBatchIds } }] : [])
+        ]
+      },
+      orderBy: { startsAt: 'asc' },
+      take: 500,
+      select: {
+        startsAt: true,
+        durationMin: true,
+        studentId: true,
+        batchId: true,
+        course: { select: { name: true } },
+        batch: { select: { name: true } }
+      }
     })
   ])
+
+  // One-off (per-date) timetable cancellations across the window, keyed by
+  // slot+date so a cancelled period is dropped only on that exact date.
+  const slotIds = [...new Set([...slotMap.values()].flat().map((s) => s.id))]
+  const exceptions = slotIds.length
+    ? await prisma.timetableException.findMany({
+        where: { slotId: { in: slotIds }, date: { gte: windowStart, lt: windowEnd } },
+        select: { slotId: true, date: true }
+      })
+    : []
+  const exceptionSet = new Set(exceptions.map((e) => `${e.slotId}|${e.date.toISOString().slice(0, 10)}`))
 
   const items: ScheduleItem[] = []
 
@@ -182,9 +218,10 @@ export async function buildSchedule(
     const isoDow = isoDayOfWeek(date)
 
     for (const ward of wards) {
-      // School timetable
+      // School timetable (skip periods cancelled just for this date)
       for (const slot of slotMap.get(ward.id) ?? []) {
         if (slot.dayOfWeek !== isoDow) continue
+        if (exceptionSet.has(`${slot.id}|${date}`)) continue
         items.push({
           type: 'CLASS',
           date,
@@ -199,23 +236,44 @@ export async function buildSchedule(
           href: '/parent/timetable'
         })
       }
-      // Learning-centre batch
-      const b = ward.batch
-      if (b?.startTime && b.daysOfWeek.some((d) => BATCH_DAY_TO_ISO[d] === isoDow)) {
-        items.push({
-          type: 'BATCH',
-          date,
-          startTime: b.startTime,
-          endTime: b.endTime,
-          title: b.name,
-          subtitle: 'Batch class',
-          studentId: ward.id,
-          studentName: ward.name,
-          orgId: ward.orgId,
-          orgName: ward.orgName,
-          href: '/parent/timetable'
-        })
-      }
+    }
+  }
+
+  // Learning-centre sessions from the materialized rows. Individual sessions
+  // attribute to the one student; shared batch sessions to every ward in that
+  // batch (e.g. siblings). Dates/times reflect any reschedule already applied.
+  const wardById = new Map(wards.map((w) => [w.id, w]))
+  const wardsByBatch = new Map<string, WardLite[]>()
+  for (const w of wards) {
+    if (!w.batchId) continue
+    const arr = wardsByBatch.get(w.batchId) ?? []
+    arr.push(w)
+    wardsByBatch.set(w.batchId, arr)
+  }
+  for (const s of courseSessions) {
+    const targets: WardLite[] = s.studentId
+      ? (wardById.has(s.studentId) ? [wardById.get(s.studentId)!] : [])
+      : (s.batchId ? wardsByBatch.get(s.batchId) ?? [] : [])
+    if (targets.length === 0) continue
+    const startTime = istTimeString(s.startsAt)
+    const endTime = istTimeString(new Date(s.startsAt.getTime() + s.durationMin * 60_000))
+    const date = istDateString(s.startsAt)
+    const title = s.course?.name || s.batch?.name || 'Class'
+    const subtitle = s.batch ? 'Group class' : 'Class'
+    for (const ward of targets) {
+      items.push({
+        type: 'BATCH',
+        date,
+        startTime,
+        endTime,
+        title,
+        subtitle,
+        studentId: ward.id,
+        studentName: ward.name,
+        orgId: ward.orgId,
+        orgName: ward.orgName,
+        href: '/parent/timetable'
+      })
     }
   }
 

@@ -25,7 +25,9 @@ export const GET = route({
       from: z.string().regex(DATE_RE).optional(),
       to: z.string().regex(DATE_RE).optional(),
       courseId: textParam,
-      batchId: textParam
+      batchId: textParam,
+      gradeLabel: textParam,
+      section: textParam
     })
 
     const where: any = {}
@@ -33,13 +35,24 @@ export const GET = route({
     else if (q.from && q.to) where.date = { gte: toDbDate(q.from), lte: toDbDate(q.to) }
     if (q.courseId) where.courseId = q.courseId
     if (q.batchId) where.batchId = q.batchId
+    // School period filter (whole-class sessions have section null).
+    if (q.gradeLabel) {
+      where.gradeLabel = { equals: q.gradeLabel, mode: 'insensitive' }
+      if (q.section) where.section = { equals: q.section, mode: 'insensitive' }
+    }
 
-    // Teachers only see sessions for their assigned courses/batches.
+    // Teachers only see sessions for their assigned courses/batches/classes.
     if (!ATTENDANCE_ADMIN_ROLES.includes(user.role)) {
       const assignments = await getTeacherAssignments(db, user.id)
       const courseIds = assignments.map(a => a.courseId).filter(Boolean) as string[]
       const batchIds = assignments.map(a => a.batchId).filter(Boolean) as string[]
-      where.OR = [{ courseId: { in: courseIds } }, { batchId: { in: batchIds } }]
+      const gradeScopes = assignments
+        .filter(a => a.gradeLabel)
+        .map(a => ({
+          gradeLabel: { equals: a.gradeLabel as string, mode: 'insensitive' as const },
+          ...(a.section ? { section: { equals: a.section, mode: 'insensitive' as const } } : {})
+        }))
+      where.OR = [{ courseId: { in: courseIds } }, { batchId: { in: batchIds } }, ...gradeScopes]
     }
 
     const sessions = await db.attendanceSession.findMany({

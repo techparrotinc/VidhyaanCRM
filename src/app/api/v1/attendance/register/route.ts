@@ -41,21 +41,36 @@ export const GET = route({
     if (q.sessionId) {
       const session = await db.attendanceSession.findUnique({ where: { id: q.sessionId } })
       if (!session) throw Errors.notFound('Session')
-      await assertCanMark(db, user, { courseId: session.courseId, batchId: session.batchId })
       sessionKey = session.id
       const select = { id: true, name: true, studentCode: true, rollNumber: true, section: true }
-      roster = session.courseId
-        ? (
-            await db.courseEnrollment.findMany({
-              where: { courseId: session.courseId, status: 'ACTIVE', student: { deletedAt: null, status: 'ACTIVE' } },
-              select: { student: { select } }
+      if (session.gradeLabel) {
+        // School timetable period → the class/section roster (section null = whole class).
+        await assertCanMark(db, user, { gradeLabel: session.gradeLabel, section: session.section ?? undefined })
+        roster = await db.student.findMany({
+          where: {
+            deletedAt: null,
+            status: 'ACTIVE',
+            gradeLabel: { equals: session.gradeLabel, mode: 'insensitive' },
+            ...(session.section ? { section: { equals: session.section, mode: 'insensitive' } } : {})
+          },
+          select,
+          orderBy: [{ rollNumber: 'asc' }, { name: 'asc' }]
+        })
+      } else {
+        await assertCanMark(db, user, { courseId: session.courseId, batchId: session.batchId })
+        roster = session.courseId
+          ? (
+              await db.courseEnrollment.findMany({
+                where: { courseId: session.courseId, status: 'ACTIVE', student: { deletedAt: null, status: 'ACTIVE' } },
+                select: { student: { select } }
+              })
+            ).map(e => e.student)
+          : await db.student.findMany({
+              where: { batchId: session.batchId, deletedAt: null, status: 'ACTIVE' },
+              select,
+              orderBy: { name: 'asc' }
             })
-          ).map(e => e.student)
-        : await db.student.findMany({
-            where: { batchId: session.batchId, deletedAt: null, status: 'ACTIVE' },
-            select,
-            orderBy: { name: 'asc' }
-          })
+      }
     } else {
       await assertCanMark(db, user, { gradeLabel: q.gradeLabel, section: q.section })
       roster = await db.student.findMany({
@@ -127,7 +142,11 @@ export const POST = route({
     if (body.sessionId) {
       const session = await db.attendanceSession.findUnique({ where: { id: body.sessionId } })
       if (!session) throw Errors.notFound('Session')
-      await assertCanMark(db, user, { courseId: session.courseId, batchId: session.batchId })
+      if (session.gradeLabel) {
+        await assertCanMark(db, user, { gradeLabel: session.gradeLabel, section: session.section ?? undefined })
+      } else {
+        await assertCanMark(db, user, { courseId: session.courseId, batchId: session.batchId })
+      }
     } else if (!ATTENDANCE_ADMIN_ROLES.includes(user.role)) {
       // Daily marks: teacher must be assigned to every student's grade+section.
       const students = await db.student.findMany({

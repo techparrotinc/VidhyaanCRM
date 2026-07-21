@@ -179,11 +179,10 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
   const filteredItems = menuItems.filter((item) => {
     if (lc && item.module === 'admission_management') return false
     // Timetable (recurring class/section PLAN) is a school concept; Schedule
-    // (dated session OCCURRENCES to act on) is the learning-centre tool. Show
-    // each org exactly one so the two don't read as redundant. Schools gain
-    // Schedule once timetable→session generation ships (Phase C).
+    // (dated session OCCURRENCES to act on) serves both — LC batches/individual
+    // classes and, now that timetables generate period sessions (Phase C),
+    // school periods too. So only Timetable is LC-gated.
     if (lc && item.href === '/timetable') return false
-    if (!lc && item.href === '/schedule') return false
     if (!item.roles) return true
     return item.roles.includes(userRole)
   })

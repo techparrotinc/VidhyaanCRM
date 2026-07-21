@@ -3860,6 +3860,13 @@ model AttendanceSession {
   studentId      String?   @map("student_id")
   enrollmentId   String?   @map("enrollment_id")
   scheduleSlotId String?   @map("schedule_slot_id")
+  // School period sessions (materialized from the class timetable) carry the
+  // class scope + subject so the register loads the right roster; timetableSlotId
+  // is a soft ref back to the recurring TimetableSlot.
+  timetableSlotId String?  @map("timetable_slot_id")
+  gradeLabel     String?   @map("grade_label")
+  section        String?
+  subject        String?
   title          String?
   startsAt       DateTime? @map("starts_at")
   endsAt         DateTime? @map("ends_at")
@@ -3877,6 +3884,7 @@ model AttendanceSession {
   @@index([courseId])
   @@index([batchId])
   @@index([studentId])
+  @@index([timetableSlotId])
   @@map("attendance_sessions")
   @@schema("crm")
 }
@@ -3935,6 +3943,12 @@ model CourseSession {
   studentId           String?             @map("student_id") // soft ref (Student) — per-student sessions only
   enrollmentId        String?             @map("enrollment_id") // soft ref (CourseEnrollment) — per-student sessions only
   scheduleSlotId      String?             @map("schedule_slot_id") // soft ref (EnrollmentScheduleSlot) — per-student sessions only
+  // School period sessions (materialized from the class timetable): scoped by
+  // class/section + subject, linked back to the recurring TimetableSlot.
+  timetableSlotId     String?             @map("timetable_slot_id")
+  gradeLabel          String?             @map("grade_label")
+  section             String?
+  subject             String?
   teacherId           String?             @map("teacher_id") // soft reference (User) — set from TeacherAssignment at materialize time, editable via reschedule
   startsAt            DateTime            @map("starts_at")
   durationMin         Int                 @map("duration_min")
@@ -3951,11 +3965,12 @@ model CourseSession {
   course       Course?       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   batch        StudentBatch? @relation(fields: [batchId], references: [id], onDelete: Cascade)
 
-  // Idempotency: cohort sessions dedupe on (batchId, startsAt); per-student
-  // custom-schedule sessions on (scheduleSlotId, startsAt). Postgres treats
-  // NULLs as distinct, so each partial key only constrains its own source.
+  // Idempotency per source (Postgres treats NULLs as distinct, so each partial
+  // key only constrains its own source): batch cohort, per-student custom
+  // schedule, and school timetable period.
   @@unique([batchId, startsAt])
   @@unique([scheduleSlotId, startsAt])
+  @@unique([timetableSlotId, startsAt])
   @@index([orgId, startsAt])
   @@index([teacherId, startsAt])
   @@index([studentId, startsAt])

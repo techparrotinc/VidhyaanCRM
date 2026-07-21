@@ -26,6 +26,9 @@ type SessionRow = {
   startsAt: string | null
   course: { id: string; name: string } | null
   batch: { id: string; name: string } | null
+  gradeLabel: string | null
+  section: string | null
+  subject: string | null
   _count: { records: number }
 }
 
@@ -46,6 +49,8 @@ const fmtDay = (d: string) =>
 export default function AttendancePage() {
   const confirm = useConfirm()
   const [mode, setMode] = useState<'school' | 'lc' | null>(null)
+  // Schools can mark once-a-day (by class) or per-period (from the timetable).
+  const [schoolTab, setSchoolTab] = useState<'daily' | 'periods'>('daily')
   const [date, setDate] = useState(todayStr())
   const [target, setTarget] = useState<Target | null>(null)
 
@@ -94,7 +99,7 @@ export default function AttendancePage() {
 
   // ── Overview ──
   const loadOverview = useCallback(() => {
-    if (mode === 'school') {
+    if (mode === 'school' && schoolTab === 'daily') {
       fetch(`/api/v1/attendance/overview?date=${date}`)
         .then(r => r.json())
         .then(json => {
@@ -104,13 +109,14 @@ export default function AttendancePage() {
           setIsWorkingDay(json.data.isWorkingDay)
         })
         .catch(err => setError(err.message))
-    } else if (mode === 'lc') {
+    } else if (mode === 'lc' || (mode === 'school' && schoolTab === 'periods')) {
+      // LC sessions, or school timetable periods for the day.
       fetch(`/api/v1/attendance/sessions?date=${date}`)
         .then(r => r.json())
         .then(json => setSessions(json?.data?.sessions ?? []))
         .catch(() => setSessions([]))
     }
-  }, [mode, date])
+  }, [mode, schoolTab, date])
 
   useEffect(() => {
     setClasses(null)
@@ -221,7 +227,7 @@ export default function AttendancePage() {
               className="flex items-center gap-1.5 text-sm font-semibold text-[#1565D8] hover:underline mb-1"
             >
               <ArrowLeft className="h-4 w-4" />
-              All {mode === 'school' ? 'classes' : 'sessions'}
+              All {mode === 'school' ? (schoolTab === 'daily' ? 'classes' : 'periods') : 'sessions'}
             </button>
           ) : null}
           <h1 className="text-xl font-bold text-slate-900 truncate">
@@ -232,6 +238,21 @@ export default function AttendancePage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {mode === 'school' && !target && (
+            <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+              {(['daily', 'periods'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setSchoolTab(t)}
+                  className={`px-3 py-2 text-sm font-semibold transition-colors ${
+                    schoolTab === t ? 'bg-[#1565D8] text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {t === 'daily' ? 'Daily' : 'Periods'}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="w-44 sm:w-52">
             <DatePicker
               value={date}
@@ -294,7 +315,7 @@ export default function AttendancePage() {
               saving={saving}
             />
           )
-        ) : mode === 'school' ? (
+        ) : mode === 'school' && schoolTab === 'daily' ? (
           /* ── SCHOOL OVERVIEW: one card per class-section ── */
           classes === null ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -368,37 +389,47 @@ export default function AttendancePage() {
             </div>
           )
         ) : (
-          /* ── LC OVERVIEW: one card per session ── */
+          /* ── SESSION OVERVIEW: LC sessions or school timetable periods ── */
           sessions === null ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
             </div>
           ) : sessions.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
-              <p className="text-sm font-semibold text-slate-700">No sessions for this day</p>
+              <p className="text-sm font-semibold text-slate-700">No {mode === 'school' ? 'periods' : 'sessions'} for this day</p>
               <p className="text-sm font-normal leading-relaxed text-slate-500 mt-1">
-                Create a session for a course or batch to start marking attendance.
+                {mode === 'school'
+                  ? 'Periods appear here from the class timetable. Add periods in Timetable, or use Daily to mark once a day.'
+                  : 'Create a session for a course or batch to start marking attendance.'}
               </p>
-              <button
-                onClick={() => setSessionDialogOpen(true)}
-                className="mt-4 inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                New Session
-              </button>
+              {mode === 'lc' && (
+                <button
+                  onClick={() => setSessionDialogOpen(true)}
+                  className="mt-4 inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold bg-[#1565D8] text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Session
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {sessions.map(s => {
-                const label = s.title || s.course?.name || s.batch?.name || 'Session'
+                const isPeriod = !!s.gradeLabel
+                const label = isPeriod
+                  ? s.subject || 'Period'
+                  : s.title || s.course?.name || s.batch?.name || 'Session'
+                const scope = isPeriod
+                  ? `${s.gradeLabel}${s.section ? ` · ${s.section}` : ''}`
+                  : (s.title ? (s.course?.name || s.batch?.name) : null)
                 return (
                   <div
                     key={s.id}
                     role="button"
                     tabIndex={0}
-                    onClick={() => setTarget({ kind: 'session', sessionId: s.id, label })}
+                    onClick={() => setTarget({ kind: 'session', sessionId: s.id, label: scope ? `${label} · ${scope}` : label })}
                     onKeyDown={e => {
-                      if (e.key === 'Enter') setTarget({ kind: 'session', sessionId: s.id, label })
+                      if (e.key === 'Enter') setTarget({ kind: 'session', sessionId: s.id, label: scope ? `${label} · ${scope}` : label })
                     }}
                     className="cursor-pointer text-left rounded-xl border border-slate-200 bg-white p-5 hover:border-[#1565D8]/50 hover:shadow-sm transition-all group"
                   >
@@ -418,18 +449,21 @@ export default function AttendancePage() {
                             Pending
                           </span>
                         )}
-                        <button
-                          type="button"
-                          onClick={e => { e.stopPropagation(); handleDeleteSession(s) }}
-                          className="text-slate-300 hover:text-red-500"
-                          title="Delete session"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {/* Only ad-hoc LC sessions can be deleted; timetable periods are managed in Timetable */}
+                        {!isPeriod && (
+                          <button
+                            type="button"
+                            onClick={e => { e.stopPropagation(); handleDeleteSession(s) }}
+                            className="text-slate-300 hover:text-red-500"
+                            title="Delete session"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                     <p className="text-xs font-normal text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
-                      {s.title && (s.course?.name || s.batch?.name)}
+                      {scope && <span>{scope}</span>}
                       {s.deliveryMode === 'ONLINE' && (
                         <span className="inline-flex items-center gap-1">
                           <Video className="h-3.5 w-3.5" /> Online

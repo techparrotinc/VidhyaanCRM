@@ -68,6 +68,23 @@ function isoDayOf(date: Date): number {
   return d === 0 ? 7 : d
 }
 
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
+/** IST calendar date (YYYY-MM-DD) for an instant. */
+function istYMD(d: Date): string {
+  return new Date(d.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10)
+}
+/** ISO day-of-week (1=Mon..7=Sun) of a YYYY-MM-DD calendar date. */
+function isoDowOf(dateISO: string): number {
+  const dow = new Date(`${dateISO}T00:00:00.000Z`).getUTCDay()
+  return dow === 0 ? 7 : dow
+}
+/** Add days to a YYYY-MM-DD string. */
+function addDaysISO(dateISO: string, n: number): string {
+  const d = new Date(`${dateISO}T00:00:00.000Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
 function slotDurationMin(slot: Pick<SchedulePattern, 'durationMin' | 'startTime' | 'endTime'>): number {
   if (slot.durationMin && slot.durationMin > 0) return slot.durationMin
   const diff = diffMinutes(slot.startTime, slot.endTime)
@@ -309,6 +326,99 @@ export async function materializeEnrollment(
       await db.attendanceSession.delete({ where: { id: attendanceSession.id } }).catch(() => {})
       if (err?.code !== 'P2002') throw err
       usedMin += o.durationMin
+    }
+  }
+  return created
+}
+
+/** One recurring school timetable period. */
+export type TimetablePattern = {
+  id: string
+  orgId: string
+  branchId: string | null
+  academicYearId: string | null
+  gradeLabel: string
+  section: string | null // null = whole class (all sections)
+  dayOfWeek: number // ISO 1=Mon..7=Sun
+  startTime: string // HH:mm
+  endTime: string // HH:mm
+  subject: string
+  teacherId: string | null
+}
+
+/**
+ * Materializes school period sessions for one timetable slot from `from`
+ * through `from + horizonDays`, one per matching weekday. Skips dates that are
+ * a one-off cancellation (`cancelledDates`) or a holiday (`holidays`). Creates a
+ * CourseSession (Schedule view + reschedule/cancel) paired 1:1 with an
+ * AttendanceSession carrying gradeLabel/section/subject so the register loads
+ * the class roster. Idempotent on (timetableSlotId, startsAt).
+ */
+export async function materializeTimetableSlot(
+  db: SessionClient,
+  slot: TimetablePattern,
+  opts: { cancelledDates?: Set<string>; holidays?: Set<string>; from?: Date; horizonDays?: number } = {}
+): Promise<number> {
+  const horizonDays = opts.horizonDays ?? MATERIALIZE_HORIZON_DAYS
+  const durationMin = diffMinutes(slot.startTime, slot.endTime) ?? 60
+  const cancelledDates = opts.cancelledDates ?? new Set<string>()
+  const holidays = opts.holidays ?? new Set<string>()
+  // Timezone-explicit IST so the calendar date + wall-clock time are correct
+  // wherever the cron runs (Vercel UTC or a dev box). IST is the product's
+  // day convention (see parent-schedule / report rollups).
+  const fromISO = istYMD(opts.from ?? new Date())
+
+  let created = 0
+  for (let offset = 0; offset <= horizonDays; offset++) {
+    const dateISO = addDaysISO(fromISO, offset)
+    if (isoDowOf(dateISO) !== slot.dayOfWeek) continue
+    if (cancelledDates.has(dateISO) || holidays.has(dateISO)) continue
+
+    const startsAt = new Date(`${dateISO}T${slot.startTime}:00.000+05:30`)
+    const already = await db.courseSession.findFirst({
+      where: { timetableSlotId: slot.id, startsAt },
+      select: { id: true }
+    })
+    if (already) continue
+
+    const endsAt = new Date(startsAt.getTime() + durationMin * 60_000)
+    const attendanceSession = await db.attendanceSession.create({
+      data: {
+        orgId: slot.orgId,
+        branchId: slot.branchId,
+        academicYearId: slot.academicYearId,
+        date: new Date(`${dateISO}T00:00:00.000Z`), // @db.Date — store the IST calendar date
+        gradeLabel: slot.gradeLabel,
+        section: slot.section,
+        subject: slot.subject,
+        timetableSlotId: slot.id,
+        startsAt,
+        endsAt,
+        deliveryMode: 'IN_PERSON'
+      }
+    })
+
+    try {
+      await db.courseSession.create({
+        data: {
+          orgId: slot.orgId,
+          branchId: slot.branchId,
+          academicYearId: slot.academicYearId,
+          timetableSlotId: slot.id,
+          gradeLabel: slot.gradeLabel,
+          section: slot.section,
+          subject: slot.subject,
+          teacherId: slot.teacherId,
+          startsAt,
+          durationMin,
+          status: 'SCHEDULED',
+          attendanceSessionId: attendanceSession.id
+        }
+      })
+      created++
+    } catch (err: any) {
+      await db.attendanceSession.delete({ where: { id: attendanceSession.id } }).catch(() => {})
+      if (err?.code !== 'P2002') throw err
     }
   }
   return created

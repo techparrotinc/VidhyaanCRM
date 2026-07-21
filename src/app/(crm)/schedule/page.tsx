@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Video, Users, Clock, ChevronRight, Search, X, User } from 'lucide-react'
+import { Video, Users, Clock, ChevronRight, Search, X, User, BookOpen } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DatePicker } from '@/components/ui/datetime-picker'
 import { AppSelect } from '@/components/ui/app-select'
@@ -322,13 +322,18 @@ const STATUS_STYLES: Record<DisplayStatus, string> = {
 function SessionCard({ session, now, onClick }: { session: ScheduleSession; now: Date; onClick: () => void }) {
   const status = displayStatus(session, now)
   const cancelled = status === 'cancelled'
-  // Individual session → lead with the student; group class → lead with the
-  // group name. Course is the secondary line either way.
+  // School period → lead with subject + class/section. LC individual → lead with
+  // the student; group class → lead with the group name. Course/scope secondary.
+  const isPeriod = !!session.subject
   const isGroup = !!session.batch
-  const title = session.student?.name || session.batch?.name || session.course?.name || 'Session'
-  const subtitle = isGroup
-    ? session.course?.name || 'Group class'
-    : session.course?.name || null
+  const title = isPeriod
+    ? session.subject!
+    : session.student?.name || session.batch?.name || session.course?.name || 'Session'
+  const subtitle = isPeriod
+    ? `${session.gradeLabel ?? ''}${session.section ? ` · ${session.section}` : ''}` || null
+    : isGroup
+      ? session.course?.name || 'Group class'
+      : session.course?.name || null
 
   return (
     <button
@@ -341,8 +346,8 @@ function SessionCard({ session, now, onClick }: { session: ScheduleSession; now:
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 min-w-0">
-            <span className={`shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full ${isGroup ? 'bg-violet-50 text-violet-600' : 'bg-blue-50 text-[#1565D8]'}`}>
-              {isGroup ? <Users className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
+            <span className={`shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full ${isPeriod ? 'bg-amber-50 text-amber-600' : isGroup ? 'bg-violet-50 text-violet-600' : 'bg-blue-50 text-[#1565D8]'}`}>
+              {isPeriod ? <BookOpen className="h-3.5 w-3.5" /> : isGroup ? <Users className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
             </span>
             <p className={`text-sm font-bold truncate ${cancelled ? 'line-through text-slate-400' : 'text-slate-900'}`}>
               {title}

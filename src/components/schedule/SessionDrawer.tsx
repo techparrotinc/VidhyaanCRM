@@ -154,9 +154,13 @@ export function SessionDrawer({
         <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-slate-100">
           <div className="min-w-0">
             <h2 className="text-xl font-bold tracking-tight text-slate-900 truncate">
-              {session.student?.name || session.batch?.name || session.course?.name || classNoun}
+              {session.subject || session.student?.name || session.batch?.name || session.course?.name || classNoun}
             </h2>
-            {(session.course?.name || session.batch) && (
+            {session.subject ? (
+              <p className="text-sm font-semibold text-slate-600 mt-0.5 truncate">
+                {session.gradeLabel}{session.section ? ` · Section ${session.section}` : ''}
+              </p>
+            ) : (session.course?.name || session.batch) && (
               <p className="text-sm font-semibold text-slate-600 mt-0.5 truncate">
                 {session.course?.name}
                 {session.batch ? `${session.course?.name ? ' · ' : ''}Group class` : ''}
@@ -178,7 +182,9 @@ export function SessionDrawer({
           {error && <p className="text-sm font-medium text-red-600">{error}</p>}
 
           <div className="grid grid-cols-2 gap-3 text-sm">
-            {session.batch ? (
+            {session.subject ? (
+              <Info label="Class" value={`${session.gradeLabel ?? '-'}${session.section ? ` · ${session.section}` : ''}`} />
+            ) : session.batch ? (
               <>
                 <Info label="Group class" value={session.batch.name} />
                 <Info label="Enrolled" value={String(session.batch.enrolledCount)} />

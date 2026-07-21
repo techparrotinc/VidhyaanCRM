@@ -88,6 +88,10 @@ export const GET = route({
         course: s.course,
         batch: s.batch ? { id: s.batch.id, name: s.batch.name, enrolledCount: s.batch._count.students } : null,
         student: studentId ? { id: studentId, name: studentById.get(studentId) ?? null } : null,
+        // School timetable period sessions carry class scope + subject.
+        subject: (s as any).subject as string | null,
+        gradeLabel: (s as any).gradeLabel as string | null,
+        section: (s as any).section as string | null,
         teacher: s.teacherId ? { id: s.teacherId, name: teacherById.get(s.teacherId) ?? null } : null,
         markedCount: s.attendanceSessionId ? markedBySessionId.get(s.attendanceSessionId) ?? 0 : null,
         canManage
@@ -102,7 +106,9 @@ export const GET = route({
         m =>
           m.student?.name?.toLowerCase().includes(needle) ||
           m.course?.name?.toLowerCase().includes(needle) ||
-          m.batch?.name?.toLowerCase().includes(needle)
+          m.batch?.name?.toLowerCase().includes(needle) ||
+          m.subject?.toLowerCase().includes(needle) ||
+          m.gradeLabel?.toLowerCase().includes(needle)
       )
     }
 

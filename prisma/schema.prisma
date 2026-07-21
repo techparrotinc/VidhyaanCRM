@@ -98,6 +98,9 @@ enum AuditAction {
   CREATE
   UPDATE
   DELETE
+  ARCHIVE
+  RESTORE
+  VOID
   LOGIN
   LOGOUT
   EXPORT
@@ -722,6 +725,7 @@ model Organization {
   biometricIdentities   BiometricIdentity[]
   schoolClasses         SchoolClass[]
   classSections         ClassSection[]
+  subjects              Subject[]
   timetableSlots        TimetableSlot[]
   leaveRequests         LeaveRequest[]
   examResults           ExamResult[]
@@ -3847,33 +3851,33 @@ model AttendanceRecord {
 
 /// One scheduled class occurrence for LC/coaching orgs (course XOR batch).
 model AttendanceSession {
-  id             String    @id @default(cuid())
-  orgId          String    @map("org_id")
-  branchId       String?   @map("branch_id")
-  academicYearId String?   @map("academic_year_id")
-  date           DateTime  @db.Date
-  courseId       String?   @map("course_id")
-  batchId        String?   @map("batch_id")
+  id              String    @id @default(cuid())
+  orgId           String    @map("org_id")
+  branchId        String?   @map("branch_id")
+  academicYearId  String?   @map("academic_year_id")
+  date            DateTime  @db.Date
+  courseId        String?   @map("course_id")
+  batchId         String?   @map("batch_id")
   // Per-student custom-schedule sessions carry these (soft references); cohort
   // batch sessions leave them null. Lets a per-student session be marked for a
   // single student rather than a whole cohort.
-  studentId      String?   @map("student_id")
-  enrollmentId   String?   @map("enrollment_id")
-  scheduleSlotId String?   @map("schedule_slot_id")
+  studentId       String?   @map("student_id")
+  enrollmentId    String?   @map("enrollment_id")
+  scheduleSlotId  String?   @map("schedule_slot_id")
   // School period sessions (materialized from the class timetable) carry the
   // class scope + subject so the register loads the right roster; timetableSlotId
   // is a soft ref back to the recurring TimetableSlot.
-  timetableSlotId String?  @map("timetable_slot_id")
-  gradeLabel     String?   @map("grade_label")
-  section        String?
-  subject        String?
-  title          String?
-  startsAt       DateTime? @map("starts_at")
-  endsAt         DateTime? @map("ends_at")
-  deliveryMode   String    @default("IN_PERSON") @map("delivery_mode") // IN_PERSON | ONLINE
-  createdById    String?   @map("created_by_id")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  timetableSlotId String?   @map("timetable_slot_id")
+  gradeLabel      String?   @map("grade_label")
+  section         String?
+  subject         String?
+  title           String?
+  startsAt        DateTime? @map("starts_at")
+  endsAt          DateTime? @map("ends_at")
+  deliveryMode    String    @default("IN_PERSON") @map("delivery_mode") // IN_PERSON | ONLINE
+  createdById     String?   @map("created_by_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   organization Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
   course       Course?            @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -4115,6 +4119,28 @@ model ClassSection {
   @@schema("crm")
 }
 
+/// Subject master for school-type orgs. Like the class/section master, records
+/// keep storing the subject NAME as a plain string (TimetableSlot.subject,
+/// AttendanceSession.subject, ExamResult.subject); this table only drives the
+/// subject dropdown. Soft-deletable; unique per org by name.
+model Subject {
+  id        String    @id @default(cuid())
+  orgId     String    @map("org_id")
+  name      String
+  sortOrder Int       @default(0) @map("sort_order")
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, name])
+  @@index([orgId, sortOrder])
+  @@map("subjects")
+  @@schema("crm")
+}
+
 /// Parent-raised leave application for a linked student. Staff review flips
 /// status; APPROVED days are informational (attendance register stays the
 /// source of truth, marked by staff as LEAVE).
@@ -4172,20 +4198,20 @@ model ExamResult {
 /// Weekly class timetable (schools). Grade/section stored as strings to
 /// match Student.gradeLabel/section — the class master only drives dropdowns.
 model TimetableSlot {
-  id             String   @id @default(cuid())
-  orgId          String   @map("org_id")
-  branchId       String?  @map("branch_id")
-  academicYearId String?  @map("academic_year_id")
-  gradeLabel     String   @map("grade_label")
+  id             String    @id @default(cuid())
+  orgId          String    @map("org_id")
+  branchId       String?   @map("branch_id")
+  academicYearId String?   @map("academic_year_id")
+  gradeLabel     String    @map("grade_label")
   section        String?
   // section ?? 'ALL' — non-null stand-in so the unique constraint can dedupe
   // whole-class slots (Postgres treats NULLs as distinct in uniques).
-  sectionKey     String   @default("ALL") @map("section_key")
-  dayOfWeek      Int      @map("day_of_week") // ISO: 1=Mon .. 7=Sun
-  startTime      String   @map("start_time") // HH:mm (matches StudentBatch)
-  endTime        String   @map("end_time") // HH:mm
+  sectionKey     String    @default("ALL") @map("section_key")
+  dayOfWeek      Int       @map("day_of_week") // ISO: 1=Mon .. 7=Sun
+  startTime      String    @map("start_time") // HH:mm (matches StudentBatch)
+  endTime        String    @map("end_time") // HH:mm
   subject        String
-  teacherId      String?  @map("teacher_id")
+  teacherId      String?   @map("teacher_id")
   room           String?
   // Recurring cancel: the period stops running from now on but stays visible
   // (struck-through) as a record. One-off per-date cancels live in
@@ -4193,8 +4219,8 @@ model TimetableSlot {
   cancelledAt    DateTime? @map("cancelled_at")
   cancelReason   String?   @map("cancel_reason")
   cancelledById  String?   @map("cancelled_by_id")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   organization Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
   teacher      User?                @relation("TimetableTeacher", fields: [teacherId], references: [id])

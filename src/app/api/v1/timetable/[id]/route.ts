@@ -9,6 +9,7 @@ import {
   TIMETABLE_ADMIN_ROLES,
   TIMETABLE_MANAGE_ROLES
 } from '@/lib/timetable'
+import { syncSlotTeacherAssignment } from '@/lib/attendance/sync-teacher-assignment'
 
 // Edit a period (incl. in-place subject change). Admins edit any slot; a
 // teacher may edit their OWN periods only.
@@ -40,6 +41,13 @@ export const PATCH = route({
         room: body.room
       },
       include: { teacher: { select: { id: true, name: true } } }
+    })
+    // Keep marking scope in step with an edited teacher/grade/section.
+    await syncSlotTeacherAssignment(db, {
+      orgId: slot.orgId,
+      teacherId: slot.teacherId,
+      gradeLabel: slot.gradeLabel,
+      section: slot.section
     })
     return ok({ slot })
   }

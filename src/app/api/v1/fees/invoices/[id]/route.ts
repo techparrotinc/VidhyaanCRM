@@ -4,6 +4,9 @@ import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
+import { rolesFor } from '@/constants/permissions'
+import { logAudit, auditSnapshot } from '@/lib/audit/log'
+import { AuditAction } from '@prisma/client'
 
 const updateInvoiceSchema = z.object({
   dueDate: z.string().max(40).optional().nullable(),
@@ -75,11 +78,7 @@ export const GET = route({
 
 export const PUT = route({
   module: MODULES.FEE_MANAGEMENT,
-  roles: [
-    ROLES.ORG_ADMIN,
-    ROLES.BRANCH_ADMIN,
-    ROLES.ACCOUNTANT
-  ],
+  roles: rolesFor('INVOICE', 'update'),
   handler: async ({ req, db, user, params }) => {
     const resolvedParams = await params
     const id = resolvedParams?.id
@@ -104,17 +103,26 @@ export const PUT = route({
       }
     })
 
+    // WAIVED is a money-affecting write — record it as VOID, other edits UPDATE.
+    logAudit({
+      orgId: user.orgId,
+      userId: user.id,
+      action: body.status === 'WAIVED' ? AuditAction.VOID : AuditAction.UPDATE,
+      entityType: 'INVOICE',
+      entityId: updated.id,
+      before: auditSnapshot(existing, ['invoiceNumber', 'status', 'dueDate', 'totalAmount']),
+      after: auditSnapshot(updated, ['invoiceNumber', 'status', 'dueDate', 'totalAmount']),
+      req,
+    })
+
     return ok(updated)
   }
 })
 
 export const DELETE = route({
   module: MODULES.FEE_MANAGEMENT,
-  roles: [
-    ROLES.ORG_ADMIN,
-    ROLES.BRANCH_ADMIN
-  ],
-  handler: async ({ db, user, params }) => {
+  roles: rolesFor('INVOICE', 'delete'),
+  handler: async ({ req, db, user, params }) => {
     const resolvedParams = await params
     const id = resolvedParams?.id
     if (!id) {
@@ -131,6 +139,16 @@ export const DELETE = route({
     await db.invoice.update({
       where: { id },
       data: { deletedAt: new Date() }
+    })
+
+    logAudit({
+      orgId: user.orgId,
+      userId: user.id,
+      action: AuditAction.DELETE,
+      entityType: 'INVOICE',
+      entityId: existing.id,
+      before: auditSnapshot(existing, ['invoiceNumber', 'status', 'totalAmount', 'studentId']),
+      req,
     })
 
     return ok({ success: true })

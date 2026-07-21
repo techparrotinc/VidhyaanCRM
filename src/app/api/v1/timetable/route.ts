@@ -5,6 +5,7 @@ import { ROLES, ORG_ROLES } from '@/constants/roles'
 import { parseQuery, textParam } from '@/lib/api/query'
 import { slotSchema, normalizeSlot, assertNoOverlap } from '@/lib/timetable'
 import { DATE_RE } from '@/lib/schedule/dates'
+import { syncSlotTeacherAssignment } from '@/lib/attendance/sync-teacher-assignment'
 
 // Weekly class timetable. Structural academic config like the class/section
 // master — role-gated, not module-gated. Grade/section stored as strings
@@ -97,6 +98,13 @@ export const POST = route({
         room: body.room
       },
       include: { teacher: { select: { id: true, name: true } } }
+    })
+    // Grant the period's teacher attendance-marking scope for this grade/section.
+    await syncSlotTeacherAssignment(db, {
+      orgId: user.orgId,
+      teacherId: slot.teacherId,
+      gradeLabel: slot.gradeLabel,
+      section: slot.section
     })
     return created({ slot })
   }

@@ -38,8 +38,6 @@ const sendOtpSmsSpy = vi.mocked(sendOtpSms)
 const { POST: postFromCatalog } = await import('@/app/api/v1/settings/whatsapp-templates/from-catalog/route')
 const { DELETE: deleteTemplate } = await import('@/app/api/v1/settings/whatsapp-templates/[id]/route')
 const { POST: postWebhook } = await import('@/app/api/webhooks/meta-whatsapp/route')
-const { PATCH: patchLead } = await import('@/app/api/v1/leads/[id]/route')
-const { PATCH: patchAdmission } = await import('@/app/api/v1/admissions/[id]/route')
 
 const describeDb = describe.skipIf(!process.env.TEST_DATABASE_URL)
 const RUN = `wa-probe-${Date.now()}`

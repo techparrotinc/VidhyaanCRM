@@ -4,7 +4,9 @@ import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
-import { Gender, StudentStatus } from '@prisma/client'
+import { rolesFor } from '@/constants/permissions'
+import { logAudit, auditSnapshot } from '@/lib/audit/log'
+import { Gender, StudentStatus, AuditAction } from '@prisma/client'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { dedupFields } from '@/lib/dedup'
 
@@ -118,10 +120,7 @@ const updateStudentSchema = z.object({
 
 export const PUT = route({
   module: MODULES.STUDENT_MANAGEMENT,
-  roles: [
-    ROLES.ORG_ADMIN,
-    ROLES.BRANCH_ADMIN
-  ],
+  roles: rolesFor('STUDENT', 'update'),
   handler: async ({ req, db, user, params }) => {
     const resolvedParams = await params
     const id = resolvedParams?.id
@@ -183,6 +182,17 @@ export const PUT = route({
       include: studentInclude
     })
 
+    logAudit({
+      orgId: user.orgId,
+      userId: user.id,
+      action: AuditAction.UPDATE,
+      entityType: 'STUDENT',
+      entityId: updated.id,
+      before: auditSnapshot(existing, ['name', 'gradeLabel', 'section', 'rollNumber', 'guardianName', 'guardianPhone', 'status']),
+      after: auditSnapshot(updated, ['name', 'gradeLabel', 'section', 'rollNumber', 'guardianName', 'guardianPhone', 'status']),
+      req,
+    })
+
     return ok(updated)
   }
 })
@@ -193,8 +203,8 @@ export const DELETE = route({
   // cascaded (nothing else is updated here). Blocked below when the student
   // has any invoice with an outstanding balance, so a delete can't orphan
   // money still owed. Org admin only.
-  roles: [ROLES.ORG_ADMIN],
-  handler: async ({ db, params }) => {
+  roles: rolesFor('STUDENT', 'delete'),
+  handler: async ({ req, db, user, params }) => {
     const resolvedParams = await params
     const id = resolvedParams?.id
     const existing = await db.student.findFirst({
@@ -221,6 +231,16 @@ export const DELETE = route({
     await db.student.update({
       where: { id },
       data: { deletedAt: new Date() }
+    })
+
+    logAudit({
+      orgId: user.orgId,
+      userId: user.id,
+      action: AuditAction.DELETE,
+      entityType: 'STUDENT',
+      entityId: existing.id,
+      before: auditSnapshot(existing, ['studentCode', 'name', 'gradeLabel', 'section', 'guardianName', 'guardianPhone', 'status']),
+      req,
     })
 
     return ok({ success: true })

@@ -73,7 +73,10 @@ const createSchema = z
     title: z.string().max(200).optional(),
     startsAt: z.coerce.date().optional(),
     endsAt: z.coerce.date().optional(),
-    deliveryMode: z.enum(['IN_PERSON', 'ONLINE']).default('IN_PERSON')
+    deliveryMode: z.enum(['IN_PERSON', 'ONLINE']).default('IN_PERSON'),
+    // Set true to create despite an existing session for the same course/batch
+    // + date — the caller has seen and accepted the double-booking warning.
+    force: z.boolean().optional()
   })
   .refine(v => !!v.courseId !== !!v.batchId, {
     message: 'Provide exactly one of courseId or batchId'
@@ -91,6 +94,35 @@ export const POST = route({
     } else if (body.batchId) {
       const batch = await db.studentBatch.findUnique({ where: { id: body.batchId } })
       if (!batch) throw Errors.notFound('Batch')
+    }
+
+    // Double-booking guard. A manual session's roster is resolved at register
+    // time as everyone in the course/batch, so a manual session that overlaps
+    // sessions already materialized from per-student schedules (studentId set)
+    // — or a prior manual one — would record the same students' attendance on a
+    // second sessionKey. Warn (409) unless the caller forces it.
+    if (!body.force) {
+      const existing = await db.attendanceSession.findMany({
+        where: {
+          date: toDbDate(body.date),
+          ...(body.courseId ? { courseId: body.courseId } : { batchId: body.batchId })
+        },
+        select: { id: true, studentId: true }
+      })
+      if (existing.length > 0) {
+        const studentIds = existing.map(s => s.studentId).filter((v): v is string => !!v)
+        const students = studentIds.length
+          ? await db.student.findMany({
+              where: { id: { in: studentIds } },
+              select: { id: true, name: true }
+            })
+          : []
+        const names = students.map(s => s.name)
+        const msg = names.length
+          ? `${names.length} student${names.length > 1 ? 's' : ''} already ${names.length > 1 ? 'have' : 'has'} a session for this ${body.courseId ? 'course' : 'batch'} on ${body.date} (${names.slice(0, 5).join(', ')}${names.length > 5 ? '…' : ''}). Creating another will record their attendance twice.`
+          : `A session for this ${body.courseId ? 'course' : 'batch'} already exists on ${body.date}. Creating another will duplicate attendance for its students.`
+        throw Errors.conflict(msg, { conflict: true, date: body.date, sessionCount: existing.length, students })
+      }
     }
 
     const session = await db.attendanceSession.create({

@@ -6,7 +6,8 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db/client'
 import { redis } from '@/lib/redis'
-import { AdmissionStatus, LeadPriority } from '@prisma/client'
+import { AdmissionStatus, LeadPriority, AuditAction } from '@prisma/client'
+import { logAudit, auditSnapshot } from '@/lib/audit/log'
 import { asEnum, istRange } from '@/lib/api/query'
 import { Errors } from '@/lib/api/errors'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
@@ -459,6 +460,16 @@ export const POST = route({
         summary: body.notes ? `Admission created. Note: ${body.notes}` : 'Admission created',
         performedById: user.id
       }
+    })
+
+    logAudit({
+      orgId: user.orgId,
+      userId: user.id,
+      action: AuditAction.CREATE,
+      entityType: 'ADMISSION',
+      entityId: admission.id,
+      after: auditSnapshot(admission, ['admissionCode', 'applicantName', 'parentName', 'phone', 'gradeSought', 'stageId', 'status']),
+      req,
     })
 
     // Invalidate pipeline cache

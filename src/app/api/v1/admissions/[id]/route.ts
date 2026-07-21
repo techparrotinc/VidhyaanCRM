@@ -6,6 +6,9 @@ import { redis } from '@/lib/redis'
 import { Errors, AppError } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
+import { rolesFor } from '@/constants/permissions'
+import { logAudit, auditSnapshot } from '@/lib/audit/log'
+import { AuditAction } from '@prisma/client'
 import { createNotification } from '@/lib/services/notifications'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
 import { prisma } from '@/lib/db/client'
@@ -128,11 +131,7 @@ export const GET = route({
 
 export const PUT = route({
   module: MODULES.ADMISSION_MANAGEMENT,
-  roles: [
-    ROLES.ORG_ADMIN,
-    ROLES.BRANCH_ADMIN,
-    ROLES.COUNSELLOR
-  ],
+  roles: rolesFor('ADMISSION', 'update'),
   handler: async ({ req, db, user, params }) => {
     const { id } = (await params) as any
     const body = updateAdmissionSchema.parse(await req.json())
@@ -215,6 +214,17 @@ export const PUT = route({
       where: { id },
       data: finalUpdateData,
       include: { stage: true }
+    })
+
+    logAudit({
+      orgId: user.orgId,
+      userId: user.id,
+      action: AuditAction.UPDATE,
+      entityType: 'ADMISSION',
+      entityId: updated.id,
+      before: auditSnapshot(existing, ['applicantName', 'parentName', 'phone', 'email', 'stageId', 'status', 'assignedToId']),
+      after: auditSnapshot(updated, ['applicantName', 'parentName', 'phone', 'email', 'stageId', 'status', 'assignedToId']),
+      req,
     })
 
     let leadId = existing.leadId
@@ -497,8 +507,8 @@ export const PUT = route({
 
 export const DELETE = route({
   module: MODULES.ADMISSION_MANAGEMENT,
-  roles: [ROLES.ORG_ADMIN, ROLES.BRANCH_ADMIN],
-  handler: async ({ db, params, user }) => {
+  roles: rolesFor('ADMISSION', 'delete'),
+  handler: async ({ req, db, params, user }) => {
     const { id } = (await params) as any
     const admission = await db.admission.findFirst({
       where: { id, orgId: user.orgId, deletedAt: null },
@@ -540,6 +550,16 @@ export const DELETE = route({
         summary: 'Admission record deleted',
         performedById: user.id
       }
+    })
+
+    logAudit({
+      orgId: user.orgId,
+      userId: user.id,
+      action: AuditAction.DELETE,
+      entityType: 'ADMISSION',
+      entityId: admission.id,
+      before: auditSnapshot(admission, ['admissionCode', 'applicantName', 'parentName', 'phone', 'status', 'stageId']),
+      req,
     })
 
     // Invalidate pipeline cache

@@ -101,6 +101,7 @@ export default function TimetablePage() {
   const [weekStart, setWeekStart] = useState(mondayOf(localISO(new Date())))
 
   const [slots, setSlots] = useState<Slot[]>([])
+  const [subjectOptions, setSubjectOptions] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [slotsLoading, setSlotsLoading] = useState(false)
 
@@ -122,13 +123,16 @@ export default function TimetablePage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [optRes, usersRes] = await Promise.all([
+        const [optRes, usersRes, subjRes] = await Promise.all([
           fetch('/api/v1/options/classes'),
-          fetch('/api/v1/users')
+          fetch('/api/v1/users'),
+          fetch('/api/v1/options/subjects')
         ])
         const optJson = await optRes.json()
         const list: ClassOption[] = optJson?.data?.options ?? optJson?.options ?? []
         setOptions(list)
+        const subjJson = await subjRes.json().catch(() => null)
+        setSubjectOptions((subjJson?.data?.options ?? []).map((o: { name: string }) => o.name))
         if (list.length > 0) {
           setGradeLabel(list[0].name)
           setSection(list[0].sections[0] ?? '')
@@ -608,7 +612,21 @@ export default function TimetablePage() {
               </div>
               <div className="col-span-2">
                 <label className="text-xs font-semibold text-slate-600 block mb-1">Subject</label>
-                <input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Mathematics" className="w-full h-10 rounded-xl border border-slate-200 px-3 text-sm" />
+                <input
+                  list="timetable-subject-options"
+                  value={form.subject}
+                  onChange={(e) => setForm({ ...form, subject: e.target.value })}
+                  placeholder="Mathematics"
+                  className="w-full h-10 rounded-xl border border-slate-200 px-3 text-sm"
+                />
+                <datalist id="timetable-subject-options">
+                  {subjectOptions.map((s) => <option key={s} value={s} />)}
+                </datalist>
+                {subjectOptions.length === 0 && (
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Tip: add subjects in Settings → Subjects to get a dropdown here.
+                  </p>
+                )}
               </div>
               <div className="col-span-2">
                 <label className="text-xs font-semibold text-slate-600 block mb-1">Teacher (optional)</label>

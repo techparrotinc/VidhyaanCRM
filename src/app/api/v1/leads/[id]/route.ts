@@ -5,7 +5,9 @@ import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES, CRM_ROLES } from '@/constants/roles'
-import { LeadSource, LeadStatus, LeadPriority } from '@prisma/client'
+import { rolesFor } from '@/constants/permissions'
+import { logAudit, auditSnapshot } from '@/lib/audit/log'
+import { LeadSource, LeadStatus, LeadPriority, AuditAction } from '@prisma/client'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { dedupFields } from '@/lib/dedup'
 import { prisma } from '@/lib/db'
@@ -273,6 +275,17 @@ export const PUT = route({
       data: updateData
     })
 
+    logAudit({
+      orgId: user.orgId,
+      userId: user.id,
+      action: AuditAction.UPDATE,
+      entityType: 'LEAD',
+      entityId: updated.id,
+      before: auditSnapshot(existing, ['parentName', 'phone', 'email', 'status', 'priority', 'assignedToId', 'gradeSought']),
+      after: auditSnapshot(updated, ['parentName', 'phone', 'email', 'status', 'priority', 'assignedToId', 'gradeSought']),
+      req,
+    })
+
     // Track first contact
     if (body.status === 'CONTACTED' && !existing.firstContactedAt) {
       await db.lead.update({
@@ -331,8 +344,8 @@ export const PUT = route({
 
 export const DELETE = route({
   module: MODULES.LEAD_MANAGEMENT,
-  roles: [ROLES.ORG_ADMIN],
-  handler: async ({ db, params, user }) => {
+  roles: rolesFor('LEAD', 'delete'),
+  handler: async ({ req, db, params, user }) => {
     const existing = await db.lead.findFirst({
       where: { id: params?.id }
     })
@@ -341,6 +354,16 @@ export const DELETE = route({
     await db.lead.update({
       where: { id: params?.id },
       data: { deletedAt: new Date() }
+    })
+
+    logAudit({
+      orgId: user.orgId,
+      userId: user.id,
+      action: AuditAction.DELETE,
+      entityType: 'LEAD',
+      entityId: existing.id,
+      before: auditSnapshot(existing, ['leadCode', 'parentName', 'phone', 'kidName', 'status', 'assignedToId']),
+      req,
     })
 
     return ok({ deleted: true })

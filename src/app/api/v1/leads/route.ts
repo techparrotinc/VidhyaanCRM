@@ -5,7 +5,8 @@ import { ok, created, paginated } from '@/lib/api/respond'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { prisma } from '@/lib/db'
-import { LeadSource, LeadStatus, LeadPriority } from '@prisma/client'
+import { logAudit, auditSnapshot } from '@/lib/audit/log'
+import { LeadSource, LeadStatus, LeadPriority, AuditAction } from '@prisma/client'
 import { createNotification } from '@/lib/services/notifications'
 import { cleanPhoneNumber } from '@/lib/utils'
 import { createLeadWithUniqueCode } from '@/lib/lead-code'
@@ -390,6 +391,16 @@ export const POST = route({
         summary: body.notes ? `Lead created from ${body.source}. Note: ${body.notes}` : `Lead created from ${body.source}`,
         performedById: user.id
       }
+    })
+
+    logAudit({
+      orgId: user.orgId,
+      userId: user.id,
+      action: AuditAction.CREATE,
+      entityType: 'LEAD',
+      entityId: lead.id,
+      after: auditSnapshot(lead, ['leadCode', 'parentName', 'phone', 'kidName', 'source', 'status', 'assignedToId']),
+      req,
     })
 
     // 7. Create in-app notification for the assigned counsellor

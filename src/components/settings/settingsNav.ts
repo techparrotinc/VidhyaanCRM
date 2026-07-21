@@ -102,6 +102,12 @@ export function buildSettingsNav(opts: {
                 description: 'Classes and sections that power every class dropdown'
               },
               {
+                name: 'Subjects',
+                path: '/settings/subjects',
+                icon: BookOpen,
+                description: 'Subjects that power the timetable subject dropdown'
+              },
+              {
                 name: 'Admission Pipeline',
                 path: '/settings/pipeline',
                 icon: GitMerge,
@@ -210,6 +216,12 @@ export function buildSettingsNav(opts: {
           path: '/settings/security',
           icon: ShieldCheck,
           description: 'Authenticator app or SMS second factor, backup codes'
+        },
+        {
+          name: 'Activity Log',
+          path: '/settings/activity-log',
+          icon: ScrollText,
+          description: 'Audit trail of critical create, update, delete and void actions across your workspace'
         },
         {
           name: 'Data Privacy & Policy',

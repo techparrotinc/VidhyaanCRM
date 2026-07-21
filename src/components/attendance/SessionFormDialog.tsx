@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { DateTimePicker } from '@/components/ui/datetime-picker'
-import { Loader2 } from 'lucide-react'
+import { Loader2, AlertTriangle } from 'lucide-react'
 
 type Option = { id: string; name: string }
 
@@ -35,6 +35,7 @@ export function SessionFormDialog({
   const [deliveryMode, setDeliveryMode] = useState<'IN_PERSON' | 'ONLINE'>('IN_PERSON')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [conflict, setConflict] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -42,6 +43,7 @@ export function SessionFormDialog({
     setTitle('')
     setStartsAt('')
     setError(null)
+    setConflict(null)
     Promise.all([
       fetch('/api/v1/attendance/options?source=courses').then(r => r.json()),
       fetch('/api/v1/attendance/options?source=batches').then(r => r.json())
@@ -53,7 +55,7 @@ export function SessionFormDialog({
 
   const options = targetType === 'course' ? courses : batches
 
-  const handleCreate = async () => {
+  const handleCreate = async (force = false) => {
     if (!targetId) return
     setSaving(true)
     setError(null)
@@ -66,10 +68,17 @@ export function SessionFormDialog({
           [targetType === 'course' ? 'courseId' : 'batchId']: targetId,
           title: title || undefined,
           startsAt: startsAt || undefined,
-          deliveryMode
+          deliveryMode,
+          ...(force ? { force: true } : {})
         })
       })
       const json = await res.json()
+      // Double-booking warning — let the user confirm before creating a second
+      // session that would double-record attendance for the same students.
+      if (res.status === 409 && json.code === 'CONFLICT') {
+        setConflict(json.error || 'A session already exists for this date.')
+        return
+      }
       if (!res.ok || !json.success) throw new Error(json.error || 'Failed to create session')
       onOpenChange(false)
       onCreated()
@@ -124,7 +133,13 @@ export function SessionFormDialog({
             <label className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
               {targetType === 'course' ? 'Course' : 'Batch'}
             </label>
-            <Select value={targetId} onValueChange={setTargetId}>
+            <Select
+              value={targetId}
+              onValueChange={v => {
+                setTargetId(v)
+                setConflict(null)
+              }}
+            >
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder={`Select ${targetType}`} />
               </SelectTrigger>
@@ -154,19 +169,39 @@ export function SessionFormDialog({
           </div>
 
           {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+
+          {conflict && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+              <p className="flex items-start gap-2 text-sm font-medium text-amber-800">
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>{conflict}</span>
+              </p>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancel
           </Button>
-          <Button
-            onClick={handleCreate}
-            disabled={saving || !targetId}
-            className="bg-[#1565D8] hover:bg-[#0f56be] text-sm font-semibold"
-          >
-            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Create session
-          </Button>
+          {conflict ? (
+            <Button
+              onClick={() => handleCreate(true)}
+              disabled={saving || !targetId}
+              className="bg-amber-600 hover:bg-amber-700 text-sm font-semibold"
+            >
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Create anyway
+            </Button>
+          ) : (
+            <Button
+              onClick={() => handleCreate(false)}
+              disabled={saving || !targetId}
+              className="bg-[#1565D8] hover:bg-[#0f56be] text-sm font-semibold"
+            >
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Create session
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

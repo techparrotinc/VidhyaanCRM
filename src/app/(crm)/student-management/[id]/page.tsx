@@ -452,6 +452,7 @@ export default function StudentDetailPage() {
             {institutionType === 'LEARNING_CENTER' && student && (
               <CourseEnrollmentCard
                 studentId={student.id}
+                studentName={student.name}
                 enrollments={(student as any).courseEnrollments ?? student.enrollments ?? []}
                 onRevalidate={mutate}
                 toast={toastHelper}

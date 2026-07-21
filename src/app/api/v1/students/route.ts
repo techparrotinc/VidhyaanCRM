@@ -4,8 +4,9 @@ import { ok, created, paginated } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
-import { Gender, StudentStatus } from '@prisma/client'
+import { Gender, StudentStatus, AuditAction } from '@prisma/client'
 import { prisma } from '@/lib/db/client'
+import { logAudit, auditSnapshot } from '@/lib/audit/log'
 import { parseQuery, paginationShape, enumParam, dateParam, istRange } from '@/lib/api/query'
 import { getGradeLabel } from '@/constants/grades'
 import { assertFreeTierLimit } from '@/lib/billing/limits'
@@ -244,6 +245,16 @@ export const POST = route({
       })
 
       return { student, dedup }
+    })
+
+    logAudit({
+      orgId: user.orgId,
+      userId: user.id,
+      action: AuditAction.CREATE,
+      entityType: 'STUDENT',
+      entityId: student.id,
+      after: auditSnapshot(student, ['studentCode', 'name', 'gradeLabel', 'section', 'guardianName', 'guardianPhone', 'status']),
+      req,
     })
 
     return created({

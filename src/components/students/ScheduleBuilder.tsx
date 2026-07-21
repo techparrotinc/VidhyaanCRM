@@ -25,32 +25,74 @@ export type ScheduleValue = {
 type BatchOption = { id: string; name: string; course?: { name: string } | null }
 type CourseLite = { hoursPerWeek?: number | null; totalHours?: number | null } | null
 
+// Existing schedule to open the builder on (edit path). Custom slots reconstruct
+// the cadence controls; a batchId opens in group-class mode. The builder only
+// represents a single start-time + duration across days, so heterogeneous slot
+// times collapse to the first slot's time — matching what save can persist.
+export type ScheduleSeed = {
+  mode: ScheduleMode
+  batchId?: string
+  slots?: ProposedSlot[]
+}
+
+function deriveInitial(seed?: ScheduleSeed) {
+  const slots = seed?.slots ?? []
+  if (seed?.mode === 'custom' && slots.length > 0) {
+    const days = [...new Set(slots.map(s => s.dayOfWeek))].sort((a, b) => a - b)
+    return {
+      mode: 'custom' as ScheduleMode,
+      batchId: '',
+      durationMin: slots[0].durationMin || 30,
+      startTime: slots[0].startTime || '18:30',
+      days,
+      perWeek: slots.length,
+      hasSlots: true
+    }
+  }
+  return {
+    mode: seed?.mode ?? 'custom',
+    batchId: seed?.batchId ?? '',
+    durationMin: 30,
+    startTime: '18:30',
+    days: [1, 3], // Mon, Wed
+    perWeek: 2,
+    hasSlots: false
+  }
+}
+
 export function ScheduleBuilder({
   course,
   batches,
   disabled,
+  initial,
   onChange
 }: {
   course: CourseLite
   batches: BatchOption[]
   disabled?: boolean
+  initial?: ScheduleSeed
   onChange: (value: ScheduleValue) => void
 }) {
-  // Individual per-student schedule is the primary LC path — default to it.
-  const [mode, setMode] = useState<ScheduleMode>('custom')
-  const [batchId, setBatchId] = useState('')
+  // Seed from an existing schedule when editing; else default to the individual
+  // per-student path (the primary LC flow). Component is keyed by course upstream
+  // so this evaluates once per open.
+  const seed = deriveInitial(initial)
+  const [mode, setMode] = useState<ScheduleMode>(seed.mode)
+  const [batchId, setBatchId] = useState(seed.batchId)
 
-  const [durationMin, setDurationMin] = useState(30)
-  const [startTime, setStartTime] = useState('18:30')
-  const [days, setDays] = useState<number[]>([1, 3]) // Mon, Wed
+  const [durationMin, setDurationMin] = useState(seed.durationMin)
+  const [startTime, setStartTime] = useState(seed.startTime)
+  const [days, setDays] = useState<number[]>(seed.days)
   // Sessions/week defaults from the course weekly hours when known
   // ("30 min twice a week" = 1h/week ÷ 30m = 2), else 2.
   const derivedPerWeek = course?.hoursPerWeek
     ? sessionsPerWeekFromHours(course.hoursPerWeek, durationMin)
     : 0
-  const [perWeek, setPerWeek] = useState(2)
+  const [perWeek, setPerWeek] = useState(seed.perWeek)
   useEffect(() => {
-    if (derivedPerWeek > 0) setPerWeek(derivedPerWeek)
+    // Never override a schedule we opened for editing — respect its slot count.
+    if (!seed.hasSlots && derivedPerWeek > 0) setPerWeek(derivedPerWeek)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [derivedPerWeek])
 
   const slots = useMemo<ProposedSlot[]>(() => {

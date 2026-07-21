@@ -32,6 +32,8 @@ const TENANT_MODELS = [
   'CourseSession',
   // Class/section master (schools) — source for class+section dropdowns.
   'SchoolClass', 'ClassSection',
+  // Subject master (schools) — source for the timetable subject dropdown.
+  'Subject',
   // Weekly school timetable (parent routes read via base client w/ explicit orgId).
   'TimetableSlot',
   // Parent-facing academics. Written by parent routes via the base client
@@ -41,7 +43,7 @@ const TENANT_MODELS = [
 
 const SOFT_DELETE_MODELS = [
   'Lead', 'Admission', 'Student', 'Invoice', 'Campaign', 'Event',
-  'PaymentGatewayConfig', 'Form', 'CourseSession'
+  'PaymentGatewayConfig', 'Form', 'CourseSession', 'Subject'
 ]
 
 // Models carrying a nullable branchId column. When a branch context is

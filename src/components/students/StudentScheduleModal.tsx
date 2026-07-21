@@ -3,15 +3,32 @@
 import { useEffect, useState } from 'react'
 import { X, Loader2, CalendarClock } from 'lucide-react'
 import { AppSelect } from '@/components/ui/app-select'
-import { ScheduleBuilder, type ScheduleValue } from './ScheduleBuilder'
+import { ScheduleBuilder, type ScheduleValue, type ScheduleSeed } from './ScheduleBuilder'
+import type { ProposedSlot } from '@/lib/schedule/layout'
 
 // Quick "set schedule" for an already-enrolled student, opened from the student
 // list. Reuses ScheduleBuilder; posts to /students/[id]/schedule which switches
 // the student between a group class and an individual schedule.
 
 type CourseLite = { id: string; name: string; hoursPerWeek?: number | null; totalHours?: number | null }
-type EnrollmentLite = { courseId: string; course?: CourseLite | null }
+type SlotLite = { dayOfWeek: number; startTime: string; endTime: string; durationMin?: number | null }
+type EnrollmentLite = { courseId: string; course?: CourseLite | null; scheduleSlots?: SlotLite[] }
 type BatchLite = { id: string; name: string; course?: { name: string } | null }
+
+const toMin = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number)
+  return h * 60 + m
+}
+
+// Concrete stored slots → the ProposedSlot shape the builder seeds from.
+function toProposedSlots(slots: SlotLite[]): ProposedSlot[] {
+  return slots.map(s => ({
+    dayOfWeek: s.dayOfWeek,
+    startTime: s.startTime,
+    endTime: s.endTime,
+    durationMin: s.durationMin ?? Math.max(1, toMin(s.endTime) - toMin(s.startTime))
+  }))
+}
 
 export function StudentScheduleModal({
   studentId,
@@ -25,6 +42,7 @@ export function StudentScheduleModal({
   onSaved?: () => void
 }) {
   const [enrollments, setEnrollments] = useState<EnrollmentLite[] | null>(null)
+  const [batchId, setBatchId] = useState<string | null>(null)
   const [batches, setBatches] = useState<BatchLite[]>([])
   const [courseId, setCourseId] = useState('')
   const [schedule, setSchedule] = useState<ScheduleValue>({ mode: 'custom', batchId: '', slots: [] })
@@ -36,7 +54,10 @@ export function StudentScheduleModal({
     // orgs without billing still see the student's enrolled courses.
     fetch(`/api/v1/students/${studentId}/schedule`)
       .then(r => r.json())
-      .then(j => setEnrollments(j?.data?.enrollments ?? []))
+      .then(j => {
+        setEnrollments(j?.data?.enrollments ?? [])
+        setBatchId(j?.data?.batchId ?? null)
+      })
       .catch(() => setEnrollments([]))
     fetch('/api/v1/options/batches')
       .then(r => r.json())
@@ -52,6 +73,16 @@ export function StudentScheduleModal({
     .map(e => e.course)
     .filter((c): c is CourseLite => !!c)
   const selectedCourse = enrolledCourses.find(c => c.id === courseId) ?? null
+
+  // Open the builder on the selected course's existing schedule: its own custom
+  // slots if any, else the student's group class, else the builder's defaults.
+  const selectedEnrollment = (enrollments ?? []).find(e => e.courseId === courseId)
+  const existingSlots = selectedEnrollment?.scheduleSlots ?? []
+  const initialSchedule: ScheduleSeed | undefined = existingSlots.length > 0
+    ? { mode: 'custom', slots: toProposedSlots(existingSlots) }
+    : batchId
+      ? { mode: 'batch', batchId }
+      : undefined
 
   const save = async () => {
     setError(null)
@@ -135,7 +166,13 @@ export function StudentScheduleModal({
 
               {/* Rebuild the builder per course so hours/defaults refresh */}
               <div className="grid grid-cols-1 gap-4">
-                <ScheduleBuilder key={courseId} course={selectedCourse} batches={batches} onChange={setSchedule} />
+                <ScheduleBuilder
+                  key={courseId}
+                  course={selectedCourse}
+                  batches={batches}
+                  initial={initialSchedule}
+                  onChange={setSchedule}
+                />
               </div>
             </>
           )}

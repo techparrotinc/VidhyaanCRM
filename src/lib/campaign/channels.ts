@@ -58,7 +58,7 @@ export async function sendCampaignSMS(params: {
   body: string
   /** Org's own MSG91 account (BYO); falls back to Vidhyaan env keys. */
   credentials?: SmsCredentials
-}): Promise<void> {
+}): Promise<{ requestId?: string }> {
   const phone = params.to.replace(/\D/g, '')
   const formattedPhone = phone.startsWith('91') ? phone : `91${phone}`
 
@@ -85,6 +85,16 @@ export async function sendCampaignSMS(params: {
       // JSON parse failed
     }
     throw new Error(errMsg)
+  }
+
+  // MSG91 returns { type: 'success', message: '<requestId>' } — the requestId
+  // is the join key the delivery-report (DLR) webhook reports back.
+  try {
+    const json = await response.json()
+    const requestId = typeof json?.message === 'string' ? json.message : undefined
+    return { requestId }
+  } catch {
+    return {}
   }
 }
 

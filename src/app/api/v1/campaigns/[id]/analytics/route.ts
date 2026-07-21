@@ -56,17 +56,38 @@ export const GET = route({
       ? Math.round((complained / sent) * 100 * 100) / 100
       : 0
 
+    // Open/click come from SES engagement events (openedAt/clickedAt), measured
+    // against delivered mail. EMAIL only.
     let openRate: number | null = null
     let clickRate: number | null = null
+    if (campaign.channel === 'EMAIL') {
+      const opened = recipients.filter((r) => r.openedAt).length
+      const clicked = recipients.filter((r) => r.clickedAt).length
+      openRate = delivered > 0 ? Math.round((opened / delivered) * 100 * 10) / 10 : 0
+      clickRate = delivered > 0 ? Math.round((clicked / delivered) * 100 * 10) / 10 : 0
+    }
 
-    if (campaign.channel === 'EMAIL' && campaign.stats && typeof campaign.stats === 'object') {
-      const statsObj = campaign.stats as Record<string, any>
-      if (typeof statsObj.openRate === 'number') {
-        openRate = statsObj.openRate
-      }
-      if (typeof statsObj.clickRate === 'number') {
-        clickRate = statsObj.clickRate
-      }
+    // Per-variant breakdown for A/B campaigns.
+    const abVariants = (campaign as any).abVariants as Array<{ key: string; subject?: string }> | null
+    let variantStats: Array<Record<string, any>> | null = null
+    if (Array.isArray(abVariants) && abVariants.length > 0) {
+      variantStats = abVariants.map((v) => {
+        const rs = recipients.filter((r) => r.variantKey === v.key)
+        const vSent = rs.filter((r) => r.status !== 'PENDING').length
+        const vDelivered = rs.filter((r) => r.status === 'DELIVERED' || r.status === 'READ').length
+        const vOpened = rs.filter((r) => r.openedAt).length
+        const vClicked = rs.filter((r) => r.clickedAt).length
+        return {
+          key: v.key,
+          subject: v.subject ?? null,
+          sent: vSent,
+          delivered: vDelivered,
+          opened: vOpened,
+          clicked: vClicked,
+          openRate: vDelivered > 0 ? Math.round((vOpened / vDelivered) * 1000) / 10 : 0,
+          clickRate: vDelivered > 0 ? Math.round((vClicked / vDelivered) * 1000) / 10 : 0,
+        }
+      })
     }
 
     return ok({
@@ -77,7 +98,9 @@ export const GET = route({
         status: campaign.status,
         sentAt: campaign.sentAt,
         scheduledAt: campaign.scheduledAt,
-        createdAt: campaign.createdAt
+        createdAt: campaign.createdAt,
+        abWinnerKey: (campaign as any).abWinnerKey ?? null,
+        abWinnerSentAt: (campaign as any).abWinnerSentAt ?? null
       },
       stats: {
         totalRecipients,
@@ -94,6 +117,7 @@ export const GET = route({
         openRate,
         clickRate
       },
+      variantStats,
       recipients: recipients.map((r) => ({
         id: r.id,
         recipientType: r.recipientType,
@@ -101,9 +125,12 @@ export const GET = route({
         phone: r.phone,
         email: r.email,
         status: r.status,
+        variantKey: r.variantKey,
         sentAt: r.sentAt,
         deliveredAt: r.deliveredAt,
         readAt: r.readAt,
+        openedAt: r.openedAt,
+        clickedAt: r.clickedAt,
         failureReason: r.failureReason
       }))
     })

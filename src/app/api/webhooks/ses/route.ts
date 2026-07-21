@@ -101,6 +101,32 @@ export async function POST(req: NextRequest) {
           status: 'COMPLAINED',
           failureReason: 'Marked as spam',
         })
+      } else if (type === 'Open') {
+        // Engagement only — never change delivery status. First open wins.
+        if (messageId) {
+          await prisma.campaignRecipient
+            .updateMany({
+              where: { providerMessageId: messageId, openedAt: null },
+              data: { openedAt: new Date() },
+            })
+            .catch((err) => console.error('[SES Webhook] open update failed:', err))
+        }
+      } else if (type === 'Click') {
+        // A click implies an open — set both if not already recorded.
+        if (messageId) {
+          await prisma.campaignRecipient
+            .updateMany({
+              where: { providerMessageId: messageId, clickedAt: null },
+              data: { clickedAt: new Date() },
+            })
+            .catch((err) => console.error('[SES Webhook] click update failed:', err))
+          await prisma.campaignRecipient
+            .updateMany({
+              where: { providerMessageId: messageId, openedAt: null },
+              data: { openedAt: new Date() },
+            })
+            .catch(() => {})
+        }
       }
     }
 

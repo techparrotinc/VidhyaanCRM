@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import useSWR from 'swr'
-import { ArrowLeft, Users, Send, CheckCircle, TrendingUp, Mail, MousePointer, AlertCircle } from 'lucide-react'
+import useSWR, { mutate } from 'swr'
+import { ArrowLeft, Users, Send, CheckCircle, TrendingUp, Mail, MousePointer, AlertCircle, AlertTriangle, Trophy, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { fetcher } from '@/lib/fetcher'
+import { appAlert } from '@/components/ui/app-alert'
 
 // Custom WhatsApp / Icon helper component
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -101,11 +102,30 @@ function StatCard({
 export default function AnalyticsDashboard({ id }: { id: string }) {
   const router = useRouter()
   const [recipientSearch, setRecipientSearch] = useState('')
+  const [sendingWinner, setSendingWinner] = useState<string | null>(null)
 
   const { data, error, isLoading } = useSWR(
     `/api/v1/campaigns/${id}/analytics`,
     fetcher
   )
+
+  async function sendWinner(winnerKey?: string) {
+    setSendingWinner(winnerKey ?? 'auto')
+    try {
+      const res = await fetch(`/api/v1/campaigns/${id}/ab-winner`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(winnerKey ? { winnerKey } : {}),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        appAlert(`Winner “${json.data.winnerKey}” sent to ${json.data.sentToRemainder} more recipients.`)
+        mutate(`/api/v1/campaigns/${id}/analytics`)
+      } else appAlert(json.error || 'Failed to send winner')
+    } finally {
+      setSendingWinner(null)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -136,7 +156,10 @@ export default function AnalyticsDashboard({ id }: { id: string }) {
     )
   }
 
-  const { campaign, stats, recipients } = data.data
+  const { campaign, stats, recipients, variantStats } = data.data
+  const hasAb = Array.isArray(variantStats) && variantStats.length > 0
+  const heldPending = recipients.filter((r: any) => r.status === 'PENDING' && !r.variantKey).length
+  const winnerPending = hasAb && !campaign.abWinnerKey && heldPending > 0
 
   const filteredRecipients = recipients.filter((r: any) =>
     (r.name || '').toLowerCase().includes(recipientSearch.toLowerCase())
@@ -155,6 +178,8 @@ export default function AnalyticsDashboard({ id }: { id: string }) {
     if (status === 'DELIVERED') return 'bg-green-50 text-green-700'
     if (status === 'READ') return 'bg-emerald-100 text-emerald-800'
     if (status === 'FAILED') return 'bg-red-50 text-red-700'
+    if (status === 'BOUNCED') return 'bg-orange-50 text-orange-700'
+    if (status === 'COMPLAINED') return 'bg-rose-100 text-rose-800'
     return 'bg-slate-100 text-slate-600'
   }
 
@@ -238,7 +263,7 @@ export default function AnalyticsDashboard({ id }: { id: string }) {
 
       {/* EMAIL SPECIFIC STATS */}
       {campaign.channel === 'EMAIL' && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard
             label="Open Rate"
             value={stats.openRate !== null ? `${stats.openRate}%` : '—'}
@@ -253,6 +278,87 @@ export default function AnalyticsDashboard({ id }: { id: string }) {
             iconBg="bg-amber-50"
             iconColor="text-amber-600"
           />
+          <StatCard
+            label="Bounce Rate"
+            value={`${stats.bounceRate ?? 0}%`}
+            icon={AlertTriangle}
+            iconBg="bg-orange-50"
+            iconColor="text-orange-600"
+          />
+          <StatCard
+            label="Complaints"
+            value={`${stats.complained ?? 0} (${stats.complaintRate ?? 0}%)`}
+            icon={AlertCircle}
+            iconBg="bg-rose-50"
+            iconColor="text-rose-600"
+          />
+        </div>
+      )}
+
+      {/* A/B VARIANT COMPARISON */}
+      {hasAb && (
+        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+              <Trophy className="w-4 h-4 text-amber-500" /> A/B Test
+              {campaign.abWinnerKey && (
+                <span className="text-xs font-normal text-slate-500">· winner <span className="font-semibold text-emerald-600">{campaign.abWinnerKey}</span> sent</span>
+              )}
+            </p>
+            {winnerPending && (
+              <button
+                onClick={() => sendWinner()}
+                disabled={!!sendingWinner}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1565D8] text-white text-xs font-semibold rounded-lg disabled:opacity-50"
+              >
+                {sendingWinner ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trophy className="w-3.5 h-3.5" />}
+                Auto-send winner to remaining {heldPending}
+              </button>
+            )}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-slate-500 border-b border-slate-100">
+                  <th className="py-2 pr-3 font-semibold">Variant</th>
+                  <th className="py-2 pr-3 font-semibold">Subject</th>
+                  <th className="py-2 pr-3 font-semibold">Sent</th>
+                  <th className="py-2 pr-3 font-semibold">Opens</th>
+                  <th className="py-2 pr-3 font-semibold">Open %</th>
+                  <th className="py-2 pr-3 font-semibold">Click %</th>
+                  {winnerPending && <th className="py-2 font-semibold"></th>}
+                </tr>
+              </thead>
+              <tbody>
+                {variantStats.map((v: any) => (
+                  <tr key={v.key} className="border-b border-slate-50">
+                    <td className="py-2 pr-3 font-bold text-slate-700">{v.key}{campaign.abWinnerKey === v.key && <span className="ml-1 text-emerald-600">✓</span>}</td>
+                    <td className="py-2 pr-3 text-slate-600 max-w-[200px] truncate">{v.subject || '—'}</td>
+                    <td className="py-2 pr-3 text-slate-600">{v.sent}</td>
+                    <td className="py-2 pr-3 text-slate-600">{v.opened}</td>
+                    <td className="py-2 pr-3 font-semibold text-slate-700">{v.openRate}%</td>
+                    <td className="py-2 pr-3 text-slate-600">{v.clickRate}%</td>
+                    {winnerPending && (
+                      <td className="py-2">
+                        <button
+                          onClick={() => sendWinner(v.key)}
+                          disabled={!!sendingWinner}
+                          className="text-[#1565D8] font-semibold hover:underline disabled:opacity-50"
+                        >
+                          Pick {v.key}
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {winnerPending && (
+            <p className="text-[11px] text-slate-400">
+              {heldPending} recipients held back. Auto-send picks the highest open rate, or pick a variant manually.
+            </p>
+          )}
         </div>
       )}
 

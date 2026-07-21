@@ -26,6 +26,7 @@ export default function NewCampaignPage() {
   const [recipientCount, setRecipientCount] = useState(0)
   const [templateBody, setTemplateBody] = useState('')
   const [heroImageUrl, setHeroImageUrl] = useState('')
+  const [abTest, setAbTest] = useState({ enabled: false, bSubject: '', bBody: '', percent: 20 })
   const [whatsappTemplateId, setWhatsappTemplateId] = useState('')
   const [paramValues, setParamValues] = useState<Record<string, string>>({})
   const [formTemplateId, setFormTemplateId] = useState('')
@@ -76,6 +77,15 @@ export default function NewCampaignPage() {
   const handleSubmit = async (action: 'draft' | 'send' | 'schedule') => {
     setIsSubmitting(true)
     try {
+      // A/B: variant A = the main subject+body; variant B from the toggle.
+      const abVariants =
+        channel === 'EMAIL' && abTest.enabled && abTest.bBody.trim()
+          ? [
+              { key: 'A', subject: null, templateBody },
+              { key: 'B', subject: abTest.bSubject || null, templateBody: `Subject: ${abTest.bSubject}\n\n${abTest.bBody}` },
+            ]
+          : null
+
       // Step 1: Create campaign
       const createRes = await fetch('/api/v1/campaigns', {
         method: 'POST',
@@ -91,6 +101,8 @@ export default function NewCampaignPage() {
           },
           templateBody,
           heroImageUrl: channel === 'EMAIL' ? heroImageUrl || null : null,
+          abVariants,
+          abTestPercent: abVariants ? abTest.percent : null,
           whatsappTemplateId: channel === 'WHATSAPP' ? whatsappTemplateId || null : null,
           formTemplateId: formTemplateId || null,
           paramValues: channel === 'WHATSAPP' ? paramValues : null,
@@ -250,6 +262,8 @@ export default function NewCampaignPage() {
             scheduledAt={scheduledAt}
             sendNow={sendNow}
             recipientCount={recipientCount}
+            abTest={abTest}
+            onAbChange={setAbTest}
             onHeroImageChange={setHeroImageUrl}
             onBodyChange={setTemplateBody}
             onTemplateChange={setWhatsappTemplateId}

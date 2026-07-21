@@ -104,6 +104,9 @@ interface StepThreeProps {
   scheduledAt: string | null
   sendNow: boolean
   recipientCount: number
+  /** A/B test (EMAIL, optional — new-campaign flow only). */
+  abTest?: { enabled: boolean; bSubject: string; bBody: string; percent: number }
+  onAbChange?: (v: { enabled: boolean; bSubject: string; bBody: string; percent: number }) => void
   onHeroImageChange: (url: string) => void
   onBodyChange: (body: string) => void
   onTemplateChange: (templateId: string) => void
@@ -126,6 +129,8 @@ export function StepThree({
   scheduledAt,
   sendNow,
   recipientCount,
+  abTest,
+  onAbChange,
   onHeroImageChange,
   onBodyChange,
   onTemplateChange,
@@ -485,6 +490,56 @@ export function StepThree({
                 </button>
               </div>
             </div>
+
+            {/* A/B TEST */}
+            {abTest && onAbChange && (
+              <div className="border-t border-slate-100 pt-3 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={abTest.enabled}
+                    onChange={(e) => onAbChange({ ...abTest, enabled: e.target.checked })}
+                    className="accent-[#1565D8]"
+                  />
+                  <span className="text-sm font-semibold text-slate-700">A/B test subject &amp; body</span>
+                </label>
+                {abTest.enabled && (
+                  <div className="space-y-3 pl-6">
+                    <p className="text-xs text-slate-500">
+                      Variant A is the message above. A sample of your audience gets each variant; pick the winner from the report to send to everyone else.
+                    </p>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-600 block mb-1">Variant B — subject</label>
+                      <input
+                        value={abTest.bSubject}
+                        onChange={(e) => onAbChange({ ...abTest, bSubject: e.target.value })}
+                        placeholder="Alternate subject line..."
+                        className="w-full h-10 px-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-[#1565D8]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-600 block mb-1">Variant B — body</label>
+                      <textarea
+                        value={abTest.bBody}
+                        onChange={(e) => onAbChange({ ...abTest, bBody: e.target.value })}
+                        rows={6}
+                        placeholder="Alternate email body..."
+                        className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:border-[#1565D8]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-600 block mb-1">Test sample: {abTest.percent}% of audience (split across A/B)</label>
+                      <input
+                        type="range" min={10} max={100} step={10}
+                        value={abTest.percent}
+                        onChange={(e) => onAbChange({ ...abTest, percent: Number(e.target.value) })}
+                        className="w-full accent-[#1565D8]"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

@@ -21,6 +21,13 @@ const campaignSchema = z.object({
   }).optional().nullable(),
   templateBody: z.string().max(2000).optional().nullable(),
   heroImageUrl: z.string().url().max(500).optional().nullable(),
+  abVariants: z.array(z.object({
+    key: z.string().max(4),
+    subject: z.string().max(200).optional().nullable(),
+    templateBody: z.string().max(2000),
+    heroImageUrl: z.string().url().max(500).optional().nullable(),
+  })).min(2).max(4).optional().nullable(),
+  abTestPercent: z.number().int().min(1).max(100).optional().nullable(),
   whatsappTemplateId: z.string().max(50).optional().nullable(),
   formTemplateId: z.string().optional().nullable(),
   paramValues: z.record(z.string().max(40), z.string().max(300)).optional().nullable(),
@@ -145,6 +152,11 @@ export const POST = route({
         audienceFilter: data.audienceFilter as Prisma.InputJsonValue,
         templateBody: data.templateBody,
         heroImageUrl: data.channel === 'EMAIL' ? (data.heroImageUrl ?? null) : null,
+        // A/B is EMAIL-only; ignore variants on other channels.
+        abVariants: data.channel === 'EMAIL' && data.abVariants
+          ? (data.abVariants as Prisma.InputJsonValue)
+          : undefined,
+        abTestPercent: data.channel === 'EMAIL' ? (data.abTestPercent ?? null) : null,
         whatsappTemplateId,
         formTemplateId: data.formTemplateId ?? null,
         paramValues: (data.paramValues as Prisma.InputJsonValue) ?? undefined,

@@ -162,7 +162,7 @@ export async function sendCampaignMessage(
       if (!recipient.phone) {
         return { success: false, error: 'No phone number' }
       }
-      await sendCampaignSMS({
+      const smsRes = await sendCampaignSMS({
         to: recipient.phone,
         body,
         credentials: providerCreds
@@ -173,6 +173,7 @@ export async function sendCampaignMessage(
             }
           : undefined
       })
+      return { success: true, messageId: smsRes.requestId ?? null }
     } else if (campaign.channel === CampaignChannel.WHATSAPP) {
       if (!recipient.phone) {
         return { success: false, error: 'No phone number' }

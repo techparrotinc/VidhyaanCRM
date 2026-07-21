@@ -41,15 +41,15 @@ export async function sendMeteredSms(
 ): Promise<void> {
   const byo = await getActiveProviderConfig(orgId, 'SMS' as MessageChannel)
   const spent = byo ? null : await spendCreditsWithIntent(orgId, 'SMS' as MessageChannel, 1, ref)
-  await sendWithRefund(spent?.intentId ?? null, () =>
-    sendCampaignSMS({
+  await sendWithRefund(spent?.intentId ?? null, async () => {
+    await sendCampaignSMS({
       to,
       body,
       credentials: byo
         ? { authKey: byo.authKey, senderId: byo.senderId, flowId: byo.smsFlowId }
         : undefined
     })
-  )
+  })
 }
 
 export async function sendMeteredWhatsApp(

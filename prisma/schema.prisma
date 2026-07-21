@@ -2595,6 +2595,13 @@ model Campaign {
   sentAt             DateTime?       @map("sent_at")
   audienceFilter     Json?           @map("audience_filter")
   stats              Json?
+  /// A/B test (EMAIL). Variants: [{ key, subject, templateBody, heroImageUrl }].
+  /// When set, abTestPercent of the audience is split across variants; the rest
+  /// is held until a winner is chosen and sent to the remainder.
+  abVariants         Json?           @map("ab_variants")
+  abTestPercent      Int?            @map("ab_test_percent")
+  abWinnerKey        String?         @map("ab_winner_key")
+  abWinnerSentAt     DateTime?       @map("ab_winner_sent_at")
   /// Optional external spend (ads/print) for ROI reporting — captured on the
   /// Campaign Effectiveness report, not during send.
   costAmount         Decimal?        @map("cost_amount") @db.Decimal(12, 2)
@@ -2627,8 +2634,14 @@ model CampaignRecipient {
   sentAt            DateTime?          @map("sent_at")
   deliveredAt       DateTime?          @map("delivered_at")
   readAt            DateTime?          @map("read_at")
+  /// Email engagement (SES Open/Click events).
+  openedAt          DateTime?          @map("opened_at")
+  clickedAt         DateTime?          @map("clicked_at")
+  /// A/B test — which campaign variant this recipient received ('A'/'B'…).
+  variantKey        String?            @map("variant_key")
   failureReason     String?            @map("failure_reason")
-  /// Meta wamid — joins delivery webhooks back to this recipient
+  /// Meta wamid / SES messageId / MSG91 requestId — joins delivery webhooks
+  /// back to this recipient
   providerMessageId String?            @map("provider_message_id")
   createdAt         DateTime           @default(now()) @map("created_at")
 

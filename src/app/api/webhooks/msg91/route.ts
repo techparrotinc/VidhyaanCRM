@@ -45,6 +45,28 @@ export async function POST(req: NextRequest) {
         })
         console.log(`[MSG91 Webhook] Updated CommunicationLog ${commLog.id} status to: ${status}`)
       }
+
+      // Per-campaign SMS delivery tracking: the requestId was stored as the
+      // recipient's providerMessageId at send time.
+      const s = String(status ?? '').toLowerCase()
+      const mapped =
+        /deliver/.test(s) ? 'DELIVERED'
+        : /(fail|reject|block|expire|undeliver|invalid)/.test(s) ? 'FAILED'
+        : null
+      if (mapped) {
+        await prisma.campaignRecipient
+          .updateMany({
+            where: {
+              providerMessageId: requestId,
+              // never downgrade a terminal state
+              status: mapped === 'DELIVERED' ? { in: ['SENT'] } : { notIn: ['FAILED'] },
+            },
+            data: mapped === 'DELIVERED'
+              ? { status: 'DELIVERED', deliveredAt: new Date() }
+              : { status: 'FAILED', failureReason: `SMS ${status}` },
+          })
+          .catch((err) => console.error('[MSG91 Webhook] recipient update failed:', err))
+      }
     }
 
     return NextResponse.json({ success: true })

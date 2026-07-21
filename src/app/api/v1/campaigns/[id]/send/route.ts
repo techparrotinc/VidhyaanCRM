@@ -402,10 +402,41 @@ async function handleSendCampaign({
       ? await resolveOrgCampaignFrom(orgId)
       : undefined
 
+  // A/B split (EMAIL): send only abTestPercent of the audience now, split
+  // across variants (round-robin). The rest stay PENDING until a winner is
+  // picked (/ab-winner) and sent to the remainder. abWinnerSentAt guards
+  // against re-splitting an already-decided campaign.
+  const abVariants = (campaign.abVariants as Array<{ key: string; templateBody: string; heroImageUrl?: string | null }> | null) ?? null
+  const isAbTest =
+    campaign.channel === CampaignChannel.EMAIL &&
+    Array.isArray(abVariants) && abVariants.length >= 2 &&
+    !campaign.abWinnerSentAt
+  const variantByKey = new Map((abVariants ?? []).map(v => [v.key, v]))
+
+  let sendList = recipientRecords
+  if (isAbTest && abVariants) {
+    const pct = Math.min(100, Math.max(1, campaign.abTestPercent ?? 20))
+    const testCount = Math.min(
+      recipientRecords.length,
+      Math.max(abVariants.length, Math.ceil((recipientRecords.length * pct) / 100))
+    )
+    sendList = recipientRecords.slice(0, testCount)
+    // Assign a variant to each test recipient up-front (persist so the winner
+    // step can measure per-variant engagement).
+    await Promise.all(
+      sendList.map((r, idx) =>
+        db.campaignRecipient.update({
+          where: { id: r.id },
+          data: { variantKey: abVariants[idx % abVariants.length].key },
+        }).then(() => { (r as any).variantKey = abVariants[idx % abVariants.length].key })
+      )
+    )
+  }
+
   // STEP 9 — Send messages (Process in batches of 50)
   const batchSize = 50
-  for (let i = 0; i < recipientRecords.length; i += batchSize) {
-    const batch = recipientRecords.slice(i, i + batchSize)
+  for (let i = 0; i < sendList.length; i += batchSize) {
+    const batch = sendList.slice(i, i + batchSize)
     await Promise.allSettled(
       batch.map(async (record) => {
         try {
@@ -431,13 +462,15 @@ async function handleSendCampaign({
             }
           }
 
+          // A/B: swap in this recipient's variant subject/body/image.
+          const variant = isAbTest ? variantByKey.get((record as any).variantKey) : undefined
           const result = await sendCampaignMessage(
             {
               id: campaign.id,
               name: campaign.name,
               channel: campaign.channel,
-              templateBody: campaign.templateBody,
-              heroImageUrl: campaign.heroImageUrl ?? null,
+              templateBody: variant?.templateBody ?? campaign.templateBody,
+              heroImageUrl: variant ? (variant.heroImageUrl ?? null) : (campaign.heroImageUrl ?? null),
               whatsappTemplateId: campaign.whatsappTemplateId ?? null,
               paramValues: (campaign.paramValues as Record<string, string> | null) ?? null,
               organization: {
@@ -531,16 +564,20 @@ async function handleSendCampaign({
     )
   }
 
-  const updatedCampaign = await db.campaign.update({
+  // A/B test phase: hold the campaign in SENDING with the remainder still
+  // PENDING until a winner is chosen; a plain send completes normally.
+  const held = isAbTest ? recipients.length - sendList.length : 0
+  await db.campaign.update({
     where: { id: campaign.id },
     data: {
-      status: CampaignStatus.COMPLETED,
+      status: isAbTest && held > 0 ? CampaignStatus.SENDING : CampaignStatus.COMPLETED,
       sentAt: new Date(),
       stats: {
         totalRecipients: recipients.length,
         sent: finalSent,
         delivered: finalDelivered,
-        failed: finalFailed
+        failed: finalFailed,
+        ...(isAbTest ? { abPhase: held > 0 ? 'TEST' : 'FULL', abHeld: held } : {})
       }
     }
   })
@@ -551,7 +588,8 @@ async function handleSendCampaign({
       scheduled: false,
       recipientCount: recipients.length,
       sent: finalSent,
-      failed: finalFailed
+      failed: finalFailed,
+      abTest: isAbTest ? { tested: sendList.length, held } : undefined
     }
   })
 }

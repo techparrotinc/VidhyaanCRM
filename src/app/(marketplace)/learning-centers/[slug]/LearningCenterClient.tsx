@@ -363,7 +363,11 @@ export default function LearningCenterDetailPage() {
     const fetchCenterDetails = async () => {
       try {
         setLoading(true)
-        const res = await fetch(`/api/public/schools/${slug}`)
+        // Owner preview (from onboarding): ?preview=1 renders the yet-unpublished
+        // profile via the claim bypass instead of 404-ing.
+        const isPreview = typeof window !== 'undefined' &&
+          new URLSearchParams(window.location.search).get('preview') === '1'
+        const res = await fetch(`/api/public/schools/${slug}${isPreview ? '?claim=true' : ''}`)
         if (!res.ok) throw new Error('Learning center not found')
         const json = await res.json()
         const dbSchool = json.data

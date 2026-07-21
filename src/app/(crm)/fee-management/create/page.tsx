@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
+import { isLearningCentre } from '@/lib/institution'
 import ClassModeForm, { type WizardFormHandle } from './components/ClassModeForm'
 import StudentModeForm from './components/StudentModeForm'
 import PreviewStep from './components/PreviewStep'
@@ -12,8 +13,18 @@ import SegmentedControl from './components/SegmentedControl'
 export default function FeeManagementCreatePage() {
   const router = useRouter()
 
-  // Modes: 'class' (Class Mode) or 'student' (Student Mode)
+  // Modes: 'class' (Class/Course Mode) or 'student' (Student Mode)
   const [mode, setMode] = useState<'class' | 'student'>('class')
+
+  // Institution mode — the "A Class" bulk toggle reads "A Course" for LC/
+  // coaching/college orgs (the Course dropdown lives inside that mode).
+  const [isLC, setIsLC] = useState(false)
+  useEffect(() => {
+    fetch('/api/v1/settings/org-type')
+      .then(r => r.json())
+      .then(json => setIsLC(isLearningCentre(json?.data?.institutionType)))
+      .catch(() => {})
+  }, [])
   const [step, setStep] = useState<1 | 2>(1)
   const [isStepValid, setIsStepValid] = useState(false)
 
@@ -134,7 +145,7 @@ export default function FeeManagementCreatePage() {
                 </h2>
                 <SegmentedControl
                   options={[
-                    { value: 'class', label: 'A Class' },
+                    { value: 'class', label: isLC ? 'A Course' : 'A Class' },
                     { value: 'student', label: 'A Student' }
                   ]}
                   value={mode}

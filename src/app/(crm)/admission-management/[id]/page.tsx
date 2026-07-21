@@ -50,6 +50,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { SendFormButton } from "@/components/forms/SendFormButton"
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
+import { useClassOptions } from '@/hooks/useClassOptions'
+import { mapGradeValue } from '@/lib/utils/gradeMapping'
 import { Skeleton } from "@/components/ui/skeleton"
 import RecordSkeleton from "@/components/shared/RecordSkeleton"
 import { useConfirm } from '@/components/ui/confirm-dialog'
@@ -214,6 +216,15 @@ export default function AdmissionDetailPage() {
   const [convertStudentSection, setConvertStudentSection] = useState('')
   const [convertStudentRollNumber, setConvertStudentRollNumber] = useState('')
   const [convertStudentGuardianName, setConvertStudentGuardianName] = useState('')
+
+  // Class + section master feed for the convert modal (school-mode). Sections
+  // come from the class the applicant is admitted into.
+  const { options: classOptions } = useClassOptions()
+  const convertSelectedClass = classOptions.find(
+    c => c.gradeSlug === convertStudentGrade ||
+      c.name.toLowerCase() === getGradeLabel(convertStudentGrade).toLowerCase()
+  )
+  const convertSectionOptions = convertSelectedClass?.sections ?? []
   const [convertError, setConvertError] = useState('')
   const [isSubmittingConvert, setIsSubmittingConvert] = useState(false)
 
@@ -301,7 +312,11 @@ export default function AdmissionDetailPage() {
       // Pre-fill form fields
       if (json.data) {
         setConvertStudentName(json.data.applicantName || '')
-        setConvertStudentGrade(json.data.gradeSought || '')
+        // Normalise to the canonical grade slug so it matches a dropdown option
+        // (gradeSought may be a label, legacy string, or already a slug).
+        setConvertStudentGrade(
+          json.data.gradeSought ? mapGradeValue(json.data.gradeSought) : ''
+        )
         setConvertStudentGuardianName(json.data.lead?.parentName || '')
         setActivities(json.data.activities || [])
       }
@@ -659,7 +674,8 @@ export default function AdmissionDetailPage() {
     <>
       <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 max-w-7xl mx-auto w-full flex-1">
         {/* PAGE HEADER */}
-        <Card className="bg-white rounded-xl border border-slate-200 shadow-sm px-3 sm:px-6 py-4 text-left">
+        {/* overflow-visible so the stage dropdown isn't clipped by the card */}
+        <Card className="bg-white rounded-xl border border-slate-200 shadow-sm px-3 sm:px-6 py-4 text-left overflow-visible">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <button
@@ -688,46 +704,46 @@ export default function AdmissionDetailPage() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
-              {/* Stage dropdown */}
-              <div className="relative" onClick={(e) => e.stopPropagation()}>
-                <AppSelect
-                  value={admission.stageId || ''}
-                  onChange={async (e) => {
-                    const newStageId = e.target.value
-                    if (newStageId === admission.stageId) return
-                    try {
-                      const res = await fetch(
-                        `/api/v1/admissions/${admission.id}`,
-                        {
-                          method: 'PUT',
-                          headers: {
-                            'Content-Type': 'application/json'
-                          },
-                          body: JSON.stringify({
-                            stageId: newStageId
-                          })
-                        }
-                      )
-                      if (!res.ok) throw new Error()
-                      fetchAdmissionData()
-                      toast.success('Stage updated')
-                    } catch {
-                      toast.error('Failed to update stage')
-                    }
-                  }}
-                  className="h-7 pl-3 pr-7 rounded-full text-xs font-semibold border-0 cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20"
-                  style={{
-                    backgroundColor: getStageColor(admission.stage?.name).bg,
-                    color: getStageColor(admission.stage?.name).text,
-                  }}
-                >
-                  {pipelineStages.map(stage => (
-                    <option key={stage.id} value={stage.id}>
-                      {stage.name}
-                    </option>
-                  ))}
-                </AppSelect>
-              </div>
+              {/* Stage selector — pill trigger + branded stage menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    disabled={isUpdatingStage}
+                    className="inline-flex items-center gap-1.5 h-7 pl-3 pr-2.5 rounded-full text-xs font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 disabled:opacity-60"
+                    style={{
+                      backgroundColor: getStageColor(admission.stage?.name).bg,
+                      color: getStageColor(admission.stage?.name).text,
+                    }}
+                    title="Change admission stage"
+                  >
+                    {isUpdatingStage && <Loader2 size={12} className="animate-spin" />}
+                    <span className="truncate max-w-[140px]">{admission.stage?.name || 'Set stage'}</span>
+                    <ChevronDown size={13} className="opacity-70" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[200px]">
+                  <div className="px-3 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    Move to stage
+                  </div>
+                  {pipelineStages.map((stage) => {
+                    const active = stage.id === admission.stageId
+                    return (
+                      <DropdownMenuItem
+                        key={stage.id}
+                        onClick={() => { if (!active) handleStageChange(stage.id) }}
+                        className={`flex items-center justify-between gap-2 cursor-pointer ${active ? 'bg-blue-50/60' : ''}`}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getStageColor(stage.name).text }} />
+                          <span className={`truncate ${active ? 'font-semibold text-[#1565D8]' : 'text-slate-700'}`}>{stage.name}</span>
+                        </span>
+                        {active && <Check size={14} className="text-[#1565D8] flex-shrink-0" />}
+                      </DropdownMenuItem>
+                    )
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Status badge */}
               {isConverted ? (
@@ -1192,25 +1208,46 @@ export default function AdmissionDetailPage() {
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
               >
                 <option value="">Select Class/Grade</option>
-                {GRADE_OPTIONS.map((g) => (
-                  <option key={g.value} value={g.value}>{g.label}</option>
+                {(classOptions.length > 0
+                  ? classOptions.map(c => ({ value: c.gradeSlug || c.name, label: c.name }))
+                  : GRADE_OPTIONS.map(g => ({ value: g.value, label: g.label }))
+                ).map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
-                {convertStudentGrade && !GRADE_OPTIONS.some(opt => opt.value === convertStudentGrade) && (
-                  <option value={convertStudentGrade}>{getGradeLabel(convertStudentGrade)}</option>
-                )}
+                {convertStudentGrade &&
+                  !classOptions.some(c => (c.gradeSlug || c.name) === convertStudentGrade) &&
+                  !GRADE_OPTIONS.some(opt => opt.value === convertStudentGrade) && (
+                    <option value={convertStudentGrade}>{getGradeLabel(convertStudentGrade)}</option>
+                  )}
               </AppSelect>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-semibold text-slate-500 mb-1 block">Section (Optional)</label>
-                <input
-                  type="text"
-                  value={convertStudentSection}
-                  onChange={(e) => setConvertStudentSection(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-                  placeholder="e.g. A"
-                />
+                {convertSectionOptions.length > 0 ? (
+                  <AppSelect
+                    value={convertStudentSection}
+                    onChange={(e) => setConvertStudentSection(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">No section</option>
+                    {convertSectionOptions.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                    {convertStudentSection && !convertSectionOptions.includes(convertStudentSection) && (
+                      <option value={convertStudentSection}>{convertStudentSection}</option>
+                    )}
+                  </AppSelect>
+                ) : (
+                  <input
+                    type="text"
+                    value={convertStudentSection}
+                    onChange={(e) => setConvertStudentSection(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                    placeholder="e.g. A"
+                  />
+                )}
               </div>
               <div>
                 <label className="text-xs font-semibold text-slate-500 mb-1 block">Roll Number (Optional)</label>

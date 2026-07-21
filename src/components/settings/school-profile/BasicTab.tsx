@@ -4,7 +4,7 @@ import React from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GRADE_RANGE_OPTIONS } from '@/constants/grades'
-import { INSTITUTION_CONFIG, InstitutionType } from '@/constants/institutionConfig'
+import { INSTITUTION_CONFIG, InstitutionType, CENTER_CATEGORIES } from '@/constants/institutionConfig'
 import { AppSelect } from '@/components/ui/app-select'
 
 const inputCls = 'w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#1565D8]'
@@ -21,6 +21,9 @@ export type BasicValues = {
   gradeFrom: string
   gradeTo: string
   gender: string
+  centerCategory: string
+  classMode: string
+  enrollmentStatus: string
 }
 
 type BasicTabProps = {
@@ -34,6 +37,13 @@ type BasicTabProps = {
 export default function BasicTab({ values, institutionType, onChange, onSave, saving }: BasicTabProps) {
   const config = INSTITUTION_CONFIG[institutionType as InstitutionType]
   const schoolTypeOptions = config?.schoolTypeOptions ?? []
+  // Grades / gender only apply to graded institutions (schools, colleges).
+  // Learning centres, coaching, skill & sports academies run courses, not
+  // grades — hide these fields there (courses live in the Academics tab).
+  const showGrades = config ? config.showGradesOffered : true
+  const gradesLocked = config?.gradesLocked ?? false
+  const showGender = config ? config.showGender : true
+  const showCenterCategory = config?.showCenterCategory ?? false
   return (
     <form onSubmit={onSave} className="space-y-6">
       <div className="border-b border-slate-100 pb-4 mb-4">
@@ -67,6 +77,40 @@ export default function BasicTab({ values, institutionType, onChange, onSave, sa
             {institutionType.replace('_', ' ')}
           </div>
         </div>
+
+        {showCenterCategory && (
+          <div className="space-y-1.5">
+            <label className={labelCls}>Category</label>
+            <AppSelect value={values.centerCategory || ''} onChange={(e) => onChange('centerCategory', e.target.value)} className={inputCls}>
+              <option value="">Select category…</option>
+              {CENTER_CATEGORIES.map((cat) => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </AppSelect>
+          </div>
+        )}
+
+        {showCenterCategory && (
+          <div className="space-y-1.5">
+            <label className={labelCls}>Class Mode</label>
+            <AppSelect value={values.classMode || ''} onChange={(e) => onChange('classMode', e.target.value)} className={inputCls}>
+              <option value="">Select mode…</option>
+              <option value="OFFLINE">Offline (in-centre)</option>
+              <option value="ONLINE">Online</option>
+              <option value="HYBRID">Hybrid</option>
+            </AppSelect>
+          </div>
+        )}
+
+        {showCenterCategory && (
+          <div className="space-y-1.5">
+            <label className={labelCls}>Enrolment Status</label>
+            <AppSelect value={values.enrollmentStatus || 'OPEN'} onChange={(e) => onChange('enrollmentStatus', e.target.value)} className={inputCls}>
+              <option value="OPEN">Open — enrolling now</option>
+              <option value="CLOSED">Closed — not enrolling</option>
+            </AppSelect>
+          </div>
+        )}
 
         {schoolTypeOptions.length > 0 && (
           <div className="space-y-1.5">
@@ -104,34 +148,49 @@ export default function BasicTab({ values, institutionType, onChange, onSave, sa
             onChange={(e) => onChange('totalTeachers', e.target.value)} className={inputCls} />
         </div>
 
-        <div className="space-y-1.5">
-          <label className={labelCls}>Grade Offered From</label>
-          <AppSelect value={values.gradeFrom || ''} onChange={(e) => onChange('gradeFrom', e.target.value)} className={inputCls}>
-            <option value="">Select grade…</option>
-            {GRADE_RANGE_OPTIONS.map((g) => (
-              <option key={g} value={g}>{g}</option>
-            ))}
-          </AppSelect>
-        </div>
+        {showGrades && gradesLocked && (
+          <div className="space-y-1.5 col-span-2">
+            <label className={labelCls}>Grades Offered</label>
+            <div className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-500 font-semibold cursor-not-allowed">
+              {config?.lockedGradeLabel || '—'}
+            </div>
+          </div>
+        )}
 
-        <div className="space-y-1.5">
-          <label className={labelCls}>Grade Offered To</label>
-          <AppSelect value={values.gradeTo || ''} onChange={(e) => onChange('gradeTo', e.target.value)} className={inputCls}>
-            <option value="">Select grade…</option>
-            {GRADE_RANGE_OPTIONS.map((g) => (
-              <option key={g} value={g}>{g}</option>
-            ))}
-          </AppSelect>
-        </div>
+        {showGrades && !gradesLocked && (
+          <>
+            <div className="space-y-1.5">
+              <label className={labelCls}>Grade Offered From</label>
+              <AppSelect value={values.gradeFrom || ''} onChange={(e) => onChange('gradeFrom', e.target.value)} className={inputCls}>
+                <option value="">Select grade…</option>
+                {GRADE_RANGE_OPTIONS.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </AppSelect>
+            </div>
 
-        <div className="space-y-1.5">
-          <label className={labelCls}>Gender Type Allowed</label>
-          <AppSelect value={values.gender || ''} onChange={(e) => onChange('gender', e.target.value)} className={inputCls}>
-            <option value="BOYS">Boys Only</option>
-            <option value="GIRLS">Girls Only</option>
-            <option value="CO_ED">Co-Educational</option>
-          </AppSelect>
-        </div>
+            <div className="space-y-1.5">
+              <label className={labelCls}>Grade Offered To</label>
+              <AppSelect value={values.gradeTo || ''} onChange={(e) => onChange('gradeTo', e.target.value)} className={inputCls}>
+                <option value="">Select grade…</option>
+                {GRADE_RANGE_OPTIONS.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </AppSelect>
+            </div>
+          </>
+        )}
+
+        {showGender && (
+          <div className="space-y-1.5">
+            <label className={labelCls}>Gender Type Allowed</label>
+            <AppSelect value={values.gender || ''} onChange={(e) => onChange('gender', e.target.value)} className={inputCls}>
+              <option value="BOYS">Boys Only</option>
+              <option value="GIRLS">Girls Only</option>
+              <option value="CO_ED">Co-Educational</option>
+            </AppSelect>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end pt-4 border-t border-slate-100">

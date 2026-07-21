@@ -7,7 +7,6 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import {
-  Search,
   MapPin,
   Star,
   Bookmark,
@@ -52,6 +51,7 @@ import LocationSelector from '@/components/LocationSelector'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { AppSelect } from '@/components/ui/app-select'
+import { LEARNING_CENTER_TYPES, CENTER_CATEGORIES } from '@/constants/institutionConfig'
 import {
   Dialog,
   DialogContent,
@@ -231,8 +231,14 @@ const mockCenters: LearningCenter[] = [
 
 // NB: matches the pre-SSR runtime shape — instructorsCount was never populated
 // from the API, so the cast below mirrors historical behaviour.
+const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(
+  CENTER_CATEGORIES.map((c) => [c.value, c.label])
+)
+
 function mapCenter(s: any): LearningCenter {
-  const act = s.activityTypes?.[0] || 'Activities'
+  // Prefer a listed activity; fall back to the stored primary category so a
+  // centre that only set its category (e.g. Music) still shows the right tag.
+  const act = s.activityTypes?.[0] || CATEGORY_LABEL[s.centerCategory] || s.centerCategory || 'Activities'
   let displayGender: 'Co-Ed' | 'Girls Only' | 'Boys Only' = 'Co-Ed'
   if (s.gender === 'FEMALE') displayGender = 'Girls Only'
   if (s.gender === 'MALE') displayGender = 'Boys Only'
@@ -289,18 +295,22 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
   // Synced states
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') ?? '')
   const [searchVal, setSearchVal] = useState(searchParams.get('search') ?? '')
-  const [categoryVal, setCategoryVal] = useState('All Categories')
   const [sortBy, setSortBy] = useState('relevance')
   const [cityVal, setCityVal] = useState(detectedCity || '')
 
   // Sidebar Filter States
-  const [selectedActivities, setSelectedActivities] = useState<string[]>([])
+  const [category, setCategory] = useState('')
   const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>([])
   const [selectedTimings, setSelectedTimings] = useState<string[]>([])
   const [freeTrialOnly, setFreeTrialOnly] = useState(false)
   const [minFees, setMinFees] = useState('')
   const [maxFees, setMaxFees] = useState('')
   const [selectedGender, setSelectedGender] = useState<string[]>([])
+  const [distanceRadius, setDistanceRadius] = useState<number>(20)
+  const [minRating, setMinRating] = useState<number>(0)
+  const [enrollingNow, setEnrollingNow] = useState(false)
+  const [medium, setMedium] = useState('')
+  const [classMode, setClassMode] = useState('')
 
   // Layout UI states
 
@@ -366,13 +376,19 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      params.append('institutionType', 'LEARNING_CENTER')
+      params.append('institutionType', LEARNING_CENTER_TYPES.join(','))
       if (cityVal) params.append('city', cityVal)
       if (searchQuery) params.append('search', searchQuery)
       if (lat !== null && lng !== null) {
         params.append('lat', String(lat))
         params.append('lng', String(lng))
+        params.append('maxDistance', String(distanceRadius))
       }
+      if (minRating > 0) params.append('minRating', String(minRating))
+      if (enrollingNow) params.append('enrollingNow', 'true')
+      if (medium) params.append('medium', medium)
+      if (classMode) params.append('classMode', classMode)
+      if (category) params.append('category', category)
 
       const res = await fetch(`/api/public/schools?${params.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch learning centers')
@@ -383,12 +399,6 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
       const mapped = dbCenters.map(mapCenter)
 
       let filtered = [...mapped]
-
-      if (selectedActivities.length > 0) {
-        filtered = filtered.filter((c: any) =>
-          selectedActivities.some((act) => act.toLowerCase() === c.activityType.toLowerCase())
-        )
-      }
 
       if (selectedAgeGroups.length > 0) {
         filtered = filtered.filter((c: any) =>
@@ -435,7 +445,7 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, cityVal, categoryVal, selectedActivities, selectedAgeGroups, selectedTimings, freeTrialOnly, minFees, maxFees, selectedGender, sortBy, lat, lng])
+  }, [searchQuery, cityVal, distanceRadius, minRating, enrollingNow, medium, classMode, category, selectedAgeGroups, selectedTimings, freeTrialOnly, minFees, maxFees, selectedGender, sortBy, lat, lng])
 
   useEffect(() => {
     if (skipInitialFetch.current) {
@@ -446,13 +456,6 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
     }
     fetchCenters()
   }, [fetchCenters])
-
-  const toggleActivity = (activity: string) => {
-    setSelectedActivities((prev) =>
-      prev.includes(activity) ? prev.filter((a) => a !== activity) : [...prev, activity]
-    )
-    setCurrentPage(1)
-  }
 
   const toggleAgeGroup = (age: string) => {
     setSelectedAgeGroups((prev) =>
@@ -498,13 +501,18 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
   const handleClearFilters = () => {
     setSearchQuery('')
     setSearchVal('')
-    setSelectedActivities([])
+    setCategory('')
     setSelectedAgeGroups([])
     setSelectedTimings([])
     setFreeTrialOnly(false)
     setMinFees('')
     setMaxFees('')
     setSelectedGender([])
+    setDistanceRadius(20)
+    setMinRating(0)
+    setEnrollingNow(false)
+    setMedium('')
+    setClassMode('')
     setSortBy('relevance')
     setCurrentPage(1)
   }
@@ -531,23 +539,34 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
     }, 2000)
   }
 
+  // Softer, harmonised duotones (cool-leaning, brand-aligned) used for the
+  // photo-less placeholder tiles — deliberately muted so they sit calmly next
+  // to the #1565D8 brand instead of the old neon set.
   const getGradientAndEmoji = (activity: string) => {
     const act = activity.toLowerCase()
-    if (act.includes('dance')) return { bg: 'from-purple-500 to-pink-500', emoji: '💃' }
-    if (act.includes('music')) return { bg: 'from-blue-500 to-indigo-650', emoji: '🎵' }
-    if (act.includes('art')) return { bg: 'from-orange-500 to-amber-500', emoji: '🎨' }
-    if (act.includes('fitness') || act.includes('sports')) return { bg: 'from-green-500 to-teal-600', emoji: '🏋' }
-    if (act.includes('coach') || act.includes('academic')) return { bg: 'from-blue-600 to-sky-850', emoji: '📚' }
-    if (act.includes('code') || act.includes('tech')) return { bg: 'from-cyan-500 to-blue-700', emoji: '💻' }
-    return { bg: 'from-slate-500 to-slate-700', emoji: '🌍' }
+    if (act.includes('dance')) return { bg: 'from-violet-400 to-fuchsia-500', emoji: '💃' }
+    if (act.includes('music')) return { bg: 'from-blue-400 to-indigo-500', emoji: '🎵' }
+    if (act.includes('art')) return { bg: 'from-amber-400 to-rose-400', emoji: '🎨' }
+    if (act.includes('fitness') || act.includes('sports')) return { bg: 'from-emerald-400 to-teal-500', emoji: '🏋' }
+    if (act.includes('coach') || act.includes('academic')) return { bg: 'from-sky-400 to-blue-500', emoji: '📚' }
+    if (act.includes('code') || act.includes('tech')) return { bg: 'from-cyan-400 to-sky-500', emoji: '💻' }
+    if (act.includes('language')) return { bg: 'from-teal-400 to-cyan-500', emoji: '🗣️' }
+    if (act.includes('abacus') || act.includes('stem')) return { bg: 'from-indigo-400 to-blue-500', emoji: '🧮' }
+    return { bg: 'from-slate-400 to-slate-500', emoji: '✨' }
   }
 
+  // Category chip tints — mirror the gradient hues, soft -50/-700, brand-slate
+  // fallback (no more everything-turns-green).
   const getActivityColors = (activity: string) => {
     const act = activity.toLowerCase()
-    if (act.includes('dance')) return 'bg-purple-50 text-purple-650 border border-purple-100'
-    if (act.includes('music')) return 'bg-blue-50 text-blue-650 border border-blue-100'
-    if (act.includes('art')) return 'bg-orange-50 text-orange-655 border border-orange-100'
-    return 'bg-green-50 text-green-650 border border-green-100'
+    if (act.includes('dance')) return 'bg-violet-50 text-violet-700 border border-violet-100'
+    if (act.includes('music')) return 'bg-blue-50 text-blue-700 border border-blue-100'
+    if (act.includes('art')) return 'bg-amber-50 text-amber-700 border border-amber-100'
+    if (act.includes('fitness') || act.includes('sports')) return 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+    if (act.includes('coach') || act.includes('academic')) return 'bg-sky-50 text-sky-700 border border-sky-100'
+    if (act.includes('code') || act.includes('tech')) return 'bg-cyan-50 text-cyan-700 border border-cyan-100'
+    if (act.includes('language')) return 'bg-teal-50 text-teal-700 border border-teal-100'
+    return 'bg-slate-100 text-slate-600 border border-slate-200'
   }
 
   return (
@@ -574,44 +593,46 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
         </div>
       </div>
 
-      {/* SECTION 2 — BLUE SEARCH HERO */}
-      <section className="bg-[#1565D8] text-white py-6 px-4 md:px-8 select-none relative overflow-hidden">
-        <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full bg-white/5 opacity-10 pointer-events-none" />
-        <div className="max-w-7xl mx-auto space-y-4">
-          <div className="space-y-1">
-            <h1 className="text-xl md:text-2xl font-black font-poppins tracking-tight">
-              Find the Best Learning Center for Your Child's Passion
-            </h1>
-            <p className="text-[11px] md:text-xs text-blue-100 font-medium leading-relaxed">
-              Discover 300+ verified dance classes, music academies, art studios and coaching centers near you. Book a trial class today.
-            </p>
-          </div>
+      {/* SECTION 2 — BLUE HERO (title + description) */}
+      <section className="bg-[#1565D8] text-white pt-6 pb-5 px-4 md:px-8 select-none relative">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full bg-white/5 opacity-10" />
+        </div>
+        <div className="relative max-w-7xl mx-auto space-y-1">
+          <h1 className="text-xl md:text-2xl font-black font-poppins tracking-tight">
+            Find the Best Learning Center for Your Child's Passion
+          </h1>
+          <p className="text-[11px] md:text-xs text-blue-100 font-medium leading-relaxed">
+            Discover 300+ verified dance classes, music academies, art studios and coaching centers near you. Book a trial class today.
+          </p>
+        </div>
+      </section>
 
-          <form 
-            onSubmit={(e) => handleSearchSubmit(e)} 
-            className="bg-white rounded-2xl p-2.5 shadow-lg border border-slate-200 text-slate-800 flex flex-col sm:flex-row sm:flex-wrap md:flex-nowrap items-stretch gap-2.5"
+      {/* SECTION 3 — STICKY SEARCH HEADER (search + results/sort stay fixed) */}
+      <div className="sticky top-16 z-40 bg-white border-b border-slate-200 shadow-sm select-none">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 space-y-2.5">
+          {/* Search row */}
+          <form
+            onSubmit={(e) => handleSearchSubmit(e)}
+            className="flex flex-col sm:flex-row sm:flex-wrap md:flex-nowrap items-stretch gap-2.5"
           >
-            {/* Category dropdown */}
-            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-full sm:w-[48%] md:w-56 md:flex-none shrink-0 gap-2">
+            {/* Category selector — filters by the centre's stored category */}
+            <div className="flex items-center bg-white border border-slate-300 rounded-xl px-3 py-2 focus-within:border-[#1565D8] focus-within:ring-2 focus-within:ring-[#1565D8]/10 transition w-full sm:w-[48%] md:w-52 md:flex-none shrink-0 gap-2">
               <LayoutGrid className="w-4 h-4 text-slate-400 shrink-0" />
               <AppSelect
-                value={categoryVal}
-                onChange={(e) => setCategoryVal(e.target.value)}
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
                 className="bg-transparent text-slate-700 outline-none text-xs font-bold w-full cursor-pointer"
               >
-                <option value="All Categories">All Categories</option>
-                <option value="Dance & Performing Arts">Dance & Performing Arts</option>
-                <option value="Music & Instruments">Music & Instruments</option>
-                <option value="Art & Craft">Art & Craft</option>
-                <option value="Fitness & Sports">Fitness & Sports</option>
-                <option value="Academic Coaching">Academic Coaching</option>
-                <option value="Skill Development">Skill Development</option>
-                <option value="Language Classes">Language Classes</option>
+                <option value="">All Categories</option>
+                {CENTER_CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
               </AppSelect>
             </div>
 
             {/* Search Input */}
-            <div className="w-full sm:w-[48%] md:flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 gap-2">
+            <div className="w-full sm:w-[48%] md:flex-1 flex items-center bg-white border border-slate-300 rounded-xl px-3 py-2 focus-within:border-[#1565D8] focus-within:ring-2 focus-within:ring-[#1565D8]/10 transition gap-2">
               <SearchAutocomplete
                 value={searchVal}
                 onChange={setSearchVal}
@@ -629,74 +650,52 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
               <LocationSelector className="flex-1 md:flex-none md:w-72 md:min-w-[260px] md:shrink-0" />
 
               {/* Search Button */}
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-[140px] md:w-[160px] bg-[#1565D8] hover:bg-blue-700 text-white font-bold text-xs rounded-xl h-auto shrink-0 shadow-sm cursor-pointer whitespace-nowrap border border-transparent flex items-center justify-center"
               >
                 Find Centers
               </Button>
             </div>
           </form>
-        </div>
-      </section>
 
-      {/* SECTION 3 — QUICK FILTER BAR */}
-      <section className="bg-white border-b border-slate-200 py-3 px-4 md:px-8 sticky top-16 z-30 shadow-sm select-none">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 flex-wrap">
-          {/* Sort dropdown */}
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              Sort by:
-            </span>
-            <AppSelect
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg outline-none cursor-pointer hover:bg-slate-100 transition"
-            >
-              <option value="relevance">Relevance</option>
-              <option value="rating">Rating High to Low</option>
-              <option value="newest">Newest Listed</option>
-              <option value="fees-low">Fees: Low to High</option>
-              {lat !== null && lng !== null && (
-                <option value="distance">Distance Nearest</option>
-              )}
-            </AppSelect>
-          </div>
-
-          {/* Activity Pills row */}
-          <div className="flex flex-wrap gap-2 justify-center">
-            {['Dance', 'Music', 'Art', 'Fitness', 'Coaching', 'Coding', 'Language'].map((act) => {
-              const isActive = selectedActivities.includes(act)
-              return (
-                <button
-                  key={act}
-                  onClick={() => toggleActivity(act)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition cursor-pointer ${
-                    isActive
-                      ? 'bg-[#1565D8] border-[#1565D8] text-white shadow-sm'
-                      : 'bg-white border-slate-250 text-slate-650 hover:bg-slate-50'
-                  }`}
-                >
-                  {act}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Result Counts */}
-          <div className="text-xs font-semibold text-slate-400">
-            {centers.length} learning centers found
+          {/* Results title + count + sort (single count, no repetition) */}
+          <div className="flex items-center justify-between gap-4 flex-wrap border-t border-slate-100 pt-2.5">
+            <div className="flex items-baseline gap-2 min-w-0">
+              <h2 className="text-sm font-black text-slate-800 truncate">
+                Learning Centers near {cityVal || 'Chennai'}
+              </h2>
+              <span className="text-xs font-bold text-slate-400 whitespace-nowrap">· {centers.length} found</span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                Sort by:
+              </span>
+              <AppSelect
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-lg outline-none cursor-pointer hover:bg-slate-100 transition"
+              >
+                <option value="relevance">Relevance</option>
+                <option value="rating">Rating High to Low</option>
+                <option value="newest">Newest Listed</option>
+                <option value="fees-low">Fees: Low to High</option>
+                {lat !== null && lng !== null && (
+                  <option value="distance">Distance Nearest</option>
+                )}
+              </AppSelect>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* SECTION 4 — MAIN CONTENT */}
       <main className="flex-1 bg-[#F5F7FA] py-8 px-4 md:px-8 select-none">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
-          {/* Left Sidebar Filter Panel (280px) */}
-          <aside className="lg:col-span-3 space-y-6 lg:sticky lg:top-28">
-            <Card className="bg-white rounded-2xl border border-slate-200 p-5 space-y-5 shadow-sm">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 items-start">
+
+          {/* Left Sidebar Filter Panel (280px) — matches Schools */}
+          <aside className="w-full lg:w-[280px] lg:flex-shrink-0 select-none">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 lg:sticky lg:top-44 shadow-sm space-y-4">
               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-1.5 text-xs font-black text-slate-500 tracking-wider">
                   <Filter className="w-3.5 h-3.5" />
@@ -714,43 +713,156 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
 
               <Separator className="bg-slate-100" />
 
-              {/* Activity Type checklist */}
+              {/* Distance Section */}
+              <div className="space-y-2 pb-1">
+                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">DISTANCE</label>
+                <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold mb-1">
+                  <span>0 km</span>
+                  <span className="text-[#1565D8]">Within {distanceRadius} km</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="40"
+                  value={distanceRadius}
+                  onChange={(e) => setDistanceRadius(Number(e.target.value))}
+                  className="w-full accent-[#1565D8] cursor-pointer"
+                />
+                <div className="flex justify-between text-[8px] text-slate-400 font-black px-0.5">
+                  <span>0</span>
+                  <span>10</span>
+                  <span>20</span>
+                  <span>30</span>
+                  <span>40 km</span>
+                </div>
+                {(lat === null || lng === null) && (
+                  <p className="text-[10px] text-slate-400">Set your location above to filter by distance.</p>
+                )}
+              </div>
+
+              <Separator className="bg-slate-100" />
+
+              {/* Minimum Rating */}
               <div className="space-y-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">ACTIVITY TYPE</span>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
-                  {([
-                    { name: 'Dance' },
-                    { name: 'Music' },
-                    { name: 'Art' },
-                    { name: 'Fitness' },
-                    { name: 'Coaching' },
-                    { name: 'Coding' },
-                    { name: 'Language' }
-                  ] as { name: string; count?: number }[]).map((act) => {
-                    const isChecked = selectedActivities.includes(act.name)
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">MINIMUM RATING</span>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { v: 0, label: 'Any' },
+                    { v: 3, label: '3★+' },
+                    { v: 4, label: '4★+' },
+                    { v: 4.5, label: '4.5★+' },
+                  ].map((r) => (
+                    <button
+                      key={r.v}
+                      onClick={() => setMinRating(r.v)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold border transition cursor-pointer ${
+                        minRating === r.v
+                          ? 'bg-[#1565D8] border-[#1565D8] text-white shadow-sm'
+                          : 'bg-white border-slate-250 text-slate-650 hover:bg-slate-50'
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Separator className="bg-slate-100" />
+
+              {/* Monthly Fees Inputs & presets */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">MONTHLY FEES</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-2.5 text-xs font-bold text-slate-450">₹</span>
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      value={minFees}
+                      onChange={(e) => setMinFees(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-7 pr-3 py-2 text-xs font-semibold outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-2.5 text-xs font-bold text-slate-450">₹</span>
+                    <input
+                      type="number"
+                      placeholder="Max"
+                      value={maxFees}
+                      onChange={(e) => setMaxFees(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-7 pr-3 py-2 text-xs font-semibold outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Preset Fee Pills */}
+                <div className="flex flex-wrap gap-1.5 pt-2">
+                  {[
+                    { label: 'Under ₹500', min: '0', max: '500' },
+                    { label: '₹500-1000', min: '500', max: '1000' },
+                    { label: '₹1000-2000', min: '1000', max: '2000' },
+                    { label: 'Above ₹2000', min: '2000', max: '99999' }
+                  ].map((preset) => {
+                    const isSelected = minFees === preset.min && maxFees === preset.max
                     return (
-                      <label key={act.name} className="flex items-center justify-between text-xs font-semibold text-slate-600 cursor-pointer hover:text-slate-800">
-                        <div className="flex items-center gap-2.5">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => toggleActivity(act.name)}
-                            className="w-4 h-4 rounded border-slate-300 text-[#1565D8] focus:ring-blue-500 accent-[#1565D8] cursor-pointer"
-                          />
-                          <span>{act.name}</span>
-                        </div>
-                        {act.count != null && (
-                          <span className="bg-slate-100 text-slate-400 text-[10px] px-1.5 py-0.5 rounded font-black">
-                            {act.count}
-                          </span>
-                        )}
-                      </label>
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => {
+                          setMinFees(preset.min)
+                          setMaxFees(preset.max)
+                        }}
+                        className={`text-[9px] font-bold px-2 py-1 rounded-md border transition ${
+                          isSelected
+                            ? 'bg-blue-500 border-blue-500 text-white'
+                            : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
                     )
                   })}
                 </div>
               </div>
 
               <Separator className="bg-slate-100" />
+
+              {/* Class Mode */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">CLASS MODE</span>
+                <AppSelect
+                  value={classMode}
+                  onChange={(e) => setClassMode(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg outline-none cursor-pointer hover:bg-slate-100 transition"
+                >
+                  <option value="">Any mode</option>
+                  <option value="OFFLINE">Offline (in-centre)</option>
+                  <option value="ONLINE">Online</option>
+                  <option value="HYBRID">Hybrid</option>
+                </AppSelect>
+              </div>
+
+              <Separator className="bg-slate-100" />
+
+              {/* Language of Instruction */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">LANGUAGE</span>
+                <AppSelect
+                  value={medium}
+                  onChange={(e) => setMedium(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg outline-none cursor-pointer hover:bg-slate-100 transition"
+                >
+                  <option value="">Any language</option>
+                  {['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Marathi', 'Bengali', 'Gujarati', 'Punjabi', 'Urdu'].map((l) => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </AppSelect>
+              </div>
+
+              <Separator className="bg-slate-100" />
+
+              {/* Category is chosen from the dropdown next to the search bar —
+                  no duplicate checklist here. */}
 
               {/* Age Group Checklist */}
               <div className="space-y-2">
@@ -827,9 +939,9 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
 
               <Separator className="bg-slate-100" />
 
-              {/* Trial Class Checkbox */}
-              <div className="space-y-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">TRIAL CLASS</span>
+              {/* Preferences — quick on/off toggles grouped together */}
+              <div className="space-y-2.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">PREFERENCES</span>
                 <label className="flex items-center justify-between text-xs font-semibold text-slate-600 cursor-pointer hover:text-slate-800">
                   <div className="flex items-center gap-2.5">
                     <input
@@ -844,64 +956,15 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
                     20
                   </span>
                 </label>
-              </div>
-
-              <Separator className="bg-slate-100" />
-
-              {/* Monthly Fees Inputs & presets */}
-              <div className="space-y-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">MONTHLY FEES</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-2.5 text-xs font-bold text-slate-450">₹</span>
-                    <input
-                      type="number"
-                      placeholder="Min"
-                      value={minFees}
-                      onChange={(e) => setMinFees(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-7 pr-3 py-2 text-xs font-semibold outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-2.5 text-xs font-bold text-slate-450">₹</span>
-                    <input
-                      type="number"
-                      placeholder="Max"
-                      value={maxFees}
-                      onChange={(e) => setMaxFees(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-7 pr-3 py-2 text-xs font-semibold outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Preset Fee Pills */}
-                <div className="flex flex-wrap gap-1.5 pt-2">
-                  {[
-                    { label: 'Under ₹500', min: '0', max: '500' },
-                    { label: '₹500-1000', min: '500', max: '1000' },
-                    { label: '₹1000-2000', min: '1000', max: '2000' },
-                    { label: 'Above ₹2000', min: '2000', max: '99999' }
-                  ].map((preset) => {
-                    const isSelected = minFees === preset.min && maxFees === preset.max
-                    return (
-                      <button
-                        key={preset.label}
-                        type="button"
-                        onClick={() => {
-                          setMinFees(preset.min)
-                          setMaxFees(preset.max)
-                        }}
-                        className={`text-[9px] font-bold px-2 py-1 rounded-md border transition ${
-                          isSelected
-                            ? 'bg-blue-500 border-blue-500 text-white'
-                            : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
-                        }`}
-                      >
-                        {preset.label}
-                      </button>
-                    )
-                  })}
-                </div>
+                <label className="flex items-center gap-2.5 text-xs font-semibold text-slate-600 cursor-pointer hover:text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={enrollingNow}
+                    onChange={(e) => setEnrollingNow(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-[#1565D8] focus:ring-blue-500 accent-[#1565D8] cursor-pointer"
+                  />
+                  <span>Enrolling now (open batches)</span>
+                </label>
               </div>
 
               <Separator className="bg-slate-100" />
@@ -926,31 +989,21 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
                   })}
                 </div>
               </div>
-            </Card>
+            </div>
           </aside>
 
           {/* Right Column: Listing & Cards Grid */}
-          <div className="lg:col-span-9 space-y-6">
+          <div className="flex-1 min-w-0 space-y-6">
             
-            {/* Results Header block */}
-            <div className="flex justify-between items-end border-b border-slate-200 pb-3">
-              <div>
-                <h2 className="text-lg font-black text-slate-850">
-                  Learning Centers near {cityVal || 'Chennai'}
-                </h2>
-                <p className="text-xs text-slate-400 font-bold mt-0.5">
-                  Showing 1-{centers.length} of {centers.length} centers
-                </p>
-              </div>
-
-              {/* Active Filter Chips */}
-              <div className="hidden md:flex flex-wrap gap-1.5 max-w-md justify-end">
-                {selectedActivities.map((act) => (
-                  <span key={act} className="inline-flex items-center bg-blue-50 text-[#1565D8] text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100">
-                    {act}
-                    <button onClick={() => toggleActivity(act)} className="ml-1 text-[#1565D8]/70 hover:text-[#1565D8] shrink-0 font-black">&times;</button>
+            {/* Active Filter Chips (title + count live in the sticky bar above) */}
+            {(category || freeTrialOnly) && (
+              <div className="flex flex-wrap gap-1.5">
+                {category && (
+                  <span className="inline-flex items-center bg-blue-50 text-[#1565D8] text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100">
+                    {CATEGORY_LABEL[category] ?? category}
+                    <button onClick={() => setCategory('')} className="ml-1 text-[#1565D8]/70 hover:text-[#1565D8] shrink-0 font-black">&times;</button>
                   </span>
-                ))}
+                )}
                 {freeTrialOnly && (
                   <span className="inline-flex items-center bg-emerald-50 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-100">
                     Free Trial
@@ -958,7 +1011,7 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
                   </span>
                 )}
               </div>
-            </div>
+            )}
 
             {/* Main Cards Stack */}
             {loading ? (
@@ -1018,23 +1071,29 @@ export default function LearningCentersSearchPage({ initialCenters }: LearningCe
                           />
                         ) : (
                           <div className={`w-full h-full bg-gradient-to-br ${gradient.bg} flex flex-col items-center justify-center text-white relative`}>
-                            <span className="text-4xl animate-bounce duration-1000">{gradient.emoji}</span>
-                            <span className="text-[10px] font-black uppercase tracking-wider text-white/80 mt-2">
-                              {c.activityType}
-                            </span>
+                            <div className="absolute inset-0 bg-black/[0.06]" />
+                            <div className="relative flex flex-col items-center">
+                              <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-3xl shadow-sm ring-1 ring-white/25">
+                                {gradient.emoji}
+                              </div>
+                              <span className="text-[10px] font-black uppercase tracking-wider text-white/90 mt-2.5">
+                                {c.activityType}
+                              </span>
+                            </div>
                           </div>
                         )}
 
-                        {/* Top-Left Trial badge */}
+                        {/* Top-Left Trial badge — frosted white so it doesn't
+                            double up on the green enrolment badge below */}
                         {c.trialAvailable && (
-                          <span className="absolute top-2.5 left-2.5 bg-emerald-500 text-white font-black text-[9px] uppercase tracking-wider px-2 py-0.5 rounded shadow-sm z-10">
+                          <span className="absolute top-2.5 left-2.5 bg-white/95 text-emerald-600 font-black text-[9px] uppercase tracking-wider px-2 py-1 rounded-md shadow-sm z-10">
                             ✓ Free Trial
                           </span>
                         )}
 
                         {/* Bottom-Left Enrollment Status badge */}
-                        <span className={`absolute bottom-2.5 left-2.5 font-black text-[9px] uppercase tracking-wider px-2 py-0.5 rounded shadow-sm z-10 text-white ${
-                          c.enrollingStatus === 'Enrolling Now' ? 'bg-emerald-500' : 'bg-red-500'
+                        <span className={`absolute bottom-2.5 left-2.5 font-black text-[9px] uppercase tracking-wider px-2 py-1 rounded-md shadow-sm z-10 text-white ${
+                          c.enrollingStatus === 'Enrolling Now' ? 'bg-emerald-500' : 'bg-slate-900/75 backdrop-blur-sm'
                         }`}>
                           {c.enrollingStatus}
                         </span>

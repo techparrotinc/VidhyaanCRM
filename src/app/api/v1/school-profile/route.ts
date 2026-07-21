@@ -26,6 +26,8 @@ const updateProfileSchema = z.object({
   monthlyFeeMin: intLike,
   monthlyFeeMax: intLike,
   activityTypes: z.array(z.string().max(50)).max(50).optional().nullable(),
+  centerCategory: str(50),
+  classMode: str(20),
   homeVisitAvailable: z.boolean().optional().nullable(),
   admissionOpen: z.boolean().optional().nullable(),
   academicYear: str(20),
@@ -207,6 +209,8 @@ export async function PUT(req: NextRequest) {
     if (body.monthlyFeeMin !== undefined) schoolFields.monthlyFeeMin = body.monthlyFeeMin ? parseInt(body.monthlyFeeMin) : null
     if (body.monthlyFeeMax !== undefined) schoolFields.monthlyFeeMax = body.monthlyFeeMax ? parseInt(body.monthlyFeeMax) : null
     if (body.activityTypes !== undefined) schoolFields.activityTypes = body.activityTypes
+    if (body.centerCategory !== undefined) schoolFields.centerCategory = body.centerCategory
+    if (body.classMode !== undefined) schoolFields.classMode = body.classMode
     if (body.homeVisitAvailable !== undefined) schoolFields.homeVisitAvailable = body.homeVisitAvailable
 
     // Admission settings specifics

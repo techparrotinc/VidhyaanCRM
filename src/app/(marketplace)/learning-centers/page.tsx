@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import { searchSchools } from '@/lib/marketplace/search-schools'
+import { LEARNING_CENTER_TYPES } from '@/constants/institutionConfig'
 import LearningCentersSearchClient from './LearningCentersSearchClient'
 
 export const metadata: Metadata = {
@@ -22,7 +23,7 @@ export default async function LearningCentersSearchPage(
   const str = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
 
   const initial = await searchSchools({
-    institutionType: 'LEARNING_CENTER',
+    institutionType: LEARNING_CENTER_TYPES.join(','),
     search: str(sp.search),
     city: str(sp.city),
     page: 1,

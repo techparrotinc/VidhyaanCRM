@@ -97,6 +97,8 @@ interface SchoolData {
   slug: string
   updatedAt: string
   institutionType: 'SCHOOL' | 'LEARNING_CENTER' | 'COACHING_CENTER' | 'JUNIOR_COLLEGE' | 'SKILL_DEVELOPMENT' | 'SPORTS_ACADEMY'
+  centerCategory: string | null
+  classMode: string | null
   description: string | null
   schoolType: string | null
   establishedYear: number | null
@@ -149,6 +151,9 @@ export default function SchoolProfilePage() {
   const [gradeFrom, setGradeFrom] = useState('')
   const [gradeTo, setGradeTo] = useState('')
   const [gender, setGender] = useState('CO_ED')
+  const [centerCategory, setCenterCategory] = useState('')
+  const [classMode, setClassMode] = useState('')
+  const [enrollmentStatus, setEnrollmentStatus] = useState('OPEN')
 
   // Location & Contact Form State
   const [address1, setAddress1] = useState('')
@@ -222,6 +227,9 @@ export default function SchoolProfilePage() {
         setTotalTeachers(s.totalTeachers ? s.totalTeachers.toString() : '')
         setMediumOfInstruction(s.mediumOfInstruction || '')
         setGender(s.gender || 'CO_ED')
+        setCenterCategory(s.centerCategory || '')
+        setClassMode(s.classMode || '')
+        setEnrollmentStatus(s.enrollmentStatus || 'OPEN')
         if (s.gradesOffered) {
           const parts = s.gradesOffered.split(' to ')
           if (parts.length === 2) {
@@ -373,7 +381,9 @@ export default function SchoolProfilePage() {
     name: setName, description: setDescription, schoolType: setSchoolType,
     establishedYear: setEstablishedYear, mediumOfInstruction: setMediumOfInstruction,
     totalStudents: setTotalStudents, totalTeachers: setTotalTeachers,
-    gradeFrom: setGradeFrom, gradeTo: setGradeTo, gender: setGender
+    gradeFrom: setGradeFrom, gradeTo: setGradeTo, gender: setGender,
+    centerCategory: setCenterCategory, classMode: setClassMode,
+    enrollmentStatus: setEnrollmentStatus
   }
   const contactSetters: Record<keyof ContactValues, (v: string) => void> = {
     address1: setAddress1, address2: setAddress2, city: setCity, state: setState,
@@ -400,6 +410,9 @@ export default function SchoolProfilePage() {
           mediumOfInstruction,
           gradesOffered: grades,
           gender,
+          centerCategory: centerCategory || null,
+          classMode: classMode || null,
+          enrollmentStatus,
           expectedUpdatedAt: school?.updatedAt
         })
       })
@@ -914,7 +927,7 @@ export default function SchoolProfilePage() {
           {/* TAB 1: BASIC INFO */}
           {activeTab === 'basic' && (
             <BasicTab
-              values={{ name, description, schoolType, establishedYear, mediumOfInstruction, totalStudents, totalTeachers, gradeFrom, gradeTo, gender }}
+              values={{ name, description, schoolType, establishedYear, mediumOfInstruction, totalStudents, totalTeachers, gradeFrom, gradeTo, gender, centerCategory, classMode, enrollmentStatus }}
               institutionType={school.institutionType}
               onChange={(field, value) => basicSetters[field](value)}
               onSave={handleSaveBasic}

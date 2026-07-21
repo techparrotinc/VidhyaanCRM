@@ -117,7 +117,11 @@ export async function getZeptoConfig(): Promise<ZeptoConfig> {
   return {
     token: dec(row?.zeptoTokenEnc) ?? process.env.ZEPTOMAIL_API_TOKEN ?? '',
     fromEmail: plain(row?.zeptoFromEmail) ?? plain(row?.fromEmailAddress) ?? process.env.ZEPTOMAIL_FROM_EMAIL ?? 'noreply@vidhyaan.com',
-    campaignEmail: plain(row?.zeptoCampaignEmail) ?? process.env.ZEPTOMAIL_CAMPAIGN_EMAIL ?? 'campaigns@vidhyaan.com',
+    // Marketing/campaign sends use a DEDICATED sub-domain so their bounces &
+    // complaints never poison the transactional domain that carries OTP/2FA/
+    // fee links. Verify send.vidhyaan.com (DKIM/SPF/DMARC) in Zepto + SES and
+    // set zeptoCampaignEmail in admin settings; this is only the fallback.
+    campaignEmail: plain(row?.zeptoCampaignEmail) ?? process.env.ZEPTOMAIL_CAMPAIGN_EMAIL ?? 'campaigns@send.vidhyaan.com',
   }
 }
 

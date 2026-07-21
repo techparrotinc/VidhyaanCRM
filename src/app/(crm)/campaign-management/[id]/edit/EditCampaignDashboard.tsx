@@ -27,6 +27,7 @@ export default function EditCampaignDashboard({ id }: { id: string }) {
   const [audienceFilters, setAudienceFilters] = useState<Array<{ field: string; value: string }>>([])
   const [recipientCount, setRecipientCount] = useState(0)
   const [templateBody, setTemplateBody] = useState('')
+  const [heroImageUrl, setHeroImageUrl] = useState('')
   const [whatsappTemplateId, setWhatsappTemplateId] = useState('')
   const [formTemplateId, setFormTemplateId] = useState('')
   const [paramValues, setParamValues] = useState<Record<string, string>>({})
@@ -48,6 +49,7 @@ export default function EditCampaignDashboard({ id }: { id: string }) {
         setAudienceFilters(campaign.audienceFilter.filters ?? [])
       }
       setTemplateBody(campaign.templateBody ?? '')
+      setHeroImageUrl(campaign.heroImageUrl ?? '')
       setWhatsappTemplateId(campaign.whatsappTemplateId ?? '')
       setFormTemplateId(campaign.formTemplateId ?? '')
       setParamValues(campaign.paramValues ?? {})
@@ -116,6 +118,7 @@ export default function EditCampaignDashboard({ id }: { id: string }) {
             filters: audienceFilters
           },
           templateBody,
+          heroImageUrl: channel === 'EMAIL' ? heroImageUrl || null : null,
           whatsappTemplateId: channel === 'WHATSAPP' ? whatsappTemplateId || null : null,
           formTemplateId: formTemplateId || null,
           paramValues: channel === 'WHATSAPP' ? paramValues : null,
@@ -277,11 +280,13 @@ export default function EditCampaignDashboard({ id }: { id: string }) {
             templateBody={templateBody}
             whatsappTemplateId={whatsappTemplateId}
             formTemplateId={formTemplateId}
+            heroImageUrl={heroImageUrl}
             scheduledAt={scheduledAt}
             sendNow={sendNow}
             recipientCount={recipientCount}
             paramValues={paramValues}
             onParamValuesChange={setParamValues}
+            onHeroImageChange={setHeroImageUrl}
             onBodyChange={setTemplateBody}
             onTemplateChange={setWhatsappTemplateId}
             onFormTemplateChange={setFormTemplateId}

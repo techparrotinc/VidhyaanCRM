@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { auth } from '@/auth'
 import {
   getReviewCategories,
   LEGACY_SCHOOL_COLUMN_BY_SLUG,
@@ -70,6 +71,23 @@ export async function GET(
         { success: false, error: 'School not found' },
         { status: 404 }
       )
+    }
+
+    // A profile is publicly viewable only when published AND admin-approved
+    // (VERIFIED) or a seeded directory listing (UNCLAIMED). Anything else —
+    // unpublished, or PENDING/REJECTED verification — is restricted to the
+    // owning org (onboarding preview / shareable draft). Unclaimed listings
+    // (orgId null → claim flow) stay open. Everyone else gets a 404.
+    const isPubliclyViewable = school.isPublished &&
+      (school.verificationStatus === 'VERIFIED' || school.verificationStatus === 'UNCLAIMED')
+    if (!isPubliclyViewable && school.orgId) {
+      const session = await auth()
+      if (session?.user?.orgId !== school.orgId) {
+        return NextResponse.json(
+          { success: false, error: 'School not found' },
+          { status: 404 }
+        )
+      }
     }
 
     // Increment viewCount asynchronously in the background (both school view count column and schoolView log)

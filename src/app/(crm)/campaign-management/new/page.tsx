@@ -25,6 +25,7 @@ export default function NewCampaignPage() {
   const [audienceFilters, setAudienceFilters] = useState<Array<{ field: string; value: string }>>([])
   const [recipientCount, setRecipientCount] = useState(0)
   const [templateBody, setTemplateBody] = useState('')
+  const [heroImageUrl, setHeroImageUrl] = useState('')
   const [whatsappTemplateId, setWhatsappTemplateId] = useState('')
   const [paramValues, setParamValues] = useState<Record<string, string>>({})
   const [formTemplateId, setFormTemplateId] = useState('')
@@ -89,6 +90,7 @@ export default function NewCampaignPage() {
             filters: audienceFilters
           },
           templateBody,
+          heroImageUrl: channel === 'EMAIL' ? heroImageUrl || null : null,
           whatsappTemplateId: channel === 'WHATSAPP' ? whatsappTemplateId || null : null,
           formTemplateId: formTemplateId || null,
           paramValues: channel === 'WHATSAPP' ? paramValues : null,
@@ -133,6 +135,8 @@ export default function NewCampaignPage() {
         const errorJson = await sendRes.json()
         if (sendRes.status === 402) {
           appAlert(errorJson.error || 'Recipient quota exceeded. Please upgrade.')
+        } else if (sendRes.status === 429) {
+          appAlert(errorJson.error || 'Daily send limit reached. Try again tomorrow.')
         } else if (sendRes.status === 403) {
           appAlert(errorJson.error || 'WhatsApp addon required. Please upgrade.')
         } else {
@@ -242,9 +246,11 @@ export default function NewCampaignPage() {
             paramValues={paramValues}
             onParamValuesChange={setParamValues}
             formTemplateId={formTemplateId}
+            heroImageUrl={heroImageUrl}
             scheduledAt={scheduledAt}
             sendNow={sendNow}
             recipientCount={recipientCount}
+            onHeroImageChange={setHeroImageUrl}
             onBodyChange={setTemplateBody}
             onTemplateChange={setWhatsappTemplateId}
             onFormTemplateChange={setFormTemplateId}

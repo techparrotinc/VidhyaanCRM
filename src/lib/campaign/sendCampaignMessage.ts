@@ -24,6 +24,8 @@ export async function sendCampaignMessage(
     name: string
     channel: CampaignChannel
     templateBody: string | null
+    /** Hero image rendered above the body on EMAIL sends. */
+    heroImageUrl?: string | null
     whatsappTemplateId?: string | null
     /** Compose-time custom token values (merged over auto-filled ones). */
     paramValues?: Record<string, string> | null
@@ -148,7 +150,8 @@ export async function sendCampaignMessage(
         subject: '', // subject will be parsed in sendCampaignEmail from body
         body,
         fromName: campaign.organization.name,
-        campaignName: campaign.name
+        campaignName: campaign.name,
+        imageUrl: campaign.heroImageUrl ?? null
       })
     } else if (campaign.channel === CampaignChannel.SMS) {
       if (!recipient.phone) {

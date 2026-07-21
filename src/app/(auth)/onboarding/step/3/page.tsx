@@ -58,6 +58,8 @@ export default function OnboardingStep3() {
   const [monthlyFeeMin, setMonthlyFeeMin] = useState('')
   const [monthlyFeeMax, setMonthlyFeeMax] = useState('')
   const [activityTypes, setActivityTypes] = useState('')
+  const [classMode, setClassMode] = useState('')
+  const [medium, setMedium] = useState('')
   
   // Admissions status
   const [admissionOpen, setAdmissionOpen] = useState(true)
@@ -97,6 +99,8 @@ export default function OnboardingStep3() {
           if (s.activityTypes) {
             setActivityTypes(s.activityTypes.join(', '))
           }
+          setClassMode(s.classMode || '')
+          setMedium(s.mediumOfInstruction || '')
           setAdmissionOpen(s.admissionOpen ?? true)
         }
       })
@@ -156,6 +160,8 @@ export default function OnboardingStep3() {
         payload.monthlyFeeMin = monthlyFeeMin ? parseInt(monthlyFeeMin) : null
         payload.monthlyFeeMax = monthlyFeeMax ? parseInt(monthlyFeeMax) : null
         payload.activityTypes = activityTypes ? activityTypes.split(',').map(s => s.trim()).filter(Boolean) : []
+        payload.classMode = classMode || null
+        payload.mediumOfInstruction = medium || null
       } else {
         // Filter out empty rows
         payload.feeRanges = feeRows
@@ -352,6 +358,42 @@ export default function OnboardingStep3() {
                   <span className="text-[10px] text-slate-400 font-medium block">
                     Separate different activities with commas.
                   </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Class Mode
+                    </label>
+                    <select
+                      value={classMode}
+                      onChange={(e) => setClassMode(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:outline-none text-sm"
+                    >
+                      <option value="">Select mode…</option>
+                      <option value="OFFLINE">Offline (in-centre)</option>
+                      <option value="ONLINE">Online</option>
+                      <option value="HYBRID">Hybrid</option>
+                    </select>
+                    <span className="text-[10px] text-slate-400 font-medium block">
+                      Helps parents filter by how classes are delivered.
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Language of Instruction
+                    </label>
+                    <select
+                      value={medium}
+                      onChange={(e) => setMedium(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:outline-none text-sm"
+                    >
+                      <option value="">Select language…</option>
+                      {['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Marathi', 'Bengali', 'Gujarati', 'Punjabi', 'Urdu'].map((l) => (
+                        <option key={l} value={l}>{l}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             ) : (

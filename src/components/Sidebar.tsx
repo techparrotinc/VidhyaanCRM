@@ -30,6 +30,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useUIStore } from '@/stores/ui.store'
+import { useModulesStore } from '@/stores/modules.store'
 import { isLearningCentre } from '@/lib/institution'
 
 interface SidebarProps {
@@ -51,7 +52,8 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
   } = useUIStore()
 
   const [profileCompletion, setProfileCompletion] = useState<number | null>(null)
-  const [enabledModules, setEnabledModules] = useState<string[]>([])
+  const enabledModules = useModulesStore((s) => s.enabledModules)
+  const setModules = useModulesStore((s) => s.setModules)
   const [orgName, setOrgName] = useState('')
   const [institutionType, setInstitutionType] = useState<string | null>(null)
   const [unreadLeadsCount, setUnreadLeadsCount] = useState(0)
@@ -84,7 +86,7 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
             setProfileCompletion(data.school.profileCompletion)
           }
           if (data.enabledModules) {
-            setEnabledModules(data.enabledModules)
+            setModules(data.enabledModules)
           }
           if (data.orgName) {
             setOrgName(data.orgName)
@@ -95,6 +97,14 @@ export default function Sidebar({ isMobile = false, onCloseMobileMenu }: Sidebar
         }
       })
       .catch(() => { })
+  }, [])
+
+  // Self-heal: a plan change made elsewhere (other tab, admin) should unlock/lock
+  // gated items when the user returns to this tab — resync module state on focus.
+  useEffect(() => {
+    const onFocus = () => useModulesStore.getState().refresh()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
   }, [])
 
   // Fetch setup checklist progress (admins only; API 403s for other roles)

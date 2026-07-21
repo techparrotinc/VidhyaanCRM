@@ -6,7 +6,7 @@ import { CheckSquare, Trash2, X } from 'lucide-react'
 type PipelineStage = {
   id: string
   label: string
-  dotClass: string
+  dotClass?: string
 }
 
 type BulkActionBarProps = {
@@ -66,7 +66,7 @@ export default function BulkActionBar({
                 }}
                 className="px-3 py-1.5 text-xs font-semibold hover:bg-slate-600 rounded-lg cursor-pointer flex items-center gap-2 font-sans"
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${s.dotClass}`} />
+                <span className={`w-1.5 h-1.5 rounded-full ${s.dotClass || 'bg-slate-400'}`} />
                 <span>{s.label}</span>
               </div>
             ))}

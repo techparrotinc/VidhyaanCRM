@@ -371,8 +371,8 @@ export default function TimetablePage() {
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {view === 'class' ? (
               /* Joined class · section control — one bordered pill, two segments */
-              <div className="inline-flex items-stretch h-10 rounded-xl border border-slate-200 bg-white divide-x divide-slate-200 overflow-hidden">
-                <div className="flex items-center gap-1.5 pl-3">
+              <div className="inline-flex items-stretch h-10 rounded-xl border border-slate-200 bg-white divide-x divide-slate-200">
+                <div className="flex items-center gap-1.5 pl-3 shrink-0 min-w-[130px]">
                   <GraduationCap className="w-4 h-4 text-slate-400 shrink-0" />
                   <AppSelect
                     value={gradeLabel}
@@ -387,7 +387,7 @@ export default function TimetablePage() {
                     {options.map((o) => <option key={o.name} value={o.name}>{o.name}</option>)}
                   </AppSelect>
                 </div>
-                <div className="flex items-center gap-1.5 pl-3">
+                <div className="flex items-center gap-1.5 pl-3 shrink-0 min-w-[140px]">
                   <Layers className="w-4 h-4 text-slate-400 shrink-0" />
                   <AppSelect
                     value={section}

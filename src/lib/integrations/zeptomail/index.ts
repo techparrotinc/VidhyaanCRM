@@ -70,11 +70,33 @@ async function deliver(
   const viaSes = () =>
     sendViaSes({ to, toName, subject, htmlBody, textBody, fromEmail, fromName })
 
-  const sesPrimary = process.env.EMAIL_PROVIDER === 'ses' && sesConfigured()
-  const [primary, fallback] = sesPrimary
-    ? [viaSes, viaZepto]
-    : [viaZepto, sesConfigured() ? viaSes : null]
-  const primaryName = sesPrimary ? 'SES' : 'ZeptoMail'
+  // Provider selection:
+  //   CAMPAIGN  → Amazon SES ONLY, from the dedicated send.vidhyaan.com domain
+  //               (its reputation is isolated from the transactional domain).
+  //               No Zepto fallback: campaigns@send.vidhyaan.com is not verified
+  //               in Zepto, so a fallback there would only bounce. In dev with
+  //               no SES creds we degrade to Zepto so local sends still work.
+  //   TRANSACTIONAL → ZeptoMail primary (SES failover), or SES when
+  //               EMAIL_PROVIDER=ses.
+  let primary: () => Promise<unknown>
+  let fallback: (() => Promise<unknown>) | null
+  let primaryName: string
+  if (kind === 'campaign') {
+    if (sesConfigured()) {
+      primary = viaSes
+      fallback = null
+      primaryName = 'SES'
+    } else {
+      primary = viaZepto
+      fallback = null
+      primaryName = 'ZeptoMail (dev fallback — SES not configured)'
+    }
+  } else {
+    const sesPrimary = process.env.EMAIL_PROVIDER === 'ses' && sesConfigured()
+    primary = sesPrimary ? viaSes : viaZepto
+    fallback = sesPrimary ? viaZepto : (sesConfigured() ? viaSes : null)
+    primaryName = sesPrimary ? 'SES' : 'ZeptoMail'
+  }
 
   try {
     await primary()
@@ -85,7 +107,7 @@ async function deliver(
       throw new Error(error?.message ?? `Failed to send ${kind} email`)
     }
     try {
-      console.warn(`Email: failing over to ${sesPrimary ? 'ZeptoMail' : 'SES'} for ${to}`)
+      console.warn(`Email: ${primaryName} failed, failing over for ${to}`)
       await fallback()
       return { success: true }
     } catch (fallbackErr: any) {

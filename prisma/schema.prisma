@@ -1076,6 +1076,8 @@ model School {
   monthlyFeeMax        Int?     @map("monthly_fee_max")
   activityTypes        String[] @map("activity_types")
   homeVisitAvailable   Boolean  @default(false) @map("home_visit_available")
+  /// How classes are delivered: ONLINE | OFFLINE | HYBRID (learning centres)
+  classMode            String?  @map("class_mode")
   batchCount           Int      @default(0) @map("batch_count")
   enrolledStudentCount Int      @default(0) @map("enrolled_student_count")
 
@@ -2568,6 +2570,8 @@ model Campaign {
   channel            CampaignChannel
   status             CampaignStatus  @default(DRAFT)
   templateBody       String?         @map("template_body")
+  /// Optional hero image rendered above the body on EMAIL campaigns.
+  heroImageUrl       String?         @map("hero_image_url")
   /// Soft ref to crm.whatsapp_templates — chosen approved template for
   /// WHATSAPP campaigns (send builds positional params from it)
   whatsappTemplateId String?         @map("whatsapp_template_id")

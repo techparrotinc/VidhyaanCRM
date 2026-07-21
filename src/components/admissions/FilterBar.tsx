@@ -247,28 +247,22 @@ export default function FilterBar(props: FilterBarProps) {
   )
 
   if (isList) {
+    // Single row: compact search + inline filters + view toggle.
+    // NOTE: no overflow-x wrapper here — a scroll container clips the
+    // absolutely-positioned filter dropdowns (overflow-x:auto forces
+    // overflow-y:auto), which made the filters appear non-functional.
     return (
-      <div className="flex flex-col gap-2 px-4 py-3 border-b border-slate-100 bg-white w-full">
-        {/* Row 1: Search */}
-        <div className="w-full">
-          <div className="relative flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-4 w-full h-10 sm:h-9">
-            {searchInput}
-          </div>
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-slate-100 bg-white w-full">
+        {/* Search — grows to fill the row, filters follow on the same line */}
+        <div className="relative flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-4 w-full sm:w-auto sm:flex-1 sm:min-w-[280px] sm:max-w-[460px] h-10 sm:h-9">
+          {searchInput}
         </div>
 
-        {/* Filters row */}
-        <div className="flex items-center gap-2 min-w-0">
-          {/* Scrollable buttons zone */}
-          <div
-            className="flex items-center gap-2 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-            style={{ WebkitOverflowScrolling: 'touch' }}
-          >
-            {filterButtons}
-          </div>
+        {/* Filters — inline on the same line */}
+        {filterButtons}
 
-          {/* View toggle — always visible, never shrinks */}
-          {viewToggle}
-        </div>
+        {/* View toggle — pushed to the far right */}
+        {viewToggle}
       </div>
     )
   }

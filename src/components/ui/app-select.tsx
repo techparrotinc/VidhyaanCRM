@@ -101,7 +101,7 @@ export const AppSelect = React.forwardRef<HTMLButtonElement, AppSelectProps>(fun
   }, [open])
 
   const toggle = () => {
-    if (disabled) return
+    if (disabled || options.length === 0) return
     if (!open && rootRef.current) {
       const r = rootRef.current.getBoundingClientRect()
       const spaceBelow = window.innerHeight - r.bottom
@@ -149,7 +149,7 @@ export const AppSelect = React.forwardRef<HTMLButtonElement, AppSelectProps>(fun
         <div
           ref={listRef}
           role="listbox"
-          className={`absolute left-0 w-full min-w-[140px] z-[70] bg-white border border-slate-200 rounded-xl shadow-xl py-1.5 max-h-60 overflow-y-auto ${
+          className={`absolute left-0 min-w-full w-max max-w-[min(320px,90vw)] z-[70] bg-white border border-slate-200 rounded-xl shadow-xl py-1.5 max-h-60 overflow-y-auto ${
             dropUp ? 'bottom-full mb-1' : 'top-full mt-1'
           }`}
         >

@@ -57,6 +57,7 @@ export default function AdminSettingsPage() {
   const [fromEmailAddress, setFromEmailAddress] = useState('')
   const [supportEmail, setSupportEmail] = useState('')
   const [fromName, setFromName] = useState('')
+  const [zeptoCampaignEmail, setZeptoCampaignEmail] = useState('')
 
   // Notifications
   const [opsAlertEmail, setOpsAlertEmail] = useState('')
@@ -137,6 +138,7 @@ export default function AdminSettingsPage() {
       setFromEmailAddress(data.fromEmailAddress || '')
       setSupportEmail(data.supportEmail || '')
       setFromName(data.fromName || '')
+      setZeptoCampaignEmail(data.zeptoCampaignEmail || '')
 
       setOpsAlertEmail(data.opsAlertEmail || '')
       setSlackWebhookUrl(data.slackWebhookUrl || '')
@@ -223,6 +225,7 @@ export default function AdminSettingsPage() {
         fromEmailAddress,
         supportEmail,
         fromName,
+        zeptoCampaignEmail,
         opsAlertEmail,
         slackWebhookUrl,
         razorpayLiveKey: razorpayKeyId,
@@ -522,6 +525,21 @@ export default function AdminSettingsPage() {
                   placeholder="Vidhyaan Team"
                   className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
                 />
+              </div>
+              <div className="sm:col-span-3">
+                <label className="block text-slate-450 mb-1.5">Campaign From Email</label>
+                <input
+                  type="email"
+                  value={zeptoCampaignEmail}
+                  onChange={(e) => setZeptoCampaignEmail(e.target.value)}
+                  placeholder="campaigns@send.vidhyaan.com"
+                  className="w-full rounded-lg border border-slate-200 p-2.5 font-medium outline-hidden focus:border-blue-500"
+                />
+                <p className="text-[10px] font-semibold text-slate-400 mt-1">
+                  Marketing campaigns send from this address via Amazon SES on the dedicated
+                  sub-domain — kept separate from transactional (OTP / fees) mail. Must be a
+                  domain verified in SES.
+                </p>
               </div>
               <div className="sm:col-span-3">
                 <label className="block text-slate-450 mb-1.5">

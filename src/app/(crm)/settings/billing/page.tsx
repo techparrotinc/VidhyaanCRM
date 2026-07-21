@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   X
 } from 'lucide-react'
+import { useModulesStore } from '@/stores/modules.store'
 
 const SLAB_INFO: Record<string, { label: string; cap: number }> = {
   S50: { label: 'up to 50 students', cap: 50 },
@@ -62,6 +63,9 @@ export default function BillingSettingsPage() {
     if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('activated')) {
       showToast('success', 'Payment received — your plan is now active!')
       window.history.replaceState({}, '', '/settings/billing')
+      // New plan may enable modules (e.g. Fee Management) — resync the Sidebar
+      // lock state without forcing a full reload.
+      useModulesStore.getState().refresh()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

@@ -40,6 +40,9 @@ export function FormBuilder({ meta, initial }: { meta: FormMeta; initial: FormVa
   const [value, setValue] = useState<FormValue>(initial)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Flips true after the first Save/Publish attempt so required fields can
+  // highlight, instead of the actions sitting silently disabled.
+  const [attempted, setAttempted] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [dragField, setDragField] = useState<{ sec: number; idx: number } | null>(null)
 
@@ -94,10 +97,32 @@ export function FormBuilder({ meta, initial }: { meta: FormMeta; initial: FormVa
 
   const feeValid = !value.feeRequired || Number(value.applicationFeeAmount) > 0
   const hasPhoneField = schema.sections.some((s) => s.fields.some((f) => f.mapsTo === 'contact.phone'))
-  const canSave = value.name.trim() && value.purpose && schema.sections.some((s) => s.fields.length)
-  const canPublish = canSave && feeValid && hasPhoneField
+  const hasAnyField = schema.sections.some((s) => s.fields.length)
+  const canSave = !!value.name.trim() && !!value.purpose && hasAnyField
+  const nameMissing = attempted && !value.name.trim()
+
+  // Human-readable list of what still blocks a save/publish, so the (now
+  // always-enabled) buttons can explain themselves on click.
+  const blockers = (publish: boolean): string[] => {
+    const missing: string[] = []
+    if (!value.name.trim()) missing.push('a form name')
+    if (!value.purpose) missing.push('a form type')
+    if (!hasAnyField) missing.push('at least one field')
+    if (publish && !feeValid) missing.push('a fee amount greater than 0')
+    if (publish && !hasPhoneField) missing.push('a field mapped to Phone')
+    return missing
+  }
 
   const save = async (publish = false) => {
+    setAttempted(true)
+    const missing = blockers(publish)
+    if (missing.length > 0) {
+      const list = missing.length === 1
+        ? missing[0]
+        : `${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}`
+      setError(`To ${publish ? 'publish' : 'save'} this form, add ${list}.`)
+      return
+    }
     setSaving(true)
     setError(null)
     try {
@@ -154,13 +179,14 @@ export function FormBuilder({ meta, initial }: { meta: FormMeta; initial: FormVa
             ))}
           </AppSelect>
         </Field>
-        <Field label="Form Name">
+        <Field label="Form Name" required>
           <input
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className={`w-full rounded-lg border px-3 py-2 text-sm ${nameMissing ? 'border-red-400 bg-red-50/40' : 'border-slate-200'}`}
             value={value.name}
             placeholder="e.g. Grade 1 Admission"
             onChange={(e) => setValue((v) => ({ ...v, name: e.target.value }))}
           />
+          {nameMissing && <p className="mt-1 text-xs text-red-500">Form name is required.</p>}
         </Field>
         <Field label="Description">
           <input
@@ -330,10 +356,10 @@ export function FormBuilder({ meta, initial }: { meta: FormMeta; initial: FormVa
           <Button variant="outline" className="shrink-0 gap-2" onClick={() => setShowPreview(true)}>
             <Eye className="h-4 w-4" /> Preview
           </Button>
-          <Button variant="outline" className="shrink-0 gap-2" disabled={!canSave || saving} onClick={() => save(false)}>
+          <Button variant="outline" className="shrink-0 gap-2" disabled={saving} onClick={() => save(false)}>
             <Save className="h-4 w-4" /> <span className="hidden sm:inline">Save Draft</span><span className="sm:hidden">Draft</span>
           </Button>
-          <Button className="shrink-0 gap-2" disabled={!canPublish || saving} onClick={() => save(true)}>
+          <Button className="shrink-0 gap-2" disabled={saving} onClick={() => save(true)}>
             <Send className="h-4 w-4" /> {saving ? 'Saving…' : (<><span className="hidden sm:inline">Save &amp; Publish</span><span className="sm:hidden">Publish</span></>)}
           </Button>
         </div>
@@ -354,10 +380,12 @@ export function FormBuilder({ meta, initial }: { meta: FormMeta; initial: FormVa
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1 block text-[11px] font-bold uppercase tracking-widest text-slate-500">{label}</label>
+      <label className="mb-1 block text-[11px] font-bold uppercase tracking-widest text-slate-500">
+        {label}{required && <span className="text-red-500"> *</span>}
+      </label>
       {children}
     </div>
   )

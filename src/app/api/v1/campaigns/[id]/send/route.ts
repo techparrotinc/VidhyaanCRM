@@ -11,6 +11,7 @@ import { sendCampaignMessage } from '@/lib/campaign/sendCampaignMessage'
 import { mintCampaignInstance } from '@/lib/forms/send'
 import { spendCreditsWithIntent, confirmSpendIntent, refundCredits, InsufficientCreditsError } from '@/lib/credits/engine'
 import { getActiveProviderConfig } from '@/lib/credits/provider'
+import { emailMonthlyLimit, emailDailyLimit, ADDON_DAILY_CAP, startOfDayIST } from '@/lib/campaign/limits'
 import type { MessageChannel } from '@prisma/client'
 
 const sendConfigSchema = z.object({
@@ -47,21 +48,31 @@ async function handleSendCampaign({
     campaign.channel === CampaignChannel.WHATSAPP ? 'WHATSAPP' : 'SMS'
 
   let emailRemaining = Infinity
+  let emailDailyRemaining = Infinity
   if (!isCreditChannel) {
     const now = new Date()
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+    const dayStart = startOfDayIST(now)
 
-    const used = await db.campaignRecipient.count({
-      where: {
-        orgId,
-        status: { not: 'PENDING' },
-        sentAt: {
-          gte: firstDay,
-          lte: lastDay
+    const [used, usedToday] = await Promise.all([
+      db.campaignRecipient.count({
+        where: {
+          orgId,
+          status: { not: 'PENDING' },
+          sentAt: { gte: firstDay, lte: lastDay },
+          campaign: { channel: CampaignChannel.EMAIL }
         }
-      }
-    })
+      }),
+      db.campaignRecipient.count({
+        where: {
+          orgId,
+          status: { not: 'PENDING' },
+          sentAt: { gte: dayStart },
+          campaign: { channel: CampaignChannel.EMAIL }
+        }
+      })
+    ])
 
     const org = await prisma.organization.findUnique({
       where: { id: orgId },
@@ -69,16 +80,8 @@ async function handleSendCampaign({
     })
 
     const planSlug = org?.plan?.slug || 'starter'
-
-    let limit = 500
-    const planSlugLower = planSlug.toLowerCase()
-    if (planSlugLower === 'free') {
-      limit = 0
-    } else if (planSlugLower === 'starter') {
-      limit = 500
-    } else if (planSlugLower === 'growth') {
-      limit = 5000
-    }
+    const limit = emailMonthlyLimit(planSlug)
+    const dailyLimit = emailDailyLimit(planSlug)
 
     if (limit === 0) {
       return NextResponse.json(
@@ -90,7 +93,8 @@ async function handleSendCampaign({
       )
     }
 
-    emailRemaining = Math.max(0, limit - used)
+    emailRemaining = Number.isFinite(limit) ? Math.max(0, limit - used) : Infinity
+    emailDailyRemaining = Math.max(0, dailyLimit - usedToday)
   }
 
   // STEP 3 — WhatsApp addon check
@@ -202,15 +206,50 @@ async function handleSendCampaign({
     })
   }
 
-  // STEP 5 — Quota limit enforcement (EMAIL plan quota only)
-  if (!isCreditChannel && recipients.length > emailRemaining) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: `This campaign would reach ${recipients.length} recipients but you only have ${emailRemaining} remaining this month.`
-      },
-      { status: 402 }
-    )
+  // STEP 5 — Quota limit enforcement
+  if (!isCreditChannel) {
+    // EMAIL monthly plan quota (real ceiling).
+    if (recipients.length > emailRemaining) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `This campaign would reach ${recipients.length} recipients but you only have ${emailRemaining} remaining this month.`
+        },
+        { status: 402 }
+      )
+    }
+    // EMAIL daily anti-spike cap (protects the shared sending domain).
+    if (recipients.length > emailDailyRemaining) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Daily email limit reached: this campaign would send ${recipients.length} but only ${emailDailyRemaining} more can go out today. Try again tomorrow or split the send.`
+        },
+        { status: 429 }
+      )
+    }
+  } else {
+    // SMS/WhatsApp flat daily safety cap (wallet is the real limit; this only
+    // guards against fat-finger blasts + DLT/Meta abuse flags).
+    const dayStart = startOfDayIST(new Date())
+    const usedToday = await db.campaignRecipient.count({
+      where: {
+        orgId,
+        status: { not: 'PENDING' },
+        sentAt: { gte: dayStart },
+        campaign: { channel: creditChannel === 'WHATSAPP' ? CampaignChannel.WHATSAPP : CampaignChannel.SMS }
+      }
+    })
+    const dailyRemaining = Math.max(0, ADDON_DAILY_CAP - usedToday)
+    if (recipients.length > dailyRemaining) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Daily ${creditChannel === 'WHATSAPP' ? 'WhatsApp' : 'SMS'} send limit reached (${ADDON_DAILY_CAP}/day): ${dailyRemaining} more can go out today. Try again tomorrow or split the send.`
+        },
+        { status: 429 }
+      )
+    }
   }
 
   // STEP 6 — Handle scheduled campaigns
@@ -382,6 +421,7 @@ async function handleSendCampaign({
               name: campaign.name,
               channel: campaign.channel,
               templateBody: campaign.templateBody,
+              heroImageUrl: campaign.heroImageUrl ?? null,
               whatsappTemplateId: campaign.whatsappTemplateId ?? null,
               paramValues: (campaign.paramValues as Record<string, string> | null) ?? null,
               organization: {

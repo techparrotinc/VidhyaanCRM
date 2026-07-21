@@ -412,7 +412,11 @@ export default function SchoolProfilePage() {
     const fetchSchoolDetails = async () => {
       try {
         setLoading(true)
-        const res = await fetch(`/api/public/schools/${slug}`)
+        // Owner preview (from onboarding): ?preview=1 lets the yet-unpublished
+        // profile render via the claim bypass instead of 404-ing.
+        const isPreview = typeof window !== 'undefined' &&
+          new URLSearchParams(window.location.search).get('preview') === '1'
+        const res = await fetch(`/api/public/schools/${slug}${isPreview ? '?claim=true' : ''}`)
         if (!res.ok) {
           if (res.status === 404) throw new Error('School profile not found')
           throw new Error('Failed to retrieve school details')

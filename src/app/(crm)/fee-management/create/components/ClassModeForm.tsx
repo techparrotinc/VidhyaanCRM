@@ -4,6 +4,7 @@ import { fetcher } from '@/lib/fetcher'
 import { GRADE_OPTIONS, getGradeLabel } from '@/constants/grades'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { useCourseOptions } from '@/hooks/useCourseOptions'
+import { useClassOptions } from '@/hooks/useClassOptions'
 import { isLearningCentre } from '@/lib/institution'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { AlertCircle, Users, Info } from 'lucide-react'
@@ -75,6 +76,9 @@ const ClassModeForm = forwardRef<WizardFormHandle, ClassModeFormProps>(
       .catch(() => setIsLC(false))
   }, [])
   const { options: courseOptions } = useCourseOptions(isLC === true)
+  // School grade dropdown is master-first (Settings → Class & Sections),
+  // falling back to the static ladder when no master exists yet.
+  const { options: classOptions } = useClassOptions(isLC === false)
 
   // Form State
   const [grade, setGrade] = useState('')
@@ -97,7 +101,10 @@ const ClassModeForm = forwardRef<WizardFormHandle, ClassModeFormProps>(
   // Canonical label — must read the same as Lead/Admission grade dropdowns
   const getGradeDisplayLabel = (val: string) => getGradeLabel(mapGradeValue(val))
 
-  const selectedGradeLabel = grade ? getGradeLabel(grade) : ''
+  // Prefer the master class's own name (handles custom classes whose label
+  // isn't derivable from the slug); fall back to the canonical grade label.
+  const selectedClassOpt = classOptions.find(c => (c.gradeSlug || c.name) === grade)
+  const selectedGradeLabel = grade ? (selectedClassOpt?.name ?? getGradeLabel(grade)) : ''
   const selectedCourse = courseOptions.find(c => c.id === courseId)
   const selectedCourseLabel = selectedCourse?.name ?? ''
 
@@ -314,9 +321,12 @@ const ClassModeForm = forwardRef<WizardFormHandle, ClassModeFormProps>(
                 <SelectValue placeholder="Select Grade..." />
               </SelectTrigger>
               <SelectContent>
-                {GRADE_OPTIONS.map(g => (
-                  <SelectItem key={g.value} value={g.value}>
-                    {getGradeDisplayLabel(g.value)}
+                {(classOptions.length > 0
+                  ? classOptions.map(c => ({ value: c.gradeSlug || c.name, label: c.name }))
+                  : GRADE_OPTIONS.map(g => ({ value: g.value, label: getGradeDisplayLabel(g.value) }))
+                ).map(o => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -62,11 +62,16 @@ export default function EditStudentPage() {
   }, [])
   const { options: classOptions } = useClassOptions(isLC === false)
   const [batches, setBatches] = useState<any[]>([])
+  const [courses, setCourses] = useState<any[]>([])
   useEffect(() => {
     if (isLC !== true) return
     fetch('/api/v1/options/batches')
       .then(r => r.json())
       .then(json => setBatches(json?.data?.batches ?? []))
+      .catch(() => {})
+    fetch('/api/v1/options/courses')
+      .then(r => r.json())
+      .then(json => setCourses(json?.data?.courses ?? []))
       .catch(() => {})
   }, [isLC])
 
@@ -77,6 +82,7 @@ export default function EditStudentPage() {
     gradeLabel: '',
     section: '',
     batchId: '',
+    courseId: '',
     rollNumber: '',
     guardianName: '',
     guardianPhone: '',
@@ -97,6 +103,10 @@ export default function EditStudentPage() {
         gradeLabel: student.gradeLabel ?? '',
         section: (student as any).section ?? '',
         batchId: (student as any).batchId ?? '',
+        // Primary course = the current ACTIVE enrolment (billing-free link).
+        courseId:
+          ((student as any).enrollments ?? (student as any).courseEnrollments ?? [])
+            .find((e: any) => e.status === 'ACTIVE')?.courseId ?? '',
         rollNumber: student.rollNumber ?? '',
         guardianName: student.guardianName ?? '',
         guardianPhone: student.guardianPhone ?? '',
@@ -155,6 +165,9 @@ export default function EditStudentPage() {
             gradeLabel: form.gradeLabel || undefined,
             section: form.section || null,
             batchId: form.batchId || undefined,
+            // Only send when LC — '' clears the active enrolment, so guard it
+            // to avoid unlinking courses on school-mode saves.
+            courseId: isLC === true ? form.courseId : undefined,
             rollNumber: form.rollNumber || undefined,
             guardianEmail: form.guardianEmail || undefined,
             academicYearId: form.academicYearId || undefined,
@@ -345,21 +358,44 @@ export default function EditStudentPage() {
                 )}
 
                 {isLC === true && (
-                  <div>
-                    <label className={labelClass}>Batch</label>
-                    <AppSelect
-                      name="batchId"
-                      value={form.batchId}
-                      onChange={handleChange}
-                      className={inputClass}>
-                      <option value="">No batch</option>
-                      {batches.map((b: any) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}{b.course ? ` (${b.course.name})` : ''}
-                        </option>
-                      ))}
-                    </AppSelect>
-                  </div>
+                  <>
+                    <div>
+                      <label className={labelClass}>Course</label>
+                      <AppSelect
+                        name="courseId"
+                        value={form.courseId}
+                        onChange={e => {
+                          if (e.target.value === '__manage__') { router.push('/settings/courses'); return }
+                          handleChange(e)
+                        }}
+                        className={inputClass}>
+                        <option value="">No course</option>
+                        {courses.map((c: any) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                        {form.courseId && !courses.some((c: any) => c.id === form.courseId) && (
+                          <option value={form.courseId}>Current course</option>
+                        )}
+                        <option value="__manage__">＋ Add course…</option>
+                      </AppSelect>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Batch</label>
+                      <AppSelect
+                        name="batchId"
+                        value={form.batchId}
+                        onChange={handleChange}
+                        className={inputClass}>
+                        <option value="">No batch</option>
+                        {batches.map((b: any) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name}{b.course ? ` (${b.course.name})` : ''}
+                          </option>
+                        ))}
+                      </AppSelect>
+                    </div>
+                  </>
                 )}
 
                 <div>

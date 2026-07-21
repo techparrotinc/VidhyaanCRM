@@ -16,6 +16,13 @@ export interface SchoolSearchParams {
   lng?: number | null
   maxDistance?: number
   claim?: boolean
+  /** Learning-centre filters */
+  minRating?: number
+  enrollingNow?: boolean
+  medium?: string
+  classMode?: string
+  /** Learning-centre primary category (centerCategory enum: MUSIC, DANCE, …) */
+  category?: string
 }
 
 export interface SchoolSearchResult {
@@ -63,6 +70,11 @@ export async function searchSchools(params: SchoolSearchParams): Promise<SchoolS
     institutionType,
     maxDistance = 20,
     claim = false,
+    minRating,
+    enrollingNow,
+    medium,
+    classMode,
+    category,
   } = params
 
   const page = Math.max(1, params.page ?? 1)
@@ -79,9 +91,10 @@ export async function searchSchools(params: SchoolSearchParams): Promise<SchoolS
 
   if (!claim) {
     where.isPublished = true
-    // Publish-now model: PENDING + VERIFIED listings are public (with a
-    // "verification pending" badge on the profile); REJECTED stay hidden.
-    where.verificationStatus = { not: 'REJECTED' }
+    // Only admin-approved listings surface in search. Self-registered schools
+    // sit at PENDING until a Vidhyaan admin verifies them and must stay hidden
+    // (REJECTED too); seeded directory listings (UNCLAIMED) and VERIFIED show.
+    where.verificationStatus = { in: ['UNCLAIMED', 'VERIFIED'] }
   }
 
   if (search) {
@@ -123,7 +136,46 @@ export async function searchSchools(params: SchoolSearchParams): Promise<SchoolS
   }
 
   if (institutionType) {
-    where.institutionType = institutionType
+    // Accept a single type or a comma-separated set (Learning Centers tab
+    // bundles colleges/coaching/skill/sports alongside LEARNING_CENTER).
+    const types = institutionType.split(',').map((t) => t.trim()).filter(Boolean)
+    where.institutionType = types.length > 1 ? { in: types } : types[0]
+  }
+
+  // Learning-centre filters
+  if (category) {
+    // AND-grouped (own OR) so it never collides with the text-search OR.
+    // Match the stored primary category; also accept centres that listed it
+    // as an activity type, so older records without centerCategory still hit.
+    where.AND = [
+      ...(where.AND ?? []),
+      {
+        OR: [
+          { centerCategory: { equals: category, mode: 'insensitive' } },
+          { activityTypes: { has: category } },
+        ],
+      },
+    ]
+  }
+
+  if (minRating && minRating > 0) {
+    where.avgRating = { gte: minRating }
+  }
+
+  if (enrollingNow) {
+    where.enrollmentStatus = 'OPEN'
+  }
+
+  if (medium) {
+    where.mediumOfInstruction = { contains: medium, mode: 'insensitive' }
+  }
+
+  if (classMode) {
+    // A hybrid centre satisfies both an online and an offline search.
+    where.classMode =
+      classMode === 'ONLINE' ? { in: ['ONLINE', 'HYBRID'] }
+      : classMode === 'OFFLINE' ? { in: ['OFFLINE', 'HYBRID'] }
+      : classMode
   }
 
   if (admissionOpen) {

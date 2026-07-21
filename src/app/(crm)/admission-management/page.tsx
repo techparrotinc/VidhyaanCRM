@@ -26,7 +26,9 @@ import {
   X,
   UserPlus,
   Archive as ArchiveIcon,
-  ArchiveRestore
+  ArchiveRestore,
+  BarChart2,
+  ChevronDown
 } from 'lucide-react'
 import TableSkeleton from '@/components/shared/TableSkeleton'
 import {
@@ -41,8 +43,8 @@ import { config, type, pipeline as configPipeline } from '@/lib/admission-settin
 import ConvertToStudentModal from '@/components/admissions/ConvertToStudentModal'
 import RejectModal from '@/components/admissions/RejectModal'
 import BulkActionBar from '@/components/admissions/BulkActionBar'
+import BulkCommunicationModal from '@/components/admissions/BulkCommunicationModal'
 import Toast, { type ToastState } from '@/components/admissions/Toast'
-import PipelineSummaryStrip from '@/components/admissions/PipelineSummaryStrip'
 import PaginationFooter from '@/components/admissions/PaginationFooter'
 import GridView from '@/components/admissions/GridView'
 import KanbanView from '@/components/admissions/KanbanView'
@@ -120,15 +122,9 @@ export default function AdmissionManagementPage() {
     fetchStages()
   }, [])
 
-  const [pipelineExpanded, setPipelineExpanded] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem('admission_pipeline_expanded') === 'true'
-  })
-
-  const togglePipeline = (val: boolean) => {
-    setPipelineExpanded(val)
-    localStorage.setItem('admission_pipeline_expanded', String(val))
-  }
+  // Pipeline metrics dropdown (anchored in the header, next to Archived)
+  const [pipelineOpen, setPipelineOpen] = useState(false)
+  const [showCommModal, setShowCommModal] = useState(false)
   const searchTimeout = useRef<NodeJS.Timeout | undefined>(undefined)
   
   // Use shared hook for counsellor list
@@ -161,6 +157,7 @@ export default function AdmissionManagementPage() {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setOpenMenuId(null)
+        setPipelineOpen(false)
       }
     }
     document.addEventListener('keydown', handleEsc)
@@ -168,6 +165,17 @@ export default function AdmissionManagementPage() {
       document.removeEventListener('keydown', handleEsc)
     }
   }, [])
+
+  // Close the pipeline metrics dropdown on outside click
+  useEffect(() => {
+    if (!pipelineOpen) return
+    const close = (e: MouseEvent) => {
+      const el = e.target as HTMLElement
+      if (!el.closest('[data-pipeline-dropdown]')) setPipelineOpen(false)
+    }
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [pipelineOpen])
   const [showConvertModal, setShowConvertModal] =
     useState<any | null>(null)
   const [showRejectModal, setShowRejectModal] =
@@ -572,11 +580,6 @@ export default function AdmissionManagementPage() {
     const wonStage = stages.find(s => s.isWon === true)
     return wonStage ? (stageCounts[wonStage.id] || 0) : 0
   }, [stageCounts, stages])
-  const pendingActionCount = 
-    applicants.filter(
-      (a: any) => a.pendingAction !== null
-    ).length
-
   const showingStart = filteredApplicants.length > 0 ? (pagination.page - 1) * 10 + 1 : 0
   const showingEnd = (pagination.page - 1) * 10 + filteredApplicants.length
 
@@ -848,33 +851,36 @@ export default function AdmissionManagementPage() {
   }
 
   // Bulk operation handlers
+  // targetStageId is a DB stage id (BulkActionBar is fed the live `pipeline`
+  // from the API), so resolve against `stages`, never the local config slugs.
   const handleBulkMoveStage = async (targetStageId: string) => {
-    const targetStage = configPipeline.find(s => s.id === targetStageId)
+    const targetStage = stages.find(s => s.id === targetStageId)
     if (!targetStage) return
 
-    const targetIndex = targetStage.order - 1
+    const rawAdmissions = admissionsData?.admissions || admissionsData?.data || []
     const affected = selectedItems
-      .map(id => applicants.find((a: any) => a.id === id))
+      .map(id => rawAdmissions.find((a: any) => a.id === id))
       .filter((a: any) => a && a.stageId !== targetStage.id)
-    const backwardOrSkipCount = affected.filter((a: any) =>
-      targetIndex < a.stageIndex || targetIndex > a.stageIndex + 1
-    ).length
+    const backwardOrSkipCount = affected.filter((a: any) => {
+      const cur = stages.find(s => s.id === a.stageId)
+      if (!cur) return false
+      return targetStage.sortOrder < cur.sortOrder || targetStage.sortOrder > cur.sortOrder + 1
+    }).length
     if (backwardOrSkipCount > 0) {
       const confirmed = await confirmDialog({
         title: 'Confirm bulk stage move',
-        message: `${backwardOrSkipCount} of ${affected.length} selected application(s) will move backward or skip intermediate stages to reach "${targetStage.label}".`,
+        message: `${backwardOrSkipCount} of ${affected.length} selected application(s) will move backward or skip intermediate stages to reach "${targetStage.name}".`,
         confirmLabel: 'Move Stage'
       })
       if (!confirmed) return
     }
 
     try {
-      const dbStageId = getDatabaseStageId(targetStage.label)
       const results = await Promise.all(selectedItems.map(id =>
         fetch('/api/v1/admissions/' + id, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stageId: dbStageId || targetStageId })
+          body: JSON.stringify({ stageId: targetStage.id })
         })
       ))
       const failed = results.filter(r => !r.ok)
@@ -886,7 +892,7 @@ export default function AdmissionManagementPage() {
           'error'
         )
       } else {
-        showToast(`Selected applicants moved to ${targetStage.label}`)
+        showToast(`Selected applicants moved to ${targetStage.name}`)
       }
       fetchAdmissions()
       fetchPipeline()
@@ -925,6 +931,57 @@ export default function AdmissionManagementPage() {
       showToast('Failed to update some admissions', 'error')
     }
     setSelectedItems([])
+  }
+
+  const handleBulkExport = async () => {
+    if (selectedItems.length === 0) return
+    try {
+      const params = new URLSearchParams()
+      params.set('ids', selectedItems.join(','))
+      if (selectedYearId) params.set('academicYearId', selectedYearId)
+
+      const res = await fetch(`/api/v1/admissions/export?${params.toString()}`)
+      if (!res.ok) throw new Error()
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `admissions-selected-${format(new Date(), 'yyyy-MM-dd')}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      showToast(`Exported ${selectedItems.length} applicant(s)`, 'success')
+      setSelectedItems([])
+    } catch {
+      showToast('Export failed', 'error')
+    }
+  }
+
+  const handleBulkSendCommunication = async (payload: import('@/components/admissions/BulkCommunicationModal').BulkCommPayload) => {
+    try {
+      const res = await fetch('/api/v1/admissions/communicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedItems, ...payload })
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || 'Failed to send')
+
+      const { sent = 0, skipped = 0, failed = 0 } = data?.data || data || {}
+      const parts = [`${sent} sent`]
+      if (skipped) parts.push(`${skipped} skipped (no ${payload.channel === 'email' ? 'email' : 'phone'})`)
+      if (failed) parts.push(`${failed} failed`)
+      showToast(parts.join(', '), failed ? 'error' : 'success')
+
+      setShowCommModal(false)
+      setSelectedItems([])
+      fetchAdmissions()
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send communication', 'error')
+    }
   }
 
   const handleBulkDelete = async () => {
@@ -1227,21 +1284,66 @@ export default function AdmissionManagementPage() {
             </h1>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
+              {/* Archived — icon only; reveals its label on hover */}
               <button
                 onClick={() => {
                   setShowArchived(v => !v)
                   setCurrentPage(1)
                 }}
-                className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap border ${
+                className={`group flex items-center justify-center px-2.5 py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap border ${
                   showArchived
                     ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
                     : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
                 title={showArchived ? 'Showing archived records' : 'Show archived records'}
               >
-                <ArchiveIcon size={14} />
-                {showArchived ? 'Viewing Archived' : 'Archived'}
+                <ArchiveIcon size={16} className="flex-shrink-0" />
+                <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-200 group-hover:max-w-[130px] group-hover:ml-1.5">
+                  {showArchived ? 'Viewing Archived' : 'Archived'}
+                </span>
               </button>
+
+              {/* Pipeline — click reveals the metrics dropdown */}
+              <div className="relative" data-pipeline-dropdown>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setPipelineOpen(v => !v) }}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer whitespace-nowrap"
+                  title="View admission pipeline metrics"
+                >
+                  <BarChart2 size={15} className="text-[#1565D8]" />
+                  <span className="hidden sm:inline">Pipeline</span>
+                  <ChevronDown size={14} className={`text-slate-400 transition-transform ${pipelineOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {pipelineOpen && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute right-0 top-full mt-2 z-50 w-[300px] sm:w-[340px] bg-white rounded-xl border border-slate-200 shadow-xl border-t-4 border-t-[#1565D8] p-4"
+                  >
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-3">
+                      <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Admission Pipeline</span>
+                      <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{config.academicYear}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div className="border border-slate-200 rounded-lg p-3">
+                        <div className="text-[11px] text-slate-500 font-medium mb-1">Total Applicants</div>
+                        <div className="text-xl font-bold text-slate-900">{Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}</div>
+                      </div>
+                      <div className="border border-slate-200 rounded-lg p-3">
+                        <div className="text-[11px] text-slate-500 font-medium mb-1">Conversion Rate</div>
+                        <div className="text-xl font-bold text-green-600">{conversionRate}%</div>
+                      </div>
+                      <div className="border border-slate-200 rounded-lg p-3">
+                        <div className="text-[11px] text-slate-500 font-medium mb-1">Admitted</div>
+                        <div className="text-xl font-bold text-[#1565D8]">{displayAdmittedCount}</div>
+                      </div>
+                      <div className="border border-slate-200 rounded-lg p-3">
+                        <div className="text-[11px] text-slate-500 font-medium mb-1">Avg. to Admit</div>
+                        <div className="text-xl font-bold text-slate-900">{pipelineStats.avgDaysToAdmit || 0}<span className="text-xs font-medium text-slate-400"> days</span></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
               <button
                 onClick={handleExport}
                 disabled={isExporting}
@@ -1272,17 +1374,6 @@ export default function AdmissionManagementPage() {
             </div>
           </div>
 
-          {/* SECTION 2 — PIPELINE SUMMARY STRIP */}
-          <PipelineSummaryStrip
-            expanded={pipelineExpanded}
-            onToggle={togglePipeline}
-            totalApplicants={totalCount}
-            headerTotal={Object.values(stageCounts).reduce((a, b) => a + b, 0) || totalCount || 0}
-            conversionRate={conversionRate}
-            admittedCount={displayAdmittedCount}
-            avgDaysToAdmit={pipelineStats.avgDaysToAdmit}
-            pendingActionCount={pendingActionCount}
-          />
           {/* STAGE TABS */}
           <div className="overflow-x-auto overflow-y-hidden -mx-4 px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] mb-4">
             <div className="flex gap-1 min-w-max border-b border-slate-200 pb-0">
@@ -1350,7 +1441,7 @@ export default function AdmissionManagementPage() {
           )}
 
           {/* SECTION 3 — FILTER BAR / SEARCH / TABLE / PAGINATION CARD */}
-          {activeView === 'list' && (loading || filteredApplicants.length > 0) ? (
+          {activeView === 'list' ? (
             loading && applicants.length === 0 ? (
               <TableSkeleton rows={5} columns={7} />
             ) : (
@@ -1504,13 +1595,17 @@ export default function AdmissionManagementPage() {
         counsellors={counsellors}
         onMoveStage={handleBulkMoveStage}
         onAssignCounsellor={handleBulkAssignCounsellor}
-        onSendCommunication={() => showToast("Communication sent to selected", "success")}
-        onExport={() => {
-          showToast("Exported selected applicants", "info")
-          setSelectedItems([])
-        }}
+        onSendCommunication={() => setShowCommModal(true)}
+        onExport={handleBulkExport}
         onDelete={handleBulkDelete}
         onClear={() => setSelectedItems([])}
+      />
+
+      <BulkCommunicationModal
+        open={showCommModal}
+        count={selectedItems.length}
+        onClose={() => setShowCommModal(false)}
+        onSend={handleBulkSendCommunication}
       />
 
       {isLoading && (

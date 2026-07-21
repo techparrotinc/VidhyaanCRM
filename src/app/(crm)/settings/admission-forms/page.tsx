@@ -167,17 +167,17 @@ export default function AdmissionFormsPage() {
                 )}
               </div>
 
-              <div className="flex items-center gap-2 border-t border-slate-100 pt-3">
+              <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
                 <Button
                   variant={f.status === 'PUBLISHED' ? 'outline' : 'default'}
                   size="sm"
-                  className="flex-1 gap-1.5"
+                  className="gap-1.5"
                   onClick={() => togglePublish(f)}
                 >
                   {f.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'}
                 </Button>
                 {f.status === 'PUBLISHED' && !f.isDefault && (
-                  <Button variant="ghost" size="sm" className="text-slate-600" onClick={() => setDefault(f)} title="Set as default for auto-send">
+                  <Button variant="outline" size="sm" className="gap-1.5 text-slate-600" onClick={() => setDefault(f)} title="Set as default for auto-send">
                     Set default
                   </Button>
                 )}
@@ -208,8 +208,9 @@ export default function AdmissionFormsPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                  className="ml-auto text-red-600 hover:bg-red-50 hover:text-red-700"
                   onClick={() => handleDelete(f)}
+                  title="Delete form"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>

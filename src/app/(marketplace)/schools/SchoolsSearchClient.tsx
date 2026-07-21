@@ -128,7 +128,6 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
   })
 
   // Synchronized inputs
-  const [category, setCategory] = useState<'schools' | 'centers'>('schools')
   const [searchVal, setSearchVal] = useState(filters.search)
   
   // Sidebar state
@@ -338,16 +337,6 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
 
   const handleSearchCardSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // Wire search Category selection redirection
-    if (category === 'centers') {
-      const params = new URLSearchParams()
-      if (searchVal) params.append('search', searchVal)
-      if (detectedCity) params.append('city', detectedCity)
-      router.push(`/learning-centers?${params.toString()}`)
-      return
-    }
-
     setFilters((prev) => ({
       ...prev,
       search: searchVal,
@@ -462,23 +451,22 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
     }
   }
 
+  // Soft, harmonised duotones keyed off the initial — muted 400→500 tones so
+  // the photo-less tiles sit calmly next to the #1565D8 brand.
   const getGradientByInitial = (name: string) => {
     const initial = name[0]?.toUpperCase() || 'A'
-    if ('ABCD'.includes(initial)) return 'from-blue-500 to-blue-700'
-    if ('EFGH'.includes(initial)) return 'from-purple-500 to-purple-700'
-    if ('IJKL'.includes(initial)) return 'from-teal-500 to-teal-700'
-    if ('MNOP'.includes(initial)) return 'from-orange-500 to-orange-700'
-    if ('QRST'.includes(initial)) return 'from-green-500 to-green-700'
-    return 'from-rose-500 to-rose-700' // UVWXYZ
+    if ('ABCD'.includes(initial)) return 'from-blue-400 to-indigo-500'
+    if ('EFGH'.includes(initial)) return 'from-violet-400 to-fuchsia-500'
+    if ('IJKL'.includes(initial)) return 'from-teal-400 to-cyan-500'
+    if ('MNOP'.includes(initial)) return 'from-amber-400 to-rose-400'
+    if ('QRST'.includes(initial)) return 'from-emerald-400 to-teal-500'
+    return 'from-sky-400 to-blue-500' // UVWXYZ
   }
 
   const getFirstTwoWords = (name: string) => {
     return name.split(' ').slice(0, 2).join(' ')
   }
 
-  // Result counts boundaries
-  const startItem = pagination.total > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0
-  const endItem = Math.min(pagination.page * pagination.limit, pagination.total)
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans antialiased text-slate-800 flex flex-col justify-between select-none">
@@ -503,49 +491,56 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
           </div>
         </div>
 
-        {/* 2. BLUE SEARCH HERO STRIP */}
-        <section className="bg-[#1565D8] text-white py-6 px-4 md:px-8 select-none relative overflow-hidden">
-          <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full bg-white/5 opacity-10 pointer-events-none" />
-          <div className="max-w-7xl mx-auto space-y-4">
-            <div className="space-y-1">
-              <h1 className="text-xl md:text-2xl font-black font-poppins tracking-tight">
-                Find the Best Schools Near You
-              </h1>
-              <p className="text-[11px] md:text-xs text-blue-100 font-medium">
-                Search 500+ verified CBSE, ICSE and Matriculation schools across India. Compare fees, facilities and apply directly.
-              </p>
-            </div>
+        {/* 2. BLUE HERO (title + description) */}
+        <section className="bg-[#1565D8] text-white pt-6 pb-5 px-4 md:px-8 select-none relative">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full bg-white/5 opacity-10" />
+          </div>
+          <div className="relative max-w-7xl mx-auto space-y-1">
+            <h1 className="text-xl md:text-2xl font-black font-poppins tracking-tight">
+              Find the Best Schools Near You
+            </h1>
+            <p className="text-[11px] md:text-xs text-blue-100 font-medium">
+              Search 500+ verified CBSE, ICSE and Matriculation schools across India. Compare fees, facilities and apply directly.
+            </p>
+          </div>
+        </section>
 
-            {/* WHITE SEARCH CARD */}
-            <form onSubmit={handleSearchCardSubmit} className="bg-white rounded-2xl p-2.5 shadow-lg border border-slate-200 text-slate-800 flex flex-col sm:flex-row sm:flex-wrap md:flex-nowrap items-stretch gap-2.5">
-              
-              {/* Category Selector */}
-              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 w-full sm:w-[48%] md:w-52 md:flex-none shrink-0 gap-2">
+        {/* 3. STICKY SEARCH HEADER (search + results/sort stay fixed) */}
+        <div className="sticky top-16 z-40 bg-white border-b border-slate-200 shadow-sm select-none">
+          <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 space-y-2.5">
+            {/* Search row */}
+            <form onSubmit={handleSearchCardSubmit} className="flex flex-col sm:flex-row sm:flex-wrap md:flex-nowrap items-stretch gap-2.5">
+
+              {/* Board Selector */}
+              <div className="flex items-center bg-white border border-slate-300 rounded-xl px-3 py-2 focus-within:border-[#1565D8] focus-within:ring-2 focus-within:ring-[#1565D8]/10 transition w-full sm:w-[48%] md:w-52 md:flex-none shrink-0 gap-2">
                 <LayoutGrid className="w-4 h-4 text-slate-400 shrink-0" />
                 <AppSelect
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as 'schools' | 'centers')}
-                  className="bg-transparent text-slate-705 outline-none text-xs font-bold w-full cursor-pointer"
+                  value={activeBoards[0] ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setActiveBoards(v ? [v] : [])
+                    setPagination((prev) => ({ ...prev, page: 1 }))
+                  }}
+                  className="bg-transparent text-slate-700 outline-none text-xs font-bold w-full cursor-pointer"
                 >
-                  <option value="schools">🏫 Schools</option>
-                  <option value="centers">💃 Learning Centers</option>
+                  <option value="">All Boards</option>
+                  <option value="CBSE">CBSE</option>
+                  <option value="ICSE">ICSE</option>
+                  <option value="State">State Board</option>
+                  <option value="IB">IB</option>
+                  <option value="IGCSE">IGCSE</option>
+                  <option value="Cambridge">Cambridge</option>
                 </AppSelect>
               </div>
 
               {/* Search Input */}
-              <div className="w-full sm:w-[48%] md:flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 gap-2">
+              <div className="w-full md:flex-1 flex items-center bg-white border border-slate-300 rounded-xl px-3 py-2 focus-within:border-[#1565D8] focus-within:ring-2 focus-within:ring-[#1565D8]/10 transition gap-2">
                 <SearchAutocomplete
                   value={searchVal}
                   onChange={setSearchVal}
                   onSubmit={(val) => {
                     setSearchVal(val)
-                    if (category === 'centers') {
-                      const params = new URLSearchParams()
-                      if (val) params.append('search', val)
-                      if (detectedCity) params.append('city', detectedCity)
-                      router.push(`/learning-centers?${params.toString()}`)
-                      return
-                    }
                     setFilters((prev) => ({
                       ...prev,
                       search: val,
@@ -568,67 +563,37 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
                 </Button>
               </div>
             </form>
-          </div>
-        </section>
 
-        {/* 3. QUICK FILTER BAR (Sticky below hero) */}
-        <section className="bg-white border-b border-slate-200 py-3 px-4 md:px-8 sticky top-16 z-30 shadow-sm select-none">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 flex-wrap">
-            
-            {/* Sort by Dropdown */}
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Sort by:
-              </span>
-              <AppSelect
-                value={filters.sortBy}
-                onChange={(e) => {
-                  setFilters({ ...filters, sortBy: e.target.value })
-                  setPagination((prev) => ({ ...prev, page: 1 }))
-                }}
-                className="text-xs font-bold text-slate-700 border border-slate-200 rounded-lg px-3 py-1.5 outline-none bg-white cursor-pointer hover:border-[#1565D8] transition"
-              >
-                <option value="relevance">Relevance</option>
-                <option value="rating">Rating High to Low</option>
-                <option value="distance">Distance Nearest</option>
-                <option value="enquiries">Most Enquiries</option>
-                <option value="newest">Newest Listed</option>
-              </AppSelect>
-            </div>
-
-            {/* Board Quick Filter Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden w-full sm:w-auto pb-1 sm:pb-0">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden md:inline shrink-0 mr-1">
-                Board:
-              </span>
-              <div className="flex gap-2">
-                {['CBSE', 'ICSE', 'State', 'IB', 'IGCSE', 'Cambridge'].map((board) => {
-                  const isActive = activeBoards.includes(board)
-                  return (
-                    <button
-                      key={board}
-                      onClick={() => toggleBoard(board)}
-                      className={`text-xs font-bold px-4 py-1.5 rounded-full border transition-all duration-200 cursor-pointer whitespace-nowrap ${
-                        isActive
-                          ? 'bg-[#1565D8] text-white border-[#1565D8] shadow-sm'
-                          : 'bg-white text-slate-600 border-slate-200 hover:border-[#1565D8] hover:text-[#1565D8]'
-                      }`}
-                    >
-                      {board}
-                    </button>
-                  )
-                })}
+            {/* Results title + count + sort (single count, no repetition) */}
+            <div className="flex items-center justify-between gap-4 flex-wrap border-t border-slate-100 pt-2.5">
+              <div className="flex items-baseline gap-2 min-w-0">
+                <h2 className="text-sm font-black text-slate-800 truncate">
+                  Schools near {filters.city || 'India'}
+                </h2>
+                <span className="text-xs font-bold text-slate-400 whitespace-nowrap">· {pagination.total} found</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                  Sort by:
+                </span>
+                <AppSelect
+                  value={filters.sortBy}
+                  onChange={(e) => {
+                    setFilters({ ...filters, sortBy: e.target.value })
+                    setPagination((prev) => ({ ...prev, page: 1 }))
+                  }}
+                  className="text-xs font-bold text-slate-700 border border-slate-200 rounded-lg px-3 py-1.5 outline-none bg-white cursor-pointer hover:border-[#1565D8] transition"
+                >
+                  <option value="relevance">Relevance</option>
+                  <option value="rating">Rating High to Low</option>
+                  <option value="distance">Distance Nearest</option>
+                  <option value="enquiries">Most Enquiries</option>
+                  <option value="newest">Newest Listed</option>
+                </AppSelect>
               </div>
             </div>
-
-            {/* Total Results Counter */}
-            <div className="flex items-center shrink-0">
-              <span className="text-xs text-slate-505 font-bold uppercase tracking-wider">
-                {pagination.total} schools found
-              </span>
-            </div>
           </div>
-        </section>
+        </div>
 
         {/* 4. MAIN CONTENT AREA */}
         <div className="bg-[#F5F7FA] min-h-screen">
@@ -636,7 +601,7 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
             
             {/* 5. LEFT FILTER SIDEBAR PANEL (Sticky) */}
             <aside className="w-[280px] flex-shrink-0 hidden lg:block select-none">
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 sticky top-36 shadow-sm space-y-4">
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 sticky top-44 shadow-sm space-y-4">
                 
                 {/* Header Row */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -827,17 +792,8 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
             {/* Right Column: Listing Area */}
             <div className="flex-1 min-w-0 space-y-4">
               
-              {/* 6. RESULTS HEADER & ACTIVE FILTERS */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-2 px-1 gap-3 select-none">
-                <div>
-                  <h2 className="text-base font-extrabold text-slate-900 font-poppins">
-                    Schools near {filters.city || 'India'}
-                  </h2>
-                  <p className="text-[11px] text-slate-550 font-bold uppercase mt-1 tracking-wide">
-                    Showing {startItem}–{endItem} of {pagination.total} schools
-                  </p>
-                </div>
-
+              {/* 6. ACTIVE FILTERS (title + count live in the sticky bar above) */}
+              <div className="flex flex-wrap items-center gap-2 px-1 select-none empty:hidden">
                 {/* Active Filters chips */}
                 <div className="flex items-center gap-2 flex-wrap">
                   {lat !== null && lng !== null && distanceRadius < 40 && (
@@ -965,11 +921,12 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
                             />
                           ) : (
                             /* Styled Initial Gradient Placeholders */
-                            <div className="w-full h-full flex flex-col items-center justify-center text-white bg-gradient-to-br from-slate-550 to-slate-700 p-4 text-center select-none" style={{ background: `linear-gradient(to top right, ${getGradientByInitial(school.name).split(' ')[1]}, ${getGradientByInitial(school.name).split(' ')[3]})` }}>
-                              <span className="text-5xl font-extrabold tracking-tight font-poppins mb-1.5 opacity-95">
+                            <div className={`w-full h-full flex flex-col items-center justify-center text-white bg-gradient-to-br ${getGradientByInitial(school.name)} p-4 text-center select-none relative`}>
+                              <div className="absolute inset-0 bg-black/[0.06]" />
+                              <span className="relative text-5xl font-extrabold tracking-tight font-poppins mb-1.5 opacity-95">
                                 {school.name[0]?.toUpperCase() || 'S'}
                               </span>
-                              <span className="text-[10px] text-white/90 font-bold leading-tight uppercase tracking-wider line-clamp-2">
+                              <span className="relative text-[10px] text-white/90 font-bold leading-tight uppercase tracking-wider line-clamp-2">
                                 {getFirstTwoWords(school.name)}
                               </span>
                             </div>
@@ -1064,7 +1021,7 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
                                 </span>
                               ))}
                               
-                              <span className="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-100 px-2.5 py-0.5 rounded-full uppercase">
+                              <span className="text-[9px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full uppercase">
                                 {school.institutionType || 'Private'}
                               </span>
 
@@ -1075,7 +1032,7 @@ export default function SchoolsSearchPage({ initialSchools, initialPagination }:
                               )}
 
                               {school.gradesOffered && (
-                                <span className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-100 px-2.5 py-0.5 rounded-full uppercase">
+                                <span className="text-[9px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full uppercase">
                                   {school.gradesOffered}
                                 </span>
                               )}

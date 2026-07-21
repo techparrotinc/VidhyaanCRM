@@ -19,6 +19,7 @@ const campaignSchema = z.object({
     ).optional()
   }).optional().nullable(),
   templateBody: z.string().max(2000).optional().nullable(),
+  heroImageUrl: z.string().url().max(500).optional().nullable(),
   whatsappTemplateId: z.string().max(50).optional().nullable(),
   formTemplateId: z.string().optional().nullable(),
   paramValues: z.record(z.string().max(40), z.string().max(300)).optional().nullable(),
@@ -121,6 +122,7 @@ export const PUT = route({
         channel: data.channel as CampaignChannel | undefined,
         audienceFilter: data.audienceFilter !== undefined ? (data.audienceFilter as Prisma.InputJsonValue) : undefined,
         templateBody: data.templateBody,
+        heroImageUrl: data.heroImageUrl !== undefined ? data.heroImageUrl : undefined,
         whatsappTemplateId: data.whatsappTemplateId !== undefined ? data.whatsappTemplateId : undefined,
         formTemplateId: data.formTemplateId !== undefined ? data.formTemplateId : undefined,
         paramValues: data.paramValues !== undefined ? (data.paramValues ?? undefined) : undefined,

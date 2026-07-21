@@ -7,7 +7,7 @@ import {
   ArrowLeft, Pencil, Trash2,
   Mail, MessageCircle, Phone,
   User, GraduationCap, Calendar,
-  Hash, BookOpen,
+  Hash, BookOpen, Layers,
   MessageSquare, PhoneCall,
   Clock, CheckCircle
 } from 'lucide-react'
@@ -400,11 +400,15 @@ export default function StudentDetailPage() {
               },
               {
                 icon: <GraduationCap className="w-4 h-4" />,
-                label: 'Grade',
-                value: student.gradeLabel
-                  ? `${getGradeLabel(student.gradeLabel)}${(student as any).section ? ` · Section ${(student as any).section}` : ''}`
-                  : null,
+                label: 'Class',
+                value: student.gradeLabel ? getGradeLabel(student.gradeLabel) : null,
                 // Learning centres enrol in courses, not grades — hide the row.
+                hide: institutionType === 'LEARNING_CENTER'
+              },
+              {
+                icon: <Layers className="w-4 h-4" />,
+                label: 'Section',
+                value: (student as any).section ? `Section ${(student as any).section}` : null,
                 hide: institutionType === 'LEARNING_CENTER'
               },
               {

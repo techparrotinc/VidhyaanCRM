@@ -3,9 +3,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import { AlertCircle, Loader2, CalendarDays } from 'lucide-react'
+import { AlertCircle, Loader2, CalendarDays, ImagePlus, X, Send, Eye } from 'lucide-react'
+import { appAlert } from '@/components/ui/app-alert'
 import { useWhatsappTemplates } from '@/hooks/useWhatsappTemplates'
 import { previewTemplateBody } from '@/lib/campaign/templateParams'
+import { renderCampaignEmailHtml } from '@/lib/campaign/renderEmail'
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
 import { AppSelect } from '@/components/ui/app-select'
@@ -98,9 +100,11 @@ interface StepThreeProps {
   whatsappTemplateId: string
   formTemplateId: string
   paramValues: Record<string, string>
+  heroImageUrl: string
   scheduledAt: string | null
   sendNow: boolean
   recipientCount: number
+  onHeroImageChange: (url: string) => void
   onBodyChange: (body: string) => void
   onTemplateChange: (templateId: string) => void
   onParamValuesChange: (values: Record<string, string>) => void
@@ -118,9 +122,11 @@ export function StepThree({
   whatsappTemplateId,
   formTemplateId,
   paramValues,
+  heroImageUrl,
   scheduledAt,
   sendNow,
   recipientCount,
+  onHeroImageChange,
   onBodyChange,
   onTemplateChange,
   onParamValuesChange,
@@ -172,6 +178,79 @@ export function StepThree({
   const [subject, setSubject] = useState('')
   const [emailBody, setEmailBody] = useState('')
   const [smsBody, setSmsBody] = useState(templateBody ?? '')
+
+  // Hero image upload + preview + test-send (EMAIL only)
+  const [isUploading, setIsUploading] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+  const [testEmail, setTestEmail] = useState('')
+  const [isTesting, setIsTesting] = useState(false)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleHeroUpload(file: File) {
+    if (file.size > 5 * 1024 * 1024) {
+      appAlert('Image too large (max 5MB)')
+      return
+    }
+    setIsUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('category', 'campaigns')
+      const res = await fetch('/api/v1/files/upload', { method: 'POST', body: fd })
+      const json = await res.json()
+      if (json.success && json.url) {
+        onHeroImageChange(json.url)
+      } else {
+        appAlert(json.error || 'Failed to upload image')
+      }
+    } catch {
+      appAlert('Failed to upload image')
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  async function handleTestSend() {
+    if (!testEmail.trim()) {
+      appAlert('Enter an email address to send the test to')
+      return
+    }
+    setIsTesting(true)
+    try {
+      const res = await fetch('/api/v1/campaigns/test-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: 'EMAIL',
+          to: testEmail.trim(),
+          templateBody: `Subject: ${subject}\n\n${emailBody}`,
+          heroImageUrl: heroImageUrl || null
+        })
+      })
+      const json = await res.json()
+      if (res.ok) {
+        appAlert(`Test email sent to ${testEmail.trim()}`)
+      } else {
+        appAlert(json.error || 'Failed to send test email')
+      }
+    } catch {
+      appAlert('Failed to send test email')
+    } finally {
+      setIsTesting(false)
+    }
+  }
+
+  // Sample-value substitution so the preview reads like a real send.
+  function fillSampleVars(text: string): string {
+    return text
+      .replace(/\{\{parentName\}\}/g, 'Priya Sharma')
+      .replace(/\{\{kidName\}\}/g, 'Aarav')
+      .replace(/\{\{schoolName\}\}/g, 'Your institution')
+      .replace(/\{\{grade\}\}/g, 'Grade 5')
+      .replace(/\{\{date\}\}/g, format(new Date(), 'd MMM yyyy'))
+      .replace(/\{\{amount\}\}/g, '₹5,000')
+      .replace(/\{\{link\}\}/g, 'https://vidhyaan.com/f/preview')
+  }
 
   // Initialise from templateBody prop on mount only
   useEffect(() => {
@@ -307,6 +386,104 @@ export function StepThree({
                 placeholder="Dear {{parentName}},&#10;&#10;Your message here..."
                 className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8]"
               />
+            </div>
+
+            {/* HERO IMAGE */}
+            <div>
+              <label className="text-xs font-semibold text-slate-600 block mb-1">
+                Header image <span className="text-slate-400 font-normal">(optional)</span>
+              </label>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) handleHeroUpload(f)
+                  e.target.value = ''
+                }}
+              />
+              {heroImageUrl ? (
+                <div className="relative inline-block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={heroImageUrl}
+                    alt="Header"
+                    className="max-h-40 rounded-lg border border-slate-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onHeroImageChange('')}
+                    className="absolute -top-2 -right-2 bg-white border border-slate-200 rounded-full p-1 shadow-sm hover:bg-red-50 hover:text-red-500"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 border border-dashed border-slate-300 rounded-lg hover:border-[#1565D8] hover:text-[#1565D8] disabled:opacity-50"
+                >
+                  {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
+                  {isUploading ? 'Uploading...' : 'Add header image'}
+                </button>
+              )}
+            </div>
+
+            {/* PREVIEW + TEST SEND */}
+            <div className="border-t border-slate-100 pt-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPreview((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-[#1565D8] hover:underline"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  {showPreview ? 'Hide preview' : 'Show preview'}
+                </button>
+              </div>
+
+              {showPreview && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                    Preview · Subject: {subject || <span className="italic text-slate-400">No subject</span>}
+                  </p>
+                  <div
+                    className="rounded-lg bg-white p-4 border border-slate-100 overflow-hidden"
+                    dangerouslySetInnerHTML={{
+                      __html: renderCampaignEmailHtml({
+                        body: fillSampleVars(emailBody || 'Your message here...'),
+                        imageUrl: heroImageUrl || null
+                      })
+                    }}
+                  />
+                  <p className="text-[11px] text-slate-400 mt-2">
+                    Sample values shown for personalisation tokens.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="flex-1 min-w-[180px] h-9 px-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-[#1565D8]"
+                />
+                <button
+                  type="button"
+                  onClick={handleTestSend}
+                  disabled={isTesting || !emailBody.trim()}
+                  className="flex items-center gap-1.5 px-3 h-9 text-xs font-semibold text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40"
+                >
+                  {isTesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  Send test email
+                </button>
+              </div>
             </div>
           </div>
         )}

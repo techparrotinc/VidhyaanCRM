@@ -19,6 +19,8 @@ import { Calendar as UiCalendar } from "@/components/ui/calendar"
 import { GRADE_OPTIONS } from '@/constants/grades'
 import { DedupDialog, DedupPayload } from "@/components/dedup/DedupDialog"
 import { AppSelect } from '@/components/ui/app-select'
+import { useClassOptions } from '@/hooks/useClassOptions'
+import { isLearningCentre } from '@/lib/institution'
 
 const format = (date: Date, formatStr: string): string => {
   const yyyy = date.getFullYear()
@@ -45,6 +47,26 @@ export default function CreateAdmissionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [dedup, setDedup] = useState<DedupPayload | null>(null)
+
+  // Institution mode — schools pick a Class (master), LC/coaching/college pick
+  // a Course. Both persist into the single `gradeSought` field (admissions have
+  // no separate course column). Start null so the field doesn't flicker.
+  const [isLC, setIsLC] = useState<boolean | null>(null)
+  useEffect(() => {
+    fetch('/api/v1/settings/org-type')
+      .then(r => r.json())
+      .then(json => setIsLC(isLearningCentre(json?.data?.institutionType)))
+      .catch(() => setIsLC(false))
+  }, [])
+  const { options: classOptions } = useClassOptions(isLC === false)
+  const [courseNames, setCourseNames] = useState<string[]>([])
+  useEffect(() => {
+    if (isLC !== true) return
+    fetch('/api/v1/options/courses')
+      .then(r => r.json())
+      .then(json => setCourseNames((json?.data?.courses ?? []).map((c: any) => c.name).filter(Boolean)))
+      .catch(() => {})
+  }, [isLC])
 
   // Form states
   const [formData, setFormData] = useState({
@@ -137,7 +159,7 @@ export default function CreateAdmissionPage() {
       return
     }
     if (!formData.gradeSought) {
-      setErrorMessage('Applying grade is required')
+      setErrorMessage(isLC ? 'Applying course is required' : 'Applying grade is required')
       return
     }
     if (!formData.academicYearId) {
@@ -356,20 +378,40 @@ export default function CreateAdmissionPage() {
             <div className="space-y-3">
               <div>
                 <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 block mb-1">
-                  Applying For Grade <span className="text-red-500">*</span>
+                  {isLC ? 'Applying For Course' : 'Applying For Grade'} <span className="text-red-500">*</span>
                 </label>
                 <div className="relative w-full">
                   <AppSelect
                     name="gradeSought"
                     value={formData.gradeSought}
-                    onChange={handleInputChange}
+                    onChange={e => {
+                      if (e.target.value === '__manage__') {
+                        router.push(isLC ? '/settings/courses' : '/settings/classes'); return
+                      }
+                      handleInputChange(e)
+                    }}
                     className="w-full h-10 sm:h-9 px-3 pr-10 text-sm border border-slate-200 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-[#1565D8] appearance-none transition"
                     required
                   >
-                    <option value="">Select Grade</option>
-                    {GRADE_OPTIONS.map(g => (
-                      <option key={g.value} value={g.value}>{g.label}</option>
-                    ))}
+                    <option value="">{isLC ? 'Select Course' : 'Select Grade'}</option>
+                    {isLC
+                      ? courseNames.map(name => (
+                          <option key={name} value={name}>{name}</option>
+                        ))
+                      : (classOptions.length > 0
+                          ? classOptions.map(c => ({ value: c.gradeSlug || c.name, label: c.name }))
+                          : GRADE_OPTIONS.map(g => ({ value: g.value, label: g.label }))
+                        ).map(o => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                    {formData.gradeSought &&
+                      (isLC
+                        ? !courseNames.includes(formData.gradeSought)
+                        : !classOptions.some(c => (c.gradeSlug || c.name) === formData.gradeSought) &&
+                          !GRADE_OPTIONS.some(g => g.value === formData.gradeSought)) && (
+                        <option value={formData.gradeSought}>{formData.gradeSought}</option>
+                      )}
+                    <option value="__manage__">{isLC ? '＋ Add course…' : '＋ Add class…'}</option>
                   </AppSelect>
                 </div>
               </div>

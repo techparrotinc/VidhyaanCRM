@@ -51,6 +51,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       isPublished: true,
       isDummy: false,
       deletedAt: null,
+      // Keep unapproved (PENDING) and REJECTED listings out of the sitemap,
+      // mirroring marketplace search visibility.
+      verificationStatus: { in: ['UNCLAIMED', 'VERIFIED'] },
     },
     select: {
       slug: true,

@@ -26,6 +26,11 @@ export async function GET(req: NextRequest) {
       lng: lngStr ? parseFloat(lngStr) : null,
       maxDistance: maxDistanceStr ? parseFloat(maxDistanceStr) : 20,
       claim: searchParams.get('claim') === 'true',
+      minRating: searchParams.get('minRating') ? parseFloat(searchParams.get('minRating')!) : undefined,
+      enrollingNow: searchParams.get('enrollingNow') === 'true',
+      medium: searchParams.get('medium') ?? undefined,
+      classMode: searchParams.get('classMode') ?? undefined,
+      category: searchParams.get('category') ?? undefined,
     })
 
     return NextResponse.json({

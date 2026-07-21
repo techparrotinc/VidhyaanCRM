@@ -2,6 +2,7 @@ import { sendCampaignEmail as zeptoSendCampaignEmail } from '@/lib/integrations/
 import { sendMetaWhatsAppTemplate } from '@/lib/integrations/meta-whatsapp'
 import { getMetaWhatsAppConfig } from '@/lib/platform-config'
 import { prisma } from '@/lib/db/client'
+import { renderCampaignEmailHtml } from './renderEmail'
 
 export async function sendCampaignEmail(params: {
   to: string
@@ -26,12 +27,7 @@ export async function sendCampaignEmail(params: {
     subject = params.campaignName || 'Message from your school'
   }
 
-  const heroImg = params.imageUrl
-    ? `<img src="${params.imageUrl}" alt="" style="width:100%;max-width:560px;border-radius:12px;display:block;margin-bottom:16px;" />`
-    : ''
-  const html = `<div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 560px;">
-    ${heroImg}${bodyContent.replace(/\n/g, '<br/>')}
-  </div>`
+  const html = renderCampaignEmailHtml({ body: bodyContent, imageUrl: params.imageUrl })
 
   await zeptoSendCampaignEmail({
     to: params.to,

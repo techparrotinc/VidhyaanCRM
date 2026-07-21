@@ -48,6 +48,7 @@ const onboardingSaveSchema = z.object({
     monthlyFeeMin: numLike,
     monthlyFeeMax: numLike,
     activityTypes: z.array(z.string().max(50)).max(50).optional(),
+    classMode: strOpt(20),
     admissionOpen: z.boolean().optional(),
     logoUrl: strOpt(1000),
     coverUrl: strOpt(1000),
@@ -463,6 +464,15 @@ export async function POST(req: NextRequest) {
           monthlyFeeMin: data.monthlyFeeMin ? parseInt(data.monthlyFeeMin) : null,
           monthlyFeeMax: data.monthlyFeeMax ? parseInt(data.monthlyFeeMax) : null,
           activityTypes: data.activityTypes || [],
+          classMode: data.classMode || null,
+          ...(data.mediumOfInstruction !== undefined ? {
+            mediumOfInstruction: Array.isArray(data.mediumOfInstruction)
+              ? data.mediumOfInstruction.join(', ')
+              : (data.mediumOfInstruction || null),
+            mediumOfInstructionList: Array.isArray(data.mediumOfInstruction)
+              ? data.mediumOfInstruction
+              : (data.mediumOfInstruction ? [data.mediumOfInstruction] : []),
+          } : {}),
           admissionOpen: data.admissionOpen ?? false
         }
       })

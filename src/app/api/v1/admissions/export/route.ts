@@ -23,10 +23,12 @@ export const GET = route({
     const status = searchParams.get('status') ?? undefined
     const search = searchParams.get('search') ?? undefined
     const academicYearId = searchParams.get('academicYearId') ?? undefined
+    const ids = searchParams.get('ids')?.split(',').map(s => s.trim()).filter(Boolean)
 
     const where: any = {
       orgId: user.orgId,
       deletedAt: null,
+      ...(ids && ids.length > 0 && { id: { in: ids } }),
       ...(stageId && { stageId }),
       ...(search && {
         OR: [

@@ -115,6 +115,10 @@ const updateStudentSchema = z.object({
   guardianEmail: z.string().optional(),
   academicYearId: z.string().optional(),
   batchId: z.string().optional(),
+  // LC primary-course link. Setting/switching this only reconciles the ACTIVE
+  // CourseEnrollment as a plain link — it never auto-invoices (billing lives in
+  // the detail-page enroll card + fee module). '' clears the active enrolment.
+  courseId: z.string().optional(),
   status: z.enum(['ACTIVE', 'ALUMNI', 'TRANSFERRED', 'SUSPENDED', 'DROPPED_OUT']).optional()
 })
 
@@ -181,6 +185,53 @@ export const PUT = route({
       data: updateData,
       include: studentInclude
     })
+
+    // LC primary-course link reconcile — billing-free. Ensures exactly one
+    // ACTIVE enrolment matching the picked course; older ACTIVE ones (a
+    // different course) are marked COMPLETED. No invoice is generated here.
+    if (body.courseId !== undefined) {
+      const targetCourseId = body.courseId || null
+      const activeEnrolments = await db.courseEnrollment.findMany({
+        where: { studentId: id, status: 'ACTIVE' }
+      })
+      // Retire ACTIVE enrolments that are not the picked course.
+      for (const e of activeEnrolments) {
+        if (e.courseId !== targetCourseId) {
+          await db.courseEnrollment.update({
+            where: { id: e.id },
+            data: { status: 'COMPLETED', endDate: e.endDate ?? new Date() }
+          })
+        }
+      }
+      if (targetCourseId && !activeEnrolments.some(e => e.courseId === targetCourseId)) {
+        const course = await db.course.findFirst({
+          where: { id: targetCourseId, deletedAt: null }
+        })
+        if (course) {
+          // Unique [studentId, courseId] means a prior (retired) row may exist
+          // for this exact course — reactivate it rather than colliding.
+          const prior = await db.courseEnrollment.findFirst({
+            where: { studentId: id, courseId: targetCourseId }
+          })
+          if (prior) {
+            await db.courseEnrollment.update({
+              where: { id: prior.id },
+              data: { status: 'ACTIVE', endDate: null }
+            })
+          } else {
+            await db.courseEnrollment.create({
+              data: {
+                studentId: existing.id,
+                courseId: targetCourseId,
+                orgId: user.orgId,
+                startDate: new Date(),
+                status: 'ACTIVE'
+              }
+            })
+          }
+        }
+      }
+    }
 
     logAudit({
       orgId: user.orgId,

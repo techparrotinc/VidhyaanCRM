@@ -135,7 +135,11 @@ export default function OnboardingStep5() {
   const location = school?.locations?.[0]
   const board = school?.affiliations?.[0]?.board
   const isLearningCenter = school?.institutionType === 'LEARNING_CENTER' || school?.institutionType === 'COACHING_CENTER'
-  const detailPath = isLearningCenter ? `/learning-centers/${school?.slug}` : `/schools/${school?.slug}`
+  // Preview flag lets the owner view the profile before it is published
+  // (the public route 404s on unpublished schools without it).
+  const detailPath = isLearningCenter
+    ? `/learning-centers/${school?.slug}?preview=1`
+    : `/schools/${school?.slug}?preview=1`
 
   return (
     <div className="space-y-6 flex-1 flex flex-col justify-between">

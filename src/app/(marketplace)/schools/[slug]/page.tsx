@@ -12,6 +12,8 @@ const getSchoolSeo = cache(async (slug: string) => {
       OR: [{ slug }, { id: slug }],
       isDummy: false,
       isPublished: true,
+      // Don't emit public SEO metadata / JSON-LD for unapproved listings.
+      verificationStatus: { in: ['UNCLAIMED', 'VERIFIED'] },
     },
     select: {
       name: true,

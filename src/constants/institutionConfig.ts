@@ -4,6 +4,20 @@ export type InstitutionType =
   | 'JUNIOR_COLLEGE'
   | 'COACHING_CENTER'
 
+/**
+ * Every non-school institution type surfaced under the "Learning Centers"
+ * marketplace tab (colleges, coaching, skill & sports academies included).
+ * Client-safe — imported by both the marketplace search pages and the
+ * server-side search lib.
+ */
+export const LEARNING_CENTER_TYPES = [
+  'LEARNING_CENTER',
+  'JUNIOR_COLLEGE',
+  'COACHING_CENTER',
+  'SKILL_DEVELOPMENT',
+  'SPORTS_ACADEMY',
+] as const
+
 export interface SchoolTypeOption {
   value: string
   label: string

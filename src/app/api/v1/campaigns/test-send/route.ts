@@ -4,7 +4,7 @@ import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { ROLES } from '@/constants/roles'
 import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
-import { renderCampaignEmailHtml, splitSubject } from '@/lib/campaign/renderEmail'
+import { renderCampaignEmailHtml, renderBlocksToHtml, splitSubject, type EmailBlock } from '@/lib/campaign/renderEmail'
 
 // Send ONE test email so the composer can preview the real render before
 // blasting the audience. EMAIL-only in v1 (SMS/WhatsApp tests would burn
@@ -16,6 +16,7 @@ const schema = z.object({
   // The composed body; may carry a leading "Subject: …" line like a real send.
   templateBody: z.string().max(4000),
   heroImageUrl: z.string().url().max(500).optional().nullable(),
+  emailBlocks: z.array(z.record(z.string(), z.any())).max(50).optional().nullable(),
 })
 
 export const POST = route({
@@ -25,7 +26,9 @@ export const POST = route({
     const body = schema.parse(await req.json())
 
     const { subject, body: text } = splitSubject(body.templateBody, 'Campaign preview')
-    const html = renderCampaignEmailHtml({ body: text, imageUrl: body.heroImageUrl })
+    const html = body.emailBlocks && body.emailBlocks.length > 0
+      ? renderCampaignEmailHtml({ html: renderBlocksToHtml(body.emailBlocks as EmailBlock[]), imageUrl: body.heroImageUrl })
+      : renderCampaignEmailHtml({ body: text, imageUrl: body.heroImageUrl })
 
     const res = await sendTransactionalEmail({
       to: body.to,

@@ -2582,6 +2582,10 @@ model Campaign {
   templateBody       String?         @map("template_body")
   /// Optional hero image rendered above the body on EMAIL campaigns.
   heroImageUrl       String?         @map("hero_image_url")
+  /// Rich block-builder body (EMAIL) — ordered EmailBlock[]. When set, it
+  /// supersedes templateBody for the rendered HTML; templateBody still carries
+  /// the "Subject: …" line + a plain-text fallback.
+  emailBlocks        Json?           @map("email_blocks")
   /// Soft ref to crm.whatsapp_templates — chosen approved template for
   /// WHATSAPP campaigns (send builds positional params from it)
   whatsappTemplateId String?         @map("whatsapp_template_id")

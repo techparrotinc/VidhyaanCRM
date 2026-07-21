@@ -26,6 +26,7 @@ export default function NewCampaignPage() {
   const [recipientCount, setRecipientCount] = useState(0)
   const [templateBody, setTemplateBody] = useState('')
   const [heroImageUrl, setHeroImageUrl] = useState('')
+  const [emailBlocks, setEmailBlocks] = useState<any[]>([])
   const [abTest, setAbTest] = useState({ enabled: false, bSubject: '', bBody: '', percent: 20 })
   const [whatsappTemplateId, setWhatsappTemplateId] = useState('')
   const [paramValues, setParamValues] = useState<Record<string, string>>({})
@@ -78,8 +79,9 @@ export default function NewCampaignPage() {
     setIsSubmitting(true)
     try {
       // A/B: variant A = the main subject+body; variant B from the toggle.
+      const usingBlocks = channel === 'EMAIL' && emailBlocks.length > 0
       const abVariants =
-        channel === 'EMAIL' && abTest.enabled && abTest.bBody.trim()
+        channel === 'EMAIL' && !usingBlocks && abTest.enabled && abTest.bBody.trim()
           ? [
               { key: 'A', subject: null, templateBody },
               { key: 'B', subject: abTest.bSubject || null, templateBody: `Subject: ${abTest.bSubject}\n\n${abTest.bBody}` },
@@ -101,6 +103,7 @@ export default function NewCampaignPage() {
           },
           templateBody,
           heroImageUrl: channel === 'EMAIL' ? heroImageUrl || null : null,
+          emailBlocks: usingBlocks ? emailBlocks : null,
           abVariants,
           abTestPercent: abVariants ? abTest.percent : null,
           whatsappTemplateId: channel === 'WHATSAPP' ? whatsappTemplateId || null : null,
@@ -264,6 +267,8 @@ export default function NewCampaignPage() {
             recipientCount={recipientCount}
             abTest={abTest}
             onAbChange={setAbTest}
+            emailBlocks={emailBlocks}
+            onBlocksChange={setEmailBlocks}
             onHeroImageChange={setHeroImageUrl}
             onBodyChange={setTemplateBody}
             onTemplateChange={setWhatsappTemplateId}

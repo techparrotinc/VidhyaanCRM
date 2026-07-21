@@ -27,17 +27,69 @@ export function splitSubject(
   return { subject: fallbackSubject, body: raw }
 }
 
-/** Render the campaign email body (plain text with newlines) + optional hero
- *  image into the same HTML used for real sends. `body` is treated as trusted
- *  author text; only the hero image URL is attribute-escaped. */
+/** Render the campaign email body + optional hero image into the same HTML
+ *  used for real sends. Pass `html` for pre-rendered content (e.g. blocks) or
+ *  `body` for plain author text (newlines → <br/>). Only the hero image URL is
+ *  attribute-escaped; body/html are trusted author content. */
 export function renderCampaignEmailHtml(params: {
-  body: string
+  body?: string
+  html?: string
   imageUrl?: string | null
 }): string {
   const hero = params.imageUrl
     ? `<img src="${escapeHtml(params.imageUrl)}" alt="" style="width:100%;max-width:560px;border-radius:12px;display:block;margin-bottom:16px;" />`
     : ''
+  const content = params.html ?? (params.body ?? '').replace(/\n/g, '<br/>')
   return `<div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 560px;">
-    ${hero}${params.body.replace(/\n/g, '<br/>')}
+    ${hero}${content}
   </div>`
+}
+
+// ── Block builder ──────────────────────────────────────────────────────────
+// A rich email body composed of stackable blocks. Stored as JSON on the
+// campaign and rendered to HTML (pure) both in the client preview and at send
+// time; {{variable}} tokens are substituted by the caller after render.
+
+export type EmailBlock =
+  | { type: 'heading'; text: string; level?: 1 | 2 }
+  | { type: 'text'; text: string }
+  | { type: 'image'; url: string }
+  | { type: 'button'; label: string; url: string }
+  | { type: 'divider' }
+  | { type: 'spacer'; size?: number }
+
+const BTN_STYLE =
+  'display:inline-block;background:#1565D8;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;font-size:14px;'
+
+function renderBlock(b: EmailBlock): string {
+  switch (b.type) {
+    case 'heading': {
+      const size = b.level === 2 ? '18px' : '24px'
+      return `<h${b.level === 2 ? 2 : 1} style="font-size:${size};font-weight:700;color:#0f172a;margin:0 0 12px;">${escapeHtml(b.text)}</h${b.level === 2 ? 2 : 1}>`
+    }
+    case 'text':
+      return `<p style="margin:0 0 14px;">${escapeHtml(b.text).replace(/\n/g, '<br/>')}</p>`
+    case 'image':
+      return b.url
+        ? `<img src="${escapeHtml(b.url)}" alt="" style="width:100%;max-width:560px;border-radius:12px;display:block;margin:0 0 16px;" />`
+        : ''
+    case 'button':
+      return b.url
+        ? `<div style="margin:0 0 16px;"><a href="${escapeHtml(b.url)}" style="${BTN_STYLE}">${escapeHtml(b.label || 'Learn more')}</a></div>`
+        : ''
+    case 'divider':
+      return `<hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0;" />`
+    case 'spacer':
+      return `<div style="height:${Math.max(4, Math.min(80, b.size ?? 24))}px;"></div>`
+    default:
+      return ''
+  }
+}
+
+/** Render an ordered list of blocks to inner HTML (no wrapper, no var
+ *  substitution — the caller wraps via renderCampaignEmailHtml and substitutes
+ *  {{tokens}} afterwards). */
+export function renderBlocksToHtml(blocks: EmailBlock[]): string {
+  if (!Array.isArray(blocks)) return ''
+  return blocks.map(renderBlock).join('\n')
 }

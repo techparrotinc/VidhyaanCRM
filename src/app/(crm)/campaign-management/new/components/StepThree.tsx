@@ -7,7 +7,8 @@ import { AlertCircle, Loader2, CalendarDays, ImagePlus, X, Send, Eye } from 'luc
 import { appAlert } from '@/components/ui/app-alert'
 import { useWhatsappTemplates } from '@/hooks/useWhatsappTemplates'
 import { previewTemplateBody } from '@/lib/campaign/templateParams'
-import { renderCampaignEmailHtml } from '@/lib/campaign/renderEmail'
+import { renderCampaignEmailHtml, renderBlocksToHtml, type EmailBlock } from '@/lib/campaign/renderEmail'
+import { BlockBuilder } from './BlockBuilder'
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
 import { AppSelect } from '@/components/ui/app-select'
@@ -107,6 +108,9 @@ interface StepThreeProps {
   /** A/B test (EMAIL, optional — new-campaign flow only). */
   abTest?: { enabled: boolean; bSubject: string; bBody: string; percent: number }
   onAbChange?: (v: { enabled: boolean; bSubject: string; bBody: string; percent: number }) => void
+  /** Rich block-builder body (EMAIL, optional — new-campaign flow only). */
+  emailBlocks?: EmailBlock[]
+  onBlocksChange?: (b: EmailBlock[]) => void
   onHeroImageChange: (url: string) => void
   onBodyChange: (body: string) => void
   onTemplateChange: (templateId: string) => void
@@ -131,6 +135,8 @@ export function StepThree({
   recipientCount,
   abTest,
   onAbChange,
+  emailBlocks,
+  onBlocksChange,
   onHeroImageChange,
   onBodyChange,
   onTemplateChange,
@@ -184,6 +190,13 @@ export function StepThree({
   const [emailBody, setEmailBody] = useState('')
   const [smsBody, setSmsBody] = useState(templateBody ?? '')
 
+  // Body composition mode (EMAIL): plain textarea vs rich block builder.
+  const blocksAvailable = !!emailBlocks && !!onBlocksChange
+  const [builderMode, setBuilderMode] = useState<'plain' | 'blocks'>(
+    (emailBlocks?.length ?? 0) > 0 ? 'blocks' : 'plain'
+  )
+  const usingBlocks = blocksAvailable && builderMode === 'blocks'
+
   // Hero image upload + preview + test-send (EMAIL only)
   const [isUploading, setIsUploading] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -229,7 +242,8 @@ export function StepThree({
           channel: 'EMAIL',
           to: testEmail.trim(),
           templateBody: `Subject: ${subject}\n\n${emailBody}`,
-          heroImageUrl: heroImageUrl || null
+          heroImageUrl: heroImageUrl || null,
+          emailBlocks: usingBlocks ? emailBlocks : null
         })
       })
       const json = await res.json()
@@ -379,18 +393,42 @@ export function StepThree({
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">
-                Email Body
-              </label>
-              <textarea
-                ref={textareaRef}
-                value={emailBody}
-                onChange={(e) => setEmailBody(e.target.value)}
-                onBlur={() => onBodyChange(`Subject: ${subject}\n\n${emailBody}`)}
-                rows={8}
-                placeholder="Dear {{parentName}},&#10;&#10;Your message here..."
-                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8]"
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-slate-600">
+                  Email Body
+                </label>
+                {blocksAvailable && (
+                  <div className="flex rounded-lg border border-slate-200 overflow-hidden text-[11px] font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => { setBuilderMode('plain'); onBlocksChange!([]) }}
+                      className={`px-2.5 py-1 ${!usingBlocks ? 'bg-[#1565D8] text-white' : 'bg-white text-slate-500'}`}
+                    >
+                      Plain
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setBuilderMode('blocks'); if ((emailBlocks?.length ?? 0) === 0) onBlocksChange!([{ type: 'text', text: emailBody || 'Write your message here.' }]) }}
+                      className={`px-2.5 py-1 ${usingBlocks ? 'bg-[#1565D8] text-white' : 'bg-white text-slate-500'}`}
+                    >
+                      Rich blocks
+                    </button>
+                  </div>
+                )}
+              </div>
+              {usingBlocks ? (
+                <BlockBuilder blocks={emailBlocks!} onChange={onBlocksChange!} />
+              ) : (
+                <textarea
+                  ref={textareaRef}
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  onBlur={() => onBodyChange(`Subject: ${subject}\n\n${emailBody}`)}
+                  rows={8}
+                  placeholder="Dear {{parentName}},&#10;&#10;Your message here..."
+                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8]"
+                />
+              )}
             </div>
 
             {/* HERO IMAGE */}
@@ -459,10 +497,15 @@ export function StepThree({
                   <div
                     className="rounded-lg bg-white p-4 border border-slate-100 overflow-hidden"
                     dangerouslySetInnerHTML={{
-                      __html: renderCampaignEmailHtml({
-                        body: fillSampleVars(emailBody || 'Your message here...'),
-                        imageUrl: heroImageUrl || null
-                      })
+                      __html: usingBlocks
+                        ? renderCampaignEmailHtml({
+                            html: fillSampleVars(renderBlocksToHtml(emailBlocks!)),
+                            imageUrl: heroImageUrl || null
+                          })
+                        : renderCampaignEmailHtml({
+                            body: fillSampleVars(emailBody || 'Your message here...'),
+                            imageUrl: heroImageUrl || null
+                          })
                     }}
                   />
                   <p className="text-[11px] text-slate-400 mt-2">
@@ -492,7 +535,7 @@ export function StepThree({
             </div>
 
             {/* A/B TEST */}
-            {abTest && onAbChange && (
+            {abTest && onAbChange && !usingBlocks && (
               <div className="border-t border-slate-100 pt-3 space-y-3">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -693,8 +736,8 @@ export function StepThree({
           </div>
         )}
 
-        {/* VARIABLES TOOLBAR (EMAIL & SMS only) */}
-        {channel !== 'WHATSAPP' && (
+        {/* VARIABLES TOOLBAR (EMAIL & SMS only; plain body) */}
+        {channel !== 'WHATSAPP' && !usingBlocks && (
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 mt-3">
             <p className="text-xs font-semibold text-slate-600 mb-2">
               Insert variable
@@ -895,7 +938,7 @@ export function StepThree({
           onClick={() => onSubmit(sendNow ? 'send' : 'schedule')}
           disabled={
             isSubmitting ||
-            !templateBody.trim() ||
+            (usingBlocks ? !(emailBlocks && emailBlocks.length > 0) : !templateBody.trim()) ||
             (channel === 'WHATSAPP' && !whatsappTemplateId) ||
             (!sendNow && !scheduledAt) ||
             recipientCount === 0

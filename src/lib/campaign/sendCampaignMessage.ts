@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { sendCampaignEmail, sendCampaignSMS, sendCampaignWhatsApp } from './channels'
 import { prisma } from '@/lib/db/client'
 import { buildTemplateParameters } from './templateParams'
+import { renderBlocksToHtml, type EmailBlock } from './renderEmail'
 
 function replaceVariables(
   template: string,
@@ -26,6 +27,8 @@ export async function sendCampaignMessage(
     templateBody: string | null
     /** Hero image rendered above the body on EMAIL sends. */
     heroImageUrl?: string | null
+    /** Rich block-builder body (EMAIL). Rendered to HTML at send. */
+    emailBlocks?: unknown
     whatsappTemplateId?: string | null
     /** Compose-time custom token values (merged over auto-filled ones). */
     paramValues?: Record<string, string> | null
@@ -148,6 +151,15 @@ export async function sendCampaignMessage(
         return { success: false, error: 'No email address' }
       }
       const fromName = senderFrom?.name || campaign.organization.name
+      // Block-builder body → HTML, with the same {{variable}} substitution
+      // applied to the rendered markup.
+      let bodyHtml: string | null = null
+      if (Array.isArray(campaign.emailBlocks) && campaign.emailBlocks.length > 0) {
+        bodyHtml = replaceVariables(
+          renderBlocksToHtml(campaign.emailBlocks as EmailBlock[]),
+          variables
+        )
+      }
       const emailRes = await sendCampaignEmail({
         to: recipient.email,
         subject: '', // subject will be parsed in sendCampaignEmail from body
@@ -155,7 +167,8 @@ export async function sendCampaignMessage(
         fromName,
         campaignName: campaign.name,
         imageUrl: campaign.heroImageUrl ?? null,
-        from: senderFrom ? { email: senderFrom.email, name: fromName } : undefined
+        from: senderFrom ? { email: senderFrom.email, name: fromName } : undefined,
+        bodyHtml
       })
       return { success: true, messageId: emailRes.messageId ?? null }
     } else if (campaign.channel === CampaignChannel.SMS) {

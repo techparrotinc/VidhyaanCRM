@@ -14,6 +14,8 @@ export async function sendCampaignEmail(params: {
   imageUrl?: string | null
   /** BYO org sending domain — From address override (else shared domain). */
   from?: { email: string; name: string }
+  /** Pre-rendered inner HTML (block builder). Supersedes the plain body. */
+  bodyHtml?: string | null
 }): Promise<{ messageId?: string }> {
   let subject = params.subject
   let bodyContent = params.body
@@ -29,7 +31,9 @@ export async function sendCampaignEmail(params: {
     subject = params.campaignName || 'Message from your school'
   }
 
-  const html = renderCampaignEmailHtml({ body: bodyContent, imageUrl: params.imageUrl })
+  const html = params.bodyHtml
+    ? renderCampaignEmailHtml({ html: params.bodyHtml, imageUrl: params.imageUrl })
+    : renderCampaignEmailHtml({ body: bodyContent, imageUrl: params.imageUrl })
 
   const res = await zeptoSendCampaignEmail({
     to: params.to,

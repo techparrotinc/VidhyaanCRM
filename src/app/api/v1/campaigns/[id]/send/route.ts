@@ -471,6 +471,8 @@ async function handleSendCampaign({
               channel: campaign.channel,
               templateBody: variant?.templateBody ?? campaign.templateBody,
               heroImageUrl: variant ? (variant.heroImageUrl ?? null) : (campaign.heroImageUrl ?? null),
+              // A/B variants are plain-body; blocks apply only to the base send.
+              emailBlocks: variant ? null : (campaign.emailBlocks ?? null),
               whatsappTemplateId: campaign.whatsappTemplateId ?? null,
               paramValues: (campaign.paramValues as Record<string, string> | null) ?? null,
               organization: {

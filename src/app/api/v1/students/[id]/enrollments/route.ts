@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db/client'
 import { nextInvoiceNumber } from '@/lib/invoice-number'
 import { HHMM } from '@/lib/timetable'
 import { materializeEnrollment } from '@/lib/schedule/materialize'
+import { assertNoStudentScheduleConflict } from '@/lib/schedule/conflicts'
 
 // Optional per-student custom weekly schedule. When present, the student gets
 // their own EnrollmentScheduleSlot rows (individual sessions) — mutually
@@ -205,6 +206,11 @@ export const POST = route({
           'This student is in a batch and follows its schedule. Remove them from the batch to set a custom schedule.'
         )
       }
+      await assertNoStudentScheduleConflict(db, {
+        studentId: id,
+        enrollmentId: enrollment.id,
+        slots: body.schedule.slots
+      })
       const slotStart = body.schedule.startDate ? new Date(body.schedule.startDate) : null
       const slotEnd = body.schedule.endDate ? new Date(body.schedule.endDate) : null
 

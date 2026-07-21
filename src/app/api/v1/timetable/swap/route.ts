@@ -32,6 +32,20 @@ export const POST = route({
       throw Errors.forbidden('You can only swap a period you teach')
     }
 
+    // A swap exchanges teachers between the two slots. Reject if that would
+    // book a teacher into two rooms at the same day/time. Each teacher lands in
+    // the OTHER slot's day/time, so check that spot for an existing clash
+    // (ignoring the two slots being swapped).
+    const clash = await findTeacherClash(db, [
+      { teacherId: b.teacherId, dayOfWeek: a.dayOfWeek, startTime: a.startTime, ignore: [a.id, b.id] },
+      { teacherId: a.teacherId, dayOfWeek: b.dayOfWeek, startTime: b.startTime, ignore: [a.id, b.id] }
+    ])
+    if (clash) {
+      throw Errors.validation({
+        slotBId: [`${clash.teacherName} is already teaching ${clash.subject} at that day and time`]
+      })
+    }
+
     await db.$transaction([
       db.timetableSlot.update({
         where: { id: a.id },
@@ -46,3 +60,24 @@ export const POST = route({
     return ok({ swapped: true, slotAId: a.id, slotBId: b.id })
   }
 })
+
+type ClashCheck = { teacherId: string | null; dayOfWeek: number; startTime: string; ignore: string[] }
+
+/** First day/time slot where a teacher is already booked (excluding `ignore`). */
+async function findTeacherClash(db: any, checks: ClashCheck[]) {
+  for (const c of checks) {
+    if (!c.teacherId) continue
+    const hit = await db.timetableSlot.findFirst({
+      where: {
+        teacherId: c.teacherId,
+        dayOfWeek: c.dayOfWeek,
+        startTime: c.startTime,
+        cancelledAt: null,
+        id: { notIn: c.ignore }
+      },
+      select: { subject: true, teacher: { select: { name: true } } }
+    })
+    if (hit) return { subject: hit.subject, teacherName: hit.teacher?.name ?? 'That teacher' }
+  }
+  return null
+}

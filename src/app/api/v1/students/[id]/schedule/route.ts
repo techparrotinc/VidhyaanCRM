@@ -6,6 +6,7 @@ import { MODULES } from '@/constants/modules'
 import { ROLES } from '@/constants/roles'
 import { HHMM } from '@/lib/timetable'
 import { materializeEnrollment } from '@/lib/schedule/materialize'
+import { assertNoStudentScheduleConflict } from '@/lib/schedule/conflicts'
 
 // Scheduling is a COURSE_SCHEDULE concern, NOT billing — LC orgs commonly run
 // course_schedule without fee_management, so this must never gate on
@@ -111,7 +112,10 @@ export const POST = route({
       return ok({ mode: 'batch', sessionsCreated: 0 })
     }
 
-    // Individual schedule: leave any group class, write the new slots, generate.
+    // Individual schedule: reject double-booking, then write + generate.
+    await assertNoStudentScheduleConflict(db, { studentId: id, enrollmentId: enrollment.id, slots: body.slots })
+
+    // Leave any group class, write the new slots, generate.
     await db.student.update({ where: { id }, data: { batchId: null } })
 
     const slotStart = body.startDate ? new Date(body.startDate) : null

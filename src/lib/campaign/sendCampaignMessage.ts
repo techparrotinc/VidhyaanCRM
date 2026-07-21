@@ -46,8 +46,10 @@ export async function sendCampaignMessage(
     senderId?: string
     smsFlowId?: string
     whatsappNumber?: string
-  }
-): Promise<{ success: boolean; error?: string; wamid?: string | null }> {
+  },
+  /** BYO org sending domain — EMAIL From override (else shared domain). */
+  senderFrom?: { email: string; name: string }
+): Promise<{ success: boolean; error?: string; wamid?: string | null; messageId?: string | null }> {
   try {
     const template = campaign.templateBody || ''
     // Auto-filled per-recipient values; compose-time custom values win for
@@ -145,14 +147,17 @@ export async function sendCampaignMessage(
       if (!recipient.email) {
         return { success: false, error: 'No email address' }
       }
-      await sendCampaignEmail({
+      const fromName = senderFrom?.name || campaign.organization.name
+      const emailRes = await sendCampaignEmail({
         to: recipient.email,
         subject: '', // subject will be parsed in sendCampaignEmail from body
         body,
-        fromName: campaign.organization.name,
+        fromName,
         campaignName: campaign.name,
-        imageUrl: campaign.heroImageUrl ?? null
+        imageUrl: campaign.heroImageUrl ?? null,
+        from: senderFrom ? { email: senderFrom.email, name: fromName } : undefined
       })
+      return { success: true, messageId: emailRes.messageId ?? null }
     } else if (campaign.channel === CampaignChannel.SMS) {
       if (!recipient.phone) {
         return { success: false, error: 'No phone number' }

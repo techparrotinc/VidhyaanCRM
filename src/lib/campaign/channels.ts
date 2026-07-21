@@ -12,7 +12,9 @@ export async function sendCampaignEmail(params: {
   campaignName: string
   /** hero image rendered above the body (e.g. event cover) */
   imageUrl?: string | null
-}): Promise<void> {
+  /** BYO org sending domain — From address override (else shared domain). */
+  from?: { email: string; name: string }
+}): Promise<{ messageId?: string }> {
   let subject = params.subject
   let bodyContent = params.body
 
@@ -29,13 +31,15 @@ export async function sendCampaignEmail(params: {
 
   const html = renderCampaignEmailHtml({ body: bodyContent, imageUrl: params.imageUrl })
 
-  await zeptoSendCampaignEmail({
+  const res = await zeptoSendCampaignEmail({
     to: params.to,
     toName: params.to,
     subject,
     htmlBody: html,
-    textBody: html.replace(/<[^>]*>/g, '')
+    textBody: html.replace(/<[^>]*>/g, ''),
+    from: params.from
   })
+  return { messageId: res.messageId }
 }
 
 export interface SmsCredentials {

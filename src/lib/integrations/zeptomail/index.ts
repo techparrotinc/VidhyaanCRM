@@ -38,6 +38,9 @@ interface SendArgs {
   textBody?: string
   /** Delivered via ZeptoMail; the SES failover sends without attachments. */
   attachments?: EmailAttachment[]
+  /** Per-send From override (BYO org sending domain). Campaign kind only —
+   *  the org's own SES-verified domain instead of shared send.vidhyaan.com. */
+  from?: { email: string; name: string }
 }
 
 // Single delivery pipeline for both send kinds:
@@ -47,16 +50,18 @@ interface SendArgs {
 // domain must be verified in SES or its sends fail and the Zepto error wins.
 async function deliver(
   kind: 'transactional' | 'campaign',
-  { to, toName, subject, htmlBody, textBody, attachments }: SendArgs
-): Promise<{ success: boolean; suppressed?: boolean }> {
+  { to, toName, subject, htmlBody, textBody, attachments, from }: SendArgs
+): Promise<{ success: boolean; suppressed?: boolean; messageId?: string }> {
   if (await isEmailSuppressed(to)) {
     console.warn(`Email: skipping suppressed address (${kind}): ${to}`)
     return { success: false, suppressed: true }
   }
 
   const cfg = await getZeptoConfig()
-  const fromEmail = kind === 'campaign' ? cfg.campaignEmail : cfg.fromEmail
-  const fromName = kind === 'campaign' ? CAMPAIGN_NAME : FROM_NAME
+  // BYO org domain wins for campaigns; else the shared campaign/transactional
+  // from-addresses from config.
+  const fromEmail = from?.email ?? (kind === 'campaign' ? cfg.campaignEmail : cfg.fromEmail)
+  const fromName = from?.name ?? (kind === 'campaign' ? CAMPAIGN_NAME : FROM_NAME)
 
   const viaZepto = () =>
     clientForToken(cfg.token).sendMail({
@@ -98,9 +103,13 @@ async function deliver(
     primaryName = sesPrimary ? 'SES' : 'ZeptoMail'
   }
 
+  // SES returns a MessageId string; ZeptoMail returns its own response object.
+  // Only the string is our join key for delivery/bounce notifications.
+  const asMessageId = (r: unknown) => (typeof r === 'string' ? r : undefined)
+
   try {
-    await primary()
-    return { success: true }
+    const r = await primary()
+    return { success: true, messageId: asMessageId(r) }
   } catch (error: any) {
     console.error(`${primaryName} ${kind} send error:`, error?.message ?? error)
     if (!fallback) {
@@ -108,8 +117,8 @@ async function deliver(
     }
     try {
       console.warn(`Email: ${primaryName} failed, failing over for ${to}`)
-      await fallback()
-      return { success: true }
+      const r = await fallback()
+      return { success: true, messageId: asMessageId(r) }
     } catch (fallbackErr: any) {
       console.error('Email fallback send error:', fallbackErr?.message ?? fallbackErr)
       // Surface the PRIMARY error — it names the provider that should have worked.
@@ -120,12 +129,12 @@ async function deliver(
 
 export async function sendTransactionalEmail(
   args: SendArgs
-): Promise<{ success: boolean; suppressed?: boolean }> {
+): Promise<{ success: boolean; suppressed?: boolean; messageId?: string }> {
   return deliver('transactional', args)
 }
 
 export async function sendCampaignEmail(
   args: SendArgs
-): Promise<{ success: boolean; suppressed?: boolean }> {
+): Promise<{ success: boolean; suppressed?: boolean; messageId?: string }> {
   return deliver('campaign', args)
 }

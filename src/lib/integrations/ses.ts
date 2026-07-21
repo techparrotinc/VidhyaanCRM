@@ -1,4 +1,9 @@
-import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2'
+import {
+  SESv2Client,
+  SendEmailCommand,
+  CreateEmailIdentityCommand,
+  GetEmailIdentityCommand,
+} from '@aws-sdk/client-sesv2'
 
 // Amazon SES — backup transactional email provider (ap-south-1, same AWS
 // account as S3). Used by src/lib/integrations/zeptomail as automatic
@@ -41,11 +46,11 @@ export async function sendViaSes({
   textBody?: string
   fromEmail: string
   fromName: string
-}): Promise<void> {
+}): Promise<string | undefined> {
   // Quote display names (user-entered — may contain commas etc.).
   const display = (name: string, email: string) =>
     `"${name.replace(/["<>]/g, '')}" <${email}>`
-  await client().send(
+  const res = await client().send(
     new SendEmailCommand({
       FromEmailAddress: display(fromName, fromEmail),
       Destination: {
@@ -62,4 +67,40 @@ export async function sendViaSes({
       },
     })
   )
+  // SES message id — joins delivery/bounce/complaint notifications back to the
+  // recipient. SES prefixes the raw id ("<id>@region.amazonses.com") in the
+  // Message-ID header, but notifications report this bare id in mail.messageId.
+  return res.MessageId
+}
+
+// ── BYO custom sending domain (Enterprise) ────────────────────────────────
+// Register an org's domain as an SES Easy-DKIM identity and return the 3 DKIM
+// CNAME tokens for the user to publish. Idempotent-ish: if the identity already
+// exists SES errors, so callers fall back to getDomainIdentity.
+export async function createDomainIdentity(
+  domain: string
+): Promise<{ dkimTokens: string[] }> {
+  const res = await client().send(
+    new CreateEmailIdentityCommand({
+      EmailIdentity: domain,
+      DkimSigningAttributes: { NextSigningKeyLength: 'RSA_2048_BIT' },
+    })
+  )
+  return { dkimTokens: res.DkimAttributes?.Tokens ?? [] }
+}
+
+/** Poll SES for a domain identity's verification + DKIM state. */
+export async function getDomainIdentity(
+  domain: string
+): Promise<{ verified: boolean; dkimStatus: string | undefined; dkimTokens: string[] }> {
+  const res = await client().send(
+    new GetEmailIdentityCommand({ EmailIdentity: domain })
+  )
+  const dkimStatus = res.DkimAttributes?.Status
+  return {
+    // DKIM SUCCESS is what actually lets SES sign+send; treat it as verified.
+    verified: dkimStatus === 'SUCCESS',
+    dkimStatus,
+    dkimTokens: res.DkimAttributes?.Tokens ?? [],
+  }
 }

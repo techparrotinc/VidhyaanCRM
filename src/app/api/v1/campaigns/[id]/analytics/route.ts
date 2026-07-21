@@ -39,12 +39,21 @@ export const GET = route({
     const delivered = recipients.filter((r) => r.status === 'DELIVERED' || r.status === 'READ').length
     const read = recipients.filter((r) => r.status === 'READ').length
     const failed = recipients.filter((r) => r.status === 'FAILED').length
+    const bounced = recipients.filter((r) => r.status === 'BOUNCED').length
+    const complained = recipients.filter((r) => r.status === 'COMPLAINED').length
 
     const deliveryRate = sent > 0
       ? Math.round((delivered / sent) * 100 * 10) / 10
       : 0
     const readRate = delivered > 0
       ? Math.round((read / delivered) * 100 * 10) / 10
+      : 0
+    // Bounce/complaint measured against everything actually sent.
+    const bounceRate = sent > 0
+      ? Math.round((bounced / sent) * 100 * 10) / 10
+      : 0
+    const complaintRate = sent > 0
+      ? Math.round((complained / sent) * 100 * 100) / 100
       : 0
 
     let openRate: number | null = null
@@ -76,8 +85,12 @@ export const GET = route({
         delivered,
         read,
         failed,
+        bounced,
+        complained,
         deliveryRate,
         readRate,
+        bounceRate,
+        complaintRate,
         openRate,
         clickRate
       },

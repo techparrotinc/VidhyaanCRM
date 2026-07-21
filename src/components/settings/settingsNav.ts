@@ -193,6 +193,12 @@ export function buildSettingsNav(opts: {
           description: 'SMS & WhatsApp credits, your own provider accounts'
         },
         {
+          name: 'Sending Domain',
+          path: '/settings/sending-domain',
+          icon: Mail,
+          description: 'Send campaigns from your own email domain (Enterprise)'
+        },
+        {
           name: 'WhatsApp Templates',
           path: '/settings/whatsapp-templates',
           icon: MessageCircle,

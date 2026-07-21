@@ -12,6 +12,8 @@ import { mintCampaignInstance } from '@/lib/forms/send'
 import { spendCreditsWithIntent, confirmSpendIntent, refundCredits, InsufficientCreditsError } from '@/lib/credits/engine'
 import { getActiveProviderConfig } from '@/lib/credits/provider'
 import { emailMonthlyLimit, emailDailyLimit, ADDON_DAILY_CAP, startOfDayIST } from '@/lib/campaign/limits'
+import { resolveOrgCampaignFrom } from '@/lib/campaign/sendingDomain'
+import { checkEmailDeliverabilityGuard } from '@/lib/campaign/deliverability'
 import type { MessageChannel } from '@prisma/client'
 
 const sendConfigSchema = z.object({
@@ -50,6 +52,13 @@ async function handleSendCampaign({
   let emailRemaining = Infinity
   let emailDailyRemaining = Infinity
   if (!isCreditChannel) {
+    // Auto-pause guardrail — block email sends when recent bounce/complaint
+    // rates breach shared-domain-safe thresholds.
+    const guard = await checkEmailDeliverabilityGuard(db, orgId)
+    if (guard.blocked) {
+      return NextResponse.json({ success: false, error: guard.reason }, { status: 403 })
+    }
+
     const now = new Date()
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
@@ -386,6 +395,13 @@ async function handleSendCampaign({
     data: { status: CampaignStatus.SENDING }
   })
 
+  // BYO verified sending domain (Enterprise) — EMAIL From override, resolved
+  // once per campaign. undefined = fall back to shared send.vidhyaan.com.
+  const senderFrom =
+    campaign.channel === CampaignChannel.EMAIL
+      ? await resolveOrgCampaignFrom(orgId)
+      : undefined
+
   // STEP 9 — Send messages (Process in batches of 50)
   const batchSize = 50
   for (let i = 0; i < recipientRecords.length; i += batchSize) {
@@ -434,7 +450,8 @@ async function handleSendCampaign({
               email: record.email,
               formLink
             },
-            providerCreds ?? undefined
+            providerCreds ?? undefined,
+            senderFrom
           )
 
           if (result.success) {
@@ -443,7 +460,9 @@ async function handleSendCampaign({
               data: {
                 status: 'SENT' as const,
                 sentAt: new Date(),
-                providerMessageId: result.wamid ?? null
+                // wamid (WhatsApp) or SES messageId (email) — the join key for
+                // the delivery/bounce/complaint webhooks.
+                providerMessageId: result.wamid ?? result.messageId ?? null
               }
             })
             // Outbound log — delivery webhook joins back via wamid

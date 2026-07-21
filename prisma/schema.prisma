@@ -394,6 +394,16 @@ enum CampaignSendStatus {
   DELIVERED
   READ
   FAILED
+  BOUNCED
+  COMPLAINED
+
+  @@schema("crm")
+}
+
+enum SendingDomainStatus {
+  PENDING
+  VERIFIED
+  FAILED
 
   @@schema("crm")
 }
@@ -3130,6 +3140,32 @@ model MessagingProviderConfig {
   @@unique([orgId, channel])
   @@map("messaging_provider_configs")
   @@schema("billing")
+}
+
+/// Per-org custom sending domain (BYO email domain, Enterprise plan) — a
+/// domain the org verifies in Amazon SES so their campaigns send From their
+/// own brand instead of the shared send.vidhyaan.com. One per org (v1). Soft
+/// ref to organizations (no relation, mirrors Referral). dkimTokens hold the
+/// 3 SES Easy-DKIM CNAME tokens shown to the user for their DNS.
+model OrgSendingDomain {
+  id            String              @id @default(cuid())
+  orgId         String              @map("org_id") // soft reference to organizations
+  domain        String              // e.g. mail.stmarys.edu.in
+  fromLocalPart String              @default("no-reply") @map("from_local_part")
+  fromName      String?             @map("from_name")
+  status        SendingDomainStatus @default(PENDING)
+  dkimTokens    String[]            @map("dkim_tokens")
+  verifiedAt    DateTime?           @map("verified_at")
+  lastCheckedAt DateTime?           @map("last_checked_at")
+  createdById   String?             @map("created_by_id")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  deletedAt     DateTime?           @map("deleted_at")
+
+  @@unique([orgId])
+  @@index([domain])
+  @@map("org_sending_domains")
+  @@schema("crm")
 }
 
 /// Referral program (Phase 2; fields scaffolded now per spec).

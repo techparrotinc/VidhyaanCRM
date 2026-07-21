@@ -3,13 +3,14 @@ import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { ROLES } from '@/constants/roles'
-import { sendTransactionalEmail } from '@/lib/integrations/zeptomail'
+import { sendCampaignEmail } from '@/lib/integrations/zeptomail'
 import { renderCampaignEmailHtml, renderBlocksToHtml, splitSubject, type EmailBlock } from '@/lib/campaign/renderEmail'
 
 // Send ONE test email so the composer can preview the real render before
 // blasting the audience. EMAIL-only in v1 (SMS/WhatsApp tests would burn
-// credits + need an approved template). Goes through the transactional
-// pipeline — bypasses campaign quota + never touches the daily cap.
+// credits + need an approved template). Goes through the CAMPAIGN pipeline
+// (Amazon SES, from send.vidhyaan.com) so it exercises the exact path a real
+// campaign takes — bypasses quota + never touches the daily cap.
 const schema = z.object({
   channel: z.literal('EMAIL'),
   to: z.string().email(),
@@ -30,12 +31,21 @@ export const POST = route({
       ? renderCampaignEmailHtml({ html: renderBlocksToHtml(body.emailBlocks as EmailBlock[]), imageUrl: body.heroImageUrl })
       : renderCampaignEmailHtml({ body: text, imageUrl: body.heroImageUrl })
 
-    const res = await sendTransactionalEmail({
-      to: body.to,
-      subject: `[TEST] ${subject}`,
-      htmlBody: html,
-      textBody: text,
-    })
+    let res: { success: boolean; suppressed?: boolean }
+    try {
+      res = await sendCampaignEmail({
+        to: body.to,
+        subject: `[TEST] ${subject}`,
+        htmlBody: html,
+        textBody: text,
+      })
+    } catch (err: any) {
+      // Surface the provider error (e.g. SES sandbox: recipient not verified)
+      // so the composer sees why instead of a generic failure.
+      throw Errors.businessRule(
+        `Test email failed to send: ${err?.message ?? 'sending error'}. If Amazon SES is still in sandbox, verify this address in SES or request production access.`
+      )
+    }
 
     if (!res.success) {
       throw Errors.businessRule(

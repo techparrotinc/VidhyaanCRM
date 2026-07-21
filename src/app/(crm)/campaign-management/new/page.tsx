@@ -213,8 +213,8 @@ export default function NewCampaignPage() {
         </div>
       </div>
 
-      {/* CONTENT AREA */}
-      <div className="p-4 lg:p-6 max-w-2xl mx-auto">
+      {/* CONTENT AREA — step 3 goes wide for the split-screen preview */}
+      <div className={`p-4 lg:p-6 mx-auto ${currentStep === 3 ? 'max-w-6xl' : 'max-w-2xl'}`}>
         {quota && (quota.limit === 0 || (quota.limit > 0 && quota.remaining === 0)) && (
           <div className="mb-4 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 font-medium">
             <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" />

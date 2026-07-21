@@ -27,6 +27,7 @@ export default function NewCampaignPage() {
   const [templateBody, setTemplateBody] = useState('')
   const [heroImageUrl, setHeroImageUrl] = useState('')
   const [emailBlocks, setEmailBlocks] = useState<any[]>([])
+  const [emailHtml, setEmailHtml] = useState('')
   const [abTest, setAbTest] = useState({ enabled: false, bSubject: '', bBody: '', percent: 20 })
   const [whatsappTemplateId, setWhatsappTemplateId] = useState('')
   const [paramValues, setParamValues] = useState<Record<string, string>>({})
@@ -80,10 +81,14 @@ export default function NewCampaignPage() {
     try {
       // A/B: variant A = the main subject+body; variant B from the toggle.
       const usingBlocks = channel === 'EMAIL' && emailBlocks.length > 0
+      const usingRich = channel === 'EMAIL' && !usingBlocks
+      // Variant A is the composed message (rich HTML appended after the
+      // Subject line so the A/B send renders it); Variant B is the plain
+      // alternative from the A/B card.
       const abVariants =
-        channel === 'EMAIL' && !usingBlocks && abTest.enabled && abTest.bBody.trim()
+        usingRich && abTest.enabled && abTest.bBody.trim()
           ? [
-              { key: 'A', subject: null, templateBody },
+              { key: 'A', subject: null, templateBody: `${templateBody}${emailHtml}` },
               { key: 'B', subject: abTest.bSubject || null, templateBody: `Subject: ${abTest.bSubject}\n\n${abTest.bBody}` },
             ]
           : null
@@ -104,6 +109,7 @@ export default function NewCampaignPage() {
           templateBody,
           heroImageUrl: channel === 'EMAIL' ? heroImageUrl || null : null,
           emailBlocks: usingBlocks ? emailBlocks : null,
+          emailHtml: usingRich ? emailHtml : null,
           abVariants,
           abTestPercent: abVariants ? abTest.percent : null,
           whatsappTemplateId: channel === 'WHATSAPP' ? whatsappTemplateId || null : null,
@@ -269,6 +275,8 @@ export default function NewCampaignPage() {
             onAbChange={setAbTest}
             emailBlocks={emailBlocks}
             onBlocksChange={setEmailBlocks}
+            emailHtml={emailHtml}
+            onEmailHtmlChange={setEmailHtml}
             onHeroImageChange={setHeroImageUrl}
             onBodyChange={setTemplateBody}
             onTemplateChange={setWhatsappTemplateId}

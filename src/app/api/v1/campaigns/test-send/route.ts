@@ -4,7 +4,7 @@ import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { ROLES } from '@/constants/roles'
 import { sendCampaignEmail } from '@/lib/integrations/zeptomail'
-import { renderCampaignEmailHtml, renderBlocksToHtml, splitSubject, type EmailBlock } from '@/lib/campaign/renderEmail'
+import { renderCampaignEmailHtml, renderBlocksToHtml, sanitizeEmailHtml, splitSubject, type EmailBlock } from '@/lib/campaign/renderEmail'
 
 // Send ONE test email so the composer can preview the real render before
 // blasting the audience. EMAIL-only in v1 (SMS/WhatsApp tests would burn
@@ -18,6 +18,7 @@ const schema = z.object({
   templateBody: z.string().max(4000),
   heroImageUrl: z.string().url().max(500).optional().nullable(),
   emailBlocks: z.array(z.record(z.string(), z.any())).max(50).optional().nullable(),
+  emailHtml: z.string().max(50000).optional().nullable(),
 })
 
 export const POST = route({
@@ -27,9 +28,12 @@ export const POST = route({
     const body = schema.parse(await req.json())
 
     const { subject, body: text } = splitSubject(body.templateBody, 'Campaign preview')
-    const html = body.emailBlocks && body.emailBlocks.length > 0
-      ? renderCampaignEmailHtml({ html: renderBlocksToHtml(body.emailBlocks as EmailBlock[]), imageUrl: body.heroImageUrl })
-      : renderCampaignEmailHtml({ body: text, imageUrl: body.heroImageUrl })
+    const html =
+      body.emailBlocks && body.emailBlocks.length > 0
+        ? renderCampaignEmailHtml({ html: renderBlocksToHtml(body.emailBlocks as EmailBlock[]), imageUrl: body.heroImageUrl })
+        : body.emailHtml
+          ? renderCampaignEmailHtml({ html: sanitizeEmailHtml(body.emailHtml), imageUrl: body.heroImageUrl })
+          : renderCampaignEmailHtml({ body: text, imageUrl: body.heroImageUrl })
 
     let res: { success: boolean; suppressed?: boolean }
     try {

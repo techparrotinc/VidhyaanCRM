@@ -9,6 +9,7 @@ import { useWhatsappTemplates } from '@/hooks/useWhatsappTemplates'
 import { previewTemplateBody } from '@/lib/campaign/templateParams'
 import { renderCampaignEmailHtml, renderBlocksToHtml, type EmailBlock } from '@/lib/campaign/renderEmail'
 import { BlockBuilder } from './BlockBuilder'
+import { RichTextEditor, type RichTextEditorHandle } from './RichTextEditor'
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar as UiCalendar } from "@/components/ui/calendar"
 import { AppSelect } from '@/components/ui/app-select'
@@ -53,6 +54,9 @@ interface StepThreeProps {
   onAbChange?: (v: { enabled: boolean; bSubject: string; bBody: string; percent: number }) => void
   emailBlocks?: EmailBlock[]
   onBlocksChange?: (b: EmailBlock[]) => void
+  /** Rich-text WYSIWYG HTML body (EMAIL). */
+  emailHtml?: string
+  onEmailHtmlChange?: (html: string) => void
   onHeroImageChange: (url: string) => void
   onBodyChange: (body: string) => void
   onTemplateChange: (templateId: string) => void
@@ -68,14 +72,15 @@ export function StepThree(props: StepThreeProps) {
   const {
     channel, campaignName, templateBody, whatsappTemplateId, formTemplateId,
     paramValues, heroImageUrl, scheduledAt, sendNow, recipientCount,
-    abTest, onAbChange, emailBlocks, onBlocksChange, onHeroImageChange,
-    onBodyChange, onTemplateChange, onParamValuesChange, onFormTemplateChange,
-    onScheduleChange, onSendNowChange, onSubmit, isSubmitting,
+    abTest, onAbChange, emailBlocks, onBlocksChange, emailHtml, onEmailHtmlChange,
+    onHeroImageChange, onBodyChange, onTemplateChange, onParamValuesChange,
+    onFormTemplateChange, onScheduleChange, onSendNowChange, onSubmit, isSubmitting,
   } = props
 
   const router = useRouter()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
+  const rteRef = useRef<RichTextEditorHandle>(null)
 
   const { templates, isLoading: isTemplatesLoading } = useWhatsappTemplates(channel === 'WHATSAPP')
   const selectedTemplateId = whatsappTemplateId
@@ -95,12 +100,17 @@ export function StepThree(props: StepThreeProps) {
   const handleTimeChange = (time: string) => { setScheduleTime(time); updateSchedule(scheduleDate, time) }
 
   const [subject, setSubject] = useState('')
-  const [emailBody, setEmailBody] = useState('')
   const [smsBody, setSmsBody] = useState(templateBody ?? '')
+  const initialHtmlRef = useRef(emailHtml ?? '')
 
+  // Email body editor mode: 'text' = rich-text WYSIWYG, 'blocks' = block builder.
   const blocksAvailable = !!emailBlocks && !!onBlocksChange
-  const [builderMode, setBuilderMode] = useState<'plain' | 'blocks'>((emailBlocks?.length ?? 0) > 0 ? 'blocks' : 'plain')
+  const richAvailable = !!onEmailHtmlChange
+  const [builderMode, setBuilderMode] = useState<'text' | 'blocks'>((emailBlocks?.length ?? 0) > 0 ? 'blocks' : 'text')
   const usingBlocks = blocksAvailable && builderMode === 'blocks'
+  const usingRich = richAvailable && channel === 'EMAIL' && !usingBlocks
+
+  const commitSubject = (subj: string) => onBodyChange(`Subject: ${subj}\n\n`)
 
   const [isUploading, setIsUploading] = useState(false)
   const [testEmail, setTestEmail] = useState('')
@@ -127,9 +137,10 @@ export function StepThree(props: StepThreeProps) {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           channel: 'EMAIL', to: testEmail.trim(),
-          templateBody: `Subject: ${subject}\n\n${emailBody}`,
+          templateBody: `Subject: ${subject}\n\n`,
           heroImageUrl: heroImageUrl || null,
           emailBlocks: usingBlocks ? emailBlocks : null,
+          emailHtml: usingRich ? (emailHtml || '') : null,
         }),
       })
       const json = await res.json()
@@ -151,23 +162,20 @@ export function StepThree(props: StepThreeProps) {
   useEffect(() => {
     if (channel === 'EMAIL' && templateBody) {
       const lines = templateBody.split('\n')
-      if ((lines[0] ?? '').startsWith('Subject:')) {
-        setSubject(lines[0].replace('Subject:', '').trim())
-        setEmailBody(lines.slice(2).join('\n').trim())
-      } else setEmailBody(templateBody)
+      if ((lines[0] ?? '').startsWith('Subject:')) setSubject(lines[0].replace('Subject:', '').trim())
     } else if (channel === 'SMS') setSmsBody(templateBody ?? '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function insertAtCursor(variable: string) {
+    // EMAIL rich-text → insert into the WYSIWYG editor at the caret.
+    if (channel === 'EMAIL') { rteRef.current?.insertText(variable); return }
+    // SMS → plain textarea.
     const textarea = textareaRef.current
-    const cur = channel === 'EMAIL' ? emailBody : smsBody
-    const setCur = channel === 'EMAIL' ? setEmailBody : setSmsBody
-    const commit = (val: string) => onBodyChange(channel === 'EMAIL' ? `Subject: ${subject}\n\n${val}` : val)
-    if (!textarea) { setCur(cur + variable); commit(cur + variable); return }
+    if (!textarea) { setSmsBody((p) => { const n = p + variable; onBodyChange(n); return n }); return }
     const start = textarea.selectionStart, end = textarea.selectionEnd
-    const next = cur.slice(0, start) + variable + cur.slice(end)
-    setCur(next); commit(next)
+    const next = smsBody.slice(0, start) + variable + smsBody.slice(end)
+    setSmsBody(next); onBodyChange(next)
     requestAnimationFrame(() => { textarea.selectionStart = textarea.selectionEnd = start + variable.length; textarea.focus() })
   }
 
@@ -182,9 +190,12 @@ export function StepThree(props: StepThreeProps) {
     })()
   }, [channel])
 
+  // Rich HTML with no real text (just empty tags) shouldn't count as content.
+  const richHasText = !!(emailHtml && emailHtml.replace(/<[^>]*>/g, '').trim().length > 0)
+  const emailHasBody = usingBlocks ? !!(emailBlocks && emailBlocks.length > 0) : richHasText
   const canSend =
     !isSubmitting &&
-    (usingBlocks ? !!(emailBlocks && emailBlocks.length > 0) : !!templateBody.trim()) &&
+    (channel === 'EMAIL' ? emailHasBody : !!templateBody.trim()) &&
     !(channel === 'WHATSAPP' && !whatsappTemplateId) &&
     (sendNow || !!scheduledAt) &&
     recipientCount > 0
@@ -192,9 +203,9 @@ export function StepThree(props: StepThreeProps) {
   const inputCls = 'w-full h-10 px-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8]'
 
   // ── Live preview content ──────────────────────────────────────────────
-  const emailHtml = usingBlocks
+  const emailPreviewHtml = usingBlocks
     ? renderCampaignEmailHtml({ html: fillSampleVars(renderBlocksToHtml(emailBlocks ?? [])), imageUrl: heroImageUrl || null })
-    : renderCampaignEmailHtml({ body: fillSampleVars(emailBody || 'Your message will appear here…'), imageUrl: heroImageUrl || null })
+    : renderCampaignEmailHtml({ html: fillSampleVars(emailHtml || '<span style="color:#94a3b8">Your message will appear here…</span>'), imageUrl: heroImageUrl || null })
   const smsPreview = fillSampleVars(smsBody || 'Your SMS message will appear here…')
   const waPreview = selectedTemplate
     ? previewTemplateBody(selectedTemplate.body, selectedTemplate.variables, {
@@ -214,8 +225,8 @@ export function StepThree(props: StepThreeProps) {
             icon={channel === 'EMAIL' ? Mail : channel === 'WHATSAPP' ? WhatsAppIcon : Send}
             action={channel === 'EMAIL' && blocksAvailable ? (
               <div className="flex rounded-lg border border-slate-200 overflow-hidden text-[11px] font-semibold">
-                <button type="button" onClick={() => { setBuilderMode('plain'); onBlocksChange!([]) }} className={`px-2.5 py-1 ${!usingBlocks ? 'bg-[#1565D8] text-white' : 'bg-white text-slate-500'}`}>Plain</button>
-                <button type="button" onClick={() => { setBuilderMode('blocks'); if ((emailBlocks?.length ?? 0) === 0) onBlocksChange!([{ type: 'text', text: emailBody || 'Write your message here.' }]) }} className={`px-2.5 py-1 ${usingBlocks ? 'bg-[#1565D8] text-white' : 'bg-white text-slate-500'}`}>Rich blocks</button>
+                <button type="button" onClick={() => { setBuilderMode('text'); onBlocksChange!([]) }} className={`px-2.5 py-1 ${!usingBlocks ? 'bg-[#1565D8] text-white' : 'bg-white text-slate-500'}`}>Text</button>
+                <button type="button" onClick={() => setBuilderMode('blocks')} className={`px-2.5 py-1 ${usingBlocks ? 'bg-[#1565D8] text-white' : 'bg-white text-slate-500'}`}>Blocks</button>
               </div>
             ) : undefined}
           >
@@ -224,14 +235,14 @@ export function StepThree(props: StepThreeProps) {
               <div className="space-y-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">Subject line</label>
-                  <input value={subject} onChange={(e) => setSubject(e.target.value)} onBlur={() => onBodyChange(`Subject: ${subject}\n\n${emailBody}`)} placeholder="e.g. Parent–Teacher Meeting this Saturday" className={inputCls} />
+                  <input value={subject} onChange={(e) => { setSubject(e.target.value); commitSubject(e.target.value) }} placeholder="e.g. Parent–Teacher Meeting this Saturday" className={inputCls} />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">Body</label>
                   {usingBlocks ? (
                     <BlockBuilder blocks={emailBlocks!} onChange={onBlocksChange!} />
                   ) : (
-                    <textarea ref={textareaRef} value={emailBody} onChange={(e) => setEmailBody(e.target.value)} onBlur={() => onBodyChange(`Subject: ${subject}\n\n${emailBody}`)} rows={9} placeholder="Dear {{parentName}},&#10;&#10;Your message here…" className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#1565D8]/20 focus:border-[#1565D8]" />
+                    <RichTextEditor ref={rteRef} initialHtml={initialHtmlRef.current} onChange={(html) => onEmailHtmlChange?.(html)} placeholder="Dear {{parentName}}, write your message here…" />
                   )}
                 </div>
               </div>
@@ -425,7 +436,7 @@ export function StepThree(props: StepThreeProps) {
                     <p className="text-[13px] font-bold text-slate-800 leading-snug">{subject || <span className="text-slate-300 font-normal">No subject yet</span>}</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">{campaignName || 'Your institution'} · campaigns@send.vidhyaan.com</p>
                   </div>
-                  <div className="p-4 text-[13px]" dangerouslySetInnerHTML={{ __html: emailHtml }} />
+                  <div className="p-4 text-[13px]" dangerouslySetInnerHTML={{ __html: emailPreviewHtml }} />
                 </div>
               )}
 
@@ -447,7 +458,7 @@ export function StepThree(props: StepThreeProps) {
                 <p className="text-[11px] font-semibold text-slate-500">Send yourself a test</p>
                 <div className="flex gap-2">
                   <input type="email" value={testEmail} onChange={(e) => setTestEmail(e.target.value)} placeholder="you@example.com" className="flex-1 min-w-0 h-9 px-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-[#1565D8]" />
-                  <button type="button" onClick={handleTestSend} disabled={isTesting || !emailBody.trim()} className="flex items-center gap-1.5 px-3 h-9 text-xs font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-700 disabled:opacity-40">
+                  <button type="button" onClick={handleTestSend} disabled={isTesting || !emailHasBody} className="flex items-center gap-1.5 px-3 h-9 text-xs font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-700 disabled:opacity-40">
                     {isTesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}Test
                   </button>
                 </div>

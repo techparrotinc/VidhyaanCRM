@@ -10,6 +10,27 @@ export function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;')
 }
 
+/** Conservative allowlist-ish sanitizer for the rich-text (WYSIWYG) email body.
+ *  Authors are staff and the output renders in email clients (which strip
+ *  scripts anyway), but we still remove the dangerous bits: script/style/iframe
+ *  blocks, inline event handlers, and javascript: URLs. Keeps formatting tags
+ *  (b/i/u/font/span-style/div-align/ul/ol/li/a/br/p/h1-3). */
+export function sanitizeEmailHtml(html: string): string {
+  if (!html) return ''
+  return html
+    // strip whole dangerous elements + their content
+    .replace(/<\/?(script|style|iframe|object|embed|link|meta)[^>]*>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    // strip inline event handlers  on*="..."  /  on*='...'
+    .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+    .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+    .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
+    // neutralize javascript: / data: URLs in href/src
+    .replace(/(href|src)\s*=\s*"(\s*(javascript|data):[^"]*)"/gi, '$1="#"')
+    .replace(/(href|src)\s*=\s*'(\s*(javascript|data):[^']*)'/gi, "$1='#'")
+}
+
 /** Split an optional leading "Subject: …" line off the body, mirroring the
  *  convention the compose UI writes. Returns the resolved subject + body. */
 export function splitSubject(

@@ -2586,6 +2586,10 @@ model Campaign {
   /// supersedes templateBody for the rendered HTML; templateBody still carries
   /// the "Subject: …" line + a plain-text fallback.
   emailBlocks        Json?           @map("email_blocks")
+  /// Rich-text WYSIWYG body (EMAIL) — sanitized HTML from the formatting editor
+  /// (bold/italic/underline/align/font). Rendered as the email body; supersedes
+  /// the plain templateBody body. templateBody still carries the "Subject:" line.
+  emailHtml          String?         @map("email_html")
   /// Soft ref to crm.whatsapp_templates — chosen approved template for
   /// WHATSAPP campaigns (send builds positional params from it)
   whatsappTemplateId String?         @map("whatsapp_template_id")

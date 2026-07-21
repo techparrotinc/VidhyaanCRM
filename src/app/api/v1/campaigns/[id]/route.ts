@@ -21,6 +21,7 @@ const campaignSchema = z.object({
   templateBody: z.string().max(2000).optional().nullable(),
   heroImageUrl: z.string().url().max(500).optional().nullable(),
   emailBlocks: z.array(z.record(z.string(), z.any())).max(50).optional().nullable(),
+  emailHtml: z.string().max(50000).optional().nullable(),
   abVariants: z.array(z.object({
     key: z.string().max(4),
     subject: z.string().max(200).optional().nullable(),
@@ -132,6 +133,7 @@ export const PUT = route({
         templateBody: data.templateBody,
         heroImageUrl: data.heroImageUrl !== undefined ? data.heroImageUrl : undefined,
         emailBlocks: data.emailBlocks !== undefined ? ((data.emailBlocks as Prisma.InputJsonValue) ?? undefined) : undefined,
+        emailHtml: data.emailHtml !== undefined ? data.emailHtml : undefined,
         abVariants: data.abVariants !== undefined ? ((data.abVariants as Prisma.InputJsonValue) ?? undefined) : undefined,
         abTestPercent: data.abTestPercent !== undefined ? data.abTestPercent : undefined,
         whatsappTemplateId: data.whatsappTemplateId !== undefined ? data.whatsappTemplateId : undefined,

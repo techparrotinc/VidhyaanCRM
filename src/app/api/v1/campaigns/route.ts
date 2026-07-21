@@ -22,6 +22,7 @@ const campaignSchema = z.object({
   templateBody: z.string().max(2000).optional().nullable(),
   heroImageUrl: z.string().url().max(500).optional().nullable(),
   emailBlocks: z.array(z.record(z.string(), z.any())).max(50).optional().nullable(),
+  emailHtml: z.string().max(50000).optional().nullable(),
   abVariants: z.array(z.object({
     key: z.string().max(4),
     subject: z.string().max(200).optional().nullable(),
@@ -156,6 +157,7 @@ export const POST = route({
         emailBlocks: data.channel === 'EMAIL' && data.emailBlocks
           ? (data.emailBlocks as Prisma.InputJsonValue)
           : undefined,
+        emailHtml: data.channel === 'EMAIL' ? (data.emailHtml ?? null) : null,
         // A/B is EMAIL-only; ignore variants on other channels.
         abVariants: data.channel === 'EMAIL' && data.abVariants
           ? (data.abVariants as Prisma.InputJsonValue)

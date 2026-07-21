@@ -4,6 +4,8 @@ import { route } from '@/lib/api/compose'
 import { ok } from '@/lib/api/respond'
 import { Errors } from '@/lib/api/errors'
 import { prisma } from '@/lib/db/client'
+import { getGradeLabel } from '@/constants/grades'
+import { mapGradeValue } from '@/lib/utils/gradeMapping'
 
 export const GET = route({
   module: 'campaign_management',
@@ -37,7 +39,9 @@ export const GET = route({
         if (f.field === 'status') {
           leadWhere.status = asEnum(LeadStatus, f.value, 'status')
         } else if (f.field === 'gradeSought' || f.field === 'gradeLabel') {
-          leadWhere.gradeSought = f.value
+          // Leads store gradeSought as a slug ("class_5"); normalize the filter
+          // value (which may arrive as a label) so it matches.
+          leadWhere.gradeSought = mapGradeValue(f.value)
         } else if (f.field === 'source') {
           leadWhere.source = asEnum(LeadSource, f.value, 'source')
         } else if (f.field === 'assignedToId') {
@@ -66,7 +70,9 @@ export const GET = route({
       filters.forEach((f) => {
         if (!f.value) return
         if (f.field === 'gradeLabel' || f.field === 'gradeSought') {
-          studentWhere.gradeLabel = f.value
+          // Students store gradeLabel as the class-master name / label
+          // ("Class 5"); normalize a slug filter value to the label.
+          studentWhere.gradeLabel = getGradeLabel(f.value)
         } else if (f.field === 'status') {
           studentWhere.status = asEnum(StudentStatus, f.value, 'status')
         } else if (f.field === 'academicYearId') {

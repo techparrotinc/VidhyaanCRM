@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { CheckCircle, Users, GraduationCap, Plus, X, ArrowRight } from 'lucide-react'
-import { GRADE_OPTIONS } from '@/constants/grades'
+import { useClassOptions } from '@/hooks/useClassOptions'
 import { useCounsellors } from '@/hooks/useCounsellors'
 import { useAcademicYears } from '@/hooks/useAcademicYears'
 import { DatePicker } from '@/components/ui/datetime-picker'
@@ -85,6 +85,9 @@ export function StepTwo({
 }: StepTwoProps) {
   const { counsellors } = useCounsellors()
   const { years } = useAcademicYears()
+  // Grade options come from the class/section master (same source the student &
+  // lead forms use), so filter values match what records actually store.
+  const { options: classOptions } = useClassOptions(institutionType === 'SCHOOL')
   const [courses, setCourses] = useState<any[]>([])
 
   // Fetch courses for learning center enrolled course filter
@@ -234,7 +237,8 @@ export function StepTwo({
       )
     }
 
-    // Grades
+    // Grades — sourced from the class master. Value stored is the class name
+    // (matches Student.gradeLabel); the API normalizes it for the leads pool.
     if (filter.field === 'gradeSought' || filter.field === 'gradeLabel') {
       return (
         <AppSelect
@@ -243,9 +247,9 @@ export function StepTwo({
           className="flex-1 h-9 px-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-[#1565D8]"
         >
           <option value="">Select grade...</option>
-          {GRADE_OPTIONS.map((g) => (
-            <option key={g.value} value={g.value}>
-              {g.label}
+          {classOptions.map((c) => (
+            <option key={c.name} value={c.name}>
+              {c.name}
             </option>
           ))}
         </AppSelect>

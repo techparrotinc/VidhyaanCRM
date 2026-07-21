@@ -12,6 +12,8 @@ import { mintCampaignInstance } from '@/lib/forms/send'
 import { spendCreditsWithIntent, confirmSpendIntent, refundCredits, InsufficientCreditsError } from '@/lib/credits/engine'
 import { getActiveProviderConfig } from '@/lib/credits/provider'
 import { emailMonthlyLimit, emailDailyLimit, ADDON_DAILY_CAP, startOfDayIST } from '@/lib/campaign/limits'
+import { getGradeLabel } from '@/constants/grades'
+import { mapGradeValue } from '@/lib/utils/gradeMapping'
 import { resolveOrgCampaignFrom } from '@/lib/campaign/sendingDomain'
 import { checkEmailDeliverabilityGuard } from '@/lib/campaign/deliverability'
 import type { MessageChannel } from '@prisma/client'
@@ -150,8 +152,9 @@ async function handleSendCampaign({
       if (!f.value) return
       if (f.field === 'status') {
         leadWhere.status = asEnum(LeadStatus, f.value, 'status')
-      } else if (f.field === 'gradeSought') {
-        leadWhere.gradeSought = f.value
+      } else if (f.field === 'gradeSought' || f.field === 'gradeLabel') {
+        // Leads store gradeSought as a slug; normalize a label filter value.
+        leadWhere.gradeSought = mapGradeValue(f.value)
       } else if (f.field === 'source') {
         leadWhere.source = asEnum(LeadSource, f.value, 'source')
       } else if (f.field === 'assignedToId') {
@@ -187,8 +190,10 @@ async function handleSendCampaign({
 
     filters.forEach((f: any) => {
       if (!f.value) return
-      if (f.field === 'gradeLabel') {
-        studentWhere.gradeLabel = f.value
+      if (f.field === 'gradeLabel' || f.field === 'gradeSought') {
+        // Students store gradeLabel as the class-master name/label; normalize
+        // a slug filter value to the label.
+        studentWhere.gradeLabel = getGradeLabel(f.value)
       } else if (f.field === 'status') {
         studentWhere.status = asEnum(StudentStatus, f.value, 'status')
       } else if (f.field === 'academicYearId') {

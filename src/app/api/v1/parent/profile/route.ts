@@ -34,6 +34,10 @@ export async function GET(req: NextRequest) {
         kids: {
           where: { deletedAt: null },
           orderBy: { createdAt: 'asc' }
+        },
+        guardianLinks: {
+          where: { status: { not: 'REVOKED' } },
+          select: { id: true }
         }
       }
     })
@@ -45,9 +49,15 @@ export async function GET(req: NextRequest) {
       )
     }
 
+    // Org-invited parents (linked to a school/LC student via StudentGuardianLink)
+    // can't self-delete — the school owns that relationship. Marketplace-only
+    // parents (no guardian link) are free to delete their own account.
+    const { guardianLinks, ...parentData } = parent
+    const canDeleteAccount = guardianLinks.length === 0
+
     return NextResponse.json({
       success: true,
-      data: parent
+      data: { ...parentData, canDeleteAccount }
     })
 
   } catch (error: any) {

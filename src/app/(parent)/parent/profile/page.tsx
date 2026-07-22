@@ -46,6 +46,7 @@ interface ParentProfile {
   email: string | null
   city: string | null
   kids: Kid[]
+  canDeleteAccount: boolean
 }
 
 const CITIES = [
@@ -796,13 +797,19 @@ export default function ParentProfilePage() {
             {/* Danger Zone */}
             <div className="mt-8 pt-5 border-t border-red-100">
               <h4 className="text-[10px] font-extrabold text-red-500 uppercase tracking-wider mb-2">Danger Zone</h4>
-              <button
-                type="button"
-                onClick={() => setDeleteModalOpen(true)}
-                className="text-xs font-bold text-red-650 hover:text-red-700 hover:underline cursor-pointer"
-              >
-                Delete Account
-              </button>
+              {profile?.canDeleteAccount === false ? (
+                <p className="text-xs font-normal text-slate-400 leading-relaxed">
+                  Delete Account unavailable — your account is linked to a school/learning centre. Contact the institution to remove access.
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setDeleteModalOpen(true)}
+                  className="text-xs font-bold text-red-650 hover:text-red-700 hover:underline cursor-pointer"
+                >
+                  Delete Account
+                </button>
+              )}
             </div>
           </Card>
 

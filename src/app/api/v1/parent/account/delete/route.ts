@@ -18,13 +18,28 @@ export async function POST(req: NextRequest) {
 
     // 1. Find Parent record
     const parent = await prisma.parent.findUnique({
-      where: { userId }
+      where: { userId },
+      include: {
+        guardianLinks: {
+          where: { status: { not: 'REVOKED' } },
+          select: { id: true }
+        }
+      }
     })
 
     if (!parent) {
       return NextResponse.json(
         { success: false, error: 'Parent record not found' },
         { status: 404 }
+      )
+    }
+
+    // Org-invited parents (linked to a school/LC student) can't self-delete —
+    // the school owns that relationship; only marketplace-only parents can.
+    if (parent.guardianLinks.length > 0) {
+      return NextResponse.json(
+        { success: false, error: 'Your account is linked to a school. Please contact the school to remove access.' },
+        { status: 403 }
       )
     }
 

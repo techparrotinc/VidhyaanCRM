@@ -21,12 +21,14 @@ const linkSchema = z.object({
   mode: z.literal('link')
 })
 
-async function consumePending(t: string) {
-  const key = `google_pending:${t}`
-  const raw = await redis.get(key)
+async function peekPending(t: string) {
+  const raw = await redis.get(`google_pending:${t}`)
   if (!raw) return null
-  await redis.del(key) // single-use
   return JSON.parse(raw) as { sub: string; email: string; name: string }
+}
+
+async function deletePending(t: string) {
+  await redis.del(`google_pending:${t}`) // single-use
 }
 
 /**
@@ -54,7 +56,7 @@ export async function POST(req: NextRequest) {
       if (!session?.user || session.user.role !== 'PARENT') {
         return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
       }
-      const pending = await consumePending(parsed.data.t)
+      const pending = await peekPending(parsed.data.t)
       if (!pending) {
         return NextResponse.json(
           { success: false, error: 'This link has expired. Please try again.' },
@@ -70,6 +72,7 @@ export async function POST(req: NextRequest) {
           { status: 409 }
         )
       }
+      await deletePending(parsed.data.t)
       if (!existingLink) {
         await prisma.userOAuthAccount.upsert({
           where: { userId_provider: { userId: session.user.id, provider: 'google' } },
@@ -103,7 +106,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const pending = await consumePending(t)
+    const pending = await peekPending(t)
     if (!pending) {
       return NextResponse.json(
         { success: false, error: 'This sign-in session has expired. Please try Google sign-in again.' },
@@ -153,6 +156,11 @@ export async function POST(req: NextRequest) {
         { status: 409 }
       )
     }
+
+    // Past this point the only remaining failures are unexpected (500s), so
+    // the token is safe to burn now — retries against a stale token would
+    // otherwise loop back to the phone-entry screen every time.
+    await deletePending(t)
 
     // Backfill a verified email onto an existing user missing one.
     if (!isNewUser && !user.email && emailFree) {

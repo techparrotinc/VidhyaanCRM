@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { MoreHorizontal, LogOut, X } from 'lucide-react'
-import { parentNavItems } from './parentNav'
+import { visibleParentNav } from './parentNav'
+import { useParentAccess } from './ParentAccessContext'
 
 /**
  * Mobile bottom tab bar: 4 ranked tabs + a "More" sheet holding the rest.
@@ -20,10 +21,13 @@ export default function ParentMobileNav() {
     setMoreOpen(false)
   }, [pathname])
 
-  const tabs = parentNavItems
+  const { hasLinkedStudent } = useParentAccess()
+  const navItems = visibleParentNav(hasLinkedStudent === true)
+
+  const tabs = navItems
     .filter((i) => i.mobileRank)
     .sort((a, b) => (a.mobileRank! - b.mobileRank!))
-  const moreItems = parentNavItems.filter((i) => !i.mobileRank)
+  const moreItems = navItems.filter((i) => !i.mobileRank)
   const moreActive = moreItems.some((i) => pathname === i.href || pathname.startsWith(i.href + '/'))
 
   return (

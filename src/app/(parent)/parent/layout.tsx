@@ -17,6 +17,8 @@ import { useUIStore } from '@/stores/ui.store'
 import ParentSidebar from '@/components/parent/ParentSidebar'
 import ParentMobileNav from '@/components/parent/ParentMobileNav'
 import ParentNotificationBell from '@/components/parent/ParentNotificationBell'
+import { ParentAccessProvider, useParentAccess } from '@/components/parent/ParentAccessContext'
+import { enrollmentOnlyHrefs } from '@/components/parent/parentNav'
 
 interface ParentLayoutProps {
   children: React.ReactNode
@@ -25,7 +27,9 @@ interface ParentLayoutProps {
 export default function ParentLayoutWrapper({ children }: ParentLayoutProps) {
   return (
     <SessionProvider>
-      <ParentLayout>{children}</ParentLayout>
+      <ParentAccessProvider>
+        <ParentLayout>{children}</ParentLayout>
+      </ParentAccessProvider>
     </SessionProvider>
   )
 }
@@ -37,10 +41,23 @@ function ParentLayout({ children }: ParentLayoutProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const sidebarCollapsed = useUIStore((s) => s.parentSidebarCollapsed)
+  const { hasLinkedStudent } = useParentAccess()
+
+  const onEnrollmentOnlyRoute = enrollmentOnlyHrefs.some(
+    (h) => pathname === h || pathname.startsWith(h + '/')
+  )
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Direct-URL guard: discovery parents (no linked ward) can't reach
+  // student-data pages even by typing the URL — bounce to dashboard.
+  useEffect(() => {
+    if (hasLinkedStudent === false && onEnrollmentOnlyRoute) {
+      router.replace('/parent/dashboard')
+    }
+  }, [hasLinkedStudent, onEnrollmentOnlyRoute, router])
 
   // Check authentication
   useEffect(() => {
@@ -170,7 +187,13 @@ function ParentLayout({ children }: ParentLayoutProps) {
       {/* 3. BODY CONTENT */}
       <main className="flex-1 min-w-0">
         <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-          {children}
+          {onEnrollmentOnlyRoute && hasLinkedStudent !== true ? (
+            <div className="flex items-center justify-center py-24">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            children
+          )}
         </div>
       </main>
 

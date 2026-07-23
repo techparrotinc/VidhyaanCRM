@@ -49,6 +49,16 @@ export async function requireParentFromRequest(req: Request): Promise<Parent | n
   return requireParentFromUserId(claims.userId)
 }
 
+/**
+ * True when the parent has ≥1 linked ward (school-invited or contact-matched).
+ * THE single definition of an "enrolled" parent — drives portal nav gating so
+ * the menu can never claim access the data routes would deny.
+ */
+export async function parentHasLinkedStudent(parent: Parent): Promise<boolean> {
+  const count = await prisma.student.count({ where: linkedStudentsWhere(parent) })
+  return count > 0
+}
+
 /** Where-clause matching crm students visible to this parent account. */
 export function linkedStudentsWhere(parent: Parent): Prisma.StudentWhereInput {
   // Match the current phone AND any phone this account has previously used —

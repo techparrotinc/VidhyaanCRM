@@ -6,7 +6,8 @@ import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import { ChevronLeft, ChevronRight, LogOut } from 'lucide-react'
 import { useUIStore } from '@/stores/ui.store'
-import { parentNavItems } from './parentNav'
+import { visibleParentNav } from './parentNav'
+import { useParentAccess } from './ParentAccessContext'
 
 /**
  * Desktop-only collapsible left sidebar for the parent portal.
@@ -18,6 +19,9 @@ export default function ParentSidebar() {
   const { data: session } = useSession()
   const collapsed = useUIStore((s) => s.parentSidebarCollapsed)
   const toggle = useUIStore((s) => s.toggleParentSidebar)
+  const { hasLinkedStudent } = useParentAccess()
+  // Default to the minimal (discovery) nav until the scope probe resolves.
+  const navItems = visibleParentNav(hasLinkedStudent === true)
 
   const parentName = session?.user?.name || 'Parent User'
   const parentInitials = parentName.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
@@ -43,7 +47,7 @@ export default function ParentSidebar() {
 
       {/* Nav links */}
       <nav className="flex-1 overflow-y-auto py-4 px-2.5 space-y-1">
-        {parentNavItems.map((item) => {
+        {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
           const Icon = item.icon
           return (

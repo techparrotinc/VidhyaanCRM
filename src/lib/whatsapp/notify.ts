@@ -32,6 +32,20 @@ export async function sendTemplateNotification(
   const phone = cleanPhoneNumber(args.phone ?? '') as string
   if (!phone || phone.length < 10) return false
 
+  // Honour a recipient parent's WhatsApp opt-out (Parent portal → My Profile →
+  // "WhatsApp Updates"). Workflow sends carry only the guardian number, so we
+  // match on the parent's current phone or any it has previously used. Absent a
+  // parent row the send proceeds (default on). Security/OTP sends don't route
+  // through here, so this never blocks login codes.
+  const optedOut = await prisma.parent.findFirst({
+    where: {
+      notifyWhatsapp: false,
+      OR: [{ phone }, { phoneHistory: { has: phone } }]
+    },
+    select: { id: true }
+  })
+  if (optedOut) return false
+
   const modules = await enabledModuleSlugs(args.orgId)
   if (!modules.has(MODULES.WHATSAPP_ADDON)) return false
 

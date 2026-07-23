@@ -19,6 +19,7 @@ import ParentMobileNav from '@/components/parent/ParentMobileNav'
 import ParentNotificationBell from '@/components/parent/ParentNotificationBell'
 import { ParentAccessProvider, useParentAccess } from '@/components/parent/ParentAccessContext'
 import { enrollmentOnlyHrefs } from '@/components/parent/parentNav'
+import { ConfirmProvider } from '@/components/ui/confirm-dialog'
 
 interface ParentLayoutProps {
   children: React.ReactNode
@@ -28,7 +29,9 @@ export default function ParentLayoutWrapper({ children }: ParentLayoutProps) {
   return (
     <SessionProvider>
       <ParentAccessProvider>
-        <ParentLayout>{children}</ParentLayout>
+        <ConfirmProvider>
+          <ParentLayout>{children}</ParentLayout>
+        </ConfirmProvider>
       </ParentAccessProvider>
     </SessionProvider>
   )

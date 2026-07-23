@@ -1397,6 +1397,14 @@ model Parent {
   name         String?
   city         String?
   pinHash      String?   @map("pin_hash")
+  // Marketplace notification + privacy consent (Parent portal → My Profile).
+  // Persisted so choices survive across devices and are honoured by any send
+  // path that can resolve the recipient to this Parent. Default on.
+  notifyEmail          Boolean @default(true) @map("notify_email")
+  notifySms            Boolean @default(true) @map("notify_sms")
+  notifyWhatsapp       Boolean @default(true) @map("notify_whatsapp")
+  allowSchoolContact   Boolean @default(true) @map("allow_school_contact")
+  showProfileToSchools Boolean @default(true) @map("show_profile_to_schools")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
   deletedAt    DateTime? @map("deleted_at")

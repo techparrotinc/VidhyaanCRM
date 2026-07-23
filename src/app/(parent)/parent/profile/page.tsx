@@ -1,6 +1,7 @@
 'use client'
 
 import { appAlert } from '@/components/ui/app-alert'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 import ConnectedAccountsCard from '@/components/parent/ConnectedAccountsCard'
 
 import React, { useState, useEffect } from 'react'
@@ -65,6 +66,7 @@ const GRADES = [...GRADE_LABEL_OPTIONS]
 
 export default function ParentProfilePage() {
   const router = useRouter()
+  const confirm = useConfirm()
   const [profile, setProfile] = useState<ParentProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -98,7 +100,8 @@ export default function ParentProfilePage() {
   const [kidError, setKidError] = useState<string | null>(null)
   const [kidSaving, setKidSaving] = useState(false)
 
-  // Account Preferences (stored in localStorage or state)
+  // Account Preferences — hydrated from the Parent row in fetchProfile and
+  // persisted via /api/v1/parent/profile/preferences (no longer localStorage).
   const [notifications, setNotifications] = useState({
     email: true,
     sms: true,
@@ -127,6 +130,15 @@ export default function ParentProfilePage() {
           email: json.data.email || '',
           city: json.data.city || 'Chennai'
         })
+        setNotifications({
+          email: json.data.notifyEmail ?? true,
+          sms: json.data.notifySms ?? true,
+          whatsapp: json.data.notifyWhatsapp ?? true
+        })
+        setPrivacy({
+          allowContact: json.data.allowSchoolContact ?? true,
+          showProfile: json.data.showProfileToSchools ?? true
+        })
       } else {
         throw new Error(json.error || 'Failed to parse profile data')
       }
@@ -140,31 +152,45 @@ export default function ParentProfilePage() {
 
   useEffect(() => {
     fetchProfile()
-
-    // Retrieve settings if saved
-    const savedNotifs = localStorage.getItem('parent_notifications')
-    const savedPrivacy = localStorage.getItem('parent_privacy')
-    if (savedNotifs) {
-      try { setNotifications(JSON.parse(savedNotifs)) } catch (e) {}
-    }
-    if (savedPrivacy) {
-      try { setPrivacy(JSON.parse(savedPrivacy)) } catch (e) {}
-    }
   }, [])
 
-  // Save Settings to LocalStorage on Change
+  // Persist a preference change to the Parent row. Optimistic — revert the
+  // toggle if the request fails so the UI never lies about stored consent.
+  const savePreference = async (
+    apiField: 'notifyEmail' | 'notifySms' | 'notifyWhatsapp' | 'allowSchoolContact' | 'showProfileToSchools',
+    value: boolean,
+    revert: () => void,
+    successMsg: string
+  ) => {
+    try {
+      const res = await fetch('/api/v1/parent/profile/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [apiField]: value })
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error || 'Failed to save preference')
+      triggerToast(successMsg)
+    } catch (err: any) {
+      revert()
+      setError(err.message || 'Failed to save preference')
+    }
+  }
+
   const updateNotificationPref = (key: keyof typeof notifications) => {
-    const updated = { ...notifications, [key]: !notifications[key] }
-    setNotifications(updated)
-    localStorage.setItem('parent_notifications', JSON.stringify(updated))
-    triggerToast('Notification preferences updated')
+    const value = !notifications[key]
+    const prev = notifications
+    setNotifications({ ...notifications, [key]: value })
+    const apiField = ({ email: 'notifyEmail', sms: 'notifySms', whatsapp: 'notifyWhatsapp' } as const)[key]
+    savePreference(apiField, value, () => setNotifications(prev), 'Notification preferences updated')
   }
 
   const updatePrivacyPref = (key: keyof typeof privacy) => {
-    const updated = { ...privacy, [key]: !privacy[key] }
-    setPrivacy(updated)
-    localStorage.setItem('parent_privacy', JSON.stringify(updated))
-    triggerToast('Privacy settings updated')
+    const value = !privacy[key]
+    const prev = privacy
+    setPrivacy({ ...privacy, [key]: value })
+    const apiField = ({ allowContact: 'allowSchoolContact', showProfile: 'showProfileToSchools' } as const)[key]
+    savePreference(apiField, value, () => setPrivacy(prev), 'Privacy settings updated')
   }
 
   const triggerToast = (msg: string) => {
@@ -361,7 +387,13 @@ export default function ParentProfilePage() {
   }
 
   const handleRemoveKid = async (kidId: string) => {
-    if (!confirm('Are you sure you want to remove this child profile?')) return
+    const ok = await confirm({
+      title: 'Remove child profile?',
+      message: 'This removes the child from your profile. It will no longer pre-fill new admission applications.',
+      confirmLabel: 'Remove',
+      variant: 'danger'
+    })
+    if (!ok) return
 
     try {
       const res = await fetch(`/api/v1/parent/kids/${kidId}`, {
